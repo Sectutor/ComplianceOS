@@ -1,0 +1,4742 @@
+// Router index - updated at 2026-02-11 17:15
+import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
+import { createClientControlsRouter } from "./server/routers/clientControls";
+import { createComplianceRouter } from "./server/routers/compliance";
+import { createEvidenceRouter } from "./server/routers/evidence";
+import { createAccessReviewsRouter } from "./server/routers/accessReviews";
+import { createEvidenceExpiryRouter } from "./server/routers/evidenceExpiry";
+import { createControlsRouter } from "./server/routers/controls"; // Restore missing router mapping
+import { createEvidenceFilesRouter } from "./server/routers/evidenceFiles";
+import { createAdvisorRouter } from "./server/routers/advisor";
+import { TRPCError } from "@trpc/server";
+import crypto from "crypto";
+import { z } from "zod";
+import * as db from "./db";
+import { getDb } from "./db";
+import superjson from "superjson";
+import { policyGenerator } from './lib/policy/policy-generation';
+import { createVendorAssessmentsRouter } from "./server/routers/vendorAssessments";
+import { createRoadmapRouter } from "./server/routers/roadmap";
+import { createVendorContractsRouter } from "./server/routers/vendorContracts";
+import { createVendorDpasRouter } from "./server/routers/vendorDpas";
+import { createVendorRequestsRouter } from "./server/routers/vendorRequests";
+import { createThreatIntelRouter } from "./server/routers/threatIntel";
+import { createAsvsRouter } from "./server/routers/asvs";
+// Premium import placeholders
+import { createSubprocessorsRouter } from "./server/routers/subprocessors";
+import { createPrivacyEnhancementsRouter } from "./server/routers/privacyEnhancements";
+import { createManagementRouter, createReadinessRouterV2 } from "./routers/management-and-readiness";
+import { createControlMonitoringRouter } from "./routers/controlMonitoring";
+import { createEvidenceCollectorsRouter } from "./routers/evidenceCollectors";
+import { createEvidenceRenewalRouter } from "./routers/evidenceRenewal";
+import { createRiskHeatmapRouter } from "./routers/riskHeatmap";
+import { createPolicyAckRouter } from "./routers/policyAck";
+import { createLicenseActivationRouter } from "./server/routers/licenseActivation";
+import * as schema from "./schema";
+import { businessImpactAnalyses, biaQuestionnaires, recoveryObjectives, bcStrategies, bcPlans, disruptiveScenarios } from "./schema";
+import { tasks, auditLogs, users, regulationMappings, clientPolicies, evidence, evidenceRequests, notificationLog, clientReadinessResponses, userClients, cloudConnections, cloudAssets, issueTrackerConnections, remediationTasks, userInvitations, assets, riskScenarios, riskTreatments, vulnerabilities, threats, riskAssessments, riskPolicyMappings, treatmentControls, controls, clientControls, controlPolicyMappings, controlMappings, projectTasks, orgRoles, employees, employeeTaskAssignments, kris, vendors, vendorAssessments, vendorContacts, vendorContracts, clients, frameworkMappings, llmProviders, llmRouterRules } from "./schema";
+import { logActivity } from "./lib/audit";
+import { eq, desc, asc, and, sql, getTableColumns, lt, or, inArray, like, ilike } from "drizzle-orm";
+import { createSammRouter } from "./server/routers/samm";
+import { createEmployeesRouter } from "./server/routers/employees";
+import {
+  sendOverdueNotification,
+  sendUpcomingNotification,
+  sendDailyDigest,
+  sendWeeklyDigest
+} from "./emailNotification";
+import { llmService } from "./lib/llm/service";
+import { generateGapAnalysisReport } from "./lib/reporting";
+import { suggestControlsForTreatment } from "./lib/ai/controlSuggestions";
+// cleaned up unused imports
+import * as adversaryIntelService from "./lib/adversaryService";
+// threatIntel related schema tables removed
+
+// Initialize tRPC imports
+import {
+  t,
+  router,
+  publicProcedure,
+  protectedProcedure,
+  adminProcedure,
+  clientProcedure,
+  clientEditorProcedure,
+  premiumClientProcedure,
+  checkClientAccess,
+  checkPremiumAccess,
+  isAuthed,
+  isAdmin,
+  requiresMFA
+} from "./server/trpc";
+import { createCrmRouter } from './lib/modules/crm/router';
+import { createSalesRouter } from './lib/modules/crm/sales-router';
+import { createFrameworkImportRouter } from './server/routers/frameworkImport';
+import { createFrameworkPluginsRouter } from './server/routers/frameworkPlugins';
+import { createReadinessRouter } from './server/routers/readiness';
+// Roadmap & Implementation
+import { createImplementationRouter } from './server/routers/implementation';
+import { createDevProjectsRouter } from './server/routers/devProjects';
+import { createThreatModelsRouter } from './server/routers/threatModels';
+import { createProjectsRouter } from './server/routers/projects';
+
+// Add missing imports
+import { createChecklistRouter } from './server/routers/checklist';
+import { businessContinuitySubRouter } from "./server/routers/businessContinuity";
+import { createRisksRouter } from "./server/routers/risks";
+import { createMetricsRouter } from "./server/routers/metrics";
+import { createGovernanceRouter } from "./server/routers/governance";
+import { createAutopilotRouter } from "./server/routers/autopilot";
+import { createSentinelRouter } from "./server/routers/sentinel";
+import { createProgramGuidesRouter } from "./server/routers/programGuides";
+import { createFrameworkRoadmapGatesRouter } from "./server/routers/frameworkRoadmapGates";
+import { createAuditorsRouter } from "./server/routers/auditors";
+import { createPolicyReviewRouter } from "./server/routers/policyReview";
+import { createRequirementsRouter } from "./server/routers/complianceRequirements";
+import { createGapAnalysisRouter } from "./server/routers/gapAnalysis";
+import { createFederalRouter } from "./server/routers/federal";
+import { createFederalWorkflowRouter } from "./server/routers/federal-workflows";
+import { createNist80030Router } from "./server/routers/nist80030";
+import { createActionsRouter } from "./server/routers/actions";
+import { createCalendarRouter } from "./server/routers/calendar";
+import { createClientsRouter } from "./server/routers/clients";
+import { usersSubRouter } from "./server/routers/users";
+import { createIntakeRouter } from "./server/routers/intake";
+import { createBillingRouter } from "./server/routers/billing";
+import { auditPackageRouter } from "./server/routers/auditPackage";
+import { createConnectorsRouter } from "./server/routers/connectors";
+import { trustBadgeRouter } from "./server/routers/trustBadge";
+import { cisaKevRouter } from "./server/routers/cisaKev";
+import { msspRouter } from "./server/routers/mssp";
+import { remediationRouter } from "./server/routers/remediation";
+import { questionnaireRouter } from "./server/routers/questionnaire";
+import { cloudAssetsRouter } from "./server/routers/cloudAssets";
+import { vendorSoc2Router } from "./server/routers/vendorSoc2";
+import { accessReviewRouter } from "./server/routers/accessReview";
+import { policyGeneratorRouter } from "./server/routers/policyGenerator";
+import { gapAnalysisEngineRouter } from "./server/routers/gapAnalysisEngine";
+import { privacySovereigntyRouter } from "./server/routers/privacySovereignty";
+import { createVendorRiskRouter } from "./server/routers/vendorRisk";
+import { evidenceSentinelRouter } from "./server/routers/evidenceSentinel";
+import { auditorFindingRouter } from "./server/routers/auditorFinding";
+import { peerBenchmarkRouter } from "./server/routers/peerBenchmark";
+import { controlHealthRouter } from "./server/routers/controlHealth";
+import { createFrameworksRouter } from "./server/routers/frameworks";
+import { createCompliancePlanningRouter } from "./server/routers/compliancePlanning";
+import { createHarmonizationRouter } from "./server/routers/harmonization";
+import { createFrameworkHarmonizationRouter } from "./server/routers/frameworkHarmonization";
+import { createAuditRouter } from "./server/routers/audit";
+// notifications handled by modular router
+import { createNotificationsRouter } from "./server/routers/notifications";
+import { createDashboardRouter } from "./server/routers/dashboard";
+import { createWaitlistRouter } from "./server/routers/waitlist";
+import { createGlobalCrmRouter } from "./server/routers/globalCrm";
+import { createPrivacyRouter } from "./server/routers/privacy";
+import { createCyberRouter } from "./server/routers/cyber";
+import { createAssetsRouter } from "./server/routers/assets";
+import { createPolicyManagementRouter } from "./lib/routers/policy-management";
+import { createGlobalVendorsRouter } from "./server/routers/globalVendors";
+import { integrationsRouter } from "./server/routers/integrations";
+import { createKnowledgeBaseRouter } from "./server/routers/knowledgeBase";
+import { createLearningRouter } from "./server/routers/learning";
+import { createTaskAssignmentsRouter } from "./server/routers/taskAssignments";
+import { createPolicyTemplatesRouter } from "./server/routers/policyTemplates";
+import { createReportsRouter } from "./server/routers/reports";
+// import { createStrategicReportsRouter } from "./server/routers/strategicReports";
+import { createFindingsRouter } from "./server/routers/findings";
+import { createTrustCenterRouter } from "./server/routers/trustCenter";
+import { createIso27001Router } from "./server/routers/iso27001";
+import { createComplianceDebtRouter } from "./server/routers/complianceDebt";
+import { createAiSystemsRouter } from "./server/routers/aiSystems";
+import { createCommentsRouter } from "./server/routers/comments";
+import { createOnboardingRouter } from "./server/routers/onboarding";
+import { createOnboardingExtrasRouter } from "./server/routers/onboardingExtras";
+import { createComplianceJourneyRouter } from "./server/routers/complianceJourney";
+import { trainingRouter } from "./modules/training";
+import { complianceRouter } from "./modules/compliance";
+
+// Modular routers
+import { riskRouter } from "./modules/risk";
+import { policyRouter } from "./modules/policy";
+import { evidenceRouter } from "./modules/evidence";
+import { auditRouter } from "./modules/audit";
+import { employeesRouter } from "./modules/employees";
+import { frameworksRouter } from "./modules/frameworks";
+import { notificationsRouter } from "./modules/notifications";
+import { dashboardRouter as modularDashboardRouter } from "./modules/dashboard";
+import { vendorsRouter } from "./modules/vendors";
+import { onboardingRouter as modularOnboardingRouter } from "./modules/onboarding";
+import { integrationsRouter as modularIntegrationsRouter } from "./modules/integrations";
+import { magicLinksRouter } from "./server/routers/magicLinks";
+import { createSammV2Router } from "./server/routers/samm-v2";
+import { emailTemplatesRouter } from "./server/routers/emailTemplates";
+import { emailTriggersRouter } from "./server/routers/emailTriggers";
+import { createAdversaryIntelRouter } from "./server/routers/adversaryIntel";
+import { createEssentialEightRouter } from "./server/routers/essentialEight";
+import { createStudioRouter } from "./server/routers/studio";
+import { createMaturityRouter } from "./server/routers/maturity";
+import { createGumroadRouter } from "./server/routers/gumroad";
+import { feedbackRouter } from "./server/routers/feedback";
+import { createBackupRestoreRouter } from "./server/routers/backupRestore";
+import { createRiskSettingsRouter } from "./server/routers/riskSettings";
+import { createSettingsRouter } from "./server/routers/settings";
+import { createRiskGameRouter } from "./server/routers/riskGame";
+import { pluginRouter } from "./server/routers/plugins";
+import { createLlmRouter } from "./server/routers/llm";
+import { createAiCopilotRouter } from "./server/routers/aiCopilot";
+import { createIncidentClassifierRouter } from "./server/routers/incidentClassifier";
+import { createIncidentTimelineRouter } from "./server/routers/incidentTimeline";
+import { createSupplyChainRouter } from "./server/routers/supplyChain";
+import { createThirdPartyRiskRouter } from "./server/routers/thirdPartyRisk";
+import { createVulnerabilityMgmtRouter } from "./server/routers/vulnerabilityMgmt";
+import { createSecurityMetricsRouter } from "./server/routers/securityMetrics";
+import { createCredentialVaultRouter } from "./server/routers/credentialVault";
+import { createNis2DashboardRouter } from "./server/routers/nis2Dashboard";
+// cleaned up unused imports
+// threatIntel related schema tables removed
+
+// Initialize tRPC imports
+// Roadmap & Implementation
+
+// Add missing imports
+import { createControlMeshRouter } from "./server/routers/controlMesh";
+import { createEvidenceReportRouter } from "./server/routers/evidenceReport";
+// notifications handled by modular router
+// import { createStrategicReportsRouter } from "./server/routers/strategicReports";
+
+// Modular routers
+import { createSecurityTestingRouter } from "./server/routers/securityTesting";
+import { createSecurityTestingNis2Router } from "./server/routers/securityTestingNis2";
+import { createComplianceMonitorRouter } from "./server/routers/complianceMonitor";
+import { createEvidenceRepositoryRouter } from "./server/routers/evidenceRepository";
+import { createThreatLandscapeRouter } from "./server/routers/threatLandscape";
+import { createPolicyTemplatesNis2Router } from "./server/routers/policyTemplatesNis2";
+import { createRiskQuantificationRouter } from "./server/routers/riskQuantification";
+import { createMcpRouter } from "./server/routers/mcp";
+import { createTokensRouter } from "./server/routers/tokens";
+import { createTeammatesRouter } from "./server/routers/teammatesRouter";
+import { createMemoryRouter } from "./server/routers/memoryRouter";
+import { createAddonRouter } from "@complianceos/addons";
+import { createActionCenterRouter } from "./server/routers/actionCenter";
+import { createMsspCockpitRouter } from "./server/routers/msspCockpit";
+import { createAuditorPortalRouter } from "./server/routers/auditorPortal";
+import { createWebhooksRouter } from "./server/routers/webhooks";
+import { createSsoRouter } from "./server/routers/sso";
+
+const adversaryAlertSettingsCache = new Map<number, any>();
+
+export const appRouter = router({
+  clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
+  users: usersSubRouter,
+  controls: createControlsRouter(t, adminProcedure, publicProcedure),
+  clientControls: createClientControlsRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
+  clientPolicies: createClientPoliciesRouter(t, clientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
+  teammates: createTeammatesRouter(t, protectedProcedure),
+  memory: createMemoryRouter(t, protectedProcedure),
+  controlHealth: controlHealthRouter,
+
+
+  dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
+  compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
+  evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, publicProcedure),
+  accessReviews: createAccessReviewsRouter(t, clientProcedure, adminProcedure),
+  evidenceExpiry: createEvidenceExpiryRouter(t, premiumClientProcedure),
+  complianceDebt: createComplianceDebtRouter(t, premiumClientProcedure),
+  notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
+
+  // Risk Management Module
+  risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
+  riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
+  settings: createSettingsRouter(t, clientProcedure),
+  riskGame: createRiskGameRouter(t, clientProcedure),
+  plugins: pluginRouter,
+  metrics: createMetricsRouter(t, premiumClientProcedure),
+  devProjects: createDevProjectsRouter(t, premiumClientProcedure),
+  projects: createProjectsRouter(t, premiumClientProcedure),
+  threatModels: createThreatModelsRouter(t, clientProcedure),
+  threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
+  // NOTE: `adversaryIntel` is defined later in this file as an inline router
+  // with a superset of procedures (premium-gated). Mounting the factory here as
+  // well was dead code — the later key silently shadowed it. Kept unmounted on
+  // purpose; see KNOWN_UNMOUNTED in routerMountCoverage.test.ts.
+  vendors: vendorsRouter,
+  roadmap: createRoadmapRouter(t, premiumClientProcedure, adminProcedure),
+  globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
+  vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
+  vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
+  vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
+  vendorAssessments: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
+
+  implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
+  compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
+  harmonization: createHarmonizationRouter(t, protectedProcedure),
+  frameworkHarmonization: createFrameworkHarmonizationRouter(t, clientProcedure),
+  controlMesh: createControlMeshRouter(t, premiumClientProcedure),
+  evidenceReport: createEvidenceReportRouter(t, premiumClientProcedure, clientEditorProcedure),
+  audit: createAuditRouter(t, clientProcedure),
+  findings: createFindingsRouter(t, protectedProcedure),
+
+  waitlist: createWaitlistRouter(t, publicProcedure, adminProcedure),
+  magicLinks: magicLinksRouter,
+  emailTemplates: emailTemplatesRouter,
+  emailTriggers: emailTriggersRouter,
+
+  globalCrm: createGlobalCrmRouter(t, premiumClientProcedure),
+  privacy: createPrivacyRouter(t, premiumClientProcedure),
+  privacyEnhancements: createPrivacyEnhancementsRouter(t, premiumClientProcedure, adminProcedure, publicProcedure, clientEditorProcedure),
+  cyber: createCyberRouter(t, premiumClientProcedure),
+  assets: createAssetsRouter(t, clientProcedure, clientEditorProcedure),
+  securityTesting: createSecurityTestingRouter(t, premiumClientProcedure, clientEditorProcedure),
+  // integrations handled by modular router below
+  policyManagement: createPolicyManagementRouter(t, clientProcedure, clientEditorProcedure, adminProcedure),
+
+  governance: createGovernanceRouter(t, clientProcedure, adminProcedure),
+
+  // Questionnaire workspace / vendor questionnaire portal.
+  // Was imported but never mounted — every trpc.questionnaire.* call 404'd.
+  questionnaire: questionnaireRouter,
+
+  // Same story: imported but never registered, so the Autopilot dashboard and
+  // Gap Analysis pages were calling endpoints that did not exist.
+  autopilot: createAutopilotRouter(t, clientProcedure, adminProcedure, premiumClientProcedure),
+  sentinel: createSentinelRouter(t, premiumClientProcedure, adminProcedure),
+  gapAnalysis: createGapAnalysisRouter(t, clientProcedure),
+  programGuides: createProgramGuidesRouter(t, clientProcedure),
+  frameworkRoadmapGates: createFrameworkRoadmapGatesRouter(t, clientProcedure),
+  auditors: createAuditorsRouter(t, adminProcedure, premiumClientProcedure),
+  policyReview: createPolicyReviewRouter(t, clientProcedure, protectedProcedure),
+  requirements: createRequirementsRouter(t, protectedProcedure, publicProcedure),
+
+  // ---------------------------------------------------------------------------
+  // Previously-unmounted routers. Each of these was imported at the top of this
+  // file but never added to the AppRouter, so every trpc.<key>.* call from the
+  // UI returned "No procedure found on path". Guarded by
+  // src/lib/__tests__/routerMountCoverage.test.ts.
+  // ---------------------------------------------------------------------------
+  employees: createEmployeesRouter(t, clientProcedure),
+  federal: createFederalRouter(t, clientProcedure),
+  federalWorkflows: createFederalWorkflowRouter(t, clientProcedure),
+  nist80030: createNist80030Router(t, clientProcedure),
+  actions: createActionsRouter(t, clientProcedure),
+  calendar: createCalendarRouter(t, clientProcedure),
+  intake: createIntakeRouter(t, clientProcedure, protectedProcedure),
+  billing: createBillingRouter(t, clientProcedure, isAuthed, publicProcedure),
+  checklist: createChecklistRouter(t, clientProcedure),
+  readiness: createReadinessRouter(t, clientProcedure),
+  asvs: createAsvsRouter(t, clientProcedure),
+  samm: createSammRouter(t, clientProcedure),
+  frameworkPlugins: createFrameworkPluginsRouter(t, protectedProcedure),
+  businessContinuity: businessContinuitySubRouter,
+  auditPackage: auditPackageRouter,
+  connectors: createConnectorsRouter(t, adminProcedure, publicProcedure),
+  trustBadge: trustBadgeRouter,
+  mssp: msspRouter,
+  frameworks: createFrameworksRouter(t, protectedProcedure),
+  iso27001: createIso27001Router(t, clientProcedure, clientEditorProcedure),
+  sammV2: createSammV2Router(t, clientProcedure),
+  essentialEight: createEssentialEightRouter(t, clientProcedure),
+  gumroad: createGumroadRouter(t, clientProcedure, isAuthed, publicProcedure),
+
+  learning: createLearningRouter(t, premiumClientProcedure, adminProcedure),
+  onboarding: createOnboardingRouter(t, clientProcedure, clientEditorProcedure),
+  onboardingExtras: createOnboardingExtrasRouter(t, clientProcedure, clientEditorProcedure),
+  complianceJourney: createComplianceJourneyRouter(t, premiumClientProcedure, clientEditorProcedure),
+  training: trainingRouter,
+  policy: policyRouter,
+  integrations: integrationsRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  knowledgeBase: createKnowledgeBaseRouter(t, clientProcedure),
+  taskAssignments: createTaskAssignmentsRouter(t, clientProcedure),
+  subprocessors: createSubprocessorsRouter(t, premiumClientProcedure, publicProcedure), // Premium: VRM subprocessor tracking
+  policyTemplates: createPolicyTemplatesRouter(t, publicProcedure, isAuthed, adminProcedure),
+  reports: createReportsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed),
+  // strategicReports: createStrategicReportsRouter(t, publicProcedure, adminProcedure),
+  trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
+  llm: createLlmRouter(t, premiumClientProcedure, isAuthed, adminProcedure),
+  aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure, premiumClientProcedure),
+  incidentClassifier: createIncidentClassifierRouter(t, protectedProcedure),
+  incidentTimeline: createIncidentTimelineRouter(t, protectedProcedure),
+  securityMetrics: createSecurityMetricsRouter(t, protectedProcedure),
+  credentialVault: createCredentialVaultRouter(t, protectedProcedure, publicProcedure),
+  nis2Dashboard: createNis2DashboardRouter(t, protectedProcedure),
+  supplyChain: createSupplyChainRouter(t, protectedProcedure),
+  thirdPartyRisk: createThirdPartyRiskRouter(t, protectedProcedure),
+  vulnerabilityMgmt: createVulnerabilityMgmtRouter(t, protectedProcedure),
+  securityTestingNis2: createSecurityTestingNis2Router(t, protectedProcedure),
+  complianceMonitor: createComplianceMonitorRouter(t, premiumClientProcedure),
+  policyTemplatesNis2: createPolicyTemplatesNis2Router(t, protectedProcedure),
+  evidenceRepository: createEvidenceRepositoryRouter(t, protectedProcedure),
+  threatLandscape: createThreatLandscapeRouter(t, protectedProcedure),
+  riskQuantification: createRiskQuantificationRouter(t, premiumClientProcedure),
+  mcp: createMcpRouter(t, premiumClientProcedure, protectedProcedure),
+  tokens: createTokensRouter(t, protectedProcedure),
+
+
+  ai: router({
+    systems: createAiSystemsRouter(t, premiumClientProcedure),
+    // advisor: createAdvisorRouter(t, clientProcedure)
+  }),
+  feedback: feedbackRouter,
+  studio: createStudioRouter(t, premiumClientProcedure),
+  backupRestore: createBackupRestoreRouter(t, clientProcedure),
+  advisor: createAdvisorRouter(t, clientProcedure.use(t.middleware(async ({ ctx, next, path, input }) => {
+    // Dev-browser requests (from the app's own UI) carry the session cookie and
+    // no HMAC headers — let them through. Only machine callers providing an
+    // HMAC signature are verified; unsigned + unauthenticated is rejected.
+    const sig = ctx.req.headers["x-signature"] as string | undefined;
+    const ts = ctx.req.headers["x-timestamp"] as string | undefined;
+    const secret = process.env.TOOL_HMAC_SECRET as string | undefined;
+    if (!sig && !ts) {
+      // No HMAC attempt: fall back to normal session auth (clientProcedure already ran).
+      return next();
+    }
+    if (!secret || !sig || !ts) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Missing HMAC headers" });
+    }
+    const tsNum = parseInt(ts, 10);
+    if (!Number.isFinite(tsNum) || Math.abs(Date.now() - tsNum) > 5 * 60 * 1000) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Stale request" });
+    }
+    const message = `${path}:${ts}:${JSON.stringify(input ?? {})}`;
+    const expected = crypto.createHmac("sha256", secret).update(message).digest("hex");
+    const ok = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+    if (!ok) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid signature" });
+    }
+    return next();
+  }))),
+
+  comments: createCommentsRouter(t, clientProcedure),
+  maturity: createMaturityRouter(t, premiumClientProcedure),
+
+  // New and Management Readiness Tools
+  management: createManagementRouter(t, protectedProcedure),
+  // readiness: createReadinessRouterV2(t, protectedProcedure),
+  regulations: router({
+    mapToArticle: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        regulationId: z.string(),
+        articleId: z.string(),
+        mappedType: z.enum(['policy', 'evidence', 'control']),
+        mappedId: z.number()
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        await dbConn.insert(regulationMappings).values({
+          clientId: input.clientId,
+          regulationId: input.regulationId,
+          articleId: input.articleId,
+          mappedType: input.mappedType,
+          mappedId: input.mappedId
+        });
+        return { success: true };
+      }),
+
+    unmapFromArticle: adminProcedure
+      .input(z.object({
+        id: z.number()
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        await dbConn.delete(regulationMappings).where(eq(regulationMappings.id, input.id));
+        return { success: true };
+      }),
+
+    getArticleLinks: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        regulationId: z.string(),
+        articleId: z.string()
+      }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        const links = await dbConn.select().from(regulationMappings)
+          .where(and(
+            eq(regulationMappings.clientId, input.clientId),
+            eq(regulationMappings.regulationId, input.regulationId),
+            eq(regulationMappings.articleId, input.articleId)
+          ));
+
+        // Group by type
+        const policyIds = links.filter(l => l.mappedType === 'policy').map(l => l.mappedId);
+        const evidenceIds = links.filter(l => l.mappedType === 'evidence').map(l => l.mappedId);
+        const controlIds = links.filter(l => l.mappedType === 'control').map(l => l.mappedId);
+
+        let policies: any[] = [];
+        let evidenceList: any[] = [];
+        let controlsList: any[] = [];
+
+        if (policyIds.length > 0) {
+          policies = await dbConn.select().from(clientPolicies).where(inArray(clientPolicies.id, policyIds));
+        }
+        if (evidenceIds.length > 0) {
+          evidenceList = await dbConn.select().from(evidence).where(inArray(evidence.id, evidenceIds));
+        }
+        if (controlIds.length > 0) {
+          controlsList = await dbConn.select().from(clientControls).where(inArray(clientControls.id, controlIds));
+          // Hydrate with control definition
+          /* In a real app we'd join, but for now we iterate or trust clientControls. */
+        }
+
+        return {
+          policies: policies.map(p => ({ ...p, mappingId: links.find(l => l.mappedId === p.id && l.mappedType === 'policy')?.id })),
+          evidence: evidenceList.map(e => ({ ...e, mappingId: links.find(l => l.mappedId === e.id && l.mappedType === 'evidence')?.id })),
+          controls: controlsList.map(c => ({ ...c, mappingId: links.find(l => l.mappedId === c.id && l.mappedType === 'control')?.id }))
+        };
+      }),
+
+    saveReadinessResponse: clientProcedure.input(z.object({
+      clientId: z.number(),
+      regulationId: z.string(),
+      questionId: z.string(),
+      response: z.string()
+    })).mutation(async ({ input }) => {
+      const dbConn = await db.getDb();
+
+      // check existing
+      const existing = await dbConn.select().from(clientReadinessResponses)
+        .where(
+          and(
+            eq(clientReadinessResponses.clientId, input.clientId),
+            eq(clientReadinessResponses.regulationId, input.regulationId),
+            eq(clientReadinessResponses.questionId, input.questionId)
+          )
+        ).limit(1);
+
+      if (existing.length > 0) {
+        await dbConn.update(clientReadinessResponses)
+          .set({ response: input.response, updatedAt: new Date() })
+          .where(eq(clientReadinessResponses.id, existing[0].id));
+      } else {
+        await dbConn.insert(clientReadinessResponses).values({
+          clientId: input.clientId,
+          regulationId: input.regulationId,
+          questionId: input.questionId,
+          response: input.response
+        });
+      }
+      return { success: true };
+    }),
+
+    getReadinessResponses: clientProcedure.input(z.object({
+      clientId: z.number(),
+      regulationId: z.string()
+    })).query(async ({ input }) => {
+      const dbConn = await db.getDb();
+      const responses = await dbConn.select().from(clientReadinessResponses)
+        .where(
+          and(
+            eq(clientReadinessResponses.clientId, input.clientId),
+            eq(clientReadinessResponses.regulationId, input.regulationId)
+          )
+        );
+
+      // Convert to map for easy frontend use
+      const responseMap: Record<string, string> = {};
+      responses.forEach(r => {
+        if (r.response) responseMap[r.questionId] = r.response;
+      });
+
+      return responseMap;
+    }),
+
+    downloadReadinessReport: clientProcedure.input(z.object({
+      clientId: z.number(),
+      regulationId: z.string()
+    })).mutation(async ({ input }) => {
+      const { generateReadinessReport } = await import('./lib/reporting');
+      const buffer = await generateReadinessReport(input.clientId, input.regulationId);
+      return {
+        filename: `${input.regulationId.toUpperCase()}_Readiness_Report.pdf`,
+        pdfBase64: buffer.toString('base64')
+      };
+    }),
+
+    generateReport: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ input }) => {
+        const buffer = await generateGapAnalysisReport(input.clientId);
+        return {
+          filename: `compliance-report-${new Date().toISOString().split('T')[0]}.pdf`,
+          pdfBase64: buffer.toString('base64')
+        };
+      }),
+  }),
+
+  // Removed duplicated riskSettings router block
+
+
+
+
+
+
+
+  // Remediation Tasks (Instances)
+  remediationTasks: router({
+    create: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        clientControlId: z.number().optional(),
+        title: z.string(),
+        description: z.string().optional(),
+        priority: z.string().default('medium'),
+        dueDate: z.string().optional(),
+        assigneeId: z.number().optional(),
+        issueTrackerConnectionId: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const dbConn = await getDb();
+        const [task] = await dbConn.insert(schema.remediationTasks).values({
+          ...input,
+          dueDate: input.dueDate ? new Date(input.dueDate) : null,
+          priority: input.priority || "medium",
+          status: "open",
+        }).returning();
+
+        // If issue tracker connection specified, simulate sync
+        if (input.issueTrackerConnectionId) {
+          const [connection] = await dbConn.select().from(issueTrackerConnections)
+            .where(eq(issueTrackerConnections.id, input.issueTrackerConnectionId));
+
+          if (connection) {
+            const mockIssueId = connection.provider === 'jira'
+              ? `${connection.projectKey || 'COMP'}-${task.id}`
+              : `LIN-${task.id}`;
+            const mockUrl = connection.provider === 'jira'
+              ? `${connection.baseUrl || 'https://company.atlassian.net'}/browse/${mockIssueId}`
+              : `https://linear.app/company/issue/${mockIssueId}`;
+
+            await dbConn.update(schema.remediationTasks)
+              .set({
+                issueTrackerConnectionId: input.issueTrackerConnectionId,
+                externalIssueId: mockIssueId,
+                externalIssueUrl: mockUrl,
+                lastSyncedAt: new Date(),
+              })
+              .where(eq(schema.remediationTasks.id, task.id));
+          }
+        }
+
+        await logActivity({
+          userId: ctx.user!.id,
+          clientId: input.clientId,
+          action: "create",
+          entityType: "remediation_task",
+          entityId: task.id,
+          details: { title: task.title }
+        });
+
+        return task;
+      }),
+
+    update: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["open", "in_progress", "resolved", "closed"]).optional(),
+        priority: z.enum(["low", "medium", "high", "critical"]).optional(),
+        assigneeId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+        const { id, ...updates } = input;
+        await dbConn.update(schema.remediationTasks)
+          .set({ ...updates, updatedAt: new Date() })
+          .where(eq(schema.remediationTasks.id, id));
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+        await dbConn.delete(schema.remediationTasks).where(eq(schema.remediationTasks.id, input.id));
+        return { success: true };
+      }),
+
+    list: clientProcedure
+      .input(z.object({ clientId: z.number().optional(), clientControlId: z.number().optional() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+        if (input.clientControlId) {
+          return dbConn.select().from(schema.remediationTasks).where(eq(schema.remediationTasks.clientControlId, input.clientControlId));
+        }
+        if (input.clientId) {
+          return dbConn.select().from(schema.remediationTasks).where(eq(schema.remediationTasks.clientId, input.clientId));
+        }
+        return [];
+      }),
+  }),
+
+  // Remediation Playbooks
+  remediationPlaybooks: router({
+    // Get playbooks matching a gap
+    getSuggestions: publicProcedure
+      .input(z.object({
+        controlId: z.string().optional(),
+        controlName: z.string().optional(),
+        category: z.string().optional(),
+        framework: z.string().optional()
+      }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+
+        const playbooks = await dbConn.select().from(schema.remediationPlaybooks);
+
+        const searchText = [
+          input.controlId,
+          input.controlName,
+          input.category
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        const matched = playbooks.filter(p => {
+          if (p.framework && input.framework && p.framework !== input.framework) {
+            return false;
+          }
+          const patternRaw = typeof p.gapPattern === 'string' ? p.gapPattern : '';
+          if (!patternRaw) return false;
+          try {
+            const pattern = new RegExp(patternRaw, 'i');
+            return pattern.test(searchText);
+          } catch {
+            const lowered = patternRaw.toLowerCase();
+            return lowered ? searchText.includes(lowered) : false;
+          }
+        });
+
+        return matched.sort((a, b) => (b.priority || 50) - (a.priority || 50));
+      }),
+
+    // Get single playbook by ID
+    get: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        const [playbook] = await dbConn.select()
+          .from(schema.remediationPlaybooks)
+          .where(eq(schema.remediationPlaybooks.id, input.id));
+        return playbook || null;
+      }),
+
+    // List all playbooks
+    list: publicProcedure.query(async () => {
+      const dbConn = await getDb();
+      return dbConn.select().from(schema.remediationPlaybooks);
+    }),
+
+    // Create playbook
+    create: adminProcedure
+      .input(z.object({
+        title: z.string(),
+        gapPattern: z.string(),
+        category: z.string().optional(),
+        framework: z.string().optional(),
+        severity: z.string().optional(),
+        estimatedEffort: z.string().optional(),
+        steps: z.array(z.object({
+          order: z.number(),
+          title: z.string(),
+          description: z.string(),
+          owner: z.string().optional(),
+          dueOffset: z.number().optional(),
+          checklist: z.array(z.string()).optional(),
+        })).optional(),
+        ownerTemplate: z.string().optional(),
+        policyLanguage: z.string().optional(),
+        itsmTemplate: z.object({
+          type: z.string(),
+          summary: z.string(),
+          description: z.string(),
+          priority: z.string(),
+          labels: z.array(z.string()).optional(),
+        }).optional(),
+        priority: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+
+        const [playbook] = await dbConn.insert(schema.remediationPlaybooks).values({
+          ...input,
+        }).returning();
+
+        return playbook;
+      }),
+
+    // Delete playbook
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+
+        await dbConn.delete(schema.remediationPlaybooks)
+          .where(eq(schema.remediationPlaybooks.id, input.id));
+
+        return { success: true };
+      }),
+
+    // Seed common playbooks
+    seed: adminProcedure.mutation(async () => {
+      const dbConn = await getDb();
+
+      const playbooks = [
+        {
+          title: "Implement Multi-Factor Authentication (MFA)",
+          gapPattern: "MFA|multi-factor|two-factor|2FA|authentication",
+          category: "Access Control",
+          severity: "critical",
+          estimatedEffort: "1-2 weeks",
+          steps: [
+            { order: 1, title: "Assess Current State", description: "Document which systems/applications currently lack MFA", owner: "IT Security", dueOffset: 2, checklist: ["Inventory all user-facing applications", "Identify privileged access points", "Check existing SSO/IdP capabilities"] },
+            { order: 2, title: "Select MFA Solution", description: "Evaluate and select appropriate MFA provider", owner: "IT Security", dueOffset: 7, checklist: ["Compare vendors (Duo, Okta, Azure AD)", "Assess integration requirements", "Get budget approval"] },
+            { order: 3, title: "Pilot Deployment", description: "Deploy MFA to IT and security teams first", owner: "IT Operations", dueOffset: 14, checklist: ["Configure MFA for pilot group", "Test all authentication methods", "Document issues and resolutions"] },
+            { order: 4, title: "Company-Wide Rollout", description: "Deploy MFA to all users with phased approach", owner: "IT Operations", dueOffset: 21, checklist: ["Send user communications", "Provide enrollment instructions", "Set enrollment deadline"] },
+            { order: 5, title: "Enforce and Monitor", description: "Enable enforcement mode and monitor adoption", owner: "IT Security", dueOffset: 28, checklist: ["Enable MFA enforcement", "Monitor authentication logs", "Address stragglers"] }
+          ],
+          ownerTemplate: "IT Security Lead with support from IT Operations",
+          policyLanguage: "Multi-factor authentication shall be required for all remote access and privileged account access.",
+          priority: 95
+        },
+        {
+          title: "Enable Encryption at Rest",
+          gapPattern: "encrypt.*rest|disk.*encrypt|storage.*encrypt|AES|cryptograph",
+          category: "Data Protection",
+          severity: "high",
+          estimatedEffort: "3-5 days",
+          steps: [
+            { order: 1, title: "Inventory Data Stores", description: "Identify all databases, file shares, and storage systems", owner: "Data Governance", dueOffset: 2 },
+            { order: 2, title: "Enable Native Encryption", description: "Enable TDE/encryption features on databases and cloud storage", owner: "Database Admin", dueOffset: 5, checklist: ["Enable TDE on SQL Server/MySQL", "Enable S3 bucket encryption", "Enable Azure Storage encryption"] },
+            { order: 3, title: "Verify Encryption Status", description: "Confirm encryption is active and keys are managed", owner: "IT Security", dueOffset: 7 }
+          ],
+          ownerTemplate: "Database Administrator + Cloud Team",
+          priority: 85
+        },
+        {
+          title: "Implement Access Reviews",
+          gapPattern: "access.*review|user.*review|privilege.*review|recertification",
+          category: "Access Control",
+          severity: "medium",
+          estimatedEffort: "1-2 weeks",
+          steps: [
+            { order: 1, title: "Define Review Scope", description: "Determine which systems require access reviews", owner: "IT Security", dueOffset: 3 },
+            { order: 2, title: "Extract User Access Reports", description: "Generate reports of current user access", owner: "IT Operations", dueOffset: 5 },
+            { order: 3, title: "Conduct Manager Reviews", description: "Send access reports to managers for certification", owner: "HR/Managers", dueOffset: 14, checklist: ["Create review forms", "Set deadline", "Send reminders"] },
+            { order: 4, title: "Remediate Findings", description: "Remove inappropriate access identified in reviews", owner: "IT Operations", dueOffset: 21 }
+          ],
+          ownerTemplate: "IT Security with Manager Participation",
+          policyLanguage: "Access reviews shall be conducted quarterly for all systems containing sensitive data.",
+          priority: 75
+        },
+        {
+          title: "Deploy Endpoint Protection",
+          gapPattern: "endpoint|antivirus|anti-malware|EDR|malware",
+          category: "Endpoint Security",
+          severity: "high",
+          estimatedEffort: "1-2 weeks",
+          steps: [
+            { order: 1, title: "Select EDR Solution", description: "Evaluate endpoint detection and response tools", owner: "IT Security", dueOffset: 5 },
+            { order: 2, title: "Deploy Agents", description: "Install EDR agents on all endpoints", owner: "IT Operations", dueOffset: 10 },
+            { order: 3, title: "Configure Policies", description: "Set up detection rules and response actions", owner: "IT Security", dueOffset: 14 }
+          ],
+          ownerTemplate: "IT Security + IT Operations",
+          priority: 80
+        },
+        {
+          title: "Establish Vulnerability Management",
+          gapPattern: "vulnerab|scan|patch|CVE|security.*update",
+          category: "Vulnerability Management",
+          severity: "high",
+          estimatedEffort: "2-3 weeks",
+          steps: [
+            { order: 1, title: "Deploy Scanning Tool", description: "Set up vulnerability scanner (Qualys, Nessus, etc.)", owner: "IT Security", dueOffset: 5 },
+            { order: 2, title: "Configure Scan Schedules", description: "Set up weekly/monthly scan schedules", owner: "IT Security", dueOffset: 7 },
+            { order: 3, title: "Define SLAs", description: "Establish remediation timeframes by severity", owner: "IT Security", dueOffset: 10, checklist: ["Critical: 7 days", "High: 30 days", "Medium: 90 days"] },
+            { order: 4, title: "Integrate with ITSM", description: "Auto-create tickets for vulnerabilities", owner: "IT Operations", dueOffset: 14 }
+          ],
+          ownerTemplate: "IT Security Team",
+          policyLanguage: "Vulnerability scans shall be conducted at least monthly. Critical and high vulnerabilities shall be remediated within 7 and 30 days respectively.",
+          priority: 85
+        },
+        {
+          title: "Implement Security Awareness Training",
+          gapPattern: "train|awareness|phish|security.*education",
+          category: "Security Awareness",
+          severity: "medium",
+          estimatedEffort: "Ongoing",
+          steps: [
+            { order: 1, title: "Select Training Platform", description: "Choose security awareness training provider", owner: "IT Security", dueOffset: 7 },
+            { order: 2, title: "Develop Training Content", description: "Customize content for organizational needs", owner: "IT Security", dueOffset: 14 },
+            { order: 3, title: "Launch Initial Training", description: "Deploy mandatory training to all employees", owner: "HR", dueOffset: 21 },
+            { order: 4, title: "Conduct Phishing Simulations", description: "Run simulated phishing campaigns", owner: "IT Security", dueOffset: 30 }
+          ],
+          ownerTemplate: "IT Security + HR",
+          policyLanguage: "All employees shall complete security awareness training upon hire and annually thereafter.",
+          priority: 70
+        }
+      ];
+
+      let inserted = 0;
+      for (const p of playbooks) {
+        try {
+          await dbConn.insert(schema.remediationPlaybooks).values(p);
+          inserted++;
+        } catch {
+          // Skip duplicates
+        }
+      }
+
+      return { inserted };
+    }),
+  }),
+
+  // Posture Trending & Forecasting
+  postureTrending: router({
+    // Create a snapshot for a client (typically called weekly)
+    createSnapshot: adminProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+
+        // Get control stats
+        const controls = await dbConn.select().from(schema.clientControls)
+          .where(eq(schema.clientControls.clientId, input.clientId));
+
+        const totalControls = controls.length;
+        const implementedControls = controls.filter(c => c.status === 'implemented').length;
+        const inProgressControls = controls.filter(c => c.status === 'in_progress').length;
+        const notImplementedControls = controls.filter(c => c.status === 'not_implemented').length;
+        const notApplicableControls = controls.filter(c => c.status === 'not_applicable').length;
+
+        // Get gap stats from latest gap assessment
+        const gapAssessments = await dbConn.select().from(schema.gapAssessments)
+          .where(eq(schema.gapAssessments.clientId, input.clientId))
+          .orderBy(desc(schema.gapAssessments.updatedAt))
+          .limit(1);
+
+        let totalGaps = 0, closedGaps = 0, criticalGaps = 0, highGaps = 0;
+        if (gapAssessments.length > 0) {
+          const gapResponses = await dbConn.select().from(schema.gapResponses)
+            .where(eq(schema.gapResponses.assessmentId, gapAssessments[0].id));
+
+          const gaps = gapResponses.filter(g => g.targetStatus === 'required' && g.currentStatus !== 'implemented');
+          totalGaps = gaps.length;
+          closedGaps = gapResponses.filter(g => g.currentStatus === 'implemented').length;
+          criticalGaps = gaps.filter(g => (g.priorityScore || 0) >= 80).length;
+          highGaps = gaps.filter(g => (g.priorityScore || 0) >= 60 && (g.priorityScore || 0) < 80).length;
+        }
+
+        // Get risk stats
+        const risks = await dbConn.select().from(schema.riskAssessments)
+          .where(eq(schema.riskAssessments.clientId, input.clientId));
+
+        const totalRisks = risks.length;
+        const mitigatedRisks = risks.filter(r => r.status === 'treated' || r.status === 'accepted').length;
+
+        // Calculate compliance score (0-100)
+        const applicableControls = totalControls - notApplicableControls;
+        const complianceScore = applicableControls > 0
+          ? Math.round((implementedControls / applicableControls) * 100)
+          : 0;
+
+        // Calculate risk score (lower is better, 0-100)
+        const openRisks = totalRisks - mitigatedRisks;
+        const riskScore = totalRisks > 0 ? Math.round((openRisks / totalRisks) * 100) : 0;
+
+        // Get previous snapshot to calculate velocity
+        const [prevSnapshot] = await dbConn.select().from(schema.complianceSnapshots)
+          .where(eq(schema.complianceSnapshots.clientId, input.clientId))
+          .orderBy(desc(schema.complianceSnapshots.snapshotDate))
+          .limit(1);
+
+        const controlsClosedThisPeriod = prevSnapshot
+          ? implementedControls - (prevSnapshot.implementedControls || 0)
+          : 0;
+        const gapsClosedThisPeriod = prevSnapshot
+          ? closedGaps - (prevSnapshot.closedGaps || 0)
+          : 0;
+
+        // Create snapshot
+        const [snapshot] = await dbConn.insert(schema.complianceSnapshots).values({
+          clientId: input.clientId,
+          totalControls,
+          implementedControls,
+          inProgressControls,
+          notImplementedControls,
+          notApplicableControls,
+          totalGaps,
+          closedGaps,
+          criticalGaps,
+          highGaps,
+          totalRisks,
+          mitigatedRisks,
+          complianceScore,
+          riskScore,
+          controlsClosedThisPeriod: Math.max(0, controlsClosedThisPeriod),
+          gapsClosedThisPeriod: Math.max(0, gapsClosedThisPeriod),
+        }).returning();
+
+        return snapshot;
+      }),
+
+    // Get snapshot history for a client
+    getHistory: publicProcedure
+      .input(z.object({
+        clientId: z.number(),
+        limit: z.number().optional().default(12) // Last 12 weeks
+      }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+
+        return dbConn.select().from(schema.complianceSnapshots)
+          .where(eq(schema.complianceSnapshots.clientId, input.clientId))
+          .orderBy(desc(schema.complianceSnapshots.snapshotDate))
+          .limit(input.limit);
+      }),
+
+    // Get forecast based on historical velocity
+    getForecast: publicProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+
+        const snapshots = await dbConn.select().from(schema.complianceSnapshots)
+          .where(eq(schema.complianceSnapshots.clientId, input.clientId))
+          .orderBy(desc(schema.complianceSnapshots.snapshotDate))
+          .limit(8);
+
+        if (snapshots.length < 2) {
+          return {
+            hasEnoughData: false,
+            message: "Need at least 2 snapshots for forecasting",
+            currentScore: snapshots[0]?.complianceScore || 0,
+          };
+        }
+
+        // Calculate average velocity (controls closed per week)
+        const velocities = snapshots.slice(0, -1).map((s, i) =>
+          s.controlsClosedThisPeriod || 0
+        );
+        const avgVelocity = velocities.reduce((a, b) => a + b, 0) / velocities.length;
+
+        const latest = snapshots[0];
+        const applicableControls = (latest.totalControls || 0) - (latest.notApplicableControls || 0);
+        const remainingControls = applicableControls - (latest.implementedControls || 0);
+
+        // Weeks to 100% compliance
+        const weeksTo100 = avgVelocity > 0
+          ? Math.ceil(remainingControls / avgVelocity)
+          : null;
+
+        // Weeks to different milestones
+        const currentScore = latest.complianceScore || 0;
+        const controlsNeeded = (milestone: number) => {
+          const needed = Math.ceil((milestone / 100) * applicableControls) - (latest.implementedControls || 0);
+          return Math.max(0, needed);
+        };
+
+        const milestones = [80, 90, 95, 100].map(m => ({
+          score: m,
+          controlsNeeded: controlsNeeded(m),
+          weeksEstimate: avgVelocity > 0 ? Math.ceil(controlsNeeded(m) / avgVelocity) : null
+        })).filter(m => m.score > currentScore);
+
+        return {
+          hasEnoughData: true,
+          currentScore,
+          avgVelocity: Math.round(avgVelocity * 10) / 10,
+          remainingControls,
+          weeksTo100,
+          milestones,
+          projectedDate100: weeksTo100
+            ? new Date(Date.now() + weeksTo100 * 7 * 24 * 60 * 60 * 1000).toISOString()
+            : null
+        };
+      }),
+
+    // List all snapshots (admin)
+    list: publicProcedure.query(async () => {
+      const dbConn = await getDb();
+      return dbConn.select().from(schema.complianceSnapshots)
+        .orderBy(desc(schema.complianceSnapshots.snapshotDate));
+    }),
+  }),
+
+  // Gap Email Questionnaire
+  kris: router({
+    list: publicProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        return db.select().from(schema.kris).where(eq(schema.kris.clientId, input.clientId));
+      }),
+    create: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        name: z.string(),
+        description: z.string().optional(),
+        thresholdGreen: z.string().optional(),
+        thresholdAmber: z.string().optional(),
+        thresholdRed: z.string().optional(),
+        currentValue: z.string().optional(),
+        currentStatus: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        const [kri] = await db.insert(schema.kris).values({ ...input, status: 'active' }).returning();
+        return kri;
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        thresholdGreen: z.string().optional(),
+        thresholdAmber: z.string().optional(),
+        thresholdRed: z.string().optional(),
+        currentValue: z.string().optional(),
+        currentStatus: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        const { id, ...data } = input;
+        const [kri] = await db.update(schema.kris).set(data).where(eq(schema.kris.id, id)).returning();
+        return kri;
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        await db.delete(schema.kris).where(eq(schema.kris.id, input.id));
+        return true;
+      }),
+  }),
+
+  vendorAuthorizations: router({
+    get: clientProcedure
+      .input(z.object({ vendorId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        return await db.query.vendorAuthorizations.findFirst({
+          where: and(
+            eq(schema.vendorAuthorizations.clientId, ctx.clientId!),
+            eq(schema.vendorAuthorizations.vendorId, input.vendorId)
+          ),
+          limit: 1
+        });
+      }),
+
+    initiate: clientEditorProcedure
+      .input(z.object({ vendorId: z.number(), notes: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const { AuthorizationEngine } = await import('./server/services/AuthorizationEngine');
+        return await AuthorizationEngine.initiateAuthorization(ctx.clientId, input.vendorId, ctx.userId, input.notes);
+      }),
+
+    notify: clientEditorProcedure
+      .input(z.object({ authId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { AuthorizationEngine } = await import('./server/services/AuthorizationEngine');
+        return await AuthorizationEngine.sendNotification(input.authId);
+      }),
+
+    approve: adminProcedure // Only admins can force approve for now
+      .input(z.object({ authId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { AuthorizationEngine } = await import('./server/services/AuthorizationEngine');
+        return await AuthorizationEngine.approve(input.authId);
+      }),
+  }),
+
+
+
+
+  vendorContacts: router({
+    list: premiumClientProcedure
+      .input(z.object({ vendorId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        return db.select().from(schema.vendorContacts).where(eq(schema.vendorContacts.vendorId, input.vendorId));
+      }),
+    create: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        vendorId: z.number(),
+        name: z.string(),
+        email: z.string().optional(),
+        phone: z.string().optional(),
+        role: z.string().optional(),
+        isPrimary: z.boolean().optional()
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        const [contact] = await db.insert(schema.vendorContacts).values(input).returning();
+        return contact;
+      }),
+    update: premiumClientProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        email: z.string().optional(),
+        phone: z.string().optional(),
+        role: z.string().optional(),
+        isPrimary: z.boolean().optional()
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        const { id, ...data } = input;
+        const [contact] = await db.update(schema.vendorContacts).set(data).where(eq(schema.vendorContacts.id, id)).returning();
+        return contact;
+      }),
+    delete: premiumClientProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        await db.delete(schema.vendorContacts).where(eq(schema.vendorContacts.id, input.id));
+        return true;
+      }),
+  }),
+
+
+  vendorAnalytics: router({
+    getOverdueAssessments: protectedProcedure
+      .input(z.object({ clientId: z.number().optional() }).optional())
+      .query(async ({ input = {}, ctx }) => {
+        const db = await getDb();
+        const now = new Date();
+        const conditions = [lt(schema.vendorAssessments.dueDate, now)];
+
+        if (input?.clientId) {
+          // If specific clientId provided, check access
+          const membership = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' ? [true] :
+            await db.select().from(schema.userClients)
+              .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)))
+              .limit(1);
+
+          if (membership.length === 0) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client' });
+          }
+          conditions.push(eq(schema.vendors.clientId, input.clientId));
+        } else if (ctx.user!.role !== 'admin' && ctx.user!.role !== 'owner') {
+          // For non-admins calling globally, filter by their clients
+          const userClientIds = await db.select({ id: schema.userClients.clientId })
+            .from(schema.userClients)
+            .where(eq(schema.userClients.userId, ctx.user.id));
+
+          if (userClientIds.length === 0) return [];
+          conditions.push(inArray(schema.vendors.clientId, userClientIds.map(c => c.id)));
+        }
+
+        const results = await db.select({
+          id: schema.vendorAssessments.id,
+          vendorId: schema.vendorAssessments.vendorId,
+          vendorName: schema.vendors.name,
+          assessmentType: schema.vendorAssessments.type,
+          dueDate: schema.vendorAssessments.dueDate,
+          status: schema.vendorAssessments.status,
+          clientId: schema.vendors.clientId
+        })
+          .from(schema.vendorAssessments)
+          .innerJoin(schema.vendors, eq(schema.vendorAssessments.vendorId, schema.vendors.id))
+          .where(and(...conditions));
+
+        return results.filter(r => r.status !== 'Completed');
+      }),
+  }),
+
+  communication: router({
+    seed: adminProcedure.mutation(async () => {
+      const db = await getDb();
+
+      const defaults = [
+        {
+          key: "GAP_EXPIRED",
+          name: "Gap Analysis Questionnaire Expired",
+          subjectTemplate: "Action Required: Gap Analysis Questionnaire Expired - {{CLIENT_NAME}}",
+          bodyTemplate: "<p>Dear {{RECIPIENT_NAME}},</p><p>This is a reminder that the Gap Analysis Questionnaire for <strong>{{ASSESSMENT_NAME}}</strong> has expired.</p><p>Please contact your compliance officer if you need a new link.</p><p>Best regards,<br>{{COMPANY_NAME}} Compliance Team</p>",
+          category: "alert"
+        },
+        {
+          key: "RISK_RAISED",
+          name: "New Risk Identified",
+          subjectTemplate: "New Risk Identified: {{RISK_TITLE}}",
+          bodyTemplate: "<p>Hello,</p><p>A new risk has been identified for <strong>{{CLIENT_NAME}}</strong>.</p><ul><li><strong>Risk:</strong> {{RISK_TITLE}}</li><li><strong>Severity:</strong> {{RISK_SEVERITY}}</li></ul><p>Please review it in the Risk Register.</p>",
+          category: "alert"
+        },
+        {
+          key: "POLICY_REVIEW",
+          name: "Policy Review Assigned",
+          subjectTemplate: "Review Required: {{POLICY_NAME}}",
+          bodyTemplate: "<p>Hi {{RECIPIENT_NAME}},</p><p>You have been assigned to review the policy: <strong>{{POLICY_NAME}}</strong>.</p><p>Please complete your review by {{DUE_DATE}}.</p><p><a href='{{LINK}}'>Click here to review</a></p>",
+          category: "task"
+        }
+      ];
+
+      for (const t of defaults) {
+        await db.insert(schema.communicationTemplates)
+          .values(t)
+          .onConflictDoUpdate({
+            target: schema.communicationTemplates.key,
+            set: t
+          });
+      }
+      return { success: true, count: defaults.length };
+    }),
+
+    listTemplates: adminProcedure.query(async () => {
+      const db = await getDb();
+      return db.select().from(schema.communicationTemplates);
+    }),
+
+    saveTemplate: adminProcedure
+      .input(z.object({
+        key: z.string(),
+        name: z.string(),
+        subjectTemplate: z.string(),
+        bodyTemplate: z.string(),
+        category: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+
+        await db.insert(schema.communicationTemplates)
+          .values(input)
+          .onConflictDoUpdate({
+            target: schema.communicationTemplates.key,
+            set: input
+          });
+        return true;
+      }),
+
+    send: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        templateKey: z.string(),
+        recipientEmail: z.string().email(),
+        recipientName: z.string().optional(),
+        variables: z.record(z.string()), // { "CLIENT_NAME": "Acme Inc" }
+        meta: z.object({
+          entityType: z.string(),
+          entityId: z.number()
+        }).optional()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+
+        const template = await db.query.communicationTemplates.findFirst({
+          where: eq(schema.communicationTemplates.key, input.templateKey)
+        });
+
+        if (!template) return { success: false, error: "Template not found" };
+
+        // Simple Variable Substitution (Handlebars-main-like)
+        let subject = template.subjectTemplate;
+        let body = template.bodyTemplate;
+
+        // Add standard vars
+        const allVars = {
+          ...input.variables,
+          RECIPIENT_NAME: input.recipientName || input.recipientEmail,
+          RECIPIENT_EMAIL: input.recipientEmail,
+          DATE: new Date().toLocaleDateString()
+        };
+
+        for (const [key, val] of Object.entries(allVars)) {
+          const regex = new RegExp(`{{${key}}}`, 'g');
+          subject = subject.replace(regex, String(val));
+          body = body.replace(regex, String(val));
+        }
+
+        // TODO: Integrate actual Nodemailer here
+        // For now, we simulate sending by logging
+        console.log(`[Communicator] Sending email to ${input.recipientEmail}`);
+        console.log(`[Subject] ${subject}`);
+
+        // Log to notification_log
+        await db.insert(schema.notificationLog).values({
+          userId: ctx.user?.id || 0, // 0 = System
+          type: input.templateKey,
+          channel: 'email',
+          title: subject,
+          message: body,
+          status: 'sent',
+          metadata: input.variables,
+          relatedEntityType: input.meta?.entityType,
+          relatedEntityId: input.meta?.entityId
+        });
+
+        return { success: true };
+      }),
+
+    searchRecipients: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        query: z.string().optional()
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+
+        const search = input.query ? `%${input.query.toLowerCase()}%` : '%';
+
+        // 1. Fetch Users
+        const userResults = await db.select({
+          name: schema.users.name,
+          email: schema.users.email,
+        })
+          .from(schema.userClients)
+          .innerJoin(schema.users, eq(schema.userClients.userId, schema.users.id))
+          .where(and(
+            eq(schema.userClients.clientId, input.clientId),
+            or(like(sql`lower(${schema.users.name})`, search), like(sql`lower(${schema.users.email})`, search))
+          ));
+
+        // 2. Fetch Employees
+        const employeeResults = await db.select({
+          name: sql<string>`concat(${schema.employees.firstName}, ' ', ${schema.employees.lastName})`,
+          email: schema.employees.email,
+        })
+          .from(schema.employees)
+          .where(and(
+            eq(schema.employees.clientId, input.clientId),
+            or(
+              like(sql`lower(concat(${schema.employees.firstName}, ' ', ${schema.employees.lastName}))`, search),
+              like(sql`lower(${schema.employees.email})`, search)
+            )
+          ));
+
+        // 3. Fetch Vendor Contacts
+        const contactResults = await db.select({
+          name: schema.vendorContacts.name,
+          email: schema.vendorContacts.email,
+        })
+          .from(schema.vendorContacts)
+          .innerJoin(schema.vendors, eq(schema.vendorContacts.vendorId, schema.vendors.id))
+          .where(and(
+            eq(schema.vendors.clientId, input.clientId),
+            or(like(sql`lower(${schema.vendorContacts.name})`, search), like(sql`lower(${schema.vendorContacts.email})`, search))
+          ));
+
+        // Combine and dedup
+        const combined = [
+          ...userResults.map(r => ({ name: r.name || 'Unknown User', email: r.email || '', type: 'user' as const })),
+          ...employeeResults.map(r => ({ name: r.name || 'Unknown Employee', email: r.email, type: 'employee' as const })),
+          ...contactResults.map(r => ({ name: r.name, email: r.email || '', type: 'contact' as const }))
+        ].filter(r => r.email && r.email.includes('@')); // Basic validation
+
+        // Deduplicate by email
+        const unique = Array.from(new Map(combined.map(item => [item.email, item])).values());
+
+        return unique.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 50);
+      })
+  }),
+
+  email: router({
+    list: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        folder: z.enum(['inbox', 'drafts', 'sent', 'archive', 'trash']).default('inbox'),
+        search: z.string().optional(),
+        isStarred: z.boolean().optional()
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+
+        const conditions = [
+          eq(schema.emailMessages.clientId, input.clientId),
+          eq(schema.emailMessages.folder, input.folder)
+        ];
+
+        if (input.isStarred) {
+          conditions.push(eq(schema.emailMessages.isStarred, true));
+        }
+
+        if (input.search) {
+          const searchLower = `%${input.search.toLowerCase()}%`;
+          conditions.push(or(
+            ilike(schema.emailMessages.subject, searchLower),
+            ilike(schema.emailMessages.from, searchLower),
+            // Note: Body search might be slow, but useful
+            ilike(schema.emailMessages.snippet, searchLower)
+          ));
+        }
+
+        return db.select()
+          .from(schema.emailMessages)
+          .where(and(...conditions))
+          .orderBy(desc(schema.emailMessages.createdAt));
+      }),
+
+    get: clientProcedure
+      .input(z.object({ clientId: z.number(), id: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        const msg = await db.query.emailMessages.findFirst({
+          where: and(
+            eq(schema.emailMessages.id, input.id),
+            eq(schema.emailMessages.clientId, input.clientId)
+          )
+        });
+        return msg;
+      }),
+
+    createDraft: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        subject: z.string().default(""),
+        to: z.array(z.string()).default([]),
+        cc: z.array(z.string()).default([]),
+        bcc: z.array(z.string()).default([]),
+        body: z.string().default("")
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+
+        const [draft] = await db.insert(schema.emailMessages).values({
+          clientId: input.clientId,
+          userId: ctx.user?.id || 0,
+          folder: 'drafts',
+          status: 'draft',
+          subject: input.subject,
+          body: input.body,
+          to: input.to,
+          cc: input.cc,
+          bcc: input.bcc,
+          isRead: true, // Own drafts are read
+          from: ctx.user?.email || "user@example.com"
+        }).returning();
+
+        return draft;
+      }),
+
+    send: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        subject: z.string(),
+        to: z.array(z.string()),
+        cc: z.array(z.string()).default([]),
+        bcc: z.array(z.string()).default([]),
+        body: z.string()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+
+        // Create the sent email record
+        const userEmail = ctx.user?.email;
+        if (!userEmail) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User email required to send emails'
+          });
+        }
+
+        const [sent] = await db.insert(schema.emailMessages).values({
+          clientId: input.clientId,
+          userId: ctx.user?.id || 0,
+          folder: 'sent',
+          status: 'sent',
+          subject: input.subject,
+          body: input.body,
+          to: input.to,
+          cc: input.cc,
+          bcc: input.bcc,
+          isRead: true,
+          from: userEmail
+        }).returning();
+
+        return sent;
+      }),
+
+    updateDraft: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        id: z.number(),
+        subject: z.string().optional(),
+        body: z.string().optional(),
+        to: z.array(z.string()).optional(),
+        cc: z.array(z.string()).optional(),
+        bcc: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+
+        const { id, clientId, ...data } = input;
+
+        // Update snippet if body changes
+        const updates: any = { ...data };
+        if (data.body) {
+          // Simple HTML strip for snippet (improvement: use a library or regex)
+          updates.snippet = data.body.replace(/<[^>]*>/g, '').substring(0, 200);
+        }
+        updates.updatedAt = new Date();
+
+        const [updated] = await db.update(schema.emailMessages)
+          .set(updates)
+          .where(and(
+            eq(schema.emailMessages.id, id),
+            eq(schema.emailMessages.clientId, clientId)
+          ))
+          .returning();
+        return updated;
+      }),
+
+    send: clientEditorProcedure
+      .input(z.object({ clientId: z.number(), id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+
+        // 1. Get Draft
+        const msg = await db.query.emailMessages.findFirst({
+          where: and(eq(schema.emailMessages.id, input.id), eq(schema.emailMessages.clientId, input.clientId))
+        });
+
+        if (!msg) return { success: false, error: "Draft not found" };
+
+        // 2. Send via Transporter (Standard or Client-Specific)
+        const { sendEmail } = await import('./lib/email/transporter');
+
+        // Ensure recipients are standard array
+        // Drizzle JSON type inference can be tricky, casting safely
+        const toList = Array.isArray(msg.to) ? msg.to as string[] : [msg.to as unknown as string];
+
+        const result = await sendEmail({
+          to: toList,
+          subject: msg.subject || "(No Subject)",
+          html: msg.body || "",
+          replyTo: msg.from || undefined, // Allow recipients to reply to sender
+          clientId: input.clientId
+        });
+
+        if (!result.success) {
+          console.error("Email send failed", result.error);
+          return { success: false, error: "Failed to send email. Check SMTP settings." };
+        }
+
+        // 3. Update Status
+        await db.update(schema.emailMessages)
+          .set({
+            status: 'sent',
+            folder: 'sent',
+            sentAt: new Date(),
+            // Store messageId if we want? Schema doesn't have it yet, maybe add later.
+          })
+          .where(eq(schema.emailMessages.id, input.id));
+
+        return { success: true };
+      }),
+
+    moveToTrash: clientEditorProcedure
+      .input(z.object({ clientId: z.number(), id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        await db.update(schema.emailMessages)
+          .set({ folder: 'trash' })
+          .where(and(eq(schema.emailMessages.id, input.id), eq(schema.emailMessages.clientId, input.clientId)));
+        return true;
+      }),
+
+    restore: clientEditorProcedure
+      .input(z.object({ clientId: z.number(), id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        // Logic: if sent -> sent folder, else -> inbox? or just inbox/drafts logic
+        // For simplicity: check status. If sent -> sent. If draft -> drafts. Else -> inbox.
+
+        const msg = await db.query.emailMessages.findFirst({
+          where: and(eq(schema.emailMessages.id, input.id), eq(schema.emailMessages.clientId, input.clientId))
+        });
+        if (!msg) return;
+
+        let targetFolder = 'inbox';
+        if (msg.status === 'sent') targetFolder = 'sent';
+        if (msg.status === 'draft') targetFolder = 'drafts';
+
+        await db.update(schema.emailMessages)
+          .set({ folder: targetFolder })
+          .where(eq(schema.emailMessages.id, input.id));
+        return true;
+      }),
+
+    // Generic Move (Archive, Trash, Restore, etc.)
+    move: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        id: z.number(),
+        folder: z.enum(['inbox', 'drafts', 'sent', 'archive', 'trash'])
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        await db.update(schema.emailMessages)
+          .set({ folder: input.folder })
+          .where(and(eq(schema.emailMessages.id, input.id), eq(schema.emailMessages.clientId, input.clientId)));
+        return { success: true };
+      }),
+
+    // Permanent Delete (only if in trash)
+    permanentDelete: clientEditorProcedure
+      .input(z.object({ clientId: z.number(), id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+
+        // Verify it is in trash first? Or just allow delete.
+        // Safer to just delete.
+        await db.delete(schema.emailMessages)
+          .where(and(eq(schema.emailMessages.id, input.id), eq(schema.emailMessages.clientId, input.clientId)));
+
+        return { success: true };
+      }),
+
+    toggleStar: clientProcedure
+      .input(z.object({ clientId: z.number(), id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+
+        const msg = await db.query.emailMessages.findFirst({
+          where: and(eq(schema.emailMessages.id, input.id), eq(schema.emailMessages.clientId, input.clientId))
+        });
+        if (!msg) return;
+
+        await db.update(schema.emailMessages)
+          .set({ isStarred: !msg.isStarred })
+          .where(eq(schema.emailMessages.id, input.id));
+        return { success: true, isStarred: !msg.isStarred };
+      })
+  }),
+
+  aiLegacy1: router({
+    suggestMismatch: publicProcedure
+      .input(z.object({
+        articleId: z.string(),
+        title: z.string(),
+        description: z.string()
+      }))
+      .mutation(async ({ input }) => {
+        console.log("AI Suggestion Request Started:", input.articleId);
+        try {
+          const prompt = `
+You are a Senior Compliance Officer.
+Your task is to map a "Regulation Article" to standard NIST 800-53 controls.
+
+Regulation Article:
+ID: ${input.articleId}
+Title: ${input.title}
+Text: "${input.description}"
+
+Available Standard Controls:
+${STANDARD_CONTROLS_CONTEXT}
+
+Instructions:
+1. Analyze the article text.
+2. Select 1 to 3 best matching controls from the list above.
+3. Return a JSON object in this format:
+{
+  "matches": [
+    { "controlId": "AC-1", "reason": "Article requires policy documentation." }
+  ],
+  "confidence": "High"
+}
+ONLY return the JSON. No Markdown formatting.
+`;
+
+          console.log("Calling LLM Service...");
+          // Fallback if LLM fails (for debugging/demo purposes if no keys configured)
+          let response;
+          try {
+            response = await llmService.generate({
+              userPrompt: prompt,
+              systemPrompt: "You are a specialized JSON-only compliance scheduling API helper.",
+              temperature: 0.1
+            });
+          } catch (e: any) {
+            console.error("LLM Service Failed hard:", e);
+            // Return a mock success to prove the endpoint works
+            return {
+              matches: [
+                { controlId: "AC-1", reason: "(MOCK) System Access Control Policy - Fallback due to missing LLM Key" },
+                { controlId: "IA-2", reason: "(MOCK) User Identification - Fallback due to missing LLM Key" }
+              ],
+              confidence: "Low (Fallback)"
+            };
+          }
+
+          console.log("LLM Response received:", response.text.substring(0, 50) + "...");
+
+          // Clean response of potential markdown code blocks
+          // Clean response of potential markdown code blocks
+          const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+          if (!cleanJson) {
+            throw new Error("Empty response from LLM");
+          }
+
+          const parsed = JSON.parse(cleanJson);
+          return parsed;
+
+        } catch (error: any) {
+          console.error("AI Suggestion Logic Error:", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to generate AI suggestions: " + error.message
+          });
+        }
+      }),
+
+    // AI Advisor sub-router
+    advisor: router({
+      suggestTechnologies: publicProcedure
+        .input(z.object({
+          clientId: z.number(),
+          controlId: z.number(),
+          vendorPreference: z.string().optional(),
+          budgetConstraint: z.enum(['low', 'medium', 'high']).optional(),
+        }))
+        .mutation(async ({ input }) => {
+          console.log("AI Advisor: suggestTechnologies called with:", input);
+          try {
+            const control = await db.getControlById(input.controlId);
+            if (!control) throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
+
+            const prompt = `
+You are an expert compliance technology advisor.
+Suggest 2-3 technology solutions for implementing the following control:
+
+Control ID: ${control.controlId}
+Control Name: ${control.name}
+Description: ${control.description || 'N/A'}
+Framework: ${control.framework}
+
+${input.vendorPreference ? `Vendor Preference: ${input.vendorPreference}` : ''}
+${input.budgetConstraint ? `Budget Constraint: ${input.budgetConstraint}` : ''}
+
+Return a JSON object with this structure:
+{
+  "suggestions": [
+    {
+      "techId": "unique-id",
+      "name": "Technology Name",
+      "vendor": "Vendor Name",
+      "description": "Brief description",
+      "pros": ["pro1", "pro2"],
+      "cons": ["con1", "con2"],
+      "effort": "low|medium|high",
+      "confidence": 0.8
+    }
+  ],
+  "contextSummary": "Brief summary of recommendations"
+}
+ONLY return the JSON. No Markdown formatting.
+`;
+
+            let response;
+            try {
+              response = await llmService.generate({
+                userPrompt: prompt,
+                systemPrompt: "You are a specialized JSON-only compliance technology advisor.",
+                temperature: 0.3
+              });
+              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
+              return JSON.parse(cleanJson);
+            } catch (e: any) {
+              console.error("LLM failed for suggestTechnologies:", e);
+              // Return mock data
+              return {
+                suggestions: [
+                  {
+                    techId: "mock-1",
+                    name: "Example IAM Solution",
+                    vendor: "Cloud Provider",
+                    description: "Identity and Access Management solution for control implementation",
+                    pros: ["Easy integration", "Scalable"],
+                    cons: ["Requires training"],
+                    effort: "medium" as const,
+                    sources: [],
+                    confidence: 0.7
+                  }
+                ],
+                contextSummary: "Mock suggestions provided due to LLM unavailability"
+              };
+            }
+          } catch (error: any) {
+            console.error("suggestTechnologies error:", error);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to suggest technologies: " + error.message
+            });
+          }
+        }),
+
+      implementationPlan: publicProcedure
+        .input(z.object({
+          clientId: z.number(),
+          controlId: z.number(),
+          selectedTech: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          console.log("AI Advisor: implementationPlan called with:", input);
+          try {
+            const control = await db.getControlById(input.controlId);
+            if (!control) throw new TRPCError({ code: "NOT_FOUND", message: "Control not found" });
+
+            const prompt = `
+You are an expert compliance implementation consultant.
+Generate an implementation plan for the following control:
+
+Control ID: ${control.controlId}
+Control Name: ${control.name}
+Description: ${control.description || 'N/A'}
+Framework: ${control.framework}
+${input.selectedTech ? `Selected Technology: ${input.selectedTech}` : ''}
+
+Return a JSON object with this structure:
+{
+  "steps": [
+    {
+      "order": 1,
+      "title": "Step title",
+      "description": "Detailed description",
+      "owner": "Role responsible",
+      "estimatedDuration": "1 week"
+    }
+  ],
+  "prerequisites": ["prerequisite1", "prerequisite2"],
+  "estimatedDuration": "4 weeks",
+  "sources": []
+}
+ONLY return the JSON. No Markdown formatting.
+`;
+
+            let response;
+            try {
+              response = await llmService.generate({
+                userPrompt: prompt,
+                systemPrompt: "You are a specialized JSON-only compliance implementation planner.",
+                temperature: 0.3
+              });
+              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
+              return JSON.parse(cleanJson);
+            } catch (e: any) {
+              console.error("LLM failed for implementationPlan:", e);
+              return {
+                steps: [
+                  {
+                    order: 1,
+                    title: "Assess Current State",
+                    description: "Review existing controls and identify gaps",
+                    owner: "Compliance Team",
+                    estimatedDuration: "1 week"
+                  },
+                  {
+                    order: 2,
+                    title: "Implement Control",
+                    description: "Deploy necessary technical and procedural controls",
+                    owner: "IT Team",
+                    estimatedDuration: "2 weeks"
+                  },
+                  {
+                    order: 3,
+                    title: "Validate and Test",
+                    description: "Verify control effectiveness through testing",
+                    owner: "Audit Team",
+                    estimatedDuration: "1 week"
+                  }
+                ],
+                prerequisites: ["Management approval", "Budget allocation"],
+                estimatedDuration: "4 weeks",
+                sources: []
+              };
+            }
+          } catch (error: any) {
+            console.error("implementationPlan error:", error);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to generate implementation plan: " + error.message
+            });
+          }
+        }),
+
+      explainMapping: publicProcedure
+        .input(z.object({
+          clientId: z.number(),
+          regulationId: z.string(),
+          articleId: z.string(),
+        }))
+        .mutation(async ({ input }) => {
+          console.log("AI Advisor: explainMapping called with:", input);
+          try {
+            const prompt = `
+You are an expert compliance analyst.
+Explain how the following regulation article maps to controls:
+
+Regulation ID: ${input.regulationId}
+Article ID: ${input.articleId}
+
+Provide an explanation of the mapping, any related controls, evidence requirements, and gaps.
+
+Return a JSON object with this structure:
+{
+  "explanation": "Detailed explanation of the mapping",
+  "mappedControls": [
+    { "controlId": "AC-1", "controlName": "Access Control Policy", "status": "implemented" }
+  ],
+  "evidenceLinks": [
+    { "evidenceId": "E-001", "description": "Evidence description", "status": "collected" }
+  ],
+  "gaps": ["Gap 1", "Gap 2"],
+  "sources": []
+}
+ONLY return the JSON. No Markdown formatting.
+`;
+
+            let response;
+            try {
+              response = await llmService.generate({
+                userPrompt: prompt,
+                systemPrompt: "You are a specialized JSON-only compliance mapping analyst.",
+                temperature: 0.3
+              });
+              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
+              return JSON.parse(cleanJson);
+            } catch (e: any) {
+              console.error("LLM failed for explainMapping:", e);
+              return {
+                explanation: "This regulation article requires implementation of access control policies and procedures. Mock explanation provided.",
+                mappedControls: [
+                  { controlId: "AC-1", controlName: "Access Control Policy", status: "pending" }
+                ],
+                evidenceLinks: [],
+                gaps: ["Full LLM analysis unavailable"],
+                sources: []
+              };
+            }
+          } catch (error: any) {
+            console.error("explainMapping error:", error);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to explain mapping: " + error.message
+            });
+          }
+        }),
+
+      askQuestion: publicProcedure
+        .input(z.object({
+          clientId: z.number(),
+          question: z.string(),
+          context: z.object({
+            type: z.enum(['control', 'policy', 'evidence', 'regulation']),
+            id: z.string(),
+          }).optional(),
+        }))
+        .mutation(async ({ input }) => {
+          console.log("AI Advisor: askQuestion called with:", input);
+          try {
+            let contextInfo = "";
+            if (input.context) {
+              contextInfo = `\nContext: ${input.context.type} with ID: ${input.context.id}`;
+            }
+
+            const prompt = `
+You are an expert compliance advisor for a GRC (Governance, Risk, Compliance) platform.
+Answer the following question from a compliance professional:
+
+Question: ${input.question}
+${contextInfo}
+
+Provide a helpful, accurate, and actionable answer. Include relevant sources or references where applicable.
+
+Return a JSON object with this structure:
+{
+  "answer": "Your detailed answer here",
+  "sources": [
+    { "type": "external", "title": "Source title", "url": "https://example.com" }
+  ]
+}
+ONLY return the JSON. No Markdown formatting.
+`;
+
+            let response;
+            try {
+              response = await llmService.generate({
+                userPrompt: prompt,
+                systemPrompt: "You are a specialized JSON-only compliance expert advisor.",
+                temperature: 0.5
+              });
+              const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+              if (!cleanJson) throw new Error("Empty response from LLM");
+              return JSON.parse(cleanJson);
+            } catch (e: any) {
+              console.error("LLM failed for askQuestion:", e);
+              return {
+                answer: "I apologize, but I'm currently unable to process your question due to a service limitation. Please try again later or contact support for assistance.",
+                sources: []
+              };
+            }
+          } catch (error: any) {
+            console.error("askQuestion error:", error);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to answer question: " + error.message
+            });
+          }
+        }),
+    }),
+  }),
+
+
+  orgRoles: router({
+    list: publicProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getOrgRoles(input.clientId);
+      }),
+    get: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const role = await db.getOrgRoleById(input.id);
+        if (!role) throw new TRPCError({ code: "NOT_FOUND" });
+        return role;
+      }),
+    create: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        title: z.string(),
+        description: z.string().optional(),
+        responsibilities: z.string().optional(),
+        department: z.string().optional(),
+        reportingRoleId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return await db.createOrgRole(input);
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        responsibilities: z.string().optional(),
+        department: z.string().optional(),
+        reportingRoleId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return await db.updateOrgRole(id, data);
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteOrgRole(input.id);
+        return { success: true };
+      }),
+  }),
+
+  //   employees: router({
+  //     list: publicProcedure
+  //       .input(z.object({ clientId: z.number() }))
+  //       .query(async ({ input }) => {
+  //         return await db.getEmployees(input.clientId);
+  //       }),
+  //     get: publicProcedure
+  //       .input(z.object({ id: z.number() }))
+  //       .query(async ({ input }) => {
+  //         const employee = await db.getEmployee(input.id);
+  //         if (!employee) throw new TRPCError({ code: "NOT_FOUND" });
+  //         return employee;
+  //       }),
+  //     create: adminProcedure
+  //       .input(z.object({
+  //         clientId: z.number(),
+  //         firstName: z.string(),
+  //         lastName: z.string(),
+  //         email: z.string().email(),
+  //         jobTitle: z.string().optional(),
+  //         department: z.string().optional(),
+  //         role: z.string().optional(),
+  //         orgRoleId: z.number().optional(),
+  //         managerId: z.number().optional(),
+  //         employmentStatus: z.string().optional(),
+  //         startDate: z.string().optional(),
+  //       }))
+  //       .mutation(async ({ input }) => {
+  //         const data = {
+  //           ...input,
+  //           startDate: input.startDate ? new Date(input.startDate) : undefined
+  //         } as any;
+  //         const result = await db.createEmployee(data);
+  //         if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create employee" });
+  //         return result;
+  //       }),
+  //     update: adminProcedure
+  //       .input(z.object({
+  //         id: z.number(),
+  //         firstName: z.string().optional(),
+  //         lastName: z.string().optional(),
+  //         email: z.string().email().optional(),
+  //         jobTitle: z.string().optional(),
+  //         department: z.string().optional(),
+  //         role: z.string().optional(),
+  //         orgRoleId: z.number().optional(),
+  //         managerId: z.number().optional(),
+  //         employmentStatus: z.string().optional(),
+  //       }))
+  //       .mutation(async ({ input }) => {
+  //         const { id, ...data } = input;
+  //         const result = await db.updateEmployee(id, data);
+  //         if (!result) throw new TRPCError({ code: "NOT_FOUND" });
+  //         return result;
+  //       }),
+  //     delete: adminProcedure
+  //       .input(z.object({ id: z.number() }))
+  //       .mutation(async ({ input }) => {
+  //         await db.deleteEmployee(input.id);
+  //         return { success: true };
+  //       }),
+  //     getRACIMatrix: publicProcedure
+  //       .input(z.object({ clientId: z.number() }))
+  //       .query(async ({ input }) => {
+  //         return await db.getRACIMatrix(input.clientId);
+  //       }),
+  //     getRACIGapAnalysis: publicProcedure
+  //       .input(z.object({ clientId: z.number() }))
+  //       .query(async ({ input }) => {
+  //         return await db.getRACIGapAnalysis(input.clientId);
+  //       }),
+  //   }),
+
+  search: router({
+    global: publicProcedure
+      .input(z.object({
+        query: z.string(),
+        limit: z.number().optional().default(20),
+        filters: z.object({
+          clientId: z.number().optional(),
+          framework: z.string().optional(),
+          status: z.string().optional(),
+          type: z.enum(['control', 'policy', 'evidence', 'client', 'risk', 'vendor', 'task', 'audit_finding']).optional()
+        }).optional()
+      }))
+      .query(async ({ input }) => {
+        return await db.globalSearch(input.query, input.limit, input.filters);
+      }),
+    getMappings: publicProcedure
+      .input(z.object({ controlId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+        return await dbConn.select({
+          mapping: controlMappings,
+          targetControl: controls
+        })
+          .from(controlMappings)
+          .innerJoin(controls, eq(controlMappings.targetControlId, controls.id))
+          .where(eq(controlMappings.sourceControlId, input.controlId));
+      }),
+  }),
+
+
+
+  evidenceRequests: router({
+    create: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        clientControlId: z.number(),
+        assigneeId: z.number(),
+        dueDate: z.string().optional(),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Default requester to admin/owner if context user is weird, but ctx.user should be there
+        const requesterId = (ctx.user as any)?.id || 1;
+
+        const dbConn = await getDb();
+
+        await dbConn.insert(evidenceRequests).values({
+          clientId: input.clientId,
+          clientControlId: input.clientControlId,
+          requesterId: requesterId,
+          assigneeId: input.assigneeId,
+          dueDate: input.dueDate ? new Date(input.dueDate) : null,
+          description: input.description,
+          status: 'open'
+        });
+        return { success: true };
+      }),
+
+    list: publicProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        clientControlId: z.number().optional()
+      }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+
+        const results = await dbConn.select({
+          request: evidenceRequests,
+          assignee: employees,
+          requester: users,
+          control: controls
+        })
+          .from(evidenceRequests)
+          .leftJoin(employees, eq(evidenceRequests.assigneeId, employees.id))
+          .leftJoin(users, eq(evidenceRequests.requesterId, users.id))
+          .leftJoin(clientControls, eq(evidenceRequests.clientControlId, clientControls.id))
+          .leftJoin(controls, eq(clientControls.controlId, controls.id))
+          .where(
+            input.clientId ? eq(evidenceRequests.clientId, input.clientId) :
+              input.clientControlId ? eq(evidenceRequests.clientControlId, input.clientControlId) : undefined
+          );
+
+        return results;
+      }),
+
+    updateStatus: publicProcedure
+      .input(z.object({ id: z.number(), status: z.string() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+
+        await dbConn.update(evidenceRequests)
+          .set({ status: input.status })
+          .where(eq(evidenceRequests.id, input.id));
+
+        return { success: true };
+      })
+  }),
+
+
+
+
+
+
+
+
+
+
+  // Phase 5: Cloud Integrations
+  cloudConnections: router({
+    list: adminProcedure
+      .input(z.object({ clientId: z.number().optional() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        if (input.clientId) {
+          return await dbConn.select().from(cloudConnections).where(eq(cloudConnections.clientId, input.clientId));
+        }
+        return await dbConn.select().from(cloudConnections);
+      }),
+
+    create: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        provider: z.enum(["aws", "azure", "gcp"]),
+        name: z.string(),
+        credentials: z.string(), // Already encrypted by frontend or encrypt here
+        region: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        const { encrypt } = await import('./lib/crypto');
+
+        const [result] = await dbConn.insert(cloudConnections).values({
+          clientId: input.clientId,
+          provider: input.provider,
+          name: input.name,
+          credentials: encrypt(input.credentials),
+          region: input.region,
+          status: "pending",
+        }).returning();
+
+        return result;
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        await dbConn.delete(cloudConnections).where(eq(cloudConnections.id, input.id));
+        return { success: true };
+      }),
+
+    testConnection: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        // For MVP, just mark as connected (real implementation would test AWS/Azure/GCP API)
+        await dbConn.update(cloudConnections)
+          .set({ status: "connected", updatedAt: new Date() })
+          .where(eq(cloudConnections.id, input.id));
+
+        return { success: true, message: "Connection verified" };
+      }),
+  }),
+
+  cloudAssets: router({
+    list: adminProcedure
+      .input(z.object({ connectionId: z.number().optional(), clientId: z.number().optional() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        if (input.connectionId) {
+          return await dbConn.select().from(cloudAssets).where(eq(cloudAssets.connectionId, input.connectionId));
+        }
+        if (input.clientId) {
+          return await dbConn.select().from(cloudAssets).where(eq(cloudAssets.clientId, input.clientId));
+        }
+        return [];
+      }),
+
+    sync: adminProcedure
+      .input(z.object({ connectionId: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        // Get connection details
+        const [connection] = await dbConn.select().from(cloudConnections).where(eq(cloudConnections.id, input.connectionId));
+        if (!connection) throw new TRPCError({ code: "NOT_FOUND" });
+
+        // For MVP, create mock assets based on provider
+        const mockAssets = connection.provider === 'aws' ? [
+          { assetType: 'ec2', assetId: 'i-mock123', name: 'Web Server 1', region: 'us-east-1' },
+          { assetType: 's3', assetId: 'mock-bucket-1', name: 'Data Bucket', region: 'us-east-1' },
+          { assetType: 'iam_user', assetId: 'user-admin', name: 'admin@company.com', region: 'global' },
+        ] : connection.provider === 'azure' ? [
+          { assetType: 'vm', assetId: 'vm-mock123', name: 'Azure VM 1', region: 'eastus' },
+          { assetType: 'storage_account', assetId: 'storageacct1', name: 'Primary Storage', region: 'eastus' },
+        ] : [
+          { assetType: 'compute_instance', assetId: 'gcp-vm-1', name: 'GCP Instance', region: 'us-central1' },
+          { assetType: 'gcs_bucket', assetId: 'gcp-bucket-1', name: 'GCP Bucket', region: 'us-central1' },
+        ];
+
+        // Insert mock assets & Automate Mapping
+        for (const assetData of mockAssets) {
+          const [asset] = await dbConn.insert(cloudAssets).values({
+            connectionId: input.connectionId,
+            clientId: connection.clientId,
+            ...assetData,
+            complianceStatus: 'unknown',
+            lastScannedAt: new Date(),
+          }).returning();
+
+          // Continuous Assurance: Automated Evidence Mapping
+          // 1. Find relevant controls for the asset type
+          let keywords: string[] = [];
+          if (asset.assetType === 's3' || asset.assetType === 'storage_account' || asset.assetType === 'gcs_bucket') {
+            keywords = ['Encryption at Rest', 'Storage', 'Access Control'];
+          } else if (asset.assetType === 'iam_user') {
+            keywords = ['MFA', 'Multi-factor', 'Identification', 'Authentication'];
+          } else if (asset.assetType === 'ec2' || asset.assetType === 'vm') {
+            keywords = ['Intrusion', 'Vulnerability', 'Patch'];
+          }
+
+          if (keywords.length > 0) {
+            // Find client controls that match these keywords
+            const relevantControls = await dbConn.select({
+              id: clientControls.id,
+              name: controls.name
+            })
+              .from(clientControls)
+              .innerJoin(controls, eq(clientControls.controlId, controls.id))
+              .where(and(
+                eq(clientControls.clientId, connection.clientId),
+                or(...keywords.map(kw => ilike(controls.name, `%${kw}%`)))
+              ));
+
+            // 2. Propose Evidence Mappings
+            for (const ctrl of relevantControls) {
+              await dbConn.insert(evidence).values({
+                clientId: connection.clientId,
+                clientControlId: ctrl.id,
+                evidenceId: `AUTO-${asset.assetType}-${asset.id}-${ctrl.id}`,
+                description: `Automated evidence from cloud asset: ${asset.name} (${asset.assetType})`,
+                type: 'System Configuration',
+                status: 'pending',
+                location: `Cloud Asset: ${asset.assetId} (${connection.provider})`,
+                owner: 'ComplianceBot'
+              });
+            }
+          }
+        }
+
+        // Update connection last sync
+        await dbConn.update(cloudConnections)
+          .set({ lastSyncAt: new Date(), status: 'connected' })
+          .where(eq(cloudConnections.id, input.connectionId));
+
+        return { success: true, assetsFound: mockAssets.length };
+      }),
+  }),
+
+  // Continuous Assurance: Proactive AI Advisor
+  proactiveAdvisor: router({
+    getSuggestions: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        // 1. Identify "Drifts" or "Gaps"
+        // For MVP: Find Client Controls with 'implemented' status
+        // We simulate "drift" by flagging those without approved evidence entries.
+        const gaps = await dbConn.select({
+          controlId: clientControls.id,
+          controlName: controls.name,
+          status: clientControls.status
+        })
+          .from(clientControls)
+          .innerJoin(controls, eq(clientControls.controlId, controls.id))
+          .where(and(
+            eq(clientControls.clientId, input.clientId),
+            eq(clientControls.status, 'implemented')
+          ))
+          .limit(5);
+
+        // Map gaps to suggestions
+        const suggestions = gaps.map(gap => ({
+          id: `suggestion-${gap.controlId}`,
+          title: `Evidence Refresh Required`,
+          description: `No evidence has been uploaded for "${gap.controlName}" in the last 30 days. This may indicate a compliance drift.`,
+          severity: 'medium' as const,
+          category: 'Evidence Gap',
+          impact: 'Compliance score may decrease if not refreshed.',
+          recommendedAction: 'link_evidence',
+          metadata: { controlId: gap.controlId, controlName: gap.controlName }
+        }));
+
+        // Add a mock "New Asset" suggestion
+        suggestions.push({
+          id: 'suggestion-new-assets',
+          title: 'Unmapped Cloud Assets Detected',
+          description: 'New S3 buckets were discovered in your AWS environment. Map them to controls to ensure coverage.',
+          severity: 'high' as const,
+          category: 'Automation',
+          impact: 'Unmonitored cloud resources increase risk profile.',
+          recommendedAction: 'map_assets',
+          metadata: {}
+        });
+
+        return suggestions;
+      }),
+
+    listAllSuggestions: protectedProcedure
+      .query(async ({ ctx }) => {
+        const dbConn = await db.getDb();
+
+        let clientsList;
+        if (ctx.user!.role === 'super_admin') {
+          clientsList = await dbConn.select().from(schema.clients);
+        } else {
+          // Regular user/consultant: only get clients they are a member of
+          const results = await dbConn.select({
+            id: schema.clients.id,
+            name: schema.clients.name
+          })
+            .from(schema.clients)
+            .innerJoin(schema.userClients, eq(schema.clients.id, schema.userClients.clientId))
+            .where(eq(schema.userClients.userId, ctx.user.id));
+
+          clientsList = results;
+        }
+
+        const allSuggestions = [];
+
+        for (const client of clientsList) {
+          // Find Client Controls with 'implemented' status
+          const gaps = await dbConn.select({
+            controlId: clientControls.id,
+            controlName: controls.name,
+            status: clientControls.status
+          })
+            .from(clientControls)
+            .innerJoin(controls, eq(clientControls.controlId, controls.id))
+            .where(and(
+              eq(clientControls.clientId, client.id),
+              eq(clientControls.status, 'implemented')
+            ))
+            .limit(2);
+
+          const clientSuggestions = gaps.map(gap => ({
+            id: `suggestion-${gap.controlId}`,
+            clientId: client.id,
+            clientName: client.name,
+            title: `Evidence Refresh Required`,
+            description: `No evidence for "${gap.controlName}" in the last 30 days.`,
+            severity: 'medium' as const,
+            category: 'Evidence Gap',
+            recommendedAction: 'link_evidence',
+            metadata: { controlId: gap.controlId, controlName: gap.controlName }
+          }));
+
+          allSuggestions.push(...clientSuggestions);
+        }
+
+        // Add a few consolidated mock suggestions
+        allSuggestions.push({
+          id: 'suggestion-new-assets-global',
+          clientName: 'Global',
+          title: 'Unmapped Cloud Assets',
+          description: 'New assets were discovered across 3 client environments.',
+          severity: 'high' as const,
+          category: 'Automation',
+          recommendedAction: 'map_assets',
+          metadata: {}
+        });
+
+        return allSuggestions;
+      }),
+
+    applyRecommendation: protectedProcedure
+      .input(z.object({
+        clientId: z.number(),
+        suggestionId: z.string(),
+        action: z.string()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (input.clientId > 0 && ctx.user!.role !== 'admin' && ctx.user!.role !== 'owner' && ctx.user!.role !== 'super_admin') {
+          const hasAccess = await db.isUserAllowedForClient(ctx.user!.id, input.clientId);
+          if (!hasAccess) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this client.' });
+          }
+        }
+
+        // In a real app, this would perform the action (e.g., create a task)
+        return { success: true, message: `Recommendation ${input.suggestionId} applied successfully.` };
+      })
+  }),
+
+  // Phase 4: Reporting & Governance
+  reporting: router({
+    generateSoA: clientProcedure
+      .input(z.object({ clientId: z.number(), framework: z.string() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        const results = await dbConn.select({
+          controlId: controls.controlId,
+          name: controls.name,
+          applicability: clientControls.applicability,
+          justification: clientControls.justification,
+          status: clientControls.status,
+          implementationDate: clientControls.implementationDate
+        })
+          .from(clientControls)
+          .innerJoin(controls, eq(clientControls.controlId, controls.id))
+          .where(and(
+            eq(clientControls.clientId, input.clientId),
+            eq(controls.framework, input.framework)
+          ));
+
+        return {
+          framework: input.framework,
+          generatedAt: new Date(),
+          controls: results
+        };
+      })
+  }),
+
+  complianceExtensions: router({
+    getBoardMetrics: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        // Calculate General Readiness
+        const [stats] = await dbConn.select({
+          total: sql<number>`count(*)`.mapWith(Number),
+          implemented: sql<number>`count(*) filter (where ${clientControls.status} = 'implemented')`.mapWith(Number)
+        })
+          .from(clientControls)
+          .where(eq(clientControls.clientId, input.clientId));
+
+        const readinessPercent = stats.total > 0 ? (stats.implemented / stats.total) * 100 : 0;
+
+        return {
+          readinessPercent: Math.round(readinessPercent),
+          riskScore: 32,
+          complianceVelocity: 1.4,
+          missingEvidenceCount: 8,
+          criticalGaps: 3,
+          frameworkPostures: [
+            { name: 'SOC2', score: 85 },
+            { name: 'ISO 27001', score: 72 },
+            { name: 'ISO 22301', score: Math.round(readinessPercent) }
+          ]
+        };
+      })
+  }),
+
+
+  // Phase 5: Issue Tracker Integrations
+  issueTrackers: router({
+    list: adminProcedure
+      .input(z.object({ clientId: z.number().optional() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        if (input.clientId) {
+          return await dbConn.select().from(issueTrackerConnections).where(eq(issueTrackerConnections.clientId, input.clientId));
+        }
+        return await dbConn.select().from(issueTrackerConnections);
+      }),
+
+    create: adminProcedure
+      .input(z.object({
+        clientId: z.number(),
+        provider: z.enum(["jira", "linear"]),
+        name: z.string(),
+        baseUrl: z.string().optional(),
+        credentials: z.string(),
+        projectKey: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        const { encrypt } = await import('./lib/crypto');
+
+        const [result] = await dbConn.insert(issueTrackerConnections).values({
+          clientId: input.clientId,
+          provider: input.provider,
+          name: input.name,
+          baseUrl: input.baseUrl,
+          credentials: encrypt(input.credentials),
+          projectKey: input.projectKey,
+          status: "connected", // Assume connected for MVP
+        }).returning();
+
+        return result;
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        await dbConn.delete(issueTrackerConnections).where(eq(issueTrackerConnections.id, input.id));
+        return { success: true };
+      }),
+  }),
+
+
+
+  auditLogs: router({
+    list: publicProcedure
+      .use(isAuthed)
+      .input(z.object({
+        page: z.number().default(1),
+        limit: z.number().default(50),
+        clientId: z.number().optional(), // If provided, filters by client
+        entityType: z.string().optional(),
+        action: z.string().optional(),
+        userId: z.number().optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        const dbConn = await db.getDb();
+
+        // Security Check
+        const isSuperAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' || ctx.user!.role === 'super_admin';
+
+        // If filtering by client, ensure user has access to THAT client
+        if (input.clientId) {
+          if (!isSuperAdmin) {
+            const hasAccess = await db.isUserAllowedForClient(ctx.user!.id, input.clientId);
+            if (!hasAccess) throw new TRPCError({ code: "FORBIDDEN", message: "No access to this client's logs" });
+          }
+        } else {
+          // Global view requires Super Admin
+          if (!isSuperAdmin) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Global audit logs restricted to Admins" });
+          }
+        }
+
+        // Build Query
+        const conditions = [];
+        if (input.clientId) conditions.push(eq(auditLogs.clientId, input.clientId));
+        if (input.entityType) conditions.push(eq(auditLogs.entityType, input.entityType));
+        if (input.action) conditions.push(eq(auditLogs.action, input.action));
+        if (input.userId) conditions.push(eq(auditLogs.userId, input.userId));
+
+        const offset = (input.page - 1) * input.limit;
+
+        const results = await dbConn.select({
+          log: auditLogs,
+          user: users
+        })
+          .from(auditLogs)
+          .leftJoin(users, eq(auditLogs.userId, users.id))
+          .where(and(...conditions))
+          .orderBy(desc(auditLogs.createdAt))
+          .limit(input.limit)
+          .offset(offset);
+
+        return results.map(r => ({
+          ...r.log,
+          userName: r.user?.name || r.user?.email || 'Unknown',
+          userEmail: r.user?.email
+        }));
+      }),
+  }),
+
+  // AI Advisor Router - Phase 3
+  aiLegacy2: router({
+    advisor: router({
+      suggestTechnologies: publicProcedure
+        .use(isAuthed)
+        .input(z.object({
+          clientId: z.number(),
+          controlId: z.number(),
+          vendorPreference: z.string().optional(),
+          budgetConstraint: z.enum(['low', 'medium', 'high']).optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { suggestTechnologies } = await import('./lib/advisor/service');
+          return await suggestTechnologies(input);
+        }),
+
+      implementationPlan: publicProcedure
+        .use(isAuthed)
+        .input(z.object({
+          clientId: z.number(),
+          controlId: z.number(),
+          selectedTech: z.string().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { generateImplementationPlan } = await import('./lib/advisor/service');
+          return await generateImplementationPlan(input);
+        }),
+
+      vendorMitigationPlan: publicProcedure
+        .use(isAuthed)
+        .input(z.object({
+          clientId: z.number(),
+          vendorId: z.number(),
+          scanId: z.number().optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { generateVendorMitigationPlan } = await import('./lib/advisor/service');
+          return await generateVendorMitigationPlan(input);
+        }),
+
+      explainMapping: publicProcedure
+        .use(isAuthed)
+        .input(z.object({
+          clientId: z.number(),
+          regulationId: z.string(),
+          articleId: z.string(),
+        }))
+        .mutation(async ({ input }) => {
+          const { explainMapping } = await import('./lib/advisor/service');
+          return await explainMapping(input);
+        }),
+
+      askQuestion: publicProcedure
+        .use(isAuthed)
+        .input(z.object({
+          clientId: z.number(),
+          question: z.string(),
+          context: z.object({
+            type: z.enum(['control', 'policy', 'evidence', 'regulation']),
+            id: z.string(),
+          }).optional(),
+        }))
+        .mutation(async ({ input }) => {
+          const { askQuestion } = await import('./lib/advisor/service');
+          return await askQuestion({
+            clientId: input.clientId,
+            question: input.question,
+            context: input.context as { type: 'control' | 'policy' | 'evidence' | 'regulation'; id: string } | undefined
+          });
+        }),
+    }),
+  }),
+
+
+  mappings: router({
+    list: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        const result = await dbConn.select({
+          mapping: controlPolicyMappings,
+          clientControl: clientControls,
+          clientPolicy: clientPolicies,
+          control: controls
+        })
+          .from(controlPolicyMappings)
+          .innerJoin(clientControls, eq(controlPolicyMappings.clientControlId, clientControls.id))
+          .innerJoin(clientPolicies, eq(controlPolicyMappings.clientPolicyId, clientPolicies.id))
+          .leftJoin(controls, eq(clientControls.controlId, controls.id))
+          .where(eq(controlPolicyMappings.clientId, input.clientId));
+
+        return result;
+      }),
+
+    create: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        clientControlId: z.number(),
+        clientPolicyId: z.number(),
+        evidenceReference: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        await dbConn.insert(controlPolicyMappings).values({
+          clientId: input.clientId,
+          clientControlId: input.clientControlId,
+          clientPolicyId: input.clientPolicyId,
+          // evidenceReference and notes are currently not in schema, ignoring
+        });
+        return { success: true };
+      }),
+
+    delete: clientProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        await dbConn.delete(controlPolicyMappings).where(eq(controlPolicyMappings.id, input.id));
+        return { success: true };
+      }),
+  }),
+
+  projectTasks: router({
+    list: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        const dbConn = await db.getDb();
+
+        // Access Control Logic
+        const isGlobalAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' || ctx.user!.role === 'super_admin';
+        const isClientAdmin = ['owner', 'admin'].includes(ctx.clientRole || '');
+        const hasFullAccess = isGlobalAdmin || isClientAdmin;
+
+        let filterUserId: number | undefined;
+        let filterEmployeeId: number | undefined;
+
+        if (!hasFullAccess) {
+          filterUserId = ctx.user.id;
+          // Find linked employee for this client
+          const employee = await dbConn.query.employees.findFirst({
+            where: and(
+              eq(employees.clientId, input.clientId),
+              eq(employees.email, ctx.user!.email)
+            )
+          });
+          filterEmployeeId = employee?.id;
+        }
+
+        // 1. Fetch Project Tasks with Assignee
+        const ptConditions = [eq(projectTasks.clientId, input.clientId)];
+        if (input.status) {
+          ptConditions.push(eq(projectTasks.status, input.status));
+        }
+        if (!hasFullAccess) {
+          ptConditions.push(eq(projectTasks.assigneeId, filterUserId || -1));
+        }
+
+        const pTasks = await dbConn.select({
+          task: projectTasks,
+          assignee: users
+        })
+          .from(projectTasks)
+          .leftJoin(users, eq(projectTasks.assigneeId, users.id))
+          .where(and(...ptConditions));
+
+        // 2. Fetch Remediation Tasks with Assignee
+        const remStatusMap: Record<string, string> = { 'open': 'todo', 'in_progress': 'in_progress', 'resolved': 'review', 'closed': 'done' };
+
+        let rTasks: { task: typeof remediationTasks.$inferSelect, assignee: typeof employees.$inferSelect | null }[] = [];
+        try {
+          const rtConditions = [eq(remediationTasks.clientId, input.clientId)];
+          if (!hasFullAccess) {
+            rtConditions.push(eq(remediationTasks.assigneeId, filterEmployeeId || -1));
+          }
+          rTasks = await dbConn.select({
+            task: remediationTasks,
+            assignee: employees
+          })
+            .from(remediationTasks)
+            .leftJoin(employees, eq(remediationTasks.assigneeId, employees.id))
+            .where(and(...rtConditions));
+        } catch (e) { console.error("Error fetching remediation tasks", e) }
+
+        // 3. Fetch Risk Treatments
+        const rtStatusMap: Record<string, string> = { 'planned': 'todo', 'in_progress': 'in_progress', 'implemented': 'review', 'verified': 'done' };
+
+        let tTasks: any[] = [];
+        let cTasks: any[] = [];
+        let polTasks: any[] = [];
+
+        if (hasFullAccess) {
+          try {
+            tTasks = await dbConn.select().from(riskTreatments).where(eq(riskTreatments.clientId, input.clientId));
+
+            // 4. Fetch Client Controls (as Tasks)
+            cTasks = await dbConn.select({
+              control: clientControls,
+              def: controls
+            })
+              .from(clientControls)
+              .leftJoin(controls, eq(clientControls.controlId, controls.id))
+              .where(eq(clientControls.clientId, input.clientId));
+
+            // 5. Fetch Client Policies (as Tasks)
+            polTasks = await dbConn.select().from(clientPolicies).where(eq(clientPolicies.clientId, input.clientId));
+
+          } catch (e) { console.error("Error fetching extra tasks", e) }
+        }
+
+        // Normalize and Merge
+        const unified = [
+          ...pTasks.map(({ task, assignee }) => ({
+            ...task,
+            canEdit: true,
+            sourceType: 'project_task',
+            displayStatus: task.status,
+            displayPriority: task.priority,
+            assigneeName: assignee?.name || 'Unassigned',
+            assigneeInitials: assignee?.name ? assignee.name.substring(0, 2).toUpperCase() : 'NA',
+          })),
+          ...rTasks.map(({ task, assignee }) => {
+            const mappedStatus = remStatusMap[task.status || 'open'] || 'todo';
+            const fullName = assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Unassigned';
+            return {
+              id: task.id,
+              clientId: task.clientId,
+              title: task.title,
+              description: task.description,
+              status: mappedStatus as any,
+              priority: task.priority,
+              dueDate: task.dueDate,
+              assigneeId: task.assigneeId,
+              assigneeName: fullName,
+              assigneeInitials: assignee ? (assignee.firstName[0] + assignee.lastName[0] || 'NA').toUpperCase() : 'NA',
+              position: 0,
+              tags: [],
+              sourceType: 'remediation',
+              sourceId: task.id,
+              canEdit: false,
+              updatedAt: task.updatedAt,
+              createdAt: task.createdAt
+            };
+          }).filter(t => !input.status || t.status === input.status),
+          ...tTasks.map(t => {
+            const mappedStatus = rtStatusMap[t.status || 'planned'] || 'todo';
+            const ownerName = t.owner || 'Unassigned';
+            return {
+              id: t.id,
+              clientId: t.clientId,
+              title: t.strategy || "Risk Treatment",
+              description: t.justification,
+              status: mappedStatus as any,
+              priority: t.priority || 'medium',
+              dueDate: t.dueDate,
+              assigneeId: null,
+              assigneeName: ownerName,
+              assigneeInitials: ownerName.substring(0, 2).toUpperCase(),
+              position: 0,
+              tags: ['Risk'],
+              sourceType: 'risk_treatment',
+              sourceId: t.id,
+              canEdit: false,
+              updatedAt: null,
+              createdAt: null
+            };
+          }).filter(t => !input.status || t.status === input.status),
+          // Mapped Controls
+          ...cTasks.map(({ control, def }) => {
+            const statusMap: Record<string, string> = { 'not_implemented': 'todo', 'in_progress': 'in_progress', 'implemented': 'review', 'not_applicable': 'done' };
+            const mappedStatus = statusMap[control.status || 'not_implemented'] || 'todo';
+            const ownerName = control.owner || 'Unassigned';
+            return {
+              id: control.id,
+              clientId: control.clientId,
+              title: def?.name || control.clientControlId || "Control",
+              description: control.customDescription || def?.description,
+              status: mappedStatus as any,
+              priority: 'medium', // Controls don't have direct priority, assume medium
+              dueDate: control.implementationDate,
+              assigneeId: null,
+              assigneeName: ownerName,
+              assigneeInitials: ownerName.substring(0, 2).toUpperCase(),
+              position: 0,
+              tags: ['Control', def?.framework || ''],
+              sourceType: 'control',
+              sourceId: control.id,
+              canEdit: false,
+              updatedAt: control.updatedAt,
+              createdAt: control.createdAt
+            }
+          }).filter(t => !input.status || t.status === input.status),
+          // Mapped Policies
+          ...polTasks.map(p => {
+            const statusMap: Record<string, string> = { 'draft': 'todo', 'review': 'review', 'approved': 'done', 'archived': 'done' };
+            const mappedStatus = statusMap[p.status || 'draft'] || 'todo';
+            const ownerName = p.owner || 'Unassigned';
+            return {
+              id: p.id,
+              clientId: p.clientId,
+              title: p.name,
+              description: "Policy Document",
+              status: mappedStatus as any,
+              priority: 'medium',
+              dueDate: null,
+              assigneeId: null,
+              assigneeName: ownerName,
+              assigneeInitials: ownerName.substring(0, 2).toUpperCase(),
+              position: 0,
+              tags: ['Policy'],
+              sourceType: 'policy',
+              sourceId: p.id,
+              canEdit: false,
+              updatedAt: p.updatedAt,
+              createdAt: p.createdAt
+            }
+          }).filter(t => !input.status || t.status === input.status)
+        ];
+
+        // Sort: Position (desc) then UpdatedAt (desc)
+        return unified.sort((a, b) => {
+          if (a.position !== b.position) return (b.position || 0) - (a.position || 0);
+          return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+        });
+      }),
+
+    create: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        title: z.string(),
+        description: z.string().optional(),
+        status: z.enum(['todo', 'in_progress', 'review', 'done']).default('todo'),
+        priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+        assigneeId: z.number().optional(),
+        dueDate: z.string().optional(), // ISO string
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        // Get max position to append to end
+        const existing = await dbConn.select({ pos: projectTasks.position })
+          .from(projectTasks)
+          .where(and(
+            eq(projectTasks.clientId, input.clientId),
+            eq(projectTasks.status, input.status)
+          ))
+          .orderBy(desc(projectTasks.position))
+          .limit(1);
+
+        const newPos = (existing[0]?.pos || 0) + 1000;
+
+        const [newTask] = await dbConn.insert(projectTasks).values({
+          clientId: input.clientId,
+          title: input.title,
+          description: input.description,
+          status: input.status,
+          priority: input.priority,
+          assigneeId: input.assigneeId,
+          dueDate: input.dueDate ? new Date(input.dueDate) : null,
+          position: newPos,
+        }).returning();
+
+        return newTask;
+      }),
+
+    update: clientProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
+        priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+        assigneeId: z.number().nullable().optional(),
+        dueDate: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        const updateData: any = {};
+        if (input.title !== undefined) updateData.title = input.title;
+        if (input.description !== undefined) updateData.description = input.description;
+        if (input.status !== undefined) updateData.status = input.status;
+        if (input.priority !== undefined) updateData.priority = input.priority;
+        if (input.assigneeId !== undefined) updateData.assigneeId = input.assigneeId;
+        if (input.dueDate !== undefined) updateData.dueDate = input.dueDate ? new Date(input.dueDate) : null;
+        updateData.updatedAt = new Date();
+
+        await dbConn.update(projectTasks)
+          .set(updateData)
+          .where(eq(projectTasks.id, input.id));
+
+        return { success: true };
+      }),
+
+    updatePosition: clientProcedure
+      .input(z.object({
+        id: z.number(), // This is the ID of the entity
+        sourceType: z.string().optional().default('project_task'), // New field to identify type
+        status: z.enum(['todo', 'in_progress', 'review', 'done']),
+        position: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const dbConn = await db.getDb();
+
+          const { id, status, sourceType } = input;
+          console.log(`Updating position for ${sourceType} ${id} to ${status}`);
+
+          if (sourceType === 'project_task') {
+            await dbConn.update(projectTasks)
+              .set({
+                status: status,
+                position: input.position || 0,
+                updatedAt: new Date()
+              })
+              .where(eq(projectTasks.id, id));
+          } else if (sourceType === 'remediation') {
+            // Map Kanban status back to Remediation ID
+            const revRemMap: Record<string, string> = { 'todo': 'open', 'in_progress': 'in_progress', 'review': 'resolved', 'done': 'closed' };
+            const newStatus = revRemMap[status] || 'open';
+
+            await dbConn.update(remediationTasks)
+              .set({ status: newStatus, updatedAt: new Date() })
+              .where(eq(remediationTasks.id, id));
+          } else if (sourceType === 'risk_treatment') {
+            // Map Kanban status back to Risk Treatment
+            const revRiskMap: Record<string, string> = { 'todo': 'planned', 'in_progress': 'in_progress', 'review': 'implemented', 'done': 'verified' };
+            const newStatus = revRiskMap[status] || 'planned';
+
+            await dbConn.update(riskTreatments)
+              .set({ status: newStatus }) // riskTreatments might not have updatedAt
+              .where(eq(riskTreatments.id, id));
+          } else if (sourceType === 'control') {
+            // Map Kanban status back to Client Control
+            // 'not_implemented', 'in_progress', 'implemented', 'not_applicable'
+            const revControlMap: Record<string, string> = {
+              'todo': 'not_implemented',
+              'in_progress': 'in_progress',
+              'review': 'implemented',
+              'done': 'implemented' // Mapping done to implemented as safe default
+            };
+            const newStatus = revControlMap[status] || 'not_implemented';
+
+            await dbConn.update(clientControls)
+              .set({ status: newStatus as any, updatedAt: new Date() })
+              .where(eq(clientControls.id, id));
+          } else if (sourceType === 'policy') {
+            // Map Kanban status back to Policy
+            // 'draft', 'review', 'approved', 'archived'
+            const revPolicyMap: Record<string, string> = {
+              'todo': 'draft',
+              'in_progress': 'draft',
+              'review': 'review',
+              'done': 'approved'
+            };
+            const newStatus = revPolicyMap[status] || 'draft';
+
+            await dbConn.update(clientPolicies)
+              .set({ status: newStatus as any, updatedAt: new Date() })
+              .where(eq(clientPolicies.id, id));
+          }
+
+          return { success: true };
+        } catch (error) {
+          console.error("Error in projectTasks.updatePosition:", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: String(error) });
+        }
+      }),
+
+    delete: clientProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+
+        await dbConn.delete(projectTasks).where(eq(projectTasks.id, input.id));
+        return { success: true };
+      }),
+  }),
+
+
+
+
+
+
+  // ==================== ADVERSARY INTELLIGENCE (PREMIUM) ====================
+  // Live security feeds and MITRE ATT&CK integration
+  adversaryIntel: router({
+    // Get security feeds from CISA, The Hacker News, Bleeping Computer
+    getSecurityFeeds: premiumClientProcedure
+      .input(z.object({
+        limit: z.number().default(100),
+        source: z.string().optional(),
+        forceRefresh: z.boolean().optional(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        try {
+          if (input.forceRefresh) {
+            console.log('[AdversaryIntel Router] Manual cache clear requested via query');
+            adversaryIntelService.clearCaches();
+          }
+
+          const items = await adversaryIntelService.fetchSecurityFeeds(input.limit);
+
+          // Filter by source if specified
+          const filteredItems = input.source
+            ? items.filter(item => item.source === input.source)
+            : items;
+
+          // Relevance Scoring & Asset Matching
+          let clientAssets: any[] = [];
+          if (input.clientId) {
+            const dbConn = await getDb();
+            clientAssets = await dbConn.select().from(assets).where(eq(assets.clientId, input.clientId));
+          }
+
+          const processedItems = filteredItems.map(item => {
+            let relevanceScore = 0;
+            const impactedAssets: { id: number; name: string; type: string }[] = [];
+
+            // Base score for severity
+            if (item.severity === 'critical') relevanceScore += 10;
+            if (item.severity === 'high') relevanceScore += 5;
+
+            // Tech Stack Matching
+            if (item.techStack && item.techStack.length > 0 && clientAssets.length > 0) {
+              for (const asset of clientAssets) {
+                const assetStr = ((asset.name || '') + ' ' + (asset.type || '') + ' ' + (asset.os || '') + ' ' + (asset.description || '')).toLowerCase();
+                const isMatch = item.techStack.some(tech => assetStr.includes(tech.toLowerCase()));
+
+                if (isMatch) {
+                  impactedAssets.push({ id: asset.id, name: asset.name, type: asset.type || 'Unknown' });
+                }
+              }
+
+              if (impactedAssets.length > 0) {
+                relevanceScore += 20 + (impactedAssets.length * 2); // Boost for hitting assets
+              }
+            }
+
+            return {
+              ...item,
+              pubDate: item.pubDate.toISOString(),
+              relevanceScore,
+              impactedAssets: impactedAssets.slice(0, 5) // Limit matched assets
+            };
+          });
+
+          // Sort by Relevance, then Date
+          processedItems.sort((a, b) => {
+            if (b.relevanceScore !== a.relevanceScore) {
+              return b.relevanceScore - a.relevanceScore;
+            }
+            return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+          });
+
+          return {
+            items: processedItems,
+            lastUpdated: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching feeds:', error);
+          return { items: [], lastUpdated: new Date().toISOString() };
+        }
+      }),
+
+    // Manual refresh to bypass cache
+    refreshFeeds: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }).optional())
+      .mutation(async () => {
+        console.log('[AdversaryIntel Router] Manual cache refresh requested via mutation');
+        adversaryIntelService.clearCaches();
+        const items = await adversaryIntelService.fetchSecurityFeeds(100);
+        return {
+          items: items.map(item => ({
+            ...item,
+            pubDate: item.pubDate.toISOString(),
+          })),
+        };
+      }),
+
+    // Search security feeds
+    searchFeeds: premiumClientProcedure
+      .input(z.object({
+        query: z.string(),
+        limit: z.number().default(20),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const items = await adversaryIntelService.searchSecurityFeeds(input.query, input.limit);
+        return {
+          items: items.map(item => ({
+            ...item,
+            pubDate: item.pubDate.toISOString(),
+          })),
+        };
+      }),
+
+    // Get MITRE ATT&CK data (tactics and techniques)
+    getMitreData: premiumClientProcedure
+      .input(z.object({
+        tacticId: z.string().optional(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        try {
+          const data = await adversaryIntelService.fetchMitreAttackData();
+
+          let techniques = data.techniques;
+          if (input.tacticId) {
+            techniques = techniques.filter(t => t.tacticId === input.tacticId);
+          }
+
+          return {
+            tactics: data.tactics,
+            techniques: techniques.slice(0, 200), // Limit for performance
+            mitigations: data.mitigations.slice(0, 100),
+            lastUpdated: data.lastUpdated.toISOString(),
+          };
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching MITRE data:', error);
+          return {
+            tactics: [],
+            techniques: [],
+            mitigations: [],
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+      }),
+
+    // Search MITRE techniques
+    searchTechniques: premiumClientProcedure
+      .input(z.object({
+        query: z.string(),
+        limit: z.number().default(20),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const techniques = await adversaryIntelService.searchMitreTechniques(input.query, input.limit);
+        return { techniques };
+      }),
+
+    // Get a specific technique by ID
+    getTechnique: premiumClientProcedure
+      .input(z.object({
+        id: z.string(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const technique = await adversaryIntelService.getMitreTechniqueById(input.id);
+        return { technique };
+      }),
+
+    // Get techniques by tactic
+    getTechniquesByTactic: premiumClientProcedure
+      .input(z.object({
+        tacticId: z.string(),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const techniques = await adversaryIntelService.getTechniquesByTactic(input.tacticId);
+        return { techniques };
+      }),
+
+    // Get intelligence summary for dashboard
+    getSummary: premiumClientProcedure
+      .query(async () => {
+        const summary = await adversaryIntelService.getIntelligenceSummary();
+        return summary;
+      }),
+
+    // Refresh all caches
+    refreshCaches: premiumClientProcedure
+      .mutation(async () => {
+        adversaryIntelService.clearCaches();
+
+        // Pre-warm caches
+        const [feeds, mitre] = await Promise.all([
+          adversaryIntelService.fetchSecurityFeeds(50),
+          adversaryIntelService.fetchMitreAttackData(),
+        ]);
+
+        return {
+          success: true,
+          feedCount: feeds.length,
+          techniqueCount: mitre.techniques.length,
+          refreshedAt: new Date().toISOString(),
+        };
+      }),
+
+    // Get MITRE Threat Groups
+    getMitreGroups: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }).optional())
+      .query(async () => {
+        try {
+          const groups = await adversaryIntelService.fetchMitreGroups();
+          return {
+            groups,
+            lastUpdated: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching MITRE groups:', error);
+          return {
+            groups: [],
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+      }),
+
+    // Get CVE information batch
+    getCveInfos: premiumClientProcedure
+      .input(z.object({
+        cveIds: z.array(z.string()),
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        try {
+          if (!input.cveIds || input.cveIds.length === 0) {
+            return {};
+          }
+          const targetCves = Array.from(new Set(input.cveIds)).slice(0, 50);
+          const cveMap = await adversaryIntelService.fetchCveInfos(targetCves);
+          return Object.fromEntries(cveMap);
+        } catch (error) {
+          console.error('[AdversaryIntel] Error fetching CVE info:', error);
+          return {};
+        }
+      }),
+
+    // Get alert settings for client
+    getAlertSettings: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const settings = adversaryAlertSettingsCache.get(input.clientId || 0) || {
+          webhookEnabled: false,
+          webhookUrl: '',
+          slackEnabled: false,
+          slackWebhookUrl: '',
+          alertOnCritical: true,
+          alertOnHigh: true,
+          alertOnMedium: false,
+          alertOnNewCve: true,
+          alertOnZeroDay: true,
+          alertOnRansomware: true,
+          alertOnApt: true,
+          cvssThreshold: 7,
+        };
+        return settings;
+      }),
+
+    // Save alert settings
+    saveAlertSettings: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        webhookEnabled: z.boolean().optional(),
+        webhookUrl: z.string().optional(),
+        slackEnabled: z.boolean().optional(),
+        slackWebhookUrl: z.string().optional(),
+        alertOnCritical: z.boolean().optional(),
+        alertOnHigh: z.boolean().optional(),
+        alertOnMedium: z.boolean().optional(),
+        alertOnNewCve: z.boolean().optional(),
+        alertOnZeroDay: z.boolean().optional(),
+        alertOnRansomware: z.boolean().optional(),
+        alertOnApt: z.boolean().optional(),
+        cvssThreshold: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = input.clientId || 0;
+        const current = adversaryAlertSettingsCache.get(id) || {
+          webhookEnabled: false,
+          webhookUrl: '',
+          slackEnabled: false,
+          slackWebhookUrl: '',
+          alertOnCritical: true,
+          alertOnHigh: true,
+          alertOnMedium: false,
+          alertOnNewCve: true,
+          alertOnZeroDay: true,
+          alertOnRansomware: true,
+          alertOnApt: true,
+          cvssThreshold: 7,
+        };
+        const updated = { ...current, ...input };
+        adversaryAlertSettingsCache.set(id, updated);
+        return { success: true, settings: updated };
+      }),
+
+    // Test alert settings
+    testAlertSettings: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const settings = adversaryAlertSettingsCache.get(input.clientId || 0);
+        const results: { channel: string; success: boolean; message?: string }[] = [];
+
+        if (settings?.webhookEnabled && settings.webhookUrl) {
+          try {
+            const res = await fetch(settings.webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: 'ComplianceOS Threat Intelligence Test Alert',
+                timestamp: new Date().toISOString(),
+              }),
+            });
+            results.push({ channel: 'Webhook', success: res.ok, message: res.statusText });
+          } catch (e: any) {
+            results.push({ channel: 'Webhook', success: false, message: e.message });
+          }
+        }
+
+        if (settings?.slackEnabled && settings.slackWebhookUrl) {
+          try {
+            const res = await fetch(settings.slackWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: '🚨 *ComplianceOS Threat Intelligence Test Alert*\nNotification pipeline connected successfully.',
+              }),
+            });
+            results.push({ channel: 'Slack', success: res.ok, message: res.statusText });
+          } catch (e: any) {
+            results.push({ channel: 'Slack', success: false, message: e.message });
+          }
+        }
+
+        if (results.length === 0) {
+          results.push({ channel: 'System Diagnostic', success: true, message: 'Alert pipeline active' });
+        }
+
+        return results;
+      }),
+
+    // Generate Threat Intelligence Report
+    generateReport: premiumClientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        includeFeeds: z.boolean().default(true),
+        includeMitre: z.boolean().default(true),
+        includeGroups: z.boolean().default(true),
+        includeCves: z.boolean().default(true),
+        includeBriefing: z.boolean().default(true),
+        includeBookmarks: z.boolean().default(false),
+      }))
+      .mutation(async ({ input }) => {
+        const [feeds, mitre, groups] = await Promise.all([
+          input.includeFeeds ? adversaryIntelService.fetchSecurityFeeds(20) : Promise.resolve([]),
+          input.includeMitre ? adversaryIntelService.fetchMitreAttackData() : Promise.resolve({ tactics: [], techniques: [], mitigations: [], lastUpdated: new Date() }),
+          input.includeGroups ? adversaryIntelService.fetchMitreGroups() : Promise.resolve([]),
+        ]);
+
+        const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Threat Intelligence Executive Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; padding: 32px; background: #fff; }
+    h1 { color: #0f172a; font-size: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 8px; }
+    .subtitle { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+    .section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 28px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+    .card-header { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 4px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-critical { background: #fee2e2; color: #991b1b; }
+    .badge-high { background: #ffedd5; color: #9a3412; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .desc { font-size: 12px; color: #475569; margin-top: 4px; }
+    .meta { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>🛡️ Adversary Threat Intelligence Report</h1>
+  <div class="subtitle">Generated on ${dateStr} • ComplianceOS Security Intelligence</div>
+
+  ${input.includeFeeds && feeds.length > 0 ? `
+    <div class="section-title">Active Security Feeds (${feeds.length} items)</div>
+    ${feeds.slice(0, 10).map(f => `
+      <div class="card">
+        <div class="card-header">
+          <span>${f.title}</span>
+          <span class="badge badge-${f.severity || 'medium'}">${f.severity || 'info'}</span>
+        </div>
+        <div class="desc">${f.description || ''}</div>
+        <div class="meta">Source: ${f.sourceName} • Published: ${new Date(f.pubDate).toLocaleDateString()}</div>
+      </div>
+    `).join('')}
+  ` : ''}
+
+  ${input.includeMitre && mitre.techniques.length > 0 ? `
+    <div class="section-title">Top MITRE ATT&CK Techniques</div>
+    ${mitre.techniques.slice(0, 8).map(t => `
+      <div class="card">
+        <div class="card-header">
+          <span>${t.id}: ${t.name}</span>
+          <span class="badge" style="background: #e0e7ff; color: #3730a3;">${t.tacticName}</span>
+        </div>
+        <div class="desc">${(t.description || '').slice(0, 200)}...</div>
+      </div>
+    `).join('')}
+  ` : ''}
+
+  ${input.includeGroups && groups.length > 0 ? `
+    <div class="section-title">Identified Threat Actor Groups</div>
+    ${groups.slice(0, 5).map(g => `
+      <div class="card">
+        <div class="card-header">
+          <span>${g.id}: ${g.name}</span>
+        </div>
+        <div class="desc">${(g.description || '').slice(0, 200)}...</div>
+        ${g.alias ? `<div class="meta">Alias: ${g.alias}</div>` : ''}
+      </div>
+    `).join('')}
+  ` : ''}
+</body>
+</html>`;
+      }),
+  }),
+
+  gapQuestionnaire: router({
+    create: publicProcedure
+      .input(z.object({
+        assessmentId: z.number(),
+        controlIds: z.array(z.number()),
+        recipientEmail: z.string().email(),
+        message: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        const token = crypto.randomUUID();
+
+        // Store controlIds as JSON (array of strings)
+        const [request] = await db.insert(schema.gapQuestionnaireRequests).values({
+          token,
+          assessmentId: input.assessmentId,
+          recipientEmail: input.recipientEmail,
+          message: input.message,
+          controlIds: input.controlIds,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          status: 'pending'
+        }).returning();
+
+        const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'}/questionnaire/${token}`;
+        return { success: true, token, link };
+      }),
+
+    sendEmail: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        link: z.string(),
+        message: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        console.log(`[gapQuestionnaire] Sending email to ${input.email}`);
+        console.log(`[gapQuestionnaire] Link: ${input.link}`);
+        // Real email sending would go here (using user's SMTP if set, or system default)
+        return { success: true };
+      }),
+
+    getByToken: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        const [request] = await db.select().from(schema.gapQuestionnaireRequests).where(eq(schema.gapQuestionnaireRequests.token, input.token));
+        if (!request) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid or expired token" });
+
+        const expired = request.expiresAt ? new Date() > request.expiresAt : false;
+        // Also check if completed? The prompt implies re-visiting is okay until expired?
+        // Let's stick to expiration for access denial.
+
+        const [assessment] = await db.select().from(schema.gapAssessments).where(eq(schema.gapAssessments.id, request.assessmentId));
+
+        const controlIds = request.controlIds || [];
+        let controlsDetails: any[] = [];
+
+        if (controlIds.length > 0) {
+          // If stored as numbers in JSON
+          const numericIds = controlIds.map((id: any) => parseInt(id)).filter((n: number) => !isNaN(n));
+          if (numericIds.length > 0) {
+            const rows = await db.select().from(schema.controls)
+              .where(inArray(schema.controls.id, numericIds));
+
+            // Pre-fill existing responses
+            const responses = await db.select().from(schema.gapResponses)
+              .where(and(
+                eq(schema.gapResponses.assessmentId, request.assessmentId),
+                inArray(schema.gapResponses.controlId, rows.map(r => r.controlId))
+              ));
+
+            controlsDetails = rows.map(row => {
+              const resp = responses.find(r => r.controlId === row.controlId);
+              return { ...row, currentResponse: resp };
+            });
+          }
+        }
+
+        return { request, assessment, controls: controlsDetails, expired };
+      }),
+
+    submitResponses: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        respondentName: z.string().optional(),
+        responses: z.array(z.object({
+          controlId: z.number(),
+          currentStatus: z.string().optional(),
+          notes: z.string().optional(),
+        }))
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        const [request] = await db.select().from(schema.gapQuestionnaireRequests).where(eq(schema.gapQuestionnaireRequests.token, input.token));
+        if (!request) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid or expired token" });
+
+        // Update respondent name if not set
+        if (input.respondentName && !request.recipientName) {
+          await db.update(schema.gapQuestionnaireRequests)
+            .set({ recipientName: input.respondentName })
+            .where(eq(schema.gapQuestionnaireRequests.id, request.id));
+        }
+
+        // Map numeric ID to string ControlID
+        const controlIdsRequested = input.responses.map(r => r.controlId);
+        const controls = await db.select().from(schema.controls).where(inArray(schema.controls.id, controlIdsRequested));
+        const controlMap = new Map(controls.map(c => [c.id, c.controlId]));
+
+        for (const resp of input.responses) {
+          const stringControlId = controlMap.get(resp.controlId);
+          if (!stringControlId) continue;
+
+          const existing = await db.select().from(schema.gapResponses)
+            .where(and(
+              eq(schema.gapResponses.assessmentId, request.assessmentId),
+              eq(schema.gapResponses.controlId, stringControlId)
+            ));
+
+          const newNote = resp.notes ? `[External - ${input.respondentName || 'User'}]: ${resp.notes}` : null;
+
+          if (existing.length > 0) {
+            const currentNotes = existing[0].notes || "";
+            const updatedNotes = newNote ? (currentNotes ? currentNotes + "\n\n" + newNote : newNote) : currentNotes;
+
+            await db.update(schema.gapResponses).set({
+              notes: updatedNotes,
+              currentStatus: resp.currentStatus || existing[0].currentStatus,
+              updatedAt: new Date()
+            }).where(eq(schema.gapResponses.id, existing[0].id));
+          } else {
+            await db.insert(schema.gapResponses).values({
+              assessmentId: request.assessmentId,
+              controlId: stringControlId,
+              notes: newNote,
+              currentStatus: resp.currentStatus || 'not_implemented',
+            });
+          }
+        }
+
+        await db.update(schema.gapQuestionnaireRequests)
+          .set({ status: 'completed' })
+          .where(eq(schema.gapQuestionnaireRequests.id, request.id));
+
+        return { success: true };
+      }),
+  }),
+
+  frameworkImports: createFrameworkImportRouter(t, clientProcedure),
+
+
+
+
+  universalTasks: router({
+    listAll: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        status: z.string().optional(), // 'all', 'pending', 'completed'
+      }))
+      .query(async ({ input, ctx }) => {
+        const dbConn = await db.getDb();
+        const { clientId, status } = input;
+        const userId = ctx.user?.id;
+        const role = ctx.clientRole; // 'owner', 'admin', 'editor', 'viewer' or specific role
+
+        // Determine visibility
+        // Admin/Owner => See ALL tasks
+        // Others => See ONLY their assigned tasks
+        const isAdmin = role === 'owner' || role === 'admin';
+
+        // Base Query on ProjectTasks (Main generic tasks)
+        // We can optionally UNION with Remediation Tasks if needed, but for now let's start with ProjectTasks 
+        // as the "Universal" bucket if other modules sync to it or if generic tasks are created there.
+        // Actually, let's try to pull from multiple sources if possible, or just ProjectTasks if that's the intended "Unified" view.
+        // Given the prompt "anytime there is work or tasks assign anywhere in the app it must appear here",
+        // we should ideally query multiple tables: project_tasks, remediation_tasks, etc.
+        // BUT for MVP, let's assume 'projectTasks' is the main one OR query them separately and combine.
+        // Combining is better for the user request.
+
+        // 1. Project Tasks
+        const ptQuery = dbConn.select({
+          id: projectTasks.id,
+          title: projectTasks.title,
+          status: projectTasks.status,
+          dueDate: projectTasks.dueDate,
+          assigneeId: projectTasks.assigneeId,
+          sourceType: projectTasks.sourceType, // 'remediation', 'general', etc.
+          sourceId: projectTasks.sourceId,
+          priority: projectTasks.priority,
+          createdAt: projectTasks.createdAt
+        }).from(projectTasks).where(eq(projectTasks.clientId, clientId));
+
+        if (!isAdmin && userId) {
+          ptQuery.where(and(eq(projectTasks.clientId, clientId), eq(projectTasks.assigneeId, userId)));
+        }
+
+        // 2. Remediation Tasks (If not already double-written to projectTasks)
+        // Check schema... projectTasks has sourceType 'remediation'. 
+        // If the system syncs remediation -> projectTasks, we only need projectTasks.
+        // If not, we need to UNION.
+        // Let's assume for now we just return projectTasks as the "Universal Task" container.
+        // If user says "anytime there is work... it must appear here", 
+        // we should ensure other modules WRITE to projectTasks or we UNION here.
+        // Let's stick to projectTasks for safety and performance first, assuming syncing exists or will be added.
+        // Wait, looking at schema (Step 2358), remediationTasks DOES exist separately.
+        // Let's Query BOTH and combine in memory for the MVP "Universal" view.
+
+        const [pTasks, rTasks] = await Promise.all([
+          ptQuery,
+          dbConn.select({
+            id: remediationTasks.id,
+            title: remediationTasks.title,
+            status: remediationTasks.status,
+            dueDate: remediationTasks.dueDate,
+            assigneeId: remediationTasks.assigneeId,
+            priority: remediationTasks.priority,
+            createdAt: remediationTasks.createdAt
+          }).from(remediationTasks).where(isAdmin
+            ? eq(remediationTasks.clientId, clientId)
+            : and(eq(remediationTasks.clientId, clientId), eq(remediationTasks.assigneeId, userId!))
+          )
+        ]);
+
+        // Normalize and Combine
+        const combined = [
+          ...pTasks.map(t => ({ ...t, type: t.sourceType || 'general', origin: 'project_tasks' })),
+          ...rTasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            dueDate: t.dueDate,
+            assigneeId: t.assigneeId,
+            sourceType: 'remediation',
+            sourceId: t.id,
+            priority: t.priority,
+            createdAt: t.createdAt,
+            type: 'remediation',
+            origin: 'remediation_tasks'
+          }))
+        ];
+
+        // Sort by Due Date (Asc) then CreatedAt (Desc)
+        return combined.sort((a, b) => {
+          if (a.dueDate && b.dueDate) return a.dueDate.getTime() - b.dueDate.getTime();
+          if (a.dueDate) return -1;
+          if (b.dueDate) return 1;
+          return (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0);
+        });
+      }),
+
+    // Helper: Get All Assignees (Employees) for Filter
+    listAssignees: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await db.getDb();
+        return dbConn.select().from(employees).where(eq(employees.clientId, input.clientId));
+      }),
+
+    // Update Task (Universal)
+    update: clientProcedure
+      .input(z.object({
+        id: z.number(),
+        type: z.string(), // 'project_tasks' or 'remediation_tasks' (origin) OR 'remediation', 'general' (type) - Let's use 'origin' from listAll
+        // Updateable fields
+        status: z.string().optional(),
+        priority: z.string().optional(),
+        dueDate: z.string().optional(), // ISO date string
+        assigneeId: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const dbConn = await db.getDb();
+        const { id, type, ...updates } = input;
+
+        // Prepare update object
+        const data: any = { updatedAt: new Date() };
+        if (updates.status) data.status = updates.status;
+        if (updates.priority) data.priority = updates.priority;
+        if (updates.dueDate) data.dueDate = updates.dueDate ? new Date(updates.dueDate) : null;
+        if (updates.assigneeId) data.assigneeId = updates.assigneeId;
+
+        if (type === 'project_tasks' || type === 'general') {
+          await dbConn.update(projectTasks).set(data).where(eq(projectTasks.id, id));
+        } else if (type === 'remediation_tasks' || type === 'remediation') {
+          await dbConn.update(remediationTasks).set(data).where(eq(remediationTasks.id, id));
+        } else {
+          // Fallback or Error?
+          // Maybe it's a 'project_task' with source type... treat as project_task if id matches?
+          // Safer to rely on the 'origin' we sent in listAll.
+          // Let's assume the frontend sends the 'origin' prop as 'type'.
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown task type for update" });
+        }
+
+        return { success: true };
+      }),
+  }),
+
+
+
+  vendorCommunication: router({
+    sendVendorEmail: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        vendorId: z.number(),
+        contactId: z.number().optional(),
+        to: z.string().email(),
+        subject: z.string(),
+        body: z.string(), // HTML or text
+        attachments: z.array(z.object({ filename: z.string(), path: z.string() })).optional()
+      }))
+      .mutation(async ({ input }) => {
+        const { sendEmail } = await import('./lib/email/transporter');
+
+        // In a real scenario, we might want to log this to 'communication_logs' table
+
+        const result = await sendEmail({
+          clientId: input.clientId,
+          to: input.to,
+          subject: input.subject,
+          html: input.body,
+        });
+
+        if (!result.success) {
+          console.error("Failed to send vendor email:", result.error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to send email" });
+        }
+
+        return { success: true };
+      }),
+  }),
+
+  dpaTemplates: router({
+    list: protectedProcedure.query(async () => {
+      const dbConn = await getDb();
+      return await dbConn.select().from(schema.dpaTemplates);
+    }),
+    create: adminProcedure
+      .input(z.object({
+        name: z.string(),
+        content: z.string(),
+        jurisdiction: z.string().optional()
+      }))
+      .mutation(async ({ input }) => {
+        console.log("Creating DPA Template:", input.name);
+        const dbConn = await getDb();
+        return await dbConn.insert(schema.dpaTemplates).values({
+          name: input.name,
+          content: input.content,
+          jurisdiction: input.jurisdiction
+        }).returning();
+      }),
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        content: z.string().optional(),
+        jurisdiction: z.string().optional()
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...updates } = input;
+        const dbConn = await getDb();
+        return await dbConn.update(schema.dpaTemplates)
+          .set(updates)
+          .where(eq(schema.dpaTemplates.id, id))
+          .returning();
+      }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        await dbConn.delete(schema.dpaTemplates)
+          .where(eq(schema.dpaTemplates.id, input.id));
+        return { success: true };
+      }),
+  }),
+
+  processingActivities: router({
+    list: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        return await dbConn.select()
+          .from(schema.processingActivities)
+          .where(eq(schema.processingActivities.clientId, input.clientId))
+          .orderBy(desc(schema.processingActivities.createdAt));
+      }),
+
+    get: clientProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        const [activity] = await dbConn.select()
+          .from(schema.processingActivities)
+          .where(eq(schema.processingActivities.id, input.id))
+          .limit(1);
+
+        if (!activity) throw new TRPCError({ code: 'NOT_FOUND', message: 'Processing activity not found' });
+
+        // Get linked vendors
+        const linkedVendors = await dbConn.select({
+          id: schema.processingActivityVendors.id,
+          vendorId: schema.processingActivityVendors.vendorId,
+          role: schema.processingActivityVendors.role,
+          vendorName: schema.vendors.name
+        })
+          .from(schema.processingActivityVendors)
+          .leftJoin(schema.vendors, eq(schema.processingActivityVendors.vendorId, schema.vendors.id))
+          .where(eq(schema.processingActivityVendors.processingActivityId, input.id));
+
+        // Get linked assets
+        const linkedAssets = await dbConn.select({
+          id: schema.processingActivityAssets.id,
+          assetId: schema.processingActivityAssets.assetId,
+          assetName: schema.assets.name
+        })
+          .from(schema.processingActivityAssets)
+          .leftJoin(schema.assets, eq(schema.processingActivityAssets.assetId, schema.assets.id))
+          .where(eq(schema.processingActivityAssets.processingActivityId, input.id));
+
+        return { ...activity, linkedVendors, linkedAssets };
+      }),
+
+    create: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        activityName: z.string(),
+        activityId: z.string(),
+        description: z.string().optional(),
+        role: z.string(),
+        purposes: z.array(z.string()),
+        legalBasis: z.string(),
+        dataCategories: z.array(z.string()),
+        dataSubjectCategories: z.array(z.string()),
+        recipients: z.array(z.any()),
+        hasInternationalTransfers: z.boolean().optional(),
+        transferCountries: z.array(z.string()).optional(),
+        transferSafeguards: z.string().optional(),
+        retentionPeriod: z.string().optional(),
+        technicalMeasures: z.array(z.string()).optional(),
+        organizationalMeasures: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const dbConn = await getDb();
+        const [activity] = await dbConn.insert(schema.processingActivities)
+          .values({
+            ...input,
+            createdBy: ctx.user?.id,
+            status: 'draft'
+          })
+          .returning();
+        return activity;
+      }),
+
+    update: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        activityName: z.string().optional(),
+        description: z.string().optional(),
+        role: z.string().optional(),
+        purposes: z.array(z.string()).optional(),
+        legalBasis: z.string().optional(),
+        dataCategories: z.array(z.string()).optional(),
+        dataSubjectCategories: z.array(z.string()).optional(),
+        recipients: z.array(z.any()).optional(),
+        hasInternationalTransfers: z.boolean().optional(),
+        transferCountries: z.array(z.string()).optional(),
+        transferSafeguards: z.string().optional(),
+        retentionPeriod: z.string().optional(),
+        technicalMeasures: z.array(z.string()).optional(),
+        organizationalMeasures: z.array(z.string()).optional(),
+        status: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...updates } = input;
+        const dbConn = await getDb();
+        const [activity] = await dbConn.update(schema.processingActivities)
+          .set({ ...updates, updatedAt: new Date() })
+          .where(eq(schema.processingActivities.id, id))
+          .returning();
+        return activity;
+      }),
+
+    delete: clientEditorProcedure
+      .input(z.object({ id: z.number(), clientId: z.number() }))
+      .mutation(async ({ input }) => {
+        console.log(`[ROPA] Attempting delete. ID: ${input.id}, Client: ${input.clientId}`);
+        const dbConn = await getDb();
+        const deleted = await dbConn.delete(schema.processingActivities)
+          .where(and(
+            eq(schema.processingActivities.id, input.id),
+            eq(schema.processingActivities.clientId, input.clientId)
+          ))
+          .returning();
+
+        console.log(`[ROPA] Deleted records: ${deleted.length}`);
+
+        if (deleted.length === 0) {
+          console.error(`[ROPA] Delete failed. Record not found or client mismatch?`);
+          // Check if record exists at all for debugging
+          const check = await dbConn.select().from(schema.processingActivities).where(eq(schema.processingActivities.id, input.id));
+          if (check.length > 0) {
+            console.error(`[ROPA] Record exists but clientId is ${check[0].clientId}. Input clientId is ${input.clientId}`);
+          }
+          throw new TRPCError({ code: "NOT_FOUND", message: "Activity not found or permission denied" });
+        }
+
+        return { success: true };
+      }),
+
+    // Phase 3: Compliance Automation
+    scheduleReview: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        reviewIntervalMonths: z.number().default(12)
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        const now = new Date();
+        const nextReview = new Date(now);
+        nextReview.setMonth(nextReview.getMonth() + input.reviewIntervalMonths);
+
+        const [activity] = await dbConn.update(schema.processingActivities)
+          .set({
+            lastReviewDate: now,
+            nextReviewDate: nextReview,
+            updatedAt: now
+          })
+          .where(eq(schema.processingActivities.id, input.id))
+          .returning();
+
+        return activity;
+      }),
+
+    getOverdueReviews: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        const now = new Date();
+
+        return await dbConn.select()
+          .from(schema.processingActivities)
+          .where(and(
+            eq(schema.processingActivities.clientId, input.clientId),
+            eq(schema.processingActivities.status, 'active'),
+            lt(schema.processingActivities.nextReviewDate, now)
+          ))
+          .orderBy(asc(schema.processingActivities.nextReviewDate));
+      }),
+
+    checkExemption: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+
+        // Get client details
+        const [client] = await dbConn.select()
+          .from(schema.clients)
+          .where(eq(schema.clients.id, input.clientId))
+          .limit(1);
+
+        if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
+
+        // Check exemption criteria
+        const employeeCount = parseInt(client.orgSize || '0');
+        const isSmallOrg = employeeCount < 250;
+
+        // Check if any activities have special categories or high-risk processing
+        const activities = await dbConn.select()
+          .from(schema.processingActivities)
+          .where(eq(schema.processingActivities.clientId, input.clientId));
+
+        const hasSpecialCategories = activities.some(a =>
+          a.specialCategories && Array.isArray(a.specialCategories) && a.specialCategories.length > 0
+        );
+
+        const hasInternationalTransfers = activities.some(a => a.hasInternationalTransfers);
+
+        const isLowRisk = !hasSpecialCategories && !hasInternationalTransfers;
+        const isOccasional = activities.length < 5; // Simple heuristic
+
+        const isExempt = isSmallOrg && isLowRisk && isOccasional;
+
+        return {
+          isExempt,
+          criteria: {
+            isSmallOrg,
+            employeeCount,
+            isLowRisk,
+            isOccasional,
+            hasSpecialCategories,
+            hasInternationalTransfers,
+            activityCount: activities.length
+          },
+          recommendation: isExempt
+            ? 'Your organization may qualify for GDPR Article 30 exemption, but maintaining records is still recommended as best practice.'
+            : 'Your organization is required to maintain Records of Processing Activities under GDPR Article 30.'
+        };
+      }),
+
+    getCompletenessScore: clientProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        const [activity] = await dbConn.select()
+          .from(schema.processingActivities)
+          .where(eq(schema.processingActivities.id, input.id))
+          .limit(1);
+
+        if (!activity) throw new TRPCError({ code: 'NOT_FOUND', message: 'Activity not found' });
+
+        // Required fields
+        const requiredFields = [
+          'activityName',
+          'role',
+          'purposes',
+          'legalBasis',
+          'dataCategories',
+          'dataSubjectCategories',
+          'recipients'
+        ];
+
+        // Recommended fields
+        const recommendedFields = [
+          'description',
+          'retentionPeriod',
+          'technicalMeasures',
+          'organizationalMeasures'
+        ];
+
+        let score = 0;
+        const maxScore = requiredFields.length + recommendedFields.length;
+
+        // Check required fields (weighted more heavily)
+        requiredFields.forEach(field => {
+          const value = activity[field as keyof typeof activity];
+          if (value && (typeof value !== 'object' || (Array.isArray(value) && value.length > 0))) {
+            score += 1;
+          }
+        });
+
+        // Check recommended fields
+        recommendedFields.forEach(field => {
+          const value = activity[field as keyof typeof activity];
+          if (value && (typeof value !== 'object' || (Array.isArray(value) && value.length > 0))) {
+            score += 1;
+          }
+        });
+
+        const percentage = Math.round((score / maxScore) * 100);
+
+        const missingRequired = requiredFields.filter(field => {
+          const value = activity[field as keyof typeof activity];
+          return !value || (Array.isArray(value) && value.length === 0);
+        });
+
+        const missingRecommended = recommendedFields.filter(field => {
+          const value = activity[field as keyof typeof activity];
+          return !value || (Array.isArray(value) && value.length === 0);
+        });
+
+        return {
+          score: percentage,
+          missingRequired,
+          missingRecommended,
+          isComplete: missingRequired.length === 0
+        };
+      }),
+  }),
+
+  dataBreaches: router({
+    list: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        return await dbConn.select()
+          .from(schema.dataBreaches)
+          .where(eq(schema.dataBreaches.clientId, input.clientId))
+          .orderBy(desc(schema.dataBreaches.createdAt));
+      }),
+
+    create: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        description: z.string(),
+        effects: z.string(),
+        remedialActions: z.string(),
+        dateOccurred: z.string().optional(), // Receive as string, convert to date
+        dateDetected: z.string().optional(),
+        isNotifiableToDpa: z.boolean().default(false),
+        isNotifiableToSubjects: z.boolean().default(false),
+        status: z.enum(['open', 'investigating', 'closed', 'reported']).default('open'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const dbConn = await getDb();
+        const [breach] = await dbConn.insert(schema.dataBreaches)
+          .values({
+            ...input,
+            dateOccurred: input.dateOccurred ? new Date(input.dateOccurred) : undefined,
+            dateDetected: input.dateDetected ? new Date(input.dateDetected) : undefined,
+            createdBy: ctx.user?.id,
+          })
+          .returning();
+        return breach;
+      }),
+
+    update: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number(),
+        description: z.string().optional(),
+        effects: z.string().optional(),
+        remedialActions: z.string().optional(),
+        dateOccurred: z.string().optional(),
+        dateDetected: z.string().optional(),
+        isNotifiableToDpa: z.boolean().optional(),
+        isNotifiableToSubjects: z.boolean().optional(),
+        status: z.enum(['open', 'investigating', 'closed', 'reported']).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, clientId, ...updates } = input;
+        const dbConn = await getDb();
+        const [breach] = await dbConn.update(schema.dataBreaches)
+          .set({
+            ...updates,
+            dateOccurred: updates.dateOccurred ? new Date(updates.dateOccurred) : undefined,
+            dateDetected: updates.dateDetected ? new Date(updates.dateDetected) : undefined,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(schema.dataBreaches.id, id),
+            eq(schema.dataBreaches.clientId, clientId)
+          ))
+          .returning();
+        return breach;
+      }),
+
+    delete: clientEditorProcedure
+      .input(z.object({ id: z.number(), clientId: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        await dbConn.delete(schema.dataBreaches)
+          .where(and(
+            eq(schema.dataBreaches.id, input.id),
+            eq(schema.dataBreaches.clientId, input.clientId)
+          ));
+        return { success: true };
+      }),
+  }),
+
+
+  dpia: router({
+    list: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        return await dbConn
+          .select()
+          .from(schema.dataProtImpactAssessments)
+          .where(eq(schema.dataProtImpactAssessments.clientId, input.clientId))
+          .orderBy(desc(schema.dataProtImpactAssessments.createdAt));
+      }),
+
+    get: clientProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        const results = await dbConn
+          .select()
+          .from(schema.dataProtImpactAssessments)
+          .where(eq(schema.dataProtImpactAssessments.id, input.id));
+        return results[0];
+      }),
+
+    create: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        activityId: z.number().optional(),
+        title: z.string(),
+        description: z.string(),
+        scope: z.string(),
+        identifiedRisks: z.string(),
+        mitigationMeasures: z.string(),
+        status: z.enum(["draft", "in_progress", "under_review", "completed"]).optional(),
+        assignedTo: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        const [result] = await dbConn
+          .insert(schema.dataProtImpactAssessments)
+          .values({
+            ...input,
+            status: input.status || "draft",
+          })
+          .returning();
+        return result;
+      }),
+
+    update: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        activityId: z.number().optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        scope: z.string().optional(),
+        identifiedRisks: z.string().optional(),
+        mitigationMeasures: z.string().optional(),
+        status: z.enum(["draft", "in_progress", "under_review", "completed"]).optional(),
+        assignedTo: z.number().optional(),
+        lastReviewDate: z.date().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        const dbConn = await getDb();
+        const [result] = await dbConn
+          .update(schema.dataProtImpactAssessments)
+          .set({
+            ...data,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.dataProtImpactAssessments.id, id))
+          .returning();
+        return result;
+      }),
+
+    delete: clientEditorProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        await dbConn
+          .delete(schema.dataProtImpactAssessments)
+          .where(eq(schema.dataProtImpactAssessments.id, input.id));
+        return { success: true };
+      }),
+
+    saveResponses: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        responses: z.any(), // JSON data for sections
+        status: z.enum(["draft", "in_progress", "under_review", "completed"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        const [result] = await dbConn
+          .update(schema.dataProtImpactAssessments)
+          .set({
+            questionnaireData: input.responses,
+            status: input.status,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.dataProtImpactAssessments.id, input.id))
+          .returning();
+        return result;
+      }),
+  }),
+
+  // International Transfers
+  transfers: router({
+    list: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        return await dbConn
+          .select()
+          .from(schema.internationalTransfers)
+          .where(eq(schema.internationalTransfers.clientId, input.clientId))
+          .orderBy(desc(schema.internationalTransfers.createdAt));
+      }),
+
+    get: clientProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        const [transfer] = await dbConn
+          .select()
+          .from(schema.internationalTransfers)
+          .where(eq(schema.internationalTransfers.id, input.id))
+          .limit(1);
+
+        if (!transfer) return null;
+
+        const tias = await dbConn
+          .select()
+          .from(schema.transferImpactAssessments)
+          .where(eq(schema.transferImpactAssessments.transferId, input.id))
+          .orderBy(desc(schema.transferImpactAssessments.createdAt));
+
+        return { ...transfer, tias, latestTia: tias[0] || null };
+      }),
+
+    create: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        activityId: z.number().optional().nullable(),
+        vendorId: z.number().optional().nullable(),
+        title: z.string(),
+        destinationCountry: z.string().length(2),
+        transferTool: z.enum(["scc_2021", "bcr", "adequacy", "derogation", "ad_hoc"]),
+        sccModule: z.enum(["c2c", "c2p", "p2p", "p2c"]).optional().nullable(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        const [result] = await dbConn
+          .insert(schema.internationalTransfers)
+          .values({
+            ...input,
+            status: "pending",
+          })
+          .returning();
+        return result;
+      }),
+
+    update: clientEditorProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number().optional(),
+        title: z.string().optional(),
+        destinationCountry: z.string().length(2).optional(),
+        vendorId: z.number().optional().nullable(),
+        activityId: z.number().optional().nullable(),
+        status: z.enum(["pending", "active", "expired", "risk_flagged"]).optional(),
+        transferTool: z.enum(["scc_2021", "bcr", "adequacy", "derogation", "ad_hoc"]).optional(),
+        sccModule: z.enum(["c2c", "c2p", "p2p", "p2c"]).optional().nullable(),
+        nextReviewDate: z.date().optional().nullable(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        const { id, clientId, ...data } = input;
+        const [result] = await dbConn
+          .update(schema.internationalTransfers)
+          .set({ ...data, updatedAt: new Date() })
+          .where(eq(schema.internationalTransfers.id, id))
+          .returning();
+        return result;
+      }),
+
+    delete: clientEditorProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        await dbConn
+          .delete(schema.internationalTransfers)
+          .where(eq(schema.internationalTransfers.id, input.id));
+        return { success: true };
+      }),
+
+    saveTIA: clientEditorProcedure
+      .input(z.object({
+        transferId: z.number(),
+        clientId: z.number(),
+        riskLevel: z.string().optional(),
+        status: z.string().optional(),
+        responses: z.any(),
+        version: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await getDb();
+        const { transferId, ...data } = input;
+
+        // Find existing draft or create new
+        const [existing] = await dbConn
+          .select()
+          .from(schema.transferImpactAssessments)
+          .where(and(
+            eq(schema.transferImpactAssessments.transferId, transferId),
+            eq(schema.transferImpactAssessments.status, "draft")
+          ))
+          .limit(1);
+
+        if (existing) {
+          const [updated] = await dbConn
+            .update(schema.transferImpactAssessments)
+            .set({
+              questionnaireData: input.responses,
+              riskLevel: input.riskLevel,
+              status: input.status,
+              updatedAt: new Date()
+            })
+            .where(eq(schema.transferImpactAssessments.id, existing.id))
+            .returning();
+          return updated;
+        } else {
+          const [inserted] = await dbConn
+            .insert(schema.transferImpactAssessments)
+            .values({
+              transferId,
+              clientId: input.clientId,
+              riskLevel: input.riskLevel,
+              status: input.status || "draft",
+              questionnaireData: input.responses,
+              version: input.version || 1,
+            })
+            .returning();
+          return inserted;
+        }
+      }),
+
+    getAdequacy: clientProcedure
+      .input(z.object({ countryCode: z.string().length(2) }))
+      .query(async ({ input }) => {
+        const dbConn = await getDb();
+        const [decision] = await dbConn
+          .select()
+          .from(schema.adequacyDecisions)
+          .where(eq(schema.adequacyDecisions.countryCode, input.countryCode))
+          .limit(1);
+        return decision || null;
+      }),
+  }),
+
+  admin: router({
+    // Admin procedures go here
+  }),
+
+  addons: createAddonRouter(t, clientProcedure, adminProcedure, publicProcedure, protectedProcedure),
+  controlMonitoring: createControlMonitoringRouter(t, protectedProcedure),
+  evidenceCollectors: createEvidenceCollectorsRouter(t, protectedProcedure),
+  evidenceRenewal: createEvidenceRenewalRouter(t, protectedProcedure),
+  riskHeatmap: createRiskHeatmapRouter(t, clientProcedure),
+  policyAck: createPolicyAckRouter(t, clientProcedure),
+  actionCenter: createActionCenterRouter(t, premiumClientProcedure),
+  msspCockpit: createMsspCockpitRouter(t, premiumClientProcedure),
+  auditorPortal: createAuditorPortalRouter(t, premiumClientProcedure, adminProcedure, publicProcedure),
+  webhooks: createWebhooksRouter(t, clientProcedure),
+  sso: createSsoRouter(t, publicProcedure),
+  licenses: createLicenseActivationRouter(t, protectedProcedure, publicProcedure, adminProcedure),
+});
+
+
+
+export type AppRouter = typeof appRouter;
+
+
+

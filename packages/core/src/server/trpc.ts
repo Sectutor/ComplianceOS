@@ -1,0 +1,474 @@
+import { TRPCError } from "@trpc/server";
+import * as db from "../db";
+import * as schema from "../schema";
+import { userClients } from "../schema";
+import { eq, and, asc, or, gt } from "drizzle-orm";
+import { rateLimiter } from "../lib/redis";
+import { logger } from "../lib/logger";
+import { enforceLicense } from "../lib/license/local-license-cache";
+import { router, publicProcedure, middleware, t } from "./trpc-base";
+export { router, publicProcedure, middleware, t };
+
+// Import enterprise middlewares after defining base exports to avoid circular dependency issues
+import { performanceTracker, auditLogger } from "./enterprise-middleware";
+
+// Debug flag for auth logging - disabled in production by default
+const DEBUG_AUTH = process.env.DEBUG_AUTH === 'true';
+
+export const PLATFORM_ADMIN_ROLES = ['admin', 'owner', 'super_admin', 'super', 'enterprise_admin', 'ent_admin'];
+
+// Helper function for conditional debug logging
+const debugLog = (message: string, ...args: unknown[]) => {
+    if (DEBUG_AUTH) {
+        logger.debug({ message, args });
+    }
+};
+
+// Helper function for conditional debug error logging
+const debugError = (message: string, ...args: unknown[]) => {
+    if (DEBUG_AUTH) {
+        logger.error({ message, args });
+    }
+};
+
+export const isAuthed = middleware(async ({ ctx, next, path }) => {
+    debugLog(`[isAuthed Debug] Checking auth for path: ${path}, user present: ${!!ctx.user}`);
+
+    if (!ctx.user) {
+        // In local dev mode with local auth, auto-create a dev user
+        if (process.env.AUTH_MODE === 'local') {
+            ctx.user = {
+                id: 1,
+                email: 'admin@complianceos.local',
+                name: 'Dev Admin',
+                role: 'owner' as const,
+            } as unknown as NonNullable<typeof ctx.user>;
+            debugLog(`[isAuthed Debug] Local dev auto-auth for path: ${path}`);
+            return next({ ctx });
+        }
+
+        debugError(`[isAuthed Debug] UNAUTHORIZED for path: ${path}`);
+
+        // Provide specific error message based on auth header presence
+        type AuthInfo = {
+            hasAuthHeader?: boolean;
+            supabaseUser?: unknown;
+            dbUser?: unknown;
+        };
+        const authInfo = (ctx as unknown as { authInfo?: AuthInfo }).authInfo;
+        let message = "Authentication required. Please sign in.";
+
+        if (authInfo) {
+            if (!authInfo.hasAuthHeader) {
+                message = "No authentication token provided. Please sign in.";
+            } else if (!authInfo.supabaseUser) {
+                message = "Invalid or expired session. Please sign in again.";
+            } else if (!authInfo.dbUser) {
+                message = "Your account was not found in our database. Please contact support.";
+            }
+        }
+
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: message
+        });
+    }
+
+    debugLog(`[isAuthed Debug] Auth successful for user: ${ctx.user.id}`);
+
+    if (ctx.user.accessExpiresAt && new Date() > ctx.user.accessExpiresAt) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Your access to ComplianceOS has expired. Please contact support to renew."
+        });
+    }
+
+    return next({
+        ctx: {
+            ...ctx,
+            user: ctx.user,
+        },
+    });
+});
+
+/**
+ * Enterprise Rate Limiting Middleware - AL 3 Tiered Implementation
+ */
+export const rateLimit = middleware(async ({ ctx, next, path }) => {
+    // Skip rate limiting if disabled in env
+    if (process.env.RATE_LIMITING_ENABLED !== 'true') return next();
+
+    const isAuthed = !!ctx.user;
+    const isPremium = (ctx as unknown as { isPremium?: boolean }).isPremium;
+    const isSensitive = path.includes('ai') || path.includes('auth') || path.includes('users.create') || path.includes('export');
+
+    const identifier = ctx.user?.id?.toString() || ctx.ip || 'anonymous';
+
+    // Tiered Logic
+    let limit = Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
+    if (!isAuthed) limit = Math.ceil(limit / 2); // Unauthed is 50% stricter
+    if (isPremium) limit = limit * 2; // Premium has 2x capacity
+    if (isSensitive) limit = Math.min(limit, 10); // Sensitive paths limited to 10 per window
+
+    const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000;
+
+    const limited = await rateLimiter.isRateLimited(`rl:${path}:${identifier}`, limit, windowMs);
+
+    if (limited) {
+        throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: isSensitive
+                ? 'Rate limit exceeded for sensitive operation. Please wait before trying again.'
+                : 'Too many requests. Please try again later.'
+        });
+    }
+
+    return next();
+});
+
+export const isAdmin = middleware(async ({ ctx, next, path }) => {
+    if (!PLATFORM_ADMIN_ROLES.includes(ctx.user?.role || '')) {
+        debugLog(`[isAdmin Debug] Forbidden access attempt for path ${path} by user ${ctx.user?.id} (${ctx.user?.role})`);
+        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required. Current role: " + (ctx.user?.role || 'none') });
+    }
+    return next();
+});
+
+export const checkClientAccess = middleware(async (opts) => {
+    const { ctx, next, path } = opts;
+    const rawInput = (opts as unknown as { rawInput?: unknown }).rawInput;
+    const typedInput = (opts as unknown as { input?: unknown }).input; // Try to get parsed input
+
+    if (!ctx.user) {
+        debugError(`[checkClientAccess Debug] UNAUTHORIZED for path: ${path}`);
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: "Authentication required for client access." });
+    }
+
+    const input = (typedInput || rawInput || {}) as { clientId?: number; id?: number };
+    let clientId = input?.clientId || input?.id || ctx.clientId;
+
+    // Admins have implicit access
+    if (PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '')) {
+        debugLog('[DEBUG checkClientAccess] Admin access granted to clientId:', clientId);
+        return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
+    }
+
+    if (!clientId) {
+        // Try to resolve from user's first client membership
+        try {
+            const dbConn = await db.getDb();
+            const [membership] = await dbConn.select()
+                .from(userClients)
+                .where(eq(userClients.userId, ctx.user.id))
+                .orderBy(asc(userClients.joinedAt))
+                .limit(1);
+            if (membership) {
+                debugLog('[DEBUG checkClientAccess] Auto-resolved clientId from membership:', membership.clientId);
+                clientId = membership.clientId;
+            }
+        } catch (resolveError) {
+            debugLog('[DEBUG checkClientAccess] Failed to auto-resolve clientId:', resolveError);
+        }
+    }
+
+    if (!clientId) {
+        debugLog('[DEBUG checkClientAccess] No clientId found for path:', path);
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Client ID is required for this operation' });
+    }
+
+    const dbConn = await db.getDb();
+    const membership = await dbConn.select().from(userClients)
+        .where(and(eq(userClients.userId, ctx.user.id), eq(userClients.clientId, clientId)))
+        .limit(1);
+
+    debugLog('[DEBUG checkClientAccess] Membership check:', { userId: ctx.user.id, clientId, found: membership.length > 0 });
+
+    // SECURITY: Allow admin/super_admin users to access any client workspace without membership.
+    // This is intentional - admins need cross-client access for platform management.
+    if (membership.length === 0 && !PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '')) {
+        debugLog('[DEBUG checkClientAccess] No membership found and not admin');
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace. Membership required.' });
+    }
+
+
+    if (membership.length > 0) {
+        if (membership[0].accessExpiresAt && new Date() > membership[0].accessExpiresAt) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Your access to this workspace has expired."
+            });
+        }
+    }
+
+    // Get member for later use (may be null for admins)
+    const member = membership.length > 0 ? membership[0] : null;
+
+    // ARCHITECTURE ENFORCEMENT: Community Edition Single-Tenancy
+    // This cannot be overridden by database values.
+    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
+        // In Community Edition, authorized users can only access their FIRST workspace.
+        const allMemberships = await dbConn.select()
+            .from(userClients)
+            .where(eq(userClients.userId, ctx.user.id))
+            .orderBy(asc(userClients.joinedAt));
+
+        // If they have multiple (e.g. from a previous trial), they can only access the first one.
+        // This effectively renders multi-tenancy dead in the water for the open source build.
+        if (allMemberships.length > 0 && allMemberships[0].clientId !== clientId) {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
+            });
+        }
+    }
+
+    // Enforce maxClients limit for owned clients (Premium/Standard limits)
+    // Only check if user has a membership record (non-admin users)
+    if (member && member.role === 'owner' && process.env.VITE_ENABLE_PREMIUM !== 'false') {
+        const fullUser = await db.getUserById(ctx.user.id);
+        const maxClients = fullUser?.maxClients || 2;
+
+        // Get all owned client IDs sorted by creation (oldest first)
+        const allOwned = await dbConn.select({ clientId: userClients.clientId })
+            .from(userClients)
+            .innerJoin(schema.clients, eq(userClients.clientId, schema.clients.id))
+            .where(and(eq(userClients.userId, ctx.user.id), eq(userClients.role, 'owner')))
+            .orderBy(asc(schema.clients.createdAt));
+
+        const allowedClientIds = (allOwned as Array<{ clientId: number }>)
+            .slice(0, maxClients)
+            .map((r) => r.clientId);
+
+        if (!allowedClientIds.includes(clientId)) {
+            logger.warn({
+                message: "[checkClientAccess] Client exceeds maxClients limit",
+                clientId,
+                maxClients,
+                userId: ctx.user.id,
+            });
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: `This workspace exceeds your plan limit of ${maxClients} organizations. Please upgrade or remove excess workspaces.`
+            });
+        }
+    }
+
+    const effectiveRole = membership[0]?.role || (PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '') ? 'owner' : 'none');
+    debugLog('[DEBUG checkClientAccess] Access granted with role:', effectiveRole);
+    return next({ ctx: { ...ctx, clientId, clientRole: effectiveRole } });
+});
+
+export const checkClientEditor = middleware(({ ctx, next }) => {
+    const clientRole = (ctx as unknown as { clientRole?: string }).clientRole;
+    if (clientRole !== 'owner' && clientRole !== 'admin' && clientRole !== 'editor') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Read-only access' });
+    }
+    return next();
+});
+
+export const checkPremiumAccess = middleware(async (opts) => {
+    const { ctx, next } = opts;
+    const rawInput = (opts as unknown as { rawInput?: unknown }).rawInput;
+    const input = rawInput as { clientId?: number };
+    const clientId = input?.clientId || ctx.clientId;
+
+    const isDev = process.env.NODE_ENV === 'development' || process.env.AUTH_MODE === 'local';
+
+    // In local development mode ONLY, allow dev admins or workspace owners to test premium features
+    const clientRole = (ctx as unknown as { clientRole?: string }).clientRole;
+    if (isDev && (PLATFORM_ADMIN_ROLES.includes(ctx.user?.role || '') || clientRole === 'owner' || clientRole === 'admin')) {
+        return next({ ctx: { ...ctx, isPremium: true } });
+    }
+
+    // STRICT CHECK: Premium must be enabled in environment
+    // Note: process.env.VITE_ENABLE_PREMIUM works in Node/Server environment if loaded via dotenv
+    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Premium features are disabled in this environment. Please upgrade to the Enterprise Edition.'
+        });
+    }
+
+    // Hybrid license enforcement (Phase 1.1): check local cache + offline grace
+    const enforcement = enforceLicense();
+    if (enforcement.restrictToCommunity && !isDev) {
+        throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: enforcement.reason === 'expired'
+                ? 'Your license has expired. Please renew to continue using premium features.'
+                : enforcement.reason === 'cache_miss'
+                    ? 'License validation unavailable. Please check your license server connectivity.'
+                    : `Premium features require an active license. Reason: ${enforcement.reason}`
+        });
+    }
+
+    if (!clientId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Client context required for premium features' });
+    }
+
+    try {
+        const dbConn = await db.getDb();
+        const [client] = await dbConn.select({ planTier: schema.clients.planTier })
+            .from(schema.clients)
+            .where(eq(schema.clients.id, clientId))
+            .limit(1);
+
+        if (!client) {
+            throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
+        }
+
+        const isPremium = isDev || client.planTier === 'consultant' || client.planTier === 'enterprise';
+        if (!isPremium) {
+            throw new TRPCError({
+                code: 'PRECONDITION_FAILED',
+                message: 'This feature requires a Pro or Enterprise subscription.'
+            });
+        }
+
+        return next({ ctx: { ...ctx, isPremium: true } });
+    } catch (err) {
+        if (err instanceof TRPCError) throw err;
+        logger.error({ message: "[PremiumGuard] Error checking premium access", error: err });
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to verify subscription status' });
+    }
+});
+
+/**
+ * Addon Access Guard
+ *
+ * Checks whether the client has an active subscription or valid trial
+ * for a specific addon. Used to gate addon-specific endpoints.
+ *
+ * Usage:
+ *   someAddonEndpoint: clientProcedure
+ *     .use(checkAddonAccess("cloud-scanner"))
+ *     .query(...)
+ */
+export const checkAddonAccess = (addonSlug: string) =>
+  middleware(async ({ ctx, next }) => {
+    const clientId = (ctx as unknown as { clientId?: number }).clientId;
+    if (!clientId) {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Client context required' });
+    }
+
+    try {
+      const dbConn = await db.getDb();
+      const { addonSubscriptions } = await import('@complianceos/addons/shared/schema');
+
+      const [sub] = await dbConn
+        .select()
+        .from(addonSubscriptions)
+        .where(
+          and(
+            eq(addonSubscriptions.clientId, clientId),
+            eq(addonSubscriptions.addonSlug, addonSlug),
+            or(
+              eq(addonSubscriptions.status, 'active'),
+              and(
+                eq(addonSubscriptions.status, 'trial'),
+                gt(addonSubscriptions.trialEndsAt, new Date()),
+              ),
+            ),
+          ),
+        )
+        .limit(1);
+
+      if (!sub) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `Addon "${addonSlug}" is not active. Start a trial or subscribe in the Addon Marketplace.`,
+        });
+      }
+
+      return next({ ctx: { ...ctx, addonSubscription: sub } });
+    } catch (err) {
+      if (err instanceof TRPCError) throw err;
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to verify addon access',
+      });
+    }
+  });
+
+/**
+ * MFA Enforcement Middleware - AL 3 High Assurance
+ * Enforces aal2 for all privileged/sensitive operations.
+ */
+export const requiresMFA = middleware(async ({ ctx, next, path: _path }) => {
+    const aal = (ctx as unknown as { aal?: string }).aal;
+    const dbUser = ctx.user;
+    if (!dbUser) return next();
+
+    // AL 3: Mandatory MFA for all Global Admins and Owners
+    const isPrivilegedRole = PLATFORM_ADMIN_ROLES.includes(dbUser.role || '');
+
+    // Skip MFA for local auth (no Supabase session — can't enforce)
+    if (aal === undefined && process.env.AUTH_MODE !== 'supabase') return next();
+
+    if (aal === 'aal2') return next(); // Already at max level
+
+    const clientId = (ctx as unknown as { clientId?: number }).clientId;
+
+    try {
+        const dbConn = await db.getDb();
+
+        let must = isPrivilegedRole; // Forced for admins
+
+        if (!must && clientId) {
+            debugLog('[DEBUG requiresMFA] Checking client MFA req for clientId:', clientId);
+            // Check specific client's requirement for standard users
+            const [client] = await dbConn.select({ requireMfa: schema.clients.requireMfa })
+                .from(schema.clients)
+                .where(eq(schema.clients.id, clientId))
+                .limit(1);
+            must = !!client?.requireMfa;
+        }
+
+        if (must && aal !== 'aal2') {
+            throw new TRPCError({
+                code: 'PRECONDITION_FAILED',
+                message: isPrivilegedRole
+                    ? 'Administrative access requires active Multi-factor Authentication (MFA).'
+                    : 'This organization requires Multi-factor authentication to proceed.'
+            });
+        }
+    } catch (err) {
+        if (err instanceof TRPCError) throw err;
+        logger.error({ message: "[MFA Middleware Error]", error: err });
+        // Don't proceed if there was a database error - fail secure
+        throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to verify MFA requirements'
+        });
+    }
+
+    return next();
+});
+
+
+/**
+ * Demo Mode Guard
+ * Blocks all mutations in demo environment, except for authentication-related ones.
+ */
+export const demoModeGuard = middleware(async ({ ctx: _ctx, type, path, next }) => {
+    if (process.env.VITE_APP_MODE === 'demo' && type === 'mutation') {
+        const allowedMutations = ['auth.', 'users.login', 'users.register', 'users.logout'];
+        const isAllowed = allowedMutations.some(p => path.startsWith(p));
+
+        if (!isAllowed) {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'This is a read-only demo environment. Data modifications are disabled.'
+            });
+        }
+    }
+    return next();
+});
+
+export const protectedProcedure = publicProcedure.use(rateLimit).use(performanceTracker).use(auditLogger).use(demoModeGuard).use(isAuthed);
+export const adminProcedure = protectedProcedure.use(requiresMFA).use(isAdmin);
+export const clientProcedure = protectedProcedure.use(requiresMFA).use(checkClientAccess);
+export const clientEditorProcedure = clientProcedure.use(checkClientEditor);
+export const premiumClientProcedure = clientProcedure.use(checkPremiumAccess);
+export const enterpriseProcedure = premiumClientProcedure;
+export const premiumProcedure = premiumClientProcedure;

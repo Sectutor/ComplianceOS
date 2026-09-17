@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Kickstart Sprint | GRCompliance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .text-huge { font-size: clamp(3rem, 15vw, 12rem); line-height: 0.9; }
+        .brutal-border { border: 2px solid #E2E8F0; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        
+        .stagger-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stagger-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Progress Wave Animation */
+        .progress-wave {
+            height: 100%;
+            background: #3B82F6;
+            width: 0%;
+            transition: width 2s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        .visible .progress-wave { width: 100%; }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="fixed inset-0 noise-bg z-50"></div>
+
+    <main class="relative z-10">
+        
+        <!-- Hero Section -->
+        <section class="min-h-screen flex flex-col justify-center px-6 lg:px-20 py-20 relative overflow-hidden">
+            <div class="absolute top-20 right-20 text-[30vw] font-black opacity-[0.02] select-none pointer-events-none uppercase">SPRINT</div>
+            
+            <div class="mb-12 stagger-reveal">
+                <img src="../assets/logo.png" alt="GRCompliance" class="h-12 w-auto brightness-200" />
+            </div>
+            
+            <div class="max-w-7xl">
+                <h1 class="font-display font-black text-huge uppercase tracking-tighter stagger-reveal">
+                    Zero To <br>
+                    <span class="accent-blue italic">Audit-Ready.</span>
+                </h1>
+                
+                <div class="mt-12 grid lg:grid-cols-2 gap-12 items-end">
+                    <p class="text-xl lg:text-3xl text-slate-400 font-light leading-snug stagger-reveal" style="transition-delay: 0.2s;">
+                        The definitive 2-week sprint for mid-market SaaS. <strong>Policies liquidated. Gaps analyzed. Your roadmap delivered.</strong> No bloat. Just compliance velocity.
+                    </p>
+                    
+                    <div class="stagger-reveal flex flex-col gap-4" style="transition-delay: 0.4s;">
+                        <a href="#tiers" class="bg-accent-blue text-white font-display font-black uppercase text-xl px-10 py-6 text-center hover:scale-105 transition-transform duration-300">
+                            Start the Kickstart
+                        </a>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold">Tangible Progress in 14 Days or Less</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Velocity Roadmap -->
+        <section class="py-32 px-6 lg:px-20 border-y border-slate-800 bg-[#0F0F0F]">
+            <div class="max-w-5xl mx-auto">
+                <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block stagger-reveal">The Workflow</span>
+                <h2 class="text-5xl font-display font-black mb-16 uppercase stagger-reveal">Phase 1: Liquidation <br> Phase 2: Intelligence</h2>
+                
+                <div class="space-y-4">
+                    <!-- Week 1 -->
+                    <div class="p-8 brutal-border bg-black stagger-reveal relative">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                            <div class="max-w-xl">
+                                <h3 class="font-display font-bold text-3xl mb-4 italic accent-blue">WEEK 1: POLICY LIQUIDATION</h3>
+                                <p class="text-slate-400">We burn down the document gap. Using our proprietary AI generation suite, we build a 100% complete policy set mapped to your specific framework targets.</p>
+                            </div>
+                            <div class="text-xs uppercase font-mono text-slate-600">Status: 100% Complete</div>
+                        </div>
+                        <div class="mt-8 h-1 bg-slate-900 overflow-hidden">
+                            <div class="progress-wave"></div>
+                        </div>
+                    </div>
+
+                    <!-- Week 2 -->
+                    <div class="p-8 brutal-border bg-black stagger-reveal relative">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                            <div class="max-w-xl">
+                                <h3 class="font-display font-bold text-3xl mb-4 italic accent-blue">WEEK 2: GAP ANALYSIS SPRINT</h3>
+                                <p class="text-slate-400">Deep-dive assessment of current controls. We uncover the "Audit Blockers" and deliver a prioritized, multi-framework roadmap for remediation.</p>
+                            </div>
+                            <div class="text-xs uppercase font-mono text-slate-600">Status: Intelligence Ready</div>
+                        </div>
+                        <div class="mt-8 h-1 bg-slate-900 overflow-hidden">
+                            <div class="progress-wave" style="transition-delay: 1s;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Tiers -->
+        <section id="tiers" class="py-32 px-6 lg:px-20 overflow-hidden bg-white text-black">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-5xl lg:text-7xl font-display font-black uppercase tracking-tighter mb-20 text-center stagger-reveal">Select Your Velocity.</h2>
+                
+                <div class="grid lg:grid-cols-3 gap-8">
+                    <!-- Basic -->
+                    <div class="p-10 border-2 border-slate-200 flex flex-col stagger-reveal">
+                        <h3 class="text-2xl font-display font-black uppercase mb-2">Launchpad</h3>
+                        <div class="text-xl text-slate-500 mb-8 font-light italic">The Startup Sprint</div>
+                        <div class="text-5xl font-black mb-10">$4,000</div>
+                        <ul class="space-y-4 mb-12 flex-grow text-slate-700">
+                            <li>• 1 Primary Framework (SOC2/ISO)</li>
+                            <li>• Full Policy Suite Generation</li>
+                            <li>• Gap Analysis Report</li>
+                            <li>• 14-Day Delivery</li>
+                        </ul>
+                        <a href="https://calendly.com" class="bg-black text-white py-4 text-center font-bold uppercase tracking-widest text-sm">Select Slot</a>
+                    </div>
+
+                    <!-- Medium -->
+                    <div class="p-10 bg-[#0A0A0A] text-white flex flex-col scale-105 shadow-2xl relative stagger-reveal">
+                        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-accent-blue text-white px-6 py-1 text-xs font-black uppercase">Most Wanted</div>
+                        <h3 class="text-2xl font-display font-black uppercase mb-2">Accelerator</h3>
+                        <div class="text-xl text-slate-400 mb-8 font-light italic">The Growth Sprint</div>
+                        <div class="text-5xl font-black mb-10 accent-blue">$8,000</div>
+                        <ul class="space-y-4 mb-12 flex-grow text-slate-400">
+                            <li>• <strong>3 Frameworks</strong> (e.g., SOC2 + ISO + GDPR)</li>
+                            <li>• Multi-Framework Mapping Engine</li>
+                            <li>• Full Gap Assessment Sprint</li>
+                            <li>• Prioritized Remediation Roadmap</li>
+                            <li>• vCISO Strategy Session (1hr)</li>
+                        </ul>
+                        <a href="https://calendly.com" class="bg-accent-blue text-white py-4 text-center font-bold uppercase tracking-widest text-sm">Select Slot</a>
+                    </div>
+
+                    <!-- Enterprise -->
+                    <div class="p-10 border-2 border-slate-200 flex flex-col stagger-reveal">
+                        <h3 class="text-2xl font-display font-black uppercase mb-2">Dominator</h3>
+                        <div class="text-xl text-slate-500 mb-8 font-light italic">The Enterprise Sprint</div>
+                        <div class="text-5xl font-black mb-10">$12,000</div>
+                        <ul class="space-y-4 mb-12 flex-grow text-slate-700">
+                            <li>• <strong>Unlimited</strong> Framework Mapping</li>
+                            <li>• Full Multi-Tenant MSP Support</li>
+                            <li>• Custom Integration Audit</li>
+                            <li>• Executive Audit Readiness Memo</li>
+                            <li>• Enterprise Implementation Plan</li>
+                        </ul>
+                        <a href="https://calendly.com" class="bg-black text-white py-4 text-center font-bold uppercase tracking-widest text-sm">Select Slot</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-40 px-6 lg:px-20 bg-black text-white border-t border-slate-800">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-6xl lg:text-9xl font-display font-black uppercase tracking-tighter mb-8 leading-none stagger-reveal">End the <br> Compliance <br> Stall.</h2>
+                <p class="text-2xl lg:text-3xl mb-16 text-slate-400 font-light stagger-reveal">
+                    Stop looking at spreadsheets. Start your 14-day execution cycle.
+                </p>
+                <div class="stagger-reveal">
+                    <a href="/waitlist" class="inline-block bg-accent-blue text-white font-display font-black uppercase text-2xl px-16 py-8 hover:scale-105 transition-transform duration-300 shadow-[0_0_50px_rgba(59,130,246,0.3)]">
+                        Apply for Kickstart Sprint
+                    </a>
+                    <p class="mt-8 text-slate-500 uppercase font-bold tracking-[0.2em] italic text-xs">Current Booking: Week of March 16</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.stagger-reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

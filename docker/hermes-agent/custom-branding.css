@@ -1,0 +1,81 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   GRCompliance Rebranding Overrides for Standalone Hermes Dashboard
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* 1. Theme Override (GRCompliance slate/blue dark colors) */
+:root {
+  --background: #030712 !important;
+  --background-base: #030712 !important;
+  --component-sidebar-background: #020617 !important;
+  --color-primary: #3b82f6 !important;
+  --color-secondary: #1e293b !important;
+  --color-accent: #3b82f6 !important;
+  --color-border: #1e293b !important;
+  --color-card: #0f172a !important;
+  --color-card-foreground: #f8fafc !important;
+  --color-input: #0f172a !important;
+  
+  --text-primary: #f8fafc !important;
+  --text-secondary: #94a3b8 !important;
+  --text-tertiary: #64748b !important;
+  
+  --selection-bg: #1e3a8a !important;
+  --midground: #0f172a !important;
+}
+
+/* 2. Hide Unnecessary Sidebar Navigation Items */
+aside a[href*="/profiles"],
+aside a[href*="/config"],
+aside a[href*="/keys"],
+aside a[href*="/system"],
+aside a[href*="/webhooks"],
+aside a[href*="/mcp"],
+aside a[href*="/achievements"],
+aside a[href*="/settings"],
+aside a[href*="/analytics"],
+aside a[href*="/documentation"],
+aside a[href*="/logs"] {
+  display: none !important;
+}
+
+/* Hide header sub-menus like custom models configuration, memory setup, diagnostics upload */
+header a[href*="/settings"],
+header button[title*="settings"],
+header div[class*="settings"] {
+  display: none !important;
+}
+
+/* Hide help/doc buttons or links that lead to Nous Research websites */
+a[href*="nous"],
+a[href*="github.com/NousResearch"] {
+  display: none !important;
+}
+
+/* 3. Aesthetic Polish */
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+}
+
+/* Make sure active link in sidebar has the blue accent */
+aside a[class*="active"], 
+aside a[class*="bg-accent"],
+aside a[aria-current="page"] {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  border-left: 3px solid #3b82f6 !important;
+  color: #3b82f6 !important;
+}
+
+/* Custom styling for chat bubbles to look modern and premium */
+div[class*="message-assistant"], 
+div[class*="assistant-message"] {
+  background-color: #0f172a !important;
+  border: 1px solid #1e293b !important;
+  border-radius: 8px !important;
+}
+
+div[class*="message-user"],
+div[class*="user-message"] {
+  background-color: #1e3a8a !important;
+  border: 1px solid #2563eb !important;
+  border-radius: 8px !important;
+}

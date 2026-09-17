@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a GRC Discovery & Scoping Call | GRCompliance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        .border-card { border: 1px solid rgba(255,255,255,0.08); }
+        .glow { box-shadow: 0 0 50px rgba(59,130,246,0.1); }
+        .glow-green { box-shadow: 0 0 50px rgba(16,185,129,0.1); }
+        .faq-question {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .faq-question:hover { color: #3B82F6; }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .faq-answer.open { max-height: 200px; }
+        .active-tab {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-color: #3B82F6;
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="sticky top-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-lg border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm">G</div>
+            <span class="font-display font-bold text-lg text-white">GRCompliance</span>
+        </a>
+        <div class="flex items-center gap-6 text-sm">
+            <a href="/pricing.html" class="text-gray-400 hover:text-white transition">Pricing</a>
+            <a href="/trust.html" class="text-gray-400 hover:text-white transition">Trust Center</a>
+            <a href="https://github.com/sectutor/ComplianceOS" class="text-gray-400 hover:text-white transition">GitHub</a>
+            <a href="/pricing.html" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full font-semibold text-sm transition">Get Started</a>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="max-w-5xl mx-auto px-6 pt-20 pb-12 text-center">
+    <div class="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-sm text-blue-400 mb-8">
+        🎯 100% Deductible Booking Fee · 1-on-1 Scoping Audit
+    </div>
+    <h1 class="font-display font-900 text-4xl sm:text-6xl leading-tight mb-4">
+        Paid GRC Discovery & <span class="accent-blue">Scoping Call</span>
+    </h1>
+    <p class="text-gray-400 text-lg max-w-2xl mx-auto mb-4">
+        Skip months of vendor validation. Design your target compliance architecture, map control frameworks, and outline your path to audit readiness in 60 minutes.
+    </p>
+    <p class="text-xs text-slate-500 font-medium">
+        💡 The $499 consultation fee is fully credited back toward any self-host Pro or MSSP license.
+    </p>
+</section>
+
+<!-- BENTO GRID - WHAT IS INCLUDED -->
+<section class="max-w-5xl mx-auto px-6 pb-20">
+    <h2 class="font-display font-bold text-2xl text-center mb-10">What We Will Accomplish Together</h2>
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Framework Scoping -->
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-blue-500/30 transition duration-300">
+            <div class="text-3xl mb-4">🗺️</div>
+            <h3 class="font-semibold text-white mb-2">Framework Mapping</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">Scope requirements for ISO 27001, SOC 2, HIPAA, GDPR, NIST 800-53, or NIS2/DORA to find overlapping controls and eliminate redundant work.</p>
+        </div>
+        <!-- 2. AI & Sandbox Security -->
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-blue-500/30 transition duration-300">
+            <div class="text-3xl mb-4">🤖</div>
+            <h3 class="font-semibold text-white mb-2">AI Agent Safety</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">Review sandbox execution bounds, process memory limits, outbound network rules, and human-in-the-loop validation parameters for your LLM agents.</p>
+        </div>
+        <!-- 3. GRC Target Roadmap -->
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-blue-500/30 transition duration-300">
+            <div class="text-3xl mb-4">📈</div>
+            <h3 class="font-semibold text-white mb-2">Audit-Ready Roadmap</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">Obtain a custom 12-month implementation timeline, targeted control lists, policy drafting guides, and direct database migration advice.</p>
+        </div>
+        <!-- 4. Fully Refundable Fee -->
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-blue-500/30 transition duration-300">
+            <div class="text-3xl mb-4">💳</div>
+            <h3 class="font-semibold text-white mb-2">100% License Credit</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">Your $499 booking payment acts as a prepayment. The full cost is subtracted from any Self-Host Pro ($499/yr) or MSSP ($999/yr) purchase.</p>
+        </div>
+    </div>
+</section>
+
+<!-- INTERACTIVE SCHEDULER & BOOKING FORM -->
+<section class="max-w-5xl mx-auto px-6 pb-20 grid lg:grid-cols-5 gap-8">
+    <!-- Left Column: Scheduler Context -->
+    <div class="lg:col-span-2 space-y-6 flex flex-col justify-between">
+        <div>
+            <h2 class="font-display font-bold text-3xl text-white">Select Your Session</h2>
+            <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+                Consult with our core compliance engineers. Pick a date and time slot, share your target GRC frameworks, and submit to proceed to checkout.
+            </p>
+        </div>
+        
+        <div class="space-y-4 bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-xs">✓</span>
+                <span class="text-xs text-gray-200">Pre-call checklist included</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-xs">✓</span>
+                <span class="text-xs text-gray-200">Attended by core architecture leads</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-xs">✓</span>
+                <span class="text-xs text-gray-200">Recording & raw audit artifacts shared</span>
+            </div>
+        </div>
+
+        <div class="border-t border-white/5 pt-4 text-xs text-slate-500 leading-normal">
+            🛡️ Secure Stripe processing. Cancel or reschedule anytime up to 24 hours prior to the slot with zero penalties.
+        </div>
+    </div>
+
+    <!-- Right Column: Interactive Scheduling App Widget -->
+    <div class="lg:col-span-3 bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 glow relative overflow-hidden" id="booking-widget">
+        <!-- Progress Steps indicator -->
+        <div class="flex items-center justify-between border-b border-white/5 pb-4 mb-6">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-widest" id="step-indicator">Step 1 of 2: Time Selection</div>
+            <div class="text-lg font-bold text-blue-400 font-mono">$499 <span class="text-xs font-medium text-slate-400">One-time</span></div>
+        </div>
+
+        <!-- STAGES CONTAINER -->
+        <div id="booking-stage-1" class="space-y-6">
+            <!-- Simulated Calendar & Time Slots -->
+            <div class="grid sm:grid-cols-2 gap-4">
+                <!-- Date select -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase text-slate-400">Select Date</label>
+                    <div class="grid grid-cols-3 gap-2" id="date-selector">
+                        <button onclick="selectDate(this, 'Aug 17')" class="py-3 text-xs font-semibold rounded-xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition text-center text-white active-tab">Mon<br>Aug 17</button>
+                        <button onclick="selectDate(this, 'Aug 18')" class="py-3 text-xs font-semibold rounded-xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition text-center text-white">Tue<br>Aug 18</button>
+                        <button onclick="selectDate(this, 'Aug 19')" class="py-3 text-xs font-semibold rounded-xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition text-center text-white">Wed<br>Aug 19</button>
+                    </div>
+                </div>
+
+                <!-- Time select -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase text-slate-400">Available Slots (EST)</label>
+                    <div class="grid grid-cols-2 gap-2" id="time-selector">
+                        <button onclick="selectTime(this, '09:00 AM')" class="py-2.5 text-xs font-semibold rounded-xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition text-center text-white active-tab">09:00 AM</button>
+                        <button onclick="selectTime(this, '11:00 AM')" class="py-2.5 text-xs font-semibold rounded-xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition text-center text-white">11:00 AM</button>
+                        <button onclick="selectTime(this, '02:00 PM')" class="py-2.5 text-xs font-semibold rounded-xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition text-center text-white">02:00 PM</button>
+                        <button onclick="selectTime(this, '04:00 PM')" class="py-2.5 text-xs font-semibold rounded-xl bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition text-center text-white">04:00 PM</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="space-y-4 pt-2">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs text-slate-400 font-medium">Name</label>
+                        <input type="text" id="booking-name" placeholder="John Doe" class="w-full bg-[#0E0E0E] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs text-slate-400 font-medium">Work Email</label>
+                        <input type="email" id="booking-email" placeholder="john@company.com" class="w-full bg-[#0E0E0E] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs text-slate-400 font-medium">Organization / Domain</label>
+                    <input type="text" id="booking-org" placeholder="Acme Corp" class="w-full bg-[#0E0E0E] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs text-slate-400 font-medium">Primary Compliance Frameworks / Security Issues</label>
+                    <textarea id="booking-notes" placeholder="e.g. Preparing for ISO 27001; need advice on agent sandboxing/isolation requirements" rows="2" class="w-full bg-[#0E0E0E] border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                </div>
+            </div>
+
+            <button onclick="goToStage2()" class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-3.5 font-bold text-xs transition uppercase tracking-wider mt-4">
+                Confirm Details & Pay
+            </button>
+        </div>
+
+        <div id="booking-stage-2" class="space-y-6 hidden">
+            <!-- Simulated Stripe Checkout Form -->
+            <div class="text-center py-4 space-y-2 border-b border-white/5">
+                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Slot Confirmed</span>
+                <h4 class="text-sm font-extrabold text-white" id="summary-slot-details">August 17 at 09:00 AM EST</h4>
+                <p class="text-xs text-slate-400" id="summary-user-details">John Doe (john@company.com)</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="space-y-1.5">
+                    <label class="text-xs text-slate-400 font-medium">Card Number</label>
+                    <div class="relative">
+                        <input type="text" placeholder="4242 4242 4242 4242" class="w-full bg-[#0E0E0E] border border-white/10 rounded-xl px-4 py-2.5 pl-10 text-xs text-white focus:outline-none focus:border-blue-500">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">💳</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs text-slate-400 font-medium">Expiry</label>
+                        <input type="text" placeholder="MM / YY" class="w-full bg-[#0E0E0E] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-xs text-slate-400 font-medium">CVC</label>
+                        <input type="text" placeholder="123" class="w-full bg-[#0E0E0E] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button onclick="goToStage1()" class="flex-1 border border-white/15 hover:border-white/25 text-slate-300 rounded-xl py-3.5 font-bold text-xs transition uppercase tracking-wider">
+                    Edit Info
+                </button>
+                <button onclick="submitBooking()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3.5 font-bold text-xs transition glow-green uppercase tracking-wider">
+                    Pay $499 & Book Call
+                </button>
+            </div>
+        </div>
+
+        <div id="booking-success" class="space-y-6 py-10 text-center hidden">
+            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto shadow-lg shadow-emerald-500/10">✓</div>
+            <div class="space-y-2">
+                <h3 class="text-xl font-bold text-white font-display">Call Scheduled Successfully!</h3>
+                <p class="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                    We've emailed confirmation links, a calendar invite, and the pre-call architectural checklist. The $499 credit is now active under license voucher: <strong class="text-white font-mono">DISC-CRED-X98</strong>.
+                </p>
+            </div>
+            <div class="pt-4 max-w-xs mx-auto">
+                <a href="/" class="block text-center bg-white/10 hover:bg-white/15 text-white rounded-xl py-3.5 font-semibold text-xs transition">Return to Home</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FREQUENTLY ASKED QUESTIONS -->
+<section id="faq" class="max-w-3xl mx-auto px-6 pb-24">
+    <h2 class="font-display font-bold text-3xl text-center mb-10">Frequently Asked Questions</h2>
+    <div class="space-y-4">
+        <!-- FAQ 1 -->
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+            <div class="faq-question font-semibold text-sm flex items-center justify-between text-white" onclick="toggleFaq(this)">
+                <span>Who leads the scoping and discovery call?</span>
+                <span class="text-xs font-bold font-mono">+</span>
+            </div>
+            <div class="faq-answer text-xs text-slate-400 mt-2.5 leading-relaxed">
+                Your consultation is staffed by senior compliance and cybersecurity engineers who work directly on the GRCompliance open-core platform. No account executives, sales pitches, or entry-level consultants.
+            </div>
+        </div>
+        <!-- FAQ 2 -->
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+            <div class="faq-question font-semibold text-sm flex items-center justify-between text-white" onclick="toggleFaq(this)">
+                <span>What deliverables will I receive after the call?</span>
+                <span class="text-xs font-bold font-mono">+</span>
+            </div>
+            <div class="faq-answer text-xs text-slate-400 mt-2.5 leading-relaxed">
+                You will receive a complete GRC framework mapping catalog, a target scope assessment report matching your technology stack, a custom 12-month compliance roadmap, and a discount voucher of $499 valid for any self-hosted tier.
+            </div>
+        </div>
+        <!-- FAQ 3 -->
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+            <div class="faq-question font-semibold text-sm flex items-center justify-between text-white" onclick="toggleFaq(this)">
+                <span>How does the $499 self-host license refund work?</span>
+                <span class="text-xs font-bold font-mono">+</span>
+            </div>
+            <div class="faq-answer text-xs text-slate-400 mt-2.5 leading-relaxed">
+                The fee is structured as an advance payment. Once the call finishes, you will receive a licensing code. When purchasing the Pro ($499/year) or MSSP ($999/year) self-hosted licenses, this code completely offsets the cost at checkout.
+            </div>
+        </div>
+        <!-- FAQ 4 -->
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+            <div class="faq-question font-semibold text-sm flex items-center justify-between text-white" onclick="toggleFaq(this)">
+                <span>Can we cancel or reschedule the booking?</span>
+                <span class="text-xs font-bold font-mono">+</span>
+            </div>
+            <div class="faq-answer text-xs text-slate-400 mt-2.5 leading-relaxed">
+                Yes. You can reschedule or cancel your session with a full refund up to 24 hours prior to the scheduled slot using the links in the confirmation email.
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-white/10 py-8 text-center text-sm text-gray-500">
+    <p>GRCompliance — Open Source GRC Platform · AGPLv3 · Self-Hosted</p>
+    <p class="mt-1">
+        <a href="/pricing.html" class="hover:text-white mx-2">Pricing</a>
+        <a href="/trust.html" class="hover:text-white mx-2">Trust Center</a>
+        <a href="https://github.com/sectutor/ComplianceOS" class="hover:text-white mx-2">GitHub</a>
+    </p>
+</footer>
+
+<!-- JS LOGIC -->
+<script>
+    let selectedDateVal = "Aug 17";
+    let selectedTimeVal = "09:00 AM";
+
+    function selectDate(element, val) {
+        // Clear active class from siblings
+        const parent = document.getElementById('date-selector');
+        const children = parent.children;
+        for (let i = 0; i < children.length; i++) {
+            children[i].classList.remove('active-tab');
+        }
+        element.classList.add('active-tab');
+        selectedDateVal = val;
+    }
+
+    function selectTime(element, val) {
+        // Clear active class from siblings
+        const parent = document.getElementById('time-selector');
+        const children = parent.children;
+        for (let i = 0; i < children.length; i++) {
+            children[i].classList.remove('active-tab');
+        }
+        element.classList.add('active-tab');
+        selectedTimeVal = val;
+    }
+
+    function goToStage2() {
+        // Retrieve values and validate
+        const name = document.getElementById('booking-name').value.trim();
+        const email = document.getElementById('booking-email').value.trim();
+        const org = document.getElementById('booking-org').value.trim();
+
+        if (!name || !email || !org) {
+            alert('Please fill out all required fields (Name, Email, Organization).');
+            return;
+        }
+
+        // Set summary content
+        document.getElementById('summary-slot-details').textContent = `${selectedDateVal} at ${selectedTimeVal} EST`;
+        document.getElementById('summary-user-details').textContent = `${name} (${email}) - ${org}`;
+
+        // Toggle visibility
+        document.getElementById('booking-stage-1').classList.add('hidden');
+        document.getElementById('booking-stage-2').classList.remove('hidden');
+        document.getElementById('step-indicator').textContent = 'Step 2 of 2: Checkout Details';
+    }
+
+    function goToStage1() {
+        document.getElementById('booking-stage-2').classList.add('hidden');
+        document.getElementById('booking-stage-1').classList.remove('hidden');
+        document.getElementById('step-indicator').textContent = 'Step 1 of 2: Time Selection';
+    }
+
+    function submitBooking() {
+        document.getElementById('booking-stage-2').classList.add('hidden');
+        document.getElementById('booking-success').classList.remove('hidden');
+        document.getElementById('step-indicator').textContent = 'Session Scheduled';
+    }
+
+    function toggleFaq(element) {
+        const answer = element.nextElementSibling;
+        const toggleIcon = element.querySelector('span:last-child');
+        
+        if (answer.classList.contains('open')) {
+            answer.classList.remove('open');
+            toggleIcon.textContent = '+';
+        } else {
+            // Close other answers first
+            const allAnswers = document.querySelectorAll('.faq-answer');
+            const allIcons = document.querySelectorAll('.faq-question span:last-child');
+            allAnswers.forEach(ans => ans.classList.remove('open'));
+            allIcons.forEach(icn => icn.textContent = '+');
+            
+            answer.classList.add('open');
+            toggleIcon.textContent = '−';
+        }
+    }
+</script>
+</body>
+</html>

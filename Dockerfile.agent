@@ -1,0 +1,61 @@
+# Compliance Agent — Hermes Runtime for GRCompliance
+# Multi-arch: docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/sectutor/complianceos-agent:latest -f Dockerfile.agent .
+
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install Hermes Agent
+RUN pip install --no-cache-dir hermes-agent psycopg2-binary
+
+# Install additional tools for compliance scripts
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl jq git python3 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy compliance-agent profile, skills, and scripts
+COPY packages/compliance-agent/profile /app/profile
+COPY packages/compliance-agent/skills /app/skills
+COPY packages/compliance-agent/scripts /app/scripts
+
+# Copy gateway configs
+COPY packages/compliance-agent/gateway /app/gateway
+
+# Stage 2: Runtime
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl jq git python3 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Hermes + dependencies from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin/hermes /usr/local/bin/hermes
+RUN mkdir -p /usr/local/lib/python3.11/site-packages/ui-tui
+
+# Copy profile, skills, gateway configs
+COPY --from=builder /app/profile /app/profile
+COPY --from=builder /app/skills /app/skills
+COPY --from=builder /app/gateway /app/gateway
+COPY --from=builder /app/scripts /app/scripts
+
+# Copy entrypoint
+COPY packages/compliance-agent/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Hermes data directory
+ENV HERMES_PROFILE=/app/profile
+ENV HERMES_HOME=/app/data
+ENV PYTHONUNBUFFERED=1
+ENV HERMES_SKILLS_DIR=/app/skills
+
+# Expose embedded chat endpoint
+EXPOSE 9090
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD curl -sf http://localhost:9090/health || exit 1
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,0 +1,76 @@
+{
+    "title": "Collaborateurs & Accès",
+    "overview": "Vue d'ensemble des employés",
+    "list": "Liste des employés",
+    "add": "Ajouter un employé",
+    "edit": "Modifier l'employé",
+    "delete": "Supprimer l'employé",
+    "employeeDetails": "Détails de l'employé",
+    "employeeProfile": "Profil de l'employé",
+    "personalInfo": "Informations personnelles",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "fullName": "Nom complet",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "status": {
+        "title": "Statut",
+        "active": "Actif",
+        "inactive": "Inactif",
+        "onLeave": "En congé",
+        "terminated": "Licencié",
+        "pending": "En attente"
+    },
+    "department": "Département",
+    "departments": "Départements",
+    "jobTitle": "Poste",
+    "role": "Rôle & Habilitations",
+    "manager": "Responsable",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "location": "Lieu",
+    "timeZone": "Fuseau horaire",
+    "profile": {
+        "title": "Profil",
+        "photo": "Photo",
+        "bio": "Bio",
+        "skills": "Compétences",
+        "certifications": "Certifications"
+    },
+    "access": {
+        "title": "Accès et autorisations",
+        "userAccount": "Compte utilisateur",
+        "permissions": "Autorisations",
+        "roles": "Rôles",
+        "accessLevel": "Niveau d'accès"
+    },
+    "training": {
+        "title": "Statut de formation",
+        "completed": "Terminé",
+        "inProgress": "En cours",
+        "overdue": "En retard",
+        "mandatory": "Formation obligatoire"
+    },
+    "acknowledgments": {
+        "title": "Accusés de réception des politiques",
+        "pending": "Accusés en attente",
+        "acknowledged": "Accusé réception"
+    },
+    "assets": {
+        "title": "Actifs attribués",
+        "devices": "Appareils",
+        "equipment": "Équipement"
+    },
+    "onboarding": {
+        "title": "Intégration",
+        "checklist": "Liste d'intégration",
+        "progress": "Progression de l'intégration",
+        "tasks": "Tâches d'intégration",
+        "welcome": "Kit de bienvenue"
+    },
+    "offboarding": {
+        "title": "Départ",
+        "checklist": "Liste de départ",
+        "exitInterview": "Entretien de sortie"
+    }
+}

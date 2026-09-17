@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment and Secrets (STRICT)
+.env
+.env.*
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary and Cache
+tmp/
+temp/
+.cache/
+.eslintcache
+coverage/
+.system_generated/
+
+# Internal AI / Scratch
+.agent/
+.trae/
+scratch/
+
+# Safeguard proprietary packages
+packages/premium/
+*.sql.gz
+*.docx

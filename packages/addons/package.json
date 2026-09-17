@@ -1,0 +1,37 @@
+{
+  "name": "@complianceos/addons",
+  "version": "1.0.0",
+  "description": "ComplianceOS Addon Marketplace — Prowler, Wazuh, OSV-Scanner and more",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./registry": "./src/registry.ts",
+    "./router": "./src/router.ts",
+    "./shared/schema": "./src/shared/schema.ts",
+    "./shared/types": "./src/shared/types.ts",
+    "./runtime/executor": "./src/runtime/executor.ts",
+    "./runtime/executor-instance": "./src/runtime/executor-instance.ts",
+    "./runtime/pusher": "./src/runtime/pusher.ts",
+    "./runtime/webhook-handler": "./src/runtime/webhook-handler.ts",
+    "./scheduler": "./src/scheduler.ts",
+    "./prowler/*": "./src/prowler/*.ts"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@complianceos/core": "*",
+    "@trpc/server": "^10.45.0",
+    "zod": "^3.22.4",
+    "drizzle-orm": "^0.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

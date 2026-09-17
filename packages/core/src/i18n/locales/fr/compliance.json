@@ -1,0 +1,71 @@
+{
+    "title": "Cadres de Conformité & Contrôles",
+    "requirements": "Exigences",
+    "controls": "Contrôles de Sécurité",
+    "frameworks": "Référentiels (ISO 27001, NIS2, RGPD, SOC 2)",
+    "frameworksOverview": "Vue d'ensemble des référentiels",
+    "frameworksList": "Tous les référentiels",
+    "frameworksCustom": "Référentiels personnalisés",
+    "frameworksAdd": "Ajouter un référentiel",
+    "status": {
+        "title": "Statut",
+        "compliant": "Conforme",
+        "nonCompliant": "Non conforme",
+        "inProgress": "En cours",
+        "notApplicable": "Non applicable",
+        "pending": "En attente",
+        "approved": "Approuvé",
+        "rejected": "Rejeté",
+        "underReview": "En révision"
+    },
+    "categories": {
+        "title": "Catégories",
+        "technical": "Technique",
+        "operational": "Opérationnel",
+        "management": "Gestion",
+        "physical": "Physique"
+    },
+    "requirementsManagement": "Gestion des exigences",
+    "requirementsList": "Liste des exigences",
+    "requirementsAdd": "Ajouter une exigence",
+    "requirementsImport": "Importer des exigences",
+    "requirementsExport": "Exporter les exigences",
+    "controlsManagement": "Gestion des contrôles",
+    "controlsList": "Liste des contrôles",
+    "controlsAdd": "Ajouter un contrôle",
+    "controlsMapping": "Correspondances des contrôles",
+    "complianceScore": "Score de conformité",
+    "complianceRate": "Taux de conformité",
+    "overallCompliance": "Conformité globale",
+    "complianceByFramework": "Conformité par référentiel",
+    "complianceTrend": "Tendance de conformité",
+    "lastAssessment": "Dernière évaluation",
+    "nextReview": "Prochaine révision",
+    "evidenceRequired": "Preuves requises",
+    "evidenceProvided": "Preuves fournies",
+    "missingEvidence": "Preuves manquantes",
+    "auditReady": "Prêt pour l'audit",
+    "auditHistory": "Historique des audits",
+    "auditTrail": "Piste d'audit",
+    "assessment": {
+        "title": "Évaluation",
+        "conductAssessment": "Réaliser une évaluation",
+        "assessmentHistory": "Historique des évaluations",
+        "assessmentResults": "Résultats de l'évaluation",
+        "lastAssessment": "Dernière évaluation"
+    },
+    "gaps": {
+        "title": "Écarts",
+        "identifiedGaps": "Écarts identifiés",
+        "gapAnalysis": "Analyse des écarts",
+        "remediation": "Remédiation",
+        "remediationPlan": "Plan de remédiation",
+        "remediationStatus": "Statut de remédiation"
+    },
+    "maturity": {
+        "title": "Maturité",
+        "level": "Niveau de maturité",
+        "assessMaturity": "Évaluer la maturité",
+        "targetLevel": "Niveau cible"
+    }
+}

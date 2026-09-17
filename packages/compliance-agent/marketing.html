@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRCompliance — Open Source GRC Platform</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#06080a;color:#cbd5e1;line-height:1.6}
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.logo{display:flex;align-items:center;gap:10px;font-size:1.25rem;font-weight:700;color:#f1f5f9;text-decoration:none}
+.logo-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:0.9rem}
+.nav-links{display:flex;gap:28px;font-size:0.9rem}
+.nav-links a{color:#94a3b8;text-decoration:none;transition:color .15s}
+.nav-links a:hover{color:#e2e8f0}
+.btn{padding:10px 22px;border-radius:8px;font-size:0.9rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;cursor:pointer;border:none}
+.btn-primary{background:#3b82f6;color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-ghost{color:#94a3b8;background:transparent}.btn-ghost:hover{color:#e2e8f0}
+.hero{padding:80px 0 60px;text-align:center}
+.hero h1{font-size:2.8rem;font-weight:800;color:#f1f5f9;line-height:1.2;margin-bottom:16px}
+.hero p{font-size:1.15rem;color:#64748b;max-width:580px;margin:0 auto 32px}
+.hero-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.badge{display:inline-block;padding:6px 14px;border-radius:20px;font-size:0.8rem;font-weight:600;background:rgba(59,130,246,0.12);color:#93c5fd;margin-bottom:20px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;padding:60px 0}
+.card{padding:28px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);transition:border-color .2s}
+.card:hover{border-color:rgba(59,130,246,0.25)}
+.card h3{font-size:1.1rem;color:#e2e8f0;margin-bottom:8px}
+.card p{font-size:0.9rem;color:#64748b}
+.section-title{text-align:center;font-size:1.8rem;font-weight:700;color:#e2e8f0;margin-bottom:8px}
+.section-sub{text-align:center;color:#64748b;margin-bottom:40px}
+.cta{padding:80px 0;text-align:center}
+.cta h2{font-size:2rem;font-weight:700;color:#f1f5f9;margin-bottom:12px}
+.cta p{color:#64748b;margin-bottom:28px}
+footer{padding:32px 0;border-top:1px solid rgba(255,255,255,0.06);text-align:center;font-size:0.85rem;color:#475569}
+.compliance-badges{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.compliance-badge{padding:8px 16px;border-radius:6px;font-size:0.8rem;font-weight:600;background:rgba(255,255,255,0.04);color:#64748b}
+@media(max-width:640px){.hero h1{font-size:1.8rem}.nav-links{display:none}}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <nav>
+    <a href="/" class="logo">
+      <span class="logo-icon">G</span>
+      GRCompliance
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#compliance">Compliance</a>
+      <a href="https://github.com">GitHub</a>
+    </div>
+    <a href="/login" class="btn btn-primary">Sign In</a>
+  </nav>
+
+  <section class="hero">
+    <span class="badge">Open Source • Self-Hosted</span>
+    <h1>GRC That Stays<br>On Your Infrastructure</h1>
+    <p>Open-source governance, risk, and compliance platform. NIS2, DORA, GDPR, ISO 27001 ready. Your data never leaves your servers.</p>
+    <div class="hero-buttons">
+      <a href="https://github.com" class="btn btn-primary">View on GitHub</a>
+      <a href="/login" class="btn btn-ghost">Sign In →</a>
+    </div>
+    <div class="compliance-badges" style="margin-top:24px">
+      <span class="compliance-badge">NIS2</span>
+      <span class="compliance-badge">DORA</span>
+      <span class="compliance-badge">GDPR</span>
+      <span class="compliance-badge">ISO 27001</span>
+      <span class="compliance-badge">SOC 2</span>
+      <span class="compliance-badge">NIST CSF</span>
+    </div>
+  </section>
+</div>
+
+<div class="container" id="features">
+  <h2 class="section-title">Why Self-Hosted GRC?</h2>
+  <p class="section-sub">Compliance data is sensitive. Keep it where it belongs.</p>
+  <div class="features">
+    <div class="card">
+      <h3>🔒 Data Sovereignty</h3>
+      <p>Your compliance evidence, risk assessments, and audit trails never leave your infrastructure. No third-party access.</p>
+    </div>
+    <div class="card">
+      <h3>📋 Multi-Framework</h3>
+      <p>Map controls across NIS2, DORA, ISO 27001, SOC 2, NIST CSF, and custom frameworks with harmonization.</p>
+    </div>
+    <div class="card">
+      <h3>🤖 AI-Powered Agent</h3>
+      <p>Automated risk analysis, evidence collection, and compliance reporting — all running locally on your own LLM.</p>
+    </div>
+    <div class="card">
+      <h3>🛡️ Audit-Ready</h3>
+      <p>Generate regulator-ready evidence packs with immutable audit trails. Built for EU regulatory reality.</p>
+    </div>
+    <div class="card">
+      <h3>🔄 Continuous Monitoring</h3>
+      <p>Automated gap analysis, evidence expiry tracking, and readiness scoring — not point-in-time snapshots.</p>
+    </div>
+    <div class="card">
+      <h3>📡 Open Core</h3>
+      <p>Fully auditable codebase. Community edition is free and open source. Enterprise features available.</p>
+    </div>
+  </div>
+</div>
+
+<div class="cta">
+  <div class="container">
+    <h2>Ready to Take Control of Your Compliance?</h2>
+    <p>Deploy in minutes on your own infrastructure.</p>
+    <a href="/login" class="btn btn-primary">Get Started</a>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    GRCompliance — Open Source GRC Platform. Built for the EU regulatory landscape.
+  </div>
+</footer>
+
+</body>
+</html>

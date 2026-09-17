@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantified Risk Intelligence | ComplianceOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B1120;
+            color: #F8FAFC;
+            overflow-x: hidden;
+        }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .text-huge { font-size: clamp(3rem, 15vw, 12rem); line-height: 0.9; }
+        .brutal-border { border: 2px solid #E2E8F0; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        
+        .stagger-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stagger-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Radar Scanning Animation */
+        .radar-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            overflow: hidden;
+        }
+        .radar-sweep {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150%;
+            height: 150%;
+            background: conic-gradient(from 0deg, rgba(59, 130, 246, 0.4) 0deg, transparent 90deg);
+            transform-origin: top left;
+            animation: rotate 4s linear infinite;
+            border-radius: 50%;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .radar-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3B82F6;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #3B82F6;
+            opacity: 0;
+            animation: pulse-dot 4s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 50%, 100% { opacity: 0; }
+            25% { opacity: 1; }
+        }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="fixed inset-0 noise-bg z-50"></div>
+
+    <main class="relative z-10">
+        
+        <!-- Hero Section -->
+        <section class="min-h-screen flex flex-col justify-center px-6 lg:px-20 py-20 relative overflow-hidden">
+            <div class="absolute top-20 right-20 text-[25vw] font-black opacity-[0.02] select-none pointer-events-none uppercase">RADAR</div>
+            
+            <div class="mb-12 stagger-reveal">
+                <img src="../assets/logo.png" alt="GRCompliance" class="h-20 w-auto brightness-200" />
+            </div>
+            
+            <div class="max-w-7xl ml-auto text-right">
+                <h1 class="font-display font-black text-huge uppercase tracking-tighter stagger-reveal leading-[0.85]">
+                    End The <br>
+                    <span class="accent-blue italic block -mt-[0.05em]">Heatmap Theater.</span>
+                </h1>
+                
+                <div class="mt-12 grid lg:grid-cols-2 gap-12 items-end">
+                    <p class="text-xl lg:text-3xl text-slate-400 font-light leading-snug stagger-reveal" style="transition-delay: 0.2s;">
+                        Static risk registers are where visibility goes to die. <strong>Quantify your exposure in real-time.</strong> Move from subjective 1-5 scores to data-driven risk intelligence that actually protects your revenue.
+                    </p>
+                    
+                    <div class="stagger-reveal flex flex-col gap-4" style="transition-delay: 0.4s;">
+                        <a href="#intelligence" class="bg-accent-blue text-white font-display font-black uppercase text-xl px-12 py-7 text-center hover:scale-105 transition-transform duration-300">
+                            Quantify My Exposure
+                        </a>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold">Automated Key Risk Indicators (KRIs) Live Tracking</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Intelligence Section -->
+        <section id="intelligence" class="py-32 px-6 lg:px-20 border-y border-slate-800 bg-[#131B2B]">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-20 stagger-reveal">
+                    <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block">Threat & Risk Intelligence</span>
+                    <h2 class="text-5xl lg:text-7xl font-display font-black mb-8 uppercase leading-none">See threats before <br>they see you.</h2>
+                    <p class="text-xl text-slate-400 max-w-3xl mx-auto font-light leading-relaxed">
+                        Real-time threat intelligence, automated vulnerability scanning, and AI-powered risk assessments that keep your security posture ahead of evolving threats.
+                    </p>
+                </div>
+
+                <!-- Feature Cards Grid -->
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                    <!-- Risk Assessment -->
+                    <div class="group p-6 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700 hover:border-accent-blue hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-300 stagger-reveal">
+                        <div class="w-12 h-12 bg-accent-blue rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-display font-bold text-white mb-3 uppercase">Risk Assessment</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                            Quantify and prioritize risks with AI-assisted assessments aligned to NIST, ISO 27005, and FAIR frameworks.
+                        </p>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-accent-blue" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Automated scoring
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-accent-blue" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Heat map visualization
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-accent-blue" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Treatment plans
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Threat Intelligence -->
+                    <div class="group p-6 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700 hover:border-accent-blue hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-300 stagger-reveal" style="transition-delay: 0.1s;">
+                        <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-display font-bold text-white mb-3 uppercase">Threat Intelligence</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                            Continuous monitoring of threat landscapes with adversary emulation and IOC detection powered by global feeds.
+                        </p>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Real-time alerts
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                MITRE ATT&CK mapping
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Threat actor profiles
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Vulnerability Management -->
+                    <div class="group p-6 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700 hover:border-accent-blue hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-300 stagger-reveal" style="transition-delay: 0.2s;">
+                        <div class="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-display font-bold text-white mb-3 uppercase">Vulnerability Management</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                            Automated scanning, prioritization, and remediation tracking across your entire attack surface.
+                        </p>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Continuous scanning
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                CVE prioritization
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Patch tracking
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- SIEM & SOAR -->
+                    <div class="group p-6 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700 hover:border-accent-blue hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-300 stagger-reveal" style="transition-delay: 0.3s;">
+                        <div class="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-display font-bold text-white mb-3 uppercase">SIEM & SOAR</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                            Unified security operations with automated response playbooks and intelligent alert correlation.
+                        </p>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Log aggregation
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Automated response
+                            </li>
+                            <li class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                                <svg class="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                Incident workflows
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Additional Intelligence Features -->
+                <div class="grid md:grid-cols-3 gap-6 p-6 bg-slate-900/50 rounded-2xl border border-slate-800">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 bg-accent-blue/10 rounded-lg flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">AI-Powered Analysis</h4>
+                            <p class="text-slate-500 text-xs mt-1">Machine learning models detect anomalies and predict attack vectors</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Dark Web Monitoring</h4>
+                            <p class="text-slate-500 text-xs mt-1">24/7 surveillance for exposed credentials and compromised data</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Real-Time Orchestration</h4>
+                            <p class="text-slate-500 text-xs mt-1">Automated threat response with customizable playbooks</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Showcase Section -->
+        <section class="py-32 px-6 lg:px-20 bg-[#0B1120] overflow-hidden">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-24 stagger-reveal">
+                    <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block">Proof of Execution</span>
+                    <h2 class="text-5xl lg:text-7xl font-display font-black uppercase leading-none">The Risk <br>Command Portal</h2>
+                </div>
+
+                <div class="space-y-40">
+                    <!-- Layer 1: The Dashboard -->
+                    <div class="grid lg:grid-cols-2 gap-20 items-center stagger-reveal">
+                        <div class="brutal-border p-4 bg-[#1e293b] hover:scale-[1.02] transition-transform duration-500 shadow-2xl">
+                            <img src="../assets/risk-dashboard.png" alt="ComplianceOS Risk Dashboard" class="w-full h-auto" />
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">01. Centralized Oversight</h3>
+                            <p class="text-slate-400 text-lg leading-relaxed mb-8">
+                                A unified dashboard mapping the workflow between Assets, Threats, and Treatment Plans. Monitor your total risk posture with real-time counters and overdue action trackers.
+                            </p>
+                            <div class="font-mono text-xs text-slate-600 uppercase tracking-widest">ISO 27005 Methodology Integrated</div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2: The Heatmap -->
+                    <div class="grid lg:grid-cols-2 gap-20 items-center stagger-reveal">
+                        <div class="lg:order-2 brutal-border p-4 bg-[#1e293b] hover:scale-[1.02] transition-transform duration-500 shadow-2xl">
+                            <img src="../assets/risk-register.png" alt="ComplianceOS Risk Heatmaps" class="w-full h-auto" />
+                        </div>
+                        <div class="lg:order-1">
+                            <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">02. Dynamic Heatmaps</h3>
+                            <p class="text-slate-400 text-lg leading-relaxed mb-8">
+                                Visualize Inherent vs. Residual risk side-by-side. Our grids aren't just for show—they are powered by AI threat intelligence that identifies new CVEs matching your specific tech stack.
+                            </p>
+                            <div class="font-mono text-xs text-slate-600 uppercase tracking-widest">Real-time CISA Alert Sync Enabled</div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 3: The Register -->
+                    <div class="grid lg:grid-cols-2 gap-20 items-center stagger-reveal">
+                        <div class="brutal-border p-4 bg-[#1e293b] hover:scale-[1.02] transition-transform duration-500 shadow-2xl">
+                            <img src="../assets/risk-table.png" alt="ComplianceOS Risk Table" class="w-full h-auto shadow-[0_0_50px_rgba(59,130,246,0.1)]" />
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">03. Granular Register</h3>
+                            <p class="text-slate-400 text-lg leading-relaxed mb-8">
+                                Drill down into every identified risk ID. Track descriptions, impact levels, and specific mitigation treatments with high-contrast, status-driven UI indicators.
+                            </p>
+                            <div class="font-mono text-xs text-slate-600 uppercase tracking-widest">Consolidated Treatment Status (Mitigate/Transfer/Accept)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Tech Capabilities -->
+        <section class="py-32 px-6 lg:px-20">
+            <div class="max-w-7xl mx-auto grid lg:grid-cols-3 gap-12">
+                <div class="stagger-reveal">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Quantified <br>Regsiters</h3>
+                    <p class="text-slate-400">Move beyond High/Medium/Low. Our platform calculates risk scores based on control coverage, asset criticality, and historical threat data.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.1s;">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Live Control <br>Linking</h3>
+                    <p class="text-slate-400">A risk is only managed if its controls are working. We link every risk entry to real-time evidence. If a control fails, the risk score spikes automatically.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.2s;">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Automated <br>Forecasting</h3>
+                    <p class="text-slate-400">Use KRIs to predict potential breaches before they happen. Our agent alerts you when risk vectors exceed your defined appetite thresholds.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-40 px-6 lg:px-20 bg-white text-black relative">
+            <div class="max-w-5xl mx-auto text-center relative z-10">
+                <h2 class="text-6xl lg:text-9xl font-display font-black uppercase tracking-tighter mb-12 stagger-reveal leading-none">Know Your <br>True Appetite.</h2>
+                <div class="text-3xl lg:text-4xl font-black mb-16 stagger-reveal italic text-slate-500 uppercase">
+                    Risk is a Vector, <br> <span class="text-black">Not a Color on a Grid.</span>
+                </div>
+                <div class="stagger-reveal">
+                    <a href="/waitlist" class="inline-block bg-accent-blue text-white font-display font-black uppercase text-2xl px-16 py-8 hover:scale-105 transition-transform duration-300 shadow-2xl">
+                        Quantify My Risk Now
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.stagger-reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

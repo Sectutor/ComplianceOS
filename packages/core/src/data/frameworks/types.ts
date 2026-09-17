@@ -1,0 +1,10 @@
+export interface Framework {
+    id: string;
+    name: string;
+    version?: string;
+    description: string;
+    type: 'Security' | 'Privacy' | 'Quality' | 'Business Continuity' | 'AI & Data' | 'Governance' | 'Other';
+    isObligation?: boolean;
+    logo?: string;
+    // We can add more specific fields later like 'domains', 'controlsCount' etc.
+}

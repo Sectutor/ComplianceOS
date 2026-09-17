@@ -1,0 +1,279 @@
+
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { eq, desc, and } from "drizzle-orm";
+import { getDb } from "../../db";
+import { employees } from "../../schema";
+
+export const createEmployeesRouter = (t: any, clientProcedure: any) => {
+  return t.router({
+    list: clientProcedure
+      .input(z.object({
+        clientId: z.number().optional(),
+        search: z.string().optional(),
+      }).optional())
+      .query(async ({ input, ctx }: any) => {
+        const db = await getDb();
+        const clientId = input?.clientId || ctx.clientId; // usage from clientProcedure context?
+
+        // If specific clientId needed but not provided/contextual:
+        // ClientProcedure usually ensures ctx.clientRole and potentially ctx.clientId if passed? 
+        // Actually checkClientAccess expects input.clientId usually.
+
+        // Let's assume input.clientId is passed or we filter by something else.
+        // If strict clientProcedure, input.clientId is essential.
+
+        if (!process.env.DATABASE_URL) {
+          console.error("DATABASE_URL is not set");
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database configuration error" });
+        }
+
+        try {
+          // Find WHERE clause
+          // If employees table has clientId
+          let query = db.select().from(employees);
+
+          // We need to know if employees has clientId. Assuming yes.
+          if (clientId) {
+            // @ts-ignore
+            query = query.where(eq(employees.clientId, clientId));
+          }
+
+          const result = await query;
+          return result;
+        } catch (err: any) {
+          console.error("Error in employees.list:", err);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
+        }
+      }),
+
+    get: clientProcedure
+      .input(z.object({ id: z.number(), clientId: z.number() }))
+      .query(async ({ input }: any) => {
+        const db = await getDb();
+        const [employee] = await db.select().from(employees).where(eq(employees.id, input.id));
+        if (!employee) return null;
+        if (employee.clientId !== input.clientId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Employee does not belong to this client' });
+        }
+        return employee;
+      }),
+
+    create: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        email: z.string().email(),
+        firstName: z.string(),
+        lastName: z.string(),
+        jobTitle: z.string().optional(),
+        department: z.string().optional(),
+        employmentType: z.string().optional(),
+        status: z.string().optional(),
+        orgRoleId: z.number().optional(),
+        managerId: z.number().optional(),
+      }))
+      .mutation(async ({ input }: any) => {
+        const db = await getDb();
+
+        // Check if employee already exists for this client
+        const [existing] = await db.select()
+          .from(employees)
+          .where(and(
+            eq(employees.email, input.email),
+            eq(employees.clientId, input.clientId)
+          ));
+
+        if (existing) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'Employee with this email already exists for this client' });
+        }
+
+        const [newEmployee] = await db.insert(employees).values({
+          clientId: input.clientId,
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          jobTitle: input.jobTitle || 'Team Member',
+          department: input.department || 'General',
+          employmentType: input.employmentType || 'Full-time',
+          status: input.status || 'active',
+          orgRoleId: input.orgRoleId ?? null,
+          managerId: input.managerId ?? null,
+          startDate: new Date(),
+        }).returning();
+
+        return newEmployee;
+      }),
+
+    /**
+     * Update an employee. The People page posts the whole edit form, so every
+     * editable column is accepted; only supplied fields are written so a partial
+     * save cannot blank the others.
+     */
+    update: clientProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number().optional(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        email: z.string().email().optional(),
+        jobTitle: z.string().optional(),
+        department: z.string().optional(),
+        role: z.string().optional(),
+        employmentStatus: z.string().optional(),
+        employmentType: z.string().optional(),
+        orgRoleId: z.number().nullable().optional(),
+        managerId: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ input }: any) => {
+        const db = await getDb();
+        const { id, clientId, employmentType, ...rest } = input;
+
+        const patch: any = { updatedAt: new Date() };
+        for (const [k, v] of Object.entries(rest)) {
+          if (v !== undefined) patch[k] = v;
+        }
+        // `create` calls this field employmentType; the column is employment_status
+        if (employmentType !== undefined && patch.employmentStatus === undefined) {
+          patch.employmentStatus = employmentType;
+        }
+
+        // An employee must not be their own manager
+        if (patch.managerId !== undefined && patch.managerId === id) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'An employee cannot be their own manager' });
+        }
+
+        const conditions: any[] = [eq(employees.id, id)];
+        if (clientId) conditions.push(eq(employees.clientId, clientId));
+
+        const [updated] = await db.update(employees)
+          .set(patch)
+          .where(and(...conditions))
+          .returning();
+
+        if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: 'Employee not found' });
+        return updated;
+      }),
+
+    /**
+     * Delete an employee. Clears manager references first so no row is left
+     * pointing at a deleted manager.
+     */
+    delete: clientProcedure
+      .input(z.object({
+        id: z.number(),
+        clientId: z.number().optional(),
+      }))
+      .mutation(async ({ input }: any) => {
+        const db = await getDb();
+        const { id, clientId } = input;
+
+        const conditions: any[] = [eq(employees.id, id)];
+        if (clientId) conditions.push(eq(employees.clientId, clientId));
+
+        const [existing] = await db.select().from(employees).where(and(...conditions));
+        if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Employee not found' });
+
+        // Detach direct reports before removing the manager
+        await db.update(employees)
+          .set({ managerId: null, updatedAt: new Date() } as any)
+          .where(eq(employees.managerId, id));
+
+        await db.delete(employees).where(and(...conditions));
+
+        return { success: true, id };
+      }),
+
+    getByEmail: clientProcedure
+      .input(z.object({ email: z.string(), clientId: z.number() }))
+      .query(async ({ input }: any) => {
+        const db = await getDb();
+        const [employee] = await db.select()
+          .from(employees)
+          .where(and(
+            eq(employees.email, input.email),
+            eq(employees.clientId, input.clientId)
+          ));
+        return employee || null;
+      }),
+
+    getRACIMatrix: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }: any) => {
+        // Mock response for now to unblock
+        const db = await getDb();
+        const clientEmployees = await db.select().from(employees).where(eq(employees.clientId, input.clientId));
+
+        return clientEmployees.map((emp: any) => ({
+          employeeId: emp.id,
+          employeeName: `${emp.firstName} ${emp.lastName}`,
+          department: emp.department,
+          jobTitle: emp.jobTitle,
+          totalAssignments: 0,
+          assignments: [],
+        }));
+      }),
+
+    getRACIGapAnalysis: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }: any) => {
+        // Mock response
+        return {
+          totalControls: 0,
+          assignedControls: 0,
+          totalPolicies: 0,
+          assignedPolicies: 0,
+          totalEvidence: 0,
+          assignedEvidence: 0,
+          unassignedControls: [],
+          unassignedPolicies: [],
+          unassignedEvidence: [],
+          gaps: [],
+          recommendations: []
+        };
+      }),
+
+    ensureSelf: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .mutation(async ({ input, ctx }: any) => {
+        const db = await getDb();
+
+        // Check if employee exists
+        const [existing] = await db.select()
+          .from(employees)
+          .where(and(
+            eq(employees.email, ctx.user.email),
+            eq(employees.clientId, input.clientId)
+          ));
+
+        if (existing) return existing;
+
+        // Create new employee record
+        const nameParts = (ctx.user.name || '').split(' ');
+        const firstName = nameParts[0] || ctx.user.email.split('@')[0];
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        // Import createEmployee from db (checking imports)
+        // It seems createEmployee was exported in db.ts but not imported here.
+        // Using direct db insert if createEmployee not available in this scope, 
+        // but let's try to use the helper if possible or raw insert.
+        // db.insert(employees) is safer if I can't find the helper import easily.
+
+        // Checking imports again: imports `employees` from `../../schema`.
+        // I'll just do a raw insert which is safe.
+
+        const [newEmployee] = await db.insert(employees).values({
+          clientId: input.clientId,
+          email: ctx.user.email,
+          firstName: firstName,
+          lastName: lastName,
+          jobTitle: 'Team Member',
+          department: 'General',
+          status: 'active',
+          startDate: new Date(),
+          employmentType: 'Full-time'
+        }).returning();
+
+        return newEmployee;
+      }),
+  });
+};

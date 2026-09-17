@@ -1,0 +1,784 @@
+
+import React, { useState, useMemo } from 'react';
+import DashboardLayout from "@/components/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
+import { Button } from "@complianceos/ui/ui/button";
+import { Input } from "@complianceos/ui/ui/input";
+import { Badge } from "@complianceos/ui/ui/badge";
+import {
+    Shield,
+    Search,
+    Filter,
+    CheckCircle2,
+    ChevronRight,
+    FileText,
+    Activity,
+    ArrowLeft,
+    Sparkles,
+    Download,
+    Loader2,
+    Calculator,
+    Target,
+    TrendingUp,
+    AlertTriangle,
+    BarChart3
+} from "lucide-react";
+import { Link, useParams } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from "@complianceos/ui/ui/dialog";
+import { Label } from "@complianceos/ui/ui/label";
+import { Textarea } from "@complianceos/ui/ui/textarea";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@complianceos/ui/ui/select";
+import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
+import { toast } from "sonner";
+import ReactMarkdown from 'react-markdown';
+import { nist800171Controls } from "@/data/frameworks/nist800171"; // We might need to mock this or assume it exists in `controls` list query
+import {
+    SPRS_WEIGHT_MAP,
+    SPRS_MAX_SCORE,
+    SPRS_MIN_SCORE,
+    calculateSprsScore,
+    getFamilyScoreSummary,
+    SPRS_WEIGHTS
+} from "@/data/frameworks/nist-800-171-sprs-weights";
+
+// NIST 800-171 Families (Subset of 800-53)
+const CONTROL_FAMILIES = [
+    { id: 'AC', name: 'Access Control' },
+    { id: 'AT', name: 'Awareness and Training' },
+    { id: 'AU', name: 'Audit and Accountability' },
+    { id: 'CM', name: 'Configuration Management' },
+    { id: 'IA', name: 'Identification and Authentication' },
+    { id: 'IR', name: 'Incident Response' },
+    { id: 'MA', name: 'Maintenance' },
+    { id: 'MP', name: 'Media Protection' },
+    { id: 'PE', name: 'Physical Protection' },
+    { id: 'PS', name: 'Personnel Security' },
+    { id: 'RA', name: 'Risk Assessment' },
+    { id: 'CA', name: 'Security Assessment' }, // Mapped from CA
+    { id: 'SC', name: 'System and Communications Protection' },
+    { id: 'SI', name: 'System and Information Integrity' },
+];
+
+export default function Nist800171AssessmentPage() {
+    const { id } = useParams<{ id: string }>();
+    const clientId = parseInt(id || "0");
+    const utils = trpc.useUtils();
+
+    // Read initial state from URL query parameters
+    const queryParams = new URLSearchParams(window.location.search);
+    const initialFamily = queryParams.get("family") || "all";
+    const initialStatus = queryParams.get("status") || "all";
+    const initialSearch = queryParams.get("search") || "";
+    const sprsAssessmentId = queryParams.get("sprsAssessmentId");
+
+    const [searchQuery, setSearchQuery] = useState(initialSearch);
+    const [selectedFamily, setSelectedFamily] = useState<string>(initialFamily);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [selectedControl, setSelectedControl] = useState<any>(null);
+
+    // Filters
+    const [showFilters, setShowFilters] = useState(initialStatus !== "all");
+    const [complianceFilter, setComplianceFilter] = useState<string>(initialStatus);
+    const [implFilter, setImplFilter] = useState<string>("all");
+
+    // Form State
+    const [implementationStatus, setImplementationStatus] = useState("Not Implemented");
+    const [implementationDescription, setImplementationDescription] = useState("");
+    const [testResults, setTestResults] = useState("");
+    const [complianceStatus, setComplianceStatus] = useState("Non-Compliant");
+
+    // AI State
+    const [aiGuidance, setAiGuidance] = useState("");
+
+    // Queries
+    // Ideally we request "NIST SP 800-171 Rev 2" if supported, or filter 800-53
+    const { data: controls, isLoading: loadingControls } = trpc.controls.list.useQuery({
+        framework: "NIST SP 800-171 Rev 2"
+    });
+
+    const { data: assessments, refetch: refetchAssessments } = trpc.federal.getNist80053Assessments.useQuery({
+        clientId,
+        sprsAssessmentId: sprsAssessmentId ? parseInt(sprsAssessmentId) : undefined
+    });
+
+    const saveMutation = trpc.federal.saveNist80053Assessment.useMutation({
+        onSuccess: () => {
+            toast.success("Assessment saved successfully");
+            refetchAssessments();
+            // Invalidate metrics/score
+            utils.federal.listSprsAssessments.invalidate({ clientId });
+            setIsDetailOpen(false);
+
+            // Recalculate Score locally or trigger server update?
+            // For now, let's trigger a score update if we have the ID
+            if (sprsAssessmentId) {
+                // We'd need a way to calculate score. 
+                // Let's rely on the user manually checking the score on the dashboard for now or impl auto-calc later.
+                updateScoreMutation.mutate();
+            }
+        },
+        onError: (err) => {
+            toast.error(`Error saving assessment: ${err.message}`);
+        }
+    });
+
+    const updateScoreMutation = trpc.federal.updateSprsScore.useMutation({
+        onSuccess: () => {
+            utils.federal.listSprsAssessments.invalidate({ clientId });
+        }
+    });
+
+    const generateGuidanceMutation = trpc.federal.generateNist80053Guidance.useMutation({
+        onSuccess: (data) => {
+            setAiGuidance(data.guidance || "No guidance returned.");
+            toast.success("Guidance generated!");
+        },
+        onError: (err) => {
+            toast.error(`Failed to generate guidance: ${err.message}`);
+        }
+    });
+
+    const exportMutation = trpc.federal.exportNist80053Package.useMutation({
+        onSuccess: (data) => {
+            const link = document.createElement('a');
+            link.href = `data:text/csv;base64,${data.base64}`;
+            link.download = data.filename;
+            link.click();
+            toast.success("Export downloaded successfully");
+        }
+    });
+
+    const assessmentMap = useMemo(() => {
+        const map = new Map();
+        assessments?.forEach((a: any) => map.set(a.controlId, a));
+        return map;
+    }, [assessments]);
+
+    // Calculate SPRS Score using official DoD Assessment Methodology weights
+    const sprsResult = useMemo(() => {
+        return calculateSprsScore(assessmentMap);
+    }, [assessmentMap]);
+
+    const familyScores = useMemo(() => {
+        return getFamilyScoreSummary(assessmentMap);
+    }, [assessmentMap]);
+
+    const currentScore = sprsResult.score;
+
+    // Score gauge helpers
+    const scorePercent = Math.max(0, Math.min(100, ((currentScore - SPRS_MIN_SCORE) / (SPRS_MAX_SCORE - SPRS_MIN_SCORE)) * 100));
+    const scoreColor = currentScore >= 90 ? 'text-emerald-600' : currentScore >= 50 ? 'text-amber-600' : 'text-rose-600';
+    const scoreBg = currentScore >= 90 ? 'from-emerald-500 to-emerald-600' : currentScore >= 50 ? 'from-amber-500 to-amber-600' : 'from-rose-500 to-rose-600';
+
+
+    const filteredControls = useMemo(() => {
+        if (!controls) return [];
+
+        return controls.filter((ctrl: any) => {
+            const matchesSearch = ctrl.controlId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                ctrl.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesFamily = selectedFamily === "all" || ctrl.controlId.startsWith(selectedFamily);
+
+            // Compliance Filter
+            let matchesCompliance = true;
+            if (complianceFilter !== "all") {
+                const assessment = assessmentMap.get(ctrl.controlId);
+                const status = assessment?.complianceStatus || "Not Started";
+                matchesCompliance = status === complianceFilter;
+            }
+
+            // Implementation Filter
+            let matchesImpl = true;
+            if (implFilter !== "all") {
+                const assessment = assessmentMap.get(ctrl.controlId);
+                const status = assessment?.implementationStatus || "Not Implemented";
+                matchesImpl = status === implFilter;
+            }
+
+            return matchesSearch && matchesFamily && matchesCompliance && matchesImpl;
+        });
+    }, [controls, searchQuery, selectedFamily, complianceFilter, implFilter, assessmentMap]);
+
+    const handleOpenDetail = (control: any) => {
+        setSelectedControl(control);
+        const assessment = assessmentMap.get(control.controlId);
+
+        setImplementationStatus(assessment?.implementationStatus || "Not Implemented");
+        setImplementationDescription(assessment?.implementationDescription || "");
+        setTestResults(assessment?.testResults || "");
+        setComplianceStatus(assessment?.complianceStatus || "Non-Compliant");
+
+        setAiGuidance(control.aiGuidance || "");
+        setIsDetailOpen(true);
+    };
+
+    const handleSave = () => {
+        if (!selectedControl) return;
+
+        // Optimistically use the real weighted score
+        let newScore = sprsResult.score;
+        // If we're marking this control as compliant, add back its weight
+        const weight = SPRS_WEIGHT_MAP.get(selectedControl.controlId) || 1;
+        const prevAssessment = assessmentMap.get(selectedControl.controlId);
+        if (prevAssessment?.complianceStatus !== 'Compliant' && complianceStatus === 'Compliant') {
+            newScore += weight;
+        } else if (prevAssessment?.complianceStatus === 'Compliant' && complianceStatus !== 'Compliant') {
+            newScore -= weight;
+        }
+
+        saveMutation.mutate({
+            clientId,
+            sprsAssessmentId: sprsAssessmentId ? parseInt(sprsAssessmentId) : undefined,
+            controlId: selectedControl.controlId,
+            implementationStatus,
+            implementationDescription,
+            testResults,
+            complianceStatus
+        });
+
+        if (sprsAssessmentId) {
+            updateScoreMutation.mutate({
+                clientId,
+                assessmentId: parseInt(sprsAssessmentId),
+                score: newScore
+            });
+        }
+    };
+
+    const handleGenerateGuidance = () => {
+        if (!selectedControl) return;
+        generateGuidanceMutation.mutate({
+            clientId,
+            controlId: selectedControl.controlId,
+            controlTitle: selectedControl.name,
+            controlDescription: selectedControl.description,
+            bypassCache: !!aiGuidance
+        });
+    };
+
+    const getStatusBadge = (controlId: string) => {
+        const assessment = assessmentMap.get(controlId);
+        if (!assessment) return <Badge variant="outline" className="bg-muted text-muted-foreground">Not Started</Badge>;
+
+        switch (assessment.complianceStatus) {
+            case 'Compliant':
+                return <Badge className="bg-emerald-500 text-primary-foreground border-none">Compliant</Badge>;
+            case 'Partial':
+                return <Badge className="bg-amber-500 text-primary-foreground border-none">Partial</Badge>;
+            case 'Non-Compliant':
+                return <Badge className="bg-rose-500 text-primary-foreground border-none">Non-Compliant</Badge>;
+            default:
+                return <Badge variant="outline">{assessment.complianceStatus}</Badge>;
+        }
+    };
+
+    return (
+        <DashboardLayout>
+            <div className="pb-20">
+                <div className="px-6 pt-6 pb-2">
+                    <Breadcrumb
+                        items={[
+                            { label: "Dashboard", href: `/clients/${clientId}/dashboard` },
+                            { label: "Federal Compliance", href: `/clients/${clientId}/federal` },
+                            { label: "DFARS / SPRS", href: `/clients/${clientId}/federal/dfars` },
+                            { label: "NIST 800-171 Assessment" },
+                        ]}
+                    />
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-start lg:items-center justify-between gap-4 sticky top-0 z-40 bg-muted/90 backdrop-blur-xl py-4 px-6 border-b border-border shadow-sm mb-6">
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
+                            <Target className="w-8 h-8 text-blue-600" />
+                            NIST SP 800-171 Assessment
+                        </h1>
+                        <p className="text-muted-foreground mt-1 uppercase text-xs font-bold tracking-widest">
+                            Protecting Controlled Unclassified Information (CUI)
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Link href={`/clients/${clientId}/federal/dfars`}>
+                            <Button variant="ghost" className="rounded-xl gap-2 text-muted-foreground hover:text-foreground">
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to Assessments
+                            </Button>
+                        </Link>
+
+                        <Button
+                            onClick={() => exportMutation.mutate({ clientId, sprsAssessmentId: sprsAssessmentId ? parseInt(sprsAssessmentId) : undefined })}
+                            disabled={exportMutation.isPending}
+                            className="bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md"
+                        >
+                            {exportMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                            Export SSP
+                        </Button>
+                    </div>
+                </div>
+
+                {/* SPRS Score Dashboard */}
+                <div className="px-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Score Gauge Card */}
+                        <div className="md:col-span-2 bg-card rounded-2xl border shadow-lg p-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-50 to-transparent rounded-full -mr-16 -mt-16" />
+                            <div className="flex items-center gap-6 relative z-10">
+                                <div className="relative">
+                                    <svg viewBox="0 0 120 120" className="w-28 h-28">
+                                        <circle cx="60" cy="60" r="54" fill="none" stroke="#e2e8f0" strokeWidth="8" />
+                                        <circle
+                                            cx="60" cy="60" r="54"
+                                            fill="none"
+                                            stroke="url(#scoreGrad)"
+                                            strokeWidth="8"
+                                            strokeLinecap="round"
+                                            strokeDasharray={`${scorePercent * 3.39} 339.3`}
+                                            transform="rotate(-90 60 60)"
+                                        />
+                                        <defs>
+                                            <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
+                                                <stop offset="0%" stopColor={currentScore >= 90 ? '#10b981' : currentScore >= 50 ? '#f59e0b' : '#ef4444'} />
+                                                <stop offset="100%" stopColor={currentScore >= 90 ? '#059669' : currentScore >= 50 ? '#d97706' : '#dc2626'} />
+                                            </linearGradient>
+                                        </defs>
+                                        <text x="60" y="55" textAnchor="middle" className="fill-slate-900 font-black" fontSize="24">{currentScore}</text>
+                                        <text x="60" y="72" textAnchor="middle" className="fill-slate-400" fontSize="10">of 110</text>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                        <Calculator className="w-4 h-4" />
+                                        SPRS Score
+                                    </h3>
+                                    <p className={`text-4xl font-black ${scoreColor}`}>{currentScore}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {currentScore >= 90 ? '🟢 Ready for submission' :
+                                            currentScore >= 50 ? '🟡 Needs improvement' :
+                                                '🔴 Critical gaps remain'}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        DoD Assessment Methodology (Weighted)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Weight-5 Card */}
+                        <div className="bg-card rounded-2xl border shadow-sm p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-bold uppercase tracking-wider text-rose-500">Weight 5 (Critical)</span>
+                                <AlertTriangle className="w-4 h-4 text-rose-400" />
+                            </div>
+                            <div className="text-3xl font-black text-foreground">
+                                {sprsResult.weightBreakdown.weight5.met}
+                                <span className="text-lg text-muted-foreground font-normal">/{sprsResult.weightBreakdown.weight5.total}</span>
+                            </div>
+                            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${sprsResult.weightBreakdown.weight5.total > 0 ? (sprsResult.weightBreakdown.weight5.met / sprsResult.weightBreakdown.weight5.total) * 100 : 0}%` }}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1.5">Max deduction: {sprsResult.weightBreakdown.weight5.total * 5} pts</p>
+                        </div>
+
+                        {/* Weight-3 and Weight-1 Stack */}
+                        <div className="space-y-4">
+                            <div className="bg-card rounded-2xl border shadow-sm p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-amber-500">Weight 3</span>
+                                    <span className="text-lg font-black text-foreground">
+                                        {sprsResult.weightBreakdown.weight3.met}/{sprsResult.weightBreakdown.weight3.total}
+                                    </span>
+                                </div>
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${sprsResult.weightBreakdown.weight3.total > 0 ? (sprsResult.weightBreakdown.weight3.met / sprsResult.weightBreakdown.weight3.total) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-card rounded-2xl border shadow-sm p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-blue-500">Weight 1</span>
+                                    <span className="text-lg font-black text-foreground">
+                                        {sprsResult.weightBreakdown.weight1.met}/{sprsResult.weightBreakdown.weight1.total}
+                                    </span>
+                                </div>
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${sprsResult.weightBreakdown.weight1.total > 0 ? (sprsResult.weightBreakdown.weight1.met / sprsResult.weightBreakdown.weight1.total) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Family Score Heatmap */}
+                    <div className="mt-4 bg-card rounded-2xl border shadow-sm p-5">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" />
+                            Score by Control Family
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                            {CONTROL_FAMILIES.map(fam => {
+                                const fs = familyScores[fam.id];
+                                if (!fs) return null;
+                                const pct = fs.count > 0 ? Math.round((fs.compliant / fs.count) * 100) : 0;
+                                const heatColor = pct >= 80 ? 'bg-emerald-100 border-emerald-200 text-emerald-800' :
+                                    pct >= 50 ? 'bg-amber-100 border-amber-200 text-amber-800' :
+                                        'bg-rose-100 border-rose-200 text-rose-800';
+                                return (
+                                    <button
+                                        key={fam.id}
+                                        onClick={() => setSelectedFamily(fam.id)}
+                                        className={`px-3 py-2.5 rounded-xl border text-center transition-all hover:scale-105 cursor-pointer ${heatColor} ${selectedFamily === fam.id ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
+                                    >
+                                        <div className="text-xs font-bold">{fam.id}</div>
+                                        <div className="text-lg font-black">{pct}%</div>
+                                        <div className="text-[10px] opacity-70">{fs.compliant}/{fs.count}</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="px-6 grid grid-cols-1 lg:grid-cols-4 2xl:grid-cols-5 gap-6 xl:gap-8 items-start">
+                    {/* Sidebar Filters */}
+                    <div className="lg:col-span-1 space-y-6 sticky top-28 z-30">
+                        <Card className="border-none shadow-xl shadow-primary/6 bg-card/80 backdrop-blur-xl">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Control Families</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <ScrollArea className="h-[calc(100vh-250px)] px-4 pb-4">
+                                    <div className="space-y-1">
+                                        <button
+                                            onClick={() => setSelectedFamily("all")}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${selectedFamily === "all"
+                                                ? "bg-blue-600 text-primary-foreground shadow-lg shadow-blue-200"
+                                                : "text-muted-foreground hover:bg-accent"
+                                                }`}
+                                        >
+                                            All Families
+                                        </button>
+                                        {CONTROL_FAMILIES.map(family => (
+                                            <button
+                                                key={family.id}
+                                                onClick={() => setSelectedFamily(family.id)}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all group ${selectedFamily === family.id
+                                                    ? "bg-blue-600 text-primary-foreground shadow-lg shadow-blue-200"
+                                                    : "text-muted-foreground hover:bg-accent"
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span>{family.id} - {family.name}</span>
+                                                    {selectedFamily !== family.id && (
+                                                        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="lg:col-span-3 2xl:col-span-4 space-y-6">
+                        <div className="bg-card p-4 rounded-2xl shadow-sm border border-border space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        className="pl-10 bg-muted border-none rounded-xl focus-visible:ring-blue-500/20 transition-all font-medium"
+                                        placeholder="Search controls by ID or name..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <Button
+                                    variant={showFilters ? "secondary" : "ghost"}
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="rounded-xl text-muted-foreground"
+                                >
+                                    <Filter className="w-4 h-4 mr-2" />
+                                    More Filters
+                                </Button>
+                            </div>
+
+                            {/* Additional Filters Area */}
+                            {showFilters && (
+                                <div className="pt-4 border-t border-border grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground">Compliance Status</Label>
+                                        <Select value={complianceFilter} onValueChange={setComplianceFilter}>
+                                            <SelectTrigger className="bg-muted border-none rounded-xl">
+                                                <SelectValue placeholder="Filter by status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Statuses</SelectItem>
+                                                <SelectItem value="Compliant">Compliant</SelectItem>
+                                                <SelectItem value="Partial">Partial</SelectItem>
+                                                <SelectItem value="Non-Compliant">Non-Compliant</SelectItem>
+                                                <SelectItem value="Not Started">Not Started</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground">Implementation Status</Label>
+                                        <Select value={implFilter} onValueChange={setImplFilter}>
+                                            <SelectTrigger className="bg-muted border-none rounded-xl">
+                                                <SelectValue placeholder="Filter by status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Statuses</SelectItem>
+                                                <SelectItem value="Implemented">Implemented</SelectItem>
+                                                <SelectItem value="Partial">Partially Implemented</SelectItem>
+                                                <SelectItem value="Planned">Planned</SelectItem>
+                                                <SelectItem value="Not Implemented">Not Implemented</SelectItem>
+                                                <SelectItem value="N/A">Not Applicable</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {loadingControls ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                                <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4 mx-auto" />
+                                <p className="font-bold text-lg text-foreground animate-pulse">Synchronizing Assessment Data...</p>
+                                <p className="text-sm text-muted-foreground mt-2">Loading the NIST 800-171 catalog and your responses.</p>
+                            </div>
+                        ) : filteredControls.length === 0 ? (
+                            <div className="text-center py-20 bg-card rounded-3xl border-2 border-dashed border-border">
+                                <Shield className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-foreground">No controls found</h3>
+                                <p className="text-muted-foreground">Try adjusting your search or family filter.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
+                                {filteredControls.map((control: any) => (
+                                    <div
+                                        key={control.id}
+                                        onClick={() => handleOpenDetail(control)}
+                                        className="group bg-card p-5 rounded-3xl border border-border shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-100 transition-all cursor-pointer relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform" />
+
+                                        <div className="flex items-start justify-between relative z-10">
+                                            <div className="space-y-1 pr-12">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg font-black tracking-tight text-blue-600">{control.controlId}</span>
+                                                    {getStatusBadge(control.controlId)}
+                                                    {/* Weight Badge */}
+                                                    {(() => {
+                                                        const w = SPRS_WEIGHT_MAP.get(control.controlId);
+                                                        if (!w) return null;
+                                                        const wColor = w === 5 ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                                                            w === 3 ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                                                'bg-muted text-muted-foreground border-border';
+                                                        return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-bold ${wColor}`}>W{w}</Badge>;
+                                                    })()}
+                                                </div>
+                                                <h3 className="font-bold text-foreground group-hover:text-blue-600 transition-colors uppercase tracking-tight line-clamp-1">
+                                                    {control.name}
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed max-w-2xl">
+                                                    {control.description}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <Button size="icon" variant="ghost" className="rounded-full bg-muted group-hover:bg-blue-600 group-hover:text-primary-foreground transition-all shadow-sm">
+                                                    <ChevronRight className="w-5 h-5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Control Detail Dialog */}
+                <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+                    <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[32px] shadow-2xl h-[90vh] flex flex-col">
+                        <DialogHeader className="p-8 bg-gradient-to-br from-blue-600 to-sidebar-primary text-primary-foreground relative shrink-0">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-card/20 rounded-xl backdrop-blur-md">
+                                    <Shield className="w-6 h-6" />
+                                </div>
+                                <span className="text-sm font-bold uppercase tracking-widest text-blue-100">Control Assessment</span>
+                                {selectedControl && (() => {
+                                    const w = SPRS_WEIGHT_MAP.get(selectedControl.controlId);
+                                    if (!w) return null;
+                                    return (
+                                        <span className="ml-auto px-3 py-1 rounded-lg bg-primary-foreground/20 backdrop-blur text-primary-foreground text-xs font-bold">
+                                            Weight {w} · {w === 5 ? 'Critical' : w === 3 ? 'Important' : 'Supporting'} · −{w} pts if not met
+                                        </span>
+                                    );
+                                })()}
+                            </div>
+                            <DialogTitle className="text-3xl font-black tracking-tight">
+                                {selectedControl?.controlId}: {selectedControl?.name}
+                            </DialogTitle>
+                            <DialogDescription className="text-blue-100 text-lg mt-2 leading-relaxed pr-8 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">
+                                {selectedControl?.description}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-y-auto bg-muted">
+                            <div className="p-8 space-y-8">
+                                {/* AI Guidance Section */}
+                                <div className="bg-card rounded-3xl p-6 shadow-sm border border-border">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-primary" />
+                                            AI Implementation Guidance
+                                        </h3>
+                                        {!generateGuidanceMutation.isPending && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={handleGenerateGuidance}
+                                                className="rounded-xl border-primary/30 text-primary hover:bg-accent transition-all"
+                                            >
+                                                <Sparkles className="w-3 h-3 mr-2" />
+                                                {aiGuidance ? "Regenerate Guidance" : "Generate Guidance"}
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {generateGuidanceMutation.isError ? (
+                                        <div className="text-center py-8 px-4 bg-red-50 rounded-xl border border-red-100">
+                                            <h4 className="text-sm font-bold text-red-700 mb-1">Guidance Generation Failed</h4>
+                                            <p className="text-xs text-red-600 mb-4">{generateGuidanceMutation.error?.message}</p>
+                                        </div>
+                                    ) : generateGuidanceMutation.isPending ? (
+                                        <div className="py-12 px-4 text-center border-2 border-dashed border-primary/30 rounded-xl bg-primary/NaN">
+                                            <div className="flex flex-col items-center justify-center gap-4">
+                                                <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                                                <p className="text-sm font-semibold text-foreground">Generating AI Guidance...</p>
+                                            </div>
+                                        </div>
+
+                                    ) : aiGuidance ? (
+                                        <div className="prose prose-sm prose-slate max-w-none bg-primary/NaN p-4 rounded-xl">
+                                            <ReactMarkdown>{aiGuidance}</ReactMarkdown>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 px-4">
+                                            <Sparkles className="w-12 h-12 text-primary/25 mx-auto mb-3" />
+                                            <p className="text-sm text-muted-foreground italic mb-4">
+                                                Click the button above to generate AI-powered implementation guidance.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                            <Activity className="w-4 h-4" />
+                                            Implementation Status
+                                        </Label>
+                                        <Select value={implementationStatus} onValueChange={setImplementationStatus}>
+                                            <SelectTrigger className="rounded-2xl border-none shadow-sm h-12 bg-card font-medium">
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-xl">
+                                                <SelectItem value="Implemented">Implemented</SelectItem>
+                                                <SelectItem value="Partial">Partially Implemented</SelectItem>
+                                                <SelectItem value="Planned">Planned</SelectItem>
+                                                <SelectItem value="Not Implemented">Not Implemented</SelectItem>
+                                                <SelectItem value="N/A">Not Applicable</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            Compliance Result
+                                        </Label>
+                                        <Select value={complianceStatus} onValueChange={setComplianceStatus}>
+                                            <SelectTrigger className="rounded-2xl border-none shadow-sm h-12 bg-card font-medium">
+                                                <SelectValue placeholder="Select result" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-xl">
+                                                <SelectItem value="Compliant">Compliant</SelectItem>
+                                                <SelectItem value="Partial">Partial</SelectItem>
+                                                <SelectItem value="Non-Compliant">Non-Compliant</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                        <FileText className="w-4 h-4" />
+                                        Implementation Description
+                                    </Label>
+                                    <Textarea
+                                        className="min-h-[120px] rounded-3xl border-none shadow-sm bg-card p-6 focus-visible:ring-blue-500/20 text-foreground leading-relaxed"
+                                        placeholder="Describe how this control is implemented in the system..."
+                                        value={implementationDescription}
+                                        onChange={(e) => setImplementationDescription(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                        <Activity className="w-4 h-4" />
+                                        Test Results & Assessment Observations
+                                    </Label>
+                                    <Textarea
+                                        className="min-h-[120px] rounded-3xl border-none shadow-sm bg-card p-6 focus-visible:ring-blue-500/20 text-foreground leading-relaxed font-mono text-sm"
+                                        placeholder="Enter artifacts, test dates, and observations..."
+                                        value={testResults}
+                                        onChange={(e) => setTestResults(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="p-6 bg-card border-t border-border flex items-center justify-between sm:justify-between shrink-0">
+                            <div className="flex items-center gap-4">
+                            </div>
+                            <div className="flex gap-3">
+                                <Button variant="outline" onClick={() => setIsDetailOpen(false)} className="rounded-2xl px-6">
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleSave}
+                                    disabled={saveMutation.isPending}
+                                    className="bg-blue-600 hover:bg-blue-700 rounded-2xl px-8 shadow-lg shadow-blue-200"
+                                >
+                                    {saveMutation.isPending ? "Saving..." : "Save Assessment"}
+                                </Button>
+                            </div>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        </DashboardLayout>
+    );
+}

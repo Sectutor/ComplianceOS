@@ -1,0 +1,64 @@
+redirectsOrigin = "config"
+headers = []
+
+[functions]
+
+[functions.node_bundle]
+external_node_modules = ["postgres", "pdf-parse", "puppeteer", "docx", "archiver", "xlsx", "turndown", "openai"]
+
+[functions."*"]
+
+[[plugins]]
+origin = "ui"
+package = "@netlify/plugin-lighthouse"
+
+[plugins.inputs]
+
+[build]
+publish = "D:\\OneDrive - Intellfence\\WebDev\\ComplianceOS\\packages\\core\\dist"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npm install --legacy-peer-deps && npm run build --workspace @complianceos/core"
+
+[build.environment]
+NPM_FLAGS = "--legacy-peer-deps --include=dev"
+NODE_OPTIONS = "--max_old_space_size=4096"
+NODE_VERSION = "22.21.1"
+SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_ANON_KEY,VITE_SUPABASE_URL"
+SECRETS_SCAN_ENABLED = "false"
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[[redirects]]
+from = "/api/*"
+to = "/.netlify/functions/api/:splat"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]

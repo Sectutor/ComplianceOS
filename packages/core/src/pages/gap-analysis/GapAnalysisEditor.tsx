@@ -1,0 +1,541 @@
+
+import React, { useState, useEffect } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { useParams, useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@complianceos/ui/ui/button";
+import { Badge } from "@complianceos/ui/ui/badge";
+import { Loader2, ArrowLeft, Download, Sparkles, Mail, FileText, History, CheckCircle } from "lucide-react"; // Kept Sparkles for button icon
+import { PageGuide } from "@/components/PageGuide";
+import { toast } from "sonner";
+import { Progress } from "@complianceos/ui/ui/progress";
+import { Card, CardContent } from "@complianceos/ui/ui/card";
+import { EmailQuestionsDialog } from "@/components/gap-analysis/EmailQuestionsDialog";
+import { QuestionnaireHistoryDialog } from "@/components/gap-analysis/QuestionnaireHistoryDialog";
+import { ReportSettingsDialog } from "@/components/gap-analysis/ReportSettingsDialog";
+import { GapAnalysisControlCard } from "@/components/gap-analysis/GapAnalysisControlCard";
+import { GapAnalysisFilters } from "@/components/gap-analysis/GapAnalysisFilters";
+import { GapRadarChart } from "@/components/gap-analysis/GapRadarChart";
+
+export default function GapAnalysisEditor() {
+    const params = useParams();
+    const [_, setLocation] = useLocation();
+    const clientId = Number(params.id);
+    const assessmentId = Number(params.assessmentId);
+
+    // Fetch Assessment & Responses
+    const { data: assessmentData, isLoading: loadingAssessment, refetch: refetchAssessment } = trpc.gapAnalysis.get.useQuery({ id: assessmentId });
+
+    // Fetch Master Controls
+    const { data: controls, isLoading: loadingControls } = trpc.controls.list.useQuery({});
+
+    const updateResponseMutation = trpc.gapAnalysis.updateResponse.useMutation();
+    const completeMutation = trpc.gapAnalysis.complete.useMutation();
+
+    const [filterDomain, setFilterDomain] = useState<string>("All");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedControlIds, setSelectedControlIds] = useState<number[]>([]);
+    const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+    const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+    const [reportSettingsOpen, setReportSettingsOpen] = useState(false);
+
+
+    // Safe unwrapper for SuperJSON mismatch
+    const safeUnwrap = (data: any) => {
+        if (data && typeof data === 'object' && 'json' in data && (Array.isArray(data.json) || typeof data.json === 'object')) {
+            return data.json;
+        }
+        return data;
+    };
+
+    const unwrappedAssessmentData = safeUnwrap(assessmentData);
+    const assessment = unwrappedAssessmentData?.assessment;
+    const responses = unwrappedAssessmentData?.responses || [];
+    // Safe filter
+    const rawControls = controls;
+    const unwrappedControls = safeUnwrap(rawControls);
+    const safeControls = Array.isArray(unwrappedControls) ? unwrappedControls : [];
+
+    // Helper to get response for a control
+    const getResponse = (controlId: string) => responses.find(r => r.controlId === controlId);
+
+    // 1. First, filter by Framework
+    const controlsByFramework = safeControls.filter(c => {
+        // Strict matching for known standard families to prevent overlap
+        if (assessment?.framework && c.framework) {
+            const aFw = assessment.framework.toLowerCase();
+            const cFw = c.framework.toLowerCase();
+
+            // NIST CSF Matching
+            if (aFw.includes('nist csf') || aFw.includes('cybersecurity framework')) {
+                if (!cFw.includes('nist csf') && !cFw.includes('cybersecurity framework')) {
+                    return false;
+                }
+            }
+            // NIST 800-53 / 800-171 Matching (ensure they don't match CSF)
+            else if (aFw.includes('800-53') || aFw.includes('800-171')) {
+                if (cFw.includes('nist csf')) return false;
+                if (!cFw.includes(aFw) && !aFw.includes(cFw)) return false;
+            }
+            // ISO 27001 Matching
+            else if (aFw.includes('iso') && aFw.includes('27001')) {
+                if (!cFw.includes('iso') || !cFw.includes('27001')) return false;
+            }
+            // Default loose match for others
+            else if (!cFw.includes(aFw) && !aFw.includes(cFw)) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    // 2. Get unique domains and sort them (Specific to the filtered framework)
+    const domains = Array.from(new Set(controlsByFramework.map(c => c.category).filter(Boolean))).sort();
+
+    // 3. Apply UI Filters (Domain & Search) then sort by priority score (highest first)
+    const filteredControls = controlsByFramework.filter(c => {
+        // Domain Filter
+        if (filterDomain !== "All" && c.category !== filterDomain) return false;
+
+        // Search Filter
+        if (searchTerm) {
+            const search = searchTerm.toLowerCase();
+            return (c.controlId && c.controlId.toLowerCase().includes(search)) ||
+                c.name.toLowerCase().includes(search) ||
+                c.description?.toLowerCase().includes(search);
+        }
+        return true;
+    }).sort((a, b) => {
+        // Sort by priority score descending (scored gaps first, then unscored)
+        const scoreA = getResponse(a.controlId)?.priorityScore ?? -1;
+        const scoreB = getResponse(b.controlId)?.priorityScore ?? -1;
+        return (scoreB as number) - (scoreA as number);
+    }) || [];
+
+    // Reset filter if the selected domain is no longer valid for the current set
+    useEffect(() => {
+        if (filterDomain !== "All" && !domains.includes(filterDomain)) {
+            setFilterDomain("All");
+        }
+    }, [domains.join(','), filterDomain]); // Join to avoid deep array dependency issues
+
+    // Progress stats
+    const totalControls = filteredControls.length;
+    const answeredControls = filteredControls.filter(c => {
+        const r = getResponse(c.controlId);
+        return r?.currentStatus;
+    }).length;
+    const progress = totalControls > 0 ? (answeredControls / totalControls) * 100 : 0;
+
+    const handleUpdate = async (controlId: string, field: string, value: string) => {
+        try {
+            await updateResponseMutation.mutateAsync({
+                assessmentId,
+                controlId,
+                [field]: value
+            });
+            refetchAssessment();
+        } catch (error) {
+            toast.error("Failed to save changes");
+        }
+    };
+
+    const handleComplete = async () => {
+        try {
+            await completeMutation.mutateAsync({ id: assessmentId });
+            toast.success("Assessment completed!");
+            refetchAssessment();
+        } catch (error) {
+            toast.error("Failed to complete assessment");
+        }
+    };
+
+    const createRiskMutation = trpc.risks.createRiskAssessment.useMutation();
+    const createActionMutation = trpc.actions.create.useMutation();
+    const generateReportMutation = trpc.gapAnalysis.exportReport.useMutation();
+    const [downloading, setDownloading] = useState(false);
+    const [prioritizing, setPrioritizing] = useState(false);
+    const calculatePrioritiesMutation = trpc.gapAnalysis.calculatePriorities.useMutation();
+
+    const handlePrioritize = async () => {
+        try {
+            setPrioritizing(true);
+            const result = await calculatePrioritiesMutation.mutateAsync({ assessmentId });
+            toast.success(`${(result as any)?.scored ?? 0} gaps prioritized by risk. Reloading...`);
+            window.location.reload();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to calculate priorities");
+        } finally {
+            setPrioritizing(false);
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            setDownloading(true);
+            const rawData = await generateReportMutation.mutateAsync({ assessmentId });
+            const data = safeUnwrap(rawData);
+
+            // Convert base64 to blob and download
+            const byteCharacters = atob(data.base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = data.filename;
+            link.click();
+
+            toast.success("Report downloaded successfully");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to generate report");
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    const handleRaiseRisk = async (control: any, response: any) => {
+        try {
+            await createRiskMutation.mutateAsync({
+                clientId,
+                assessmentId: `RISK-${control.controlId}-${Date.now()}`, // Auto-generate an ID
+                title: `Gap: ${control.controlId} - ${control.name}`,
+                gapResponseId: response?.id,
+                // Pre-fill context
+                vulnerabilityDescription: "Control Not Implemented",
+                threatDescription: "Potential exploitation due to missing control",
+                impact: 3, // Default (Medium)
+                likelihood: 3, // Default (Possible)
+                status: "draft",
+                affectedAssets: [], // User needs to fill
+                existingControls: "None",
+            });
+            toast.success("Risk raised successfully. View in Risk Register.");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to raise risk");
+        }
+    };
+
+    const handleCreateAction = async (control: any, response: any) => {
+        try {
+            await createActionMutation.mutateAsync({
+                clientId,
+                title: `Remediate: ${control.controlId} - ${control.name}`,
+                description: `Gap identified during ${assessment?.name || 'Gap Analysis'}. Current status: ${response?.currentStatus || 'Not Implemented'}.`,
+                priority: response?.currentStatus === 'not_implemented' ? 'high' : 'medium',
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+            });
+            toast.success("Task created in Action Center.");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to create task");
+        }
+    };
+
+    const [dispatchingTasks, setDispatchingTasks] = useState(false);
+    const handleBulkDispatchTasks = async () => {
+        const gapResponses = responses.filter(r => r.currentStatus === 'not_implemented' || r.currentStatus === 'partially_implemented');
+        if (gapResponses.length === 0) {
+            return toast.info("No unaddressed compliance gaps found in this assessment.");
+        }
+        setDispatchingTasks(true);
+        try {
+            let createdCount = 0;
+            for (const r of gapResponses.slice(0, 10)) {
+                const ctrl = safeControls.find((c: any) => c.controlId === r.controlId);
+                await createActionMutation.mutateAsync({
+                    clientId,
+                    title: `Remediate Gap: ${r.controlId} - ${ctrl?.name || 'Control Implementation'}`,
+                    description: `Automated remediation task from ${assessment?.name || 'Gap Analysis'}. Status: ${r.currentStatus}.`,
+                    priority: r.currentStatus === 'not_implemented' ? 'high' : 'medium',
+                    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                });
+                createdCount++;
+            }
+            toast.success(`Dispatched ${createdCount} Remediation Task${createdCount > 1 ? 's' : ''}`, {
+                description: "Tasks created in Action Center for prioritized gap remediation.",
+                action: {
+                    label: "Open Action Center",
+                    onClick: () => setLocation(`/clients/${clientId}/action-center`)
+                }
+            });
+        } catch (e: any) {
+            toast.error("Failed to dispatch tasks: " + e.message);
+        } finally {
+            setDispatchingTasks(false);
+        }
+    };
+
+    if (loadingAssessment || loadingControls) {
+        return (
+            <DashboardLayout>
+                <div className="flex h-screen items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    if (!assessment) return <DashboardLayout><div>Assessment not found</div></DashboardLayout>;
+
+    return (
+        <DashboardLayout>
+            <div className="p-8 space-y-6 max-w-7xl mx-auto">
+
+                {/* Header Section */}
+                <div className="space-y-4 mb-8">
+                    <Button
+                        variant="ghost"
+                        className="w-fit pl-0 text-slate-500 hover:text-slate-900 transition-colors"
+                        onClick={() => setLocation(`/clients/${clientId}/gap-analysis`)}
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Gap Assessments
+                    </Button>
+
+                    <PageGuide
+                        title="Gap Analysis Workshop"
+                        description="Identify security gaps and prioritize remediation based on risk."
+                        rationale="A compliance gap is not just a 'No' answer—it's a risk to the business. This editor helps you bridge the gap between technical status and executive reporting."
+                        howToUse={[
+                            {
+                                step: "Risk Visualization",
+                                description: "The Radar Chart shows your domain coverage. Low scores represent your biggest compliance gaps.",
+                                targetId: "gap-radar-chart"
+                            },
+                            {
+                                step: "AI Prioritization",
+                                description: "Use AI to automatically score gaps based on their impact to your specific industry.",
+                                targetId: "gap-ai-prioritize"
+                            },
+                            {
+                                step: "Collaborative Fact-Finding",
+                                description: "Select specific controls and use 'Email Questions' to ask internal owners for evidence.",
+                                targetId: "gap-email-questions"
+                            },
+                            {
+                                step: "Executive Reporting",
+                                description: "Once complete, export the report for your management review or external auditors.",
+                                targetId: "gap-export-btn"
+                            }
+                        ]}
+                        scenarios={[
+                            {
+                                title: "Pre-Audit Health Check",
+                                example: "You have an ISO 27001 Stage 1 audit in two weeks and want to know where you're most vulnerable.",
+                                auditTip: "Run the 'AI Prioritize' first. It will flag controls that are 'High Priority' for ISO auditors. Focus your remediation efforts on the controls with scores above 15."
+                            },
+                            {
+                                title: "Stakeholder Evidence Gathering",
+                                example: "You're unsure about the status of 'Physical Security' but the Office Manager is the one with the information.",
+                                auditTip: "Select the physical security controls and click 'Email Questions'. This formalizes the request and creates a 'History' trail which itself is evidence of a functioning compliance program."
+                            }
+                        ]}
+                    />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* 1. Radar Chart showing gaps by domain */}
+                        <div id="gap-radar-chart" className="lg:col-span-12 xl:col-span-5">
+                            <GapRadarChart
+                                controls={filteredControls}
+                                responses={responses}
+                                framework={assessment.framework || ''}
+                            />
+                        </div>
+
+                        {/* 2. Export Button Card */}
+                        <Card className="lg:col-span-6 xl:col-span-2 border-slate-200 shadow-sm bg-gradient-to-b from-teal-50/50 to-white flex flex-col p-4">
+                            <Button
+                                id="gap-export-btn"
+                                variant="outline"
+                                onClick={handleExport}
+                                disabled={downloading}
+                                className="flex-1 flex flex-col items-center justify-center gap-4 bg-white border-teal-200 text-teal-700 hover:bg-teal-600 hover:text-white hover:border-teal-600 transition-all shadow-sm group py-8"
+                            >
+                                <div className="p-4 rounded-full bg-teal-50 group-hover:bg-white/20 transition-colors">
+                                    {downloading ? (
+                                        <Loader2 className="w-8 h-8 animate-spin" />
+                                    ) : (
+                                        <Download className="w-8 h-8" />
+                                    )}
+                                </div>
+                                <span className="font-black uppercase text-xs tracking-widest px-2 text-center">Export Report</span>
+                            </Button>
+                        </Card>
+
+                        {/* 3. Report Configuration & Action Center */}
+                        <Card className="lg:col-span-12 xl:col-span-5 border-slate-200 shadow-sm p-6 flex flex-col justify-between bg-slate-50/20">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    <Button
+                                        id="gap-report-config"
+                                        variant="outline"
+                                        onClick={() => setReportSettingsOpen(true)}
+                                        className="flex-1 h-12 bg-white border-slate-200 shadow-sm hover:shadow-md transition-all font-bold text-slate-700 gap-2"
+                                    >
+                                        <FileText className="w-4 h-4 text-slate-400" />
+                                        Report Configuration
+                                    </Button>
+
+                                    <Button
+                                        id="gap-email-questions"
+                                        variant="outline"
+                                        onClick={() => setEmailDialogOpen(true)}
+                                        disabled={selectedControlIds.length === 0}
+                                        className="flex-1 h-12 bg-blue-50/50 border-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white transition-all font-bold gap-2"
+                                    >
+                                        <Mail className="w-4 h-4" />
+                                        Email Questions
+                                        {selectedControlIds.length > 0 && (
+                                            <Badge className="ml-1 bg-blue-600 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
+                                                {selectedControlIds.length}
+                                            </Badge>
+                                        )}
+                                    </Button>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setHistoryDialogOpen(true)}
+                                        className="h-12 w-12 border border-slate-200 bg-white"
+                                    >
+                                        <History className="w-4 h-4 text-slate-500" />
+                                    </Button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <Button
+                                        id="gap-ai-prioritize"
+                                        onClick={handlePrioritize}
+                                        disabled={prioritizing}
+                                        className="h-11 bg-gradient-to-r from-indigo-600 to-indigo-600 text-white border-none font-bold shadow-sm hover:scale-[1.01] active:scale-[0.98] transition-all"
+                                    >
+                                        {prioritizing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                        AI Prioritize
+                                    </Button>
+
+                                    <Button
+                                        onClick={handleBulkDispatchTasks}
+                                        disabled={dispatchingTasks}
+                                        variant="outline"
+                                        className="h-11 border-rose-300 text-rose-800 bg-rose-50/50 hover:bg-rose-100 font-bold shadow-sm transition-all"
+                                    >
+                                        {dispatchingTasks ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2 text-rose-600" />}
+                                        Dispatch Remediation Tasks
+                                    </Button>
+
+                                    {assessment.status !== 'completed' && (
+                                        <Button
+                                            onClick={handleComplete}
+                                            disabled={completeMutation.isPending}
+                                            className="h-11 col-span-1 sm:col-span-2 bg-slate-900 text-white hover:bg-slate-800 font-bold shadow-sm"
+                                        >
+                                            {completeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                                            Complete Assessment
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 p-3 bg-white border border-slate-100 rounded-xl">
+                                <h3 className="text-lg font-bold text-slate-900 truncate">{assessment.name}</h3>
+                                <p className="text-[10px] text-slate-500 mt-0.5">Focus on high-impact gaps to improve compliance posture.</p>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <GapAnalysisFilters
+                    filterDomain={filterDomain}
+                    setFilterDomain={setFilterDomain}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    domains={domains as string[]}
+                    totalCount={filteredControls.length}
+                />
+
+                {/* Control List */}
+                <div className="space-y-4">
+                    {filteredControls.map(control => {
+                        const response = getResponse(control.controlId);
+
+                        return (
+                            <GapAnalysisControlCard
+                                key={control.id}
+                                control={control}
+                                response={response}
+                                selected={selectedControlIds.includes(control.id)}
+                                onSelect={(checked) => {
+                                    setSelectedControlIds(prev =>
+                                        checked
+                                            ? [...prev, control.id]
+                                            : prev.filter(id => id !== control.id)
+                                    );
+                                }}
+                                onUpdate={(field, value) => handleUpdate(control.controlId, field, value)}
+                                onRaiseRisk={() => handleRaiseRisk(control, response)}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Email Questions Dialog */}
+            <EmailQuestionsDialog
+                open={emailDialogOpen}
+                onOpenChange={setEmailDialogOpen}
+                assessmentId={assessmentId}
+                selectedControlIds={selectedControlIds}
+                controls={filteredControls?.map(c => ({ id: c.id, controlId: c.controlId, name: c.name })) || []}
+            />
+
+            {/* Report Settings Dialog */}
+            <ReportSettingsDialog
+                open={reportSettingsOpen}
+                onOpenChange={setReportSettingsOpen}
+                assessmentId={assessmentId}
+                initialData={{
+                    executiveSummary: assessment?.executiveSummary,
+                    introduction: assessment?.introduction,
+                    keyRecommendations: assessment?.keyRecommendations as string[] | undefined
+                }}
+                onSave={refetchAssessment}
+            />
+
+            {/* History Dialog */}
+            <QuestionnaireHistoryDialog
+                open={historyDialogOpen}
+                onOpenChange={setHistoryDialogOpen}
+                assessmentId={assessmentId}
+            />
+        </DashboardLayout>
+    );
+}
+
+function StatusBadge({ status }: { status: string | null }) {
+    if (!status) return null;
+    const variants: Record<string, any> = {
+        'draft': 'default',
+        'in_progress': 'info',
+        'completed': 'success',
+    };
+    const labels: Record<string, string> = {
+        'draft': 'Draft',
+        'in_progress': 'In Progress',
+        'completed': 'Completed',
+    };
+    return (
+        <Badge
+            variant={variants[status] || 'default'}
+            className="font-semibold shadow-sm px-3 uppercase text-[10px]"
+        >
+            {labels[status] || status.replace('_', ' ')}
+        </Badge>
+    );
+}

@@ -1,0 +1,77 @@
+# ComplianceOS Self-Host — Production Build
+# Multi-arch: docker buildx build --platform linux/amd64,linux/arm64 -t complianceos/self-hosted:latest .
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache python3 make g++
+
+COPY package.json package-lock.json ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/addons/package.json ./packages/addons/
+COPY packages/mcp-server/package.json ./packages/mcp-server/
+
+RUN npm ci --legacy-peer-deps
+
+COPY . .
+
+# Build the frontend
+WORKDIR /app/packages/core
+RUN node --max-old-space-size=6144 /app/node_modules/.bin/vite build
+
+# Stage 2: Production Runtime
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+RUN apk add --no-cache tini
+
+ENV NODE_ENV=production
+ENV PORT=3002
+
+# Copy package files and install production dependencies
+COPY --from=builder /app/package.json /app/package-lock.json ./
+COPY --from=builder /app/packages/core/package.json ./packages/core/
+COPY --from=builder /app/packages/addons ./packages/addons
+RUN npm ci --omit=dev --legacy-peer-deps && rm -rf ~/.npm
+
+# Copy built frontend
+COPY --from=builder /app/packages/core/dist ./packages/core/dist
+
+# Copy backend source + config
+COPY --from=builder /app/packages/core/src ./packages/core/src
+COPY --from=builder /app/packages/core/drizzle ./packages/core/drizzle
+COPY --from=builder /app/server_entry.ts ./
+COPY --from=builder /app/env-loader.ts ./
+COPY --from=builder /app/addon-init.ts ./
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/tsconfig.json ./
+
+# Sample env for reference
+COPY --from=builder /app/.env.example ./.env.example
+
+# Copy landing pages
+# COPY --from=builder /app/packages/landing ./packages/landing
+
+# Copy self-host docs
+COPY docs/self-hosted /app/docs/self-hosted
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
+
+# Security: non-root user
+RUN addgroup -S complianceos && adduser -S complianceos -G complianceos && \
+    mkdir -p /app/uploads /app/packages/core/drizzle && \
+    chown -R complianceos:complianceos /app/uploads /app/packages/core/drizzle /app/node_modules/.cache
+USER complianceos
+
+EXPOSE 3002
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/bin/sh", "/app/docker-entrypoint.sh"]

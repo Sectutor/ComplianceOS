@@ -1,0 +1,461 @@
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useBranding, BrandLogo } from "@/config/branding";
+import { Button } from "@complianceos/ui/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@complianceos/ui/ui/card";
+import { getLoginUrl } from "@/const";
+import { Shield, FileText, Link2, FolderOpen, BarChart3, ArrowRight, CheckCircle2, Check, X, Building2, Globe, Lock, PlayCircle, Star, Target, Radar, ShieldAlert, Activity, Zap, Brain, Eye, Bug } from "lucide-react";
+import { useLocation } from "wouter";
+import { Badge } from "@complianceos/ui/ui/badge";
+
+export default function Home() {
+  const { user, loading } = useAuth();
+  const { t } = useTranslation('dashboard');
+  const { appName } = useBranding();
+  const [location, setLocation] = useLocation();
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const SHOW_PRICING = false; // Toggle this to show/hide pricing section and menu option
+
+  // Force landing page view if route is exactly /landing
+  const isLandingPage = location === '/landing';
+  const isAuthenticated = !!user && !isLandingPage;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // AUTHENTICATED DASHBOARD VIEW
+  // ----------------------------------------------------------------------
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+          <div className="container flex h-16 items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BrandLogo />
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground hidden md:inline-block">Welcome, {user?.user_metadata?.full_name || user?.email}</span>
+              <Button onClick={() => setLocation('/dashboard')}>
+                Go to Dashboard
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <main className="container py-12">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4">Welcome back</h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Ready to continue your compliance journey? Select a workspace to get started.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-primary" onClick={() => setLocation('/dashboard')}>
+              <CardHeader>
+                <BarChart3 className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Dashboard</CardTitle>
+                <CardDescription>View overall compliance status and metrics</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-blue-500" onClick={() => setLocation('/clients')}>
+              <CardHeader>
+                <FolderOpen className="h-10 w-10 text-blue-500 mb-2" />
+                <CardTitle>Client Workspaces</CardTitle>
+                <CardDescription>Manage client-specific controls and policies</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-[#00A36C]" onClick={() => setLocation('/controls')}>
+              <CardHeader>
+                <Shield className="h-10 w-10 text-[#00A36C] mb-2" />
+                <CardTitle>Control Library</CardTitle>
+                <CardDescription>Master library of ISO 27001 & SOC 2 controls</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-amber-500" onClick={() => setLocation('/policy-templates')}>
+              <CardHeader>
+                <FileText className="h-10 w-10 text-amber-500 mb-2" />
+                <CardTitle>Policy Templates</CardTitle>
+                <CardDescription>Pre-built policy templates for quick deployment</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-teal-500" onClick={() => setLocation('/mappings')}>
+              <CardHeader>
+                <Link2 className="h-10 w-10 text-cyan-500 mb-2" />
+                <CardTitle>Control Mapping</CardTitle>
+                <CardDescription>Link controls to standard frameworks</CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all cursor-pointer border-t-4 border-t-rose-500" onClick={() => setLocation('/evidence')}>
+              <CardHeader>
+                <CheckCircle2 className="h-10 w-10 text-rose-500 mb-2" />
+                <CardTitle>Evidence Tracking</CardTitle>
+                <CardDescription>Track and verify compliance evidence</CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // PUBLIC MARKETING LANDING PAGE
+  // ----------------------------------------------------------------------
+  return (
+    <div className="min-h-screen bg-card text-foreground leading-normal tracking-tight flex flex-col">
+      {/* Navbar */}
+      <nav className="bg-[#003366] sticky top-0 z-50 shadow-lg">
+        <div className="max-w-full mx-auto px-4 sm:px-6">
+          <div className="flex justify-between h-24">
+            <div className="flex items-center">
+              <BrandLogo invert showText={false} className="h-24 -ml-2" />
+            </div>
+            <div className="hidden md:flex items-center space-x-10">
+              <a href="#features" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">Platform</a>
+              <a href="#intelligence" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">Intelligence</a>
+              <a href="#process" className="text-blue-50 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]">How it works</a>
+              <Button asChild className="bg-[#00A36C] hover:bg-[#008F5D] text-white px-8 py-3 rounded-lg shadow-lg text-sm font-bold transition-all transform hover:-translate-y-0.5 border-none">
+                <a href="/waitlist">Join the Waitlist</a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <div className="bg-card pt-20 pb-24 sm:pt-32 sm:pb-40">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#003366] mb-8 border border-blue-100 uppercase tracking-widest">
+                Enterprise GRC Platform
+              </div>
+
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] mb-8">
+                Compliance that moves as fast as you do.
+              </h1>
+
+              <p className="text-xl text-foreground/80 leading-relaxed mb-12 max-w-2xl">
+                Automate your SOC 2, ISO 27001, and NIST RMF audits. We partner with security-forward teams to build
+                scalable, evidence-based compliance programs.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-5">
+                <Button size="lg" asChild className="h-14 px-8 text-lg font-bold bg-[#003366] text-white hover:bg-[#002244] transition-all shadow-sm">
+                  <a href="/waitlist">Request Vetted Access</a>
+                </Button>
+                <Button size="lg" variant="outline" asChild className="h-14 px-8 text-lg font-bold border-border bg-card text-foreground/80 hover:border-border transition-all shadow-sm">
+                  <a href="/demo">View Product Demo</a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Trust Bench */}
+        <div className="bg-muted py-12 border-y border-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center md:text-left items-center opacity-70">
+              <div className="text-xl font-bold text-foreground grayscale">ISO 27001</div>
+              <div className="text-xl font-bold text-foreground grayscale">SOC 2 TYPE II</div>
+              <div className="text-xl font-bold text-foreground grayscale">HIPAA</div>
+              <div className="text-xl font-bold text-foreground grayscale">NIST 800-53</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Process Section */}
+        <div id="process" className="py-24 sm:py-32 bg-card">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-20 max-w-2xl">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 tracking-tight">A vetted onboarding experience.</h2>
+              <p className="text-lg text-foreground/80 leading-relaxed">We provide high-touch support to ensure your instance is configured for maximum security and minimal friction.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-12 sm:gap-16">
+              <div>
+                <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 01</div>
+                <h3 className="text-xl font-bold text-foreground mb-4">Application</h3>
+                <p className="text-foreground/80 leading-relaxed">Join our waitlist and share your organization's compliance goals and existing technical landscape.</p>
+              </div>
+              <div>
+                <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 02</div>
+                <h3 className="text-xl font-bold text-foreground mb-4">Discovery</h3>
+                <p className="text-foreground/80 leading-relaxed">We host a discovery session to map our automation engines to your specific infrastructure and controls.</p>
+              </div>
+              <div>
+                <div className="text-[#00A36C] font-bold mb-6 text-sm tracking-widest uppercase">Phase 03</div>
+                <h3 className="text-xl font-bold text-foreground mb-4">Provisioning</h3>
+                <p className="text-foreground/80 leading-relaxed">Approved partners receive a private instance with pre-configured framework templates and API integrations.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Features Section */}
+        <div id="features" className="py-24 sm:py-32 bg-muted border-t border-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-20 items-center">
+              <div>
+                <h2 className="text-4xl font-bold text-foreground mb-8 tracking-tight leading-tight">Automation that actually eliminates manual work.</h2>
+                <p className="text-lg text-foreground/80 mb-10 leading-relaxed">While others just track compliance, we automate the evidence collection. No more massive spreadsheets or missed screenshots.</p>
+
+                <div className="space-y-6">
+                  <div className="flex gap-4">
+                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mt-1">
+                      <Check className="w-4 h-4 text-[#00A36C]" />
+                    </div>
+                    <p className="text-foreground/80 font-semibold italic">500+ pre-mapped control libraries.</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mt-1">
+                      <Check className="w-4 h-4 text-[#00A36C]" />
+                    </div>
+                    <p className="text-foreground/80 font-semibold italic">Real-time gap analysis and alerting.</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mt-1">
+                      <Check className="w-4 h-4 text-[#00A36C]" />
+                    </div>
+                    <p className="text-foreground/80 font-semibold italic">Isolated infrastructure for every client.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-card p-8 sm:p-12 rounded-2xl border border-border shadow-xl shadow-slate-200/50">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center pb-4 border-b border-border">
+                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Trust Center</span>
+                    <span className="text-[10px] font-bold bg-blue-50 text-[#003366] px-2 py-1 rounded">Live Sync On</span>
+                  </div>
+                  <div className="p-4 bg-muted border border-border rounded flex items-center justify-between">
+                    <span className="text-sm font-bold text-foreground/80">Access Management</span>
+                    <div className="w-24 h-2 bg-muted rounded overflow-hidden">
+                      <div className="w-[85%] h-full bg-[#00A36C]"></div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-muted border border-border rounded flex items-center justify-between opacity-60">
+                    <span className="text-sm font-bold text-foreground/80">Encryption Controls</span>
+                    <div className="w-24 h-2 bg-muted rounded overflow-hidden">
+                      <div className="w-[40%] h-full bg-[#00A36C]"></div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-muted border border-border rounded flex items-center justify-between">
+                    <span className="text-sm font-bold text-foreground/80">Data Minimization</span>
+                    <div className="w-24 h-2 bg-muted rounded overflow-hidden">
+                      <div className="w-full h-full bg-[#00A36C]"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Risk Management Intelligence Section */}
+        <div id="intelligence" className="py-24 sm:py-32 bg-card border-t border-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-16 max-w-3xl">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 mb-6 border border-emerald-100 uppercase tracking-widest">
+                Threat & Risk Intelligence
+              </div>
+              <h2 className="text-4xl font-bold text-foreground mb-6 tracking-tight leading-tight">See threats before they see you.</h2>
+              <p className="text-lg text-foreground/80 leading-relaxed">
+                Real-time threat intelligence, automated vulnerability scanning, and AI-powered risk assessments that keep your security posture ahead of evolving threats.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Risk Assessment */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-border hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-[#003366] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-3">Risk Assessment</h3>
+                <p className="text-foreground/80 text-sm leading-relaxed mb-4">
+                  Quantify and prioritize risks with AI-assisted assessments aligned to NIST, ISO 27005, and FAIR frameworks.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Automated scoring
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Heat map visualization
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Treatment plans
+                  </li>
+                </ul>
+              </div>
+
+              {/* Threat Intelligence */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-border hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-[#00A36C] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Radar className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-3">Threat Intelligence</h3>
+                <p className="text-foreground/80 text-sm leading-relaxed mb-4">
+                  Continuous monitoring of threat landscapes with adversary emulation and IOC detection powered by global feeds.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Real-time alerts
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> MITRE ATT&CK mapping
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Threat actor profiles
+                  </li>
+                </ul>
+              </div>
+
+              {/* Vulnerability Management */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-border hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Bug className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-3">Vulnerability Management</h3>
+                <p className="text-foreground/80 text-sm leading-relaxed mb-4">
+                  Automated scanning, prioritization, and remediation tracking across your entire attack surface.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Continuous scanning
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> CVE prioritization
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Patch tracking
+                  </li>
+                </ul>
+              </div>
+
+              {/* SIEM & SOAR */}
+              <div className="group p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-border hover:border-[#003366] hover:shadow-xl transition-all duration-300">
+                <div className="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <ShieldAlert className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-3">SIEM & SOAR</h3>
+                <p className="text-foreground/80 text-sm leading-relaxed mb-4">
+                  Unified security operations with automated response playbooks and intelligent alert correlation.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Log aggregation
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Automated response
+                  </li>
+                  <li className="flex items-center gap-2 text-xs font-semibold text-foreground/80">
+                    <Check className="w-4 h-4 text-[#00A36C]" /> Incident workflows
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Additional Intelligence Features */}
+            <div className="mt-12 grid md:grid-cols-3 gap-6">
+              <div className="flex items-start gap-4 p-4 bg-muted rounded-xl">
+                <div className="w-10 h-10 bg-[#003366]/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Brain className="w-5 h-5 text-[#003366]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground text-sm">AI-Powered Analysis</h4>
+                  <p className="text-foreground/80 text-xs mt-1">Machine learning models detect anomalies and predict attack vectors</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-muted rounded-xl">
+                <div className="w-10 h-10 bg-[#00A36C]/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Eye className="w-5 h-5 text-[#00A36C]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground text-sm">Dark Web Monitoring</h4>
+                  <p className="text-foreground/80 text-xs mt-1">24/7 surveillance for exposed credentials and compromised data</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-muted rounded-xl">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground text-sm">Real-Time Orchestration</h4>
+                  <p className="text-foreground/80 text-xs mt-1">Automated threat response with customizable playbooks</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Final CTA */}
+        <div className="bg-[#003366] py-24 sm:py-32">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-8 tracking-tight">Limited capacity available for 2026 onboarding.</h2>
+            <Button size="lg" asChild className="h-16 px-10 text-xl font-extrabold rounded bg-card text-[#003366] hover:bg-muted/50 transition-all shadow-xl">
+              <a href="/waitlist">Secure your spot on the Waitlist</a>
+            </Button>
+          </div>
+        </div>
+      </main>
+
+      <footer className="bg-card border-t border-border">
+        <div className="container mx-auto py-16 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-10">
+            <div className="text-left">
+              <span className="text-xl font-bold text-foreground tracking-tight">GRCompliance</span>
+              <p className="mt-4 text-muted-foreground text-sm max-w-xs">Enterprise compliance automation built for security-first organizations.</p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-sm font-bold">
+              <a href="/login" className="text-muted-foreground hover:text-foreground transition-colors">Client Login</a>
+              <a href="#intelligence" className="text-muted-foreground hover:text-foreground transition-colors">Intelligence</a>
+              <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
+              <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms</a>
+              <a href="/cookies" className="text-muted-foreground hover:text-foreground transition-colors">Cookie Policy</a>
+            </div>
+          </div>
+          <div className="mt-16 pt-8 border-t border-border text-center">
+            <p className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
+              &copy; 2026 GRCompliance, Inc. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+  return (
+    <Card className="card-hover-effect border-none shadow-none bg-background/50">
+      <CardHeader>
+        <div className="mb-4">{icon}</div>
+        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function CheckItem({ text }: { text: string }) {
+  return (
+    <li className="flex items-center gap-2">
+      <Check className="h-4 w-4 text-primary shrink-0" />
+      <span>{text}</span>
+    </li>
+  );
+}

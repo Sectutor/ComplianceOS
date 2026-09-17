@@ -1,0 +1,25 @@
+# Wazuh Dashboard (OpenSearch Dashboards) Configuration
+# PREMIUM FEATURE
+
+server.name: wazuh-dashboard
+server.host: 0.0.0.0
+server.port: 443
+
+opensearch_hosts:
+  - https://wazuh-indexer:9200
+
+opensearch.ssl.verificationMode: certificate
+opensearch.requestHeadersWhitelist: ["securitytenant", "Authorization"]
+
+opensearch_security.multitenancy.enabled: true
+opensearch_security.multitenancy.tenants.preferred:
+  - Private
+  - Global
+
+opensearch_security.readonly_mode.roles:
+  - "kibana_read_only"
+
+# Wazuh plugin
+wazuh.monitoring.enabled: true
+wazuh.monitoring.shards: 1
+wazuh.monitoring.replicas: 0

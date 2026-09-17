@@ -1,0 +1,790 @@
+
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+
+import * as db from "../../db";
+import * as schema from "../../schema";
+import { clients, userClients } from "../../schema";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { generateGapAnalysisReport } from "../../lib/reporting";
+import { sendEmail } from "../../lib/email/transporter";
+
+export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure: any, clientEditorProcedure: any, publicProcedure: any, isAuthed: any, requiresMFA: any) => {
+    return t.router({
+        list: publicProcedure
+            .use(isAuthed)
+            .input(z.any())
+            .query(async ({ ctx }: any) => {
+                try {
+                    const dbConn = await db.getDb();
+
+                    // Validate user context
+                    if (!ctx.user?.id) {
+                        console.error('[DEBUG] No user ID in context');
+                        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated' });
+                    }
+
+                    // Admins/owners/super_admins: list all clients
+                    if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin') {
+                        const all = await dbConn.select({
+                            id: clients.id,
+                            name: clients.name,
+                            description: clients.description,
+                            industry: clients.industry,
+                            size: clients.size,
+                            updatedAt: clients.updatedAt,
+                            createdAt: clients.createdAt,
+                            status: clients.status,
+                            logoUrl: clients.logoUrl,
+                            planTier: clients.planTier,
+                            activeModules: clients.activeModules,
+                            brandPrimaryColor: clients.brandPrimaryColor,
+                            brandSecondaryColor: clients.brandSecondaryColor,
+                            portalTitle: clients.portalTitle,
+                            sidebarBg: clients.sidebarBg,
+                            sidebarFg: clients.sidebarFg,
+                            headingFont: clients.headingFont,
+                            bodyFont: clients.bodyFont,
+                            baseFontSize: clients.baseFontSize,
+                            role: userClients.role, // Get their role if they are a member
+                        })
+                            .from(clients)
+                            .leftJoin(userClients, and(eq(clients.id, userClients.clientId), eq(userClients.userId, ctx.user.id)))
+                            .orderBy(desc(clients.updatedAt));
+
+                        const uniqueAll = Array.from(new Map(all.map((item: any) => [item.id, item])).values());
+                        return uniqueAll;
+                    }
+
+                    // Else list clients by membership (non-admin users)
+                    const fullUser = await db.getUserById(ctx.user!.id);
+                    const maxClients = fullUser?.maxClients || 2;
+
+                    const rows = await dbConn.select({
+                        id: clients.id,
+                        name: clients.name,
+                        description: clients.description,
+                        industry: clients.industry,
+                        size: clients.size,
+                        updatedAt: clients.updatedAt,
+                        createdAt: clients.createdAt,
+                        status: clients.status,
+                        logoUrl: clients.logoUrl,
+                        planTier: clients.planTier,
+                        activeModules: clients.activeModules,
+                        brandPrimaryColor: clients.brandPrimaryColor,
+                        brandSecondaryColor: clients.brandSecondaryColor,
+                        portalTitle: clients.portalTitle,
+                        sidebarBg: clients.sidebarBg,
+                        sidebarFg: clients.sidebarFg,
+                        headingFont: clients.headingFont,
+                        bodyFont: clients.bodyFont,
+                        baseFontSize: clients.baseFontSize,
+                        role: userClients.role,
+                    })
+                        .from(userClients)
+                        .innerJoin(clients, eq(userClients.clientId, clients.id))
+                        .where(eq(userClients.userId, ctx.user!.id));
+
+                    // Enforce maxClients limit: separate owned vs invited clients
+                    const ownedClients = rows.filter((c: any) => c.role === 'owner');
+                    const invitedClients = rows.filter((c: any) => c.role !== 'owner');
+
+                    // Sort owned clients by creation date (oldest first) and limit to maxClients
+                    ownedClients.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                    const allowedOwned = ownedClients.slice(0, maxClients);
+
+                    // Combine: allowed owned + all invited (invited don't count toward limit)
+                    const allowed = [...allowedOwned, ...invitedClients];
+                    const uniqueAllowed = Array.from(new Map(allowed.map((item: any) => [item.id, item])).values());
+
+                    return uniqueAllowed;
+                } catch (error) {
+                    console.error('[DEBUG] Error in clients.list:', error);
+                    throw error;
+                }
+            }),
+        get: clientProcedure
+            .input(z.object({ id: z.number() }))
+            .query(async ({ input, ctx }: any) => {
+                const client = await db.getClientById(input.id);
+                if (!client) throw new TRPCError({ code: 'NOT_FOUND' });
+                return {
+                    ...client,
+                    userRole: ctx.clientRole
+                };
+            }),
+        getComplianceScore: clientProcedure // Dashboard Score
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await db.getDb();
+
+                // Get total controls for client
+                const totalControls = await dbConn.select({ count: sql<number>`count(*)` })
+                    .from(schema.clientControls)
+                    .where(eq(schema.clientControls.clientId, input.clientId));
+
+                // Get implemented controls 
+                const implementedControls = await dbConn.select({ count: sql<number>`count(*)` })
+                    .from(schema.clientControls)
+                    .where(and(
+                        eq(schema.clientControls.clientId, input.clientId),
+                        eq(schema.clientControls.status, 'implemented')
+                    ));
+
+                // Get evidence stats
+                const evidenceStats = await dbConn.select({
+                    verified: sql<number>`count(*) filter (where status = 'verified')`,
+                    pending: sql<number>`count(*) filter (where status = 'pending')`,
+                    expired: sql<number>`count(*) filter (where status = 'expired')`,
+                })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.clientId, input.clientId));
+
+                const total = Number(totalControls[0]?.count || 0);
+                const implemented = Number(implementedControls[0]?.count || 0);
+                const complianceScore = total > 0 ? Math.round((implemented / total) * 100) : 0;
+
+                return {
+                    complianceScore,
+                    totalControls: total,
+                    implementedControls: implemented,
+                    evidenceStatus: {
+                        verified: Number(evidenceStats[0]?.verified || 0),
+                        pending: Number(evidenceStats[0]?.pending || 0),
+                        expired: Number(evidenceStats[0]?.expired || 0),
+                    }
+                };
+            }),
+        getPolicyCoverageAnalysis: clientProcedure // Dashboard Coverage
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await db.getDb();
+
+                // Get total controls
+                const totalControls = await dbConn.select({ count: sql<number>`count(*)` })
+                    .from(schema.clientControls)
+                    .where(eq(schema.clientControls.clientId, input.clientId));
+
+                // Get mapped controls (controls that have policy mappings)
+                const mappedControls = await dbConn.select({ count: sql<number>`count(distinct ${schema.controlPolicyMappings.clientControlId})` })
+                    .from(schema.controlPolicyMappings)
+                    .innerJoin(schema.clientControls, eq(schema.controlPolicyMappings.clientControlId, schema.clientControls.id))
+                    .where(eq(schema.clientControls.clientId, input.clientId));
+
+                const total = Number(totalControls[0]?.count || 0);
+                const mapped = Number(mappedControls[0]?.count || 0);
+                const unmapped = total - mapped;
+                const coveragePercentage = total > 0 ? Math.round((mapped / total) * 100) : 0;
+
+                return {
+                    totalControls: total,
+                    mappedControls: mapped,
+                    unmappedControls: unmapped,
+                    coveragePercentage
+                };
+            }),
+        getOnboardingStatus: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const d = await db.getDb();
+
+                // Pillar 1: Frameworks (Check if any controls exist)
+                const controlsCount = await d.select({ count: sql<number>`count(*)` })
+                    .from(schema.clientControls)
+                    .where(eq(schema.clientControls.clientId, input.clientId));
+
+                // Pillar 2: Users (Check if more than 1 user client exists)
+                const usersCount = await d.select({ count: sql<number>`count(*)` })
+                    .from(schema.userClients)
+                    .where(eq(schema.userClients.clientId, input.clientId));
+
+                // Pillar 3: Policies (Check for approved/review policies)
+                const policiesCount = await d.select({ count: sql<number>`count(*)` })
+                    .from(schema.clientPolicies)
+                    .where(eq(schema.clientPolicies.clientId, input.clientId));
+
+                // Pillar 4: Evidence (Check for any uploaded evidence)
+                const evidenceCount = await d.select({ count: sql<number>`count(*)` })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.clientId, input.clientId));
+
+                return {
+                    hasFrameworks: Number(controlsCount[0]?.count || 0) > 0,
+                    hasUsers: Number(usersCount[0]?.count || 0) > 1, // More than just the owner
+                    hasControls: Number(controlsCount[0]?.count || 0) > 0,
+                    hasPolicies: Number(policiesCount[0]?.count || 0) > 0,
+                    hasEvidence: Number(evidenceCount[0]?.count || 0) > 0
+                };
+            }),
+        create: publicProcedure.use(isAuthed)
+            .input(z.object({
+                name: z.string(),
+                description: z.string().optional(),
+                industry: z.string().optional(),
+                size: z.string().optional(),
+                // New fields for Onboarding & Invite
+                adminEmail: z.string().email().optional().or(z.literal("")),
+                welcomeMessage: z.string().optional(),
+                frameworks: z.array(z.string()).optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                try {
+                    console.log(`[Clients] Creating client (Enhanced): ${input.name} (Admin: ${ctx.user?.id})`);
+
+                    // DEMO SHARED WORKSPACE MODE: instead of creating a new client per signup,
+                    // attach the user as a member of the shared LaTorre LTD demo workspace
+                    // (DEMO_SHARED_CLIENT_ID, default 7). New users then see exactly one
+                    // fully-populated workspace and cannot mutate the source dataset of others.
+                    if (process.env.DEMO_SHARED_WORKSPACE === 'true') {
+                        const demoDb = await db.getDb();
+                        const demoClientId = Number(process.env.DEMO_SHARED_CLIENT_ID || '7');
+                        const demoClient = await demoDb.select().from(schema.clients).where(eq(schema.clients.id, demoClientId)).limit(1);
+                        if (demoClient.length === 0) {
+                            throw new TRPCError({ code: 'NOT_FOUND', message: `Demo workspace ${demoClientId} not found` });
+                        }
+                        const existingMembership = await demoDb.select()
+                            .from(schema.userClients)
+                            .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, demoClientId)))
+                            .limit(1);
+                        if (existingMembership.length === 0) {
+                            await demoDb.insert(schema.userClients).values({
+                                userId: ctx.user.id,
+                                clientId: demoClientId,
+                                role: 'owner',
+                            });
+                            console.log(`[Clients] Demo mode: attached user ${ctx.user.id} to shared workspace ${demoClientId}`);
+                        }
+                        return demoClient[0];
+                    }
+
+                    const fullUser = await db.getUserById(ctx.user.id);
+
+                    // 1. Check Limits for the Creator (if not admin)
+                    const d = await db.getDb();
+                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
+                        .from(schema.userClients)
+                        .where(and(
+                            eq(schema.userClients.userId, ctx.user.id),
+                            eq(schema.userClients.role, 'owner')
+                        ));
+
+                    const currentCount = Number(userOrgs[0]?.count || 0);
+
+                    // Admins/Internal Owners/Super Admins bypass limit
+                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+
+                    // ARCHITECTURE ENFORCEMENT: Self-hosted plan limit
+                    // Use user's maxClients (consultant=2, enterprise=unlimited)
+                    const userLimit = fullUser?.maxClients ?? 2;
+                    if (currentCount >= userLimit && !isGlobalAdmin) {
+                        throw new TRPCError({
+                            code: 'FORBIDDEN',
+                            message: `Organization Limit Reached: Your current plan allows for ${userLimit} organizations. Please upgrade to add more.`
+                        });
+                    }
+
+                    // 2. Determine Owner User (Create if needed)
+                    let ownerUserId = ctx.user.id;
+                    let isNewUser = false;
+                    const targetEmail = input.adminEmail;
+
+                    if (input.adminEmail && input.adminEmail !== ctx.user.email) {
+                        let existingUser = await db.getUserByEmail(input.adminEmail);
+                        if (!existingUser) {
+                            console.log(`[Clients] Creating new user for org: ${input.adminEmail}`);
+                            // Create temp user
+                            const randomPassword = Math.random().toString(36).slice(-8);
+                            existingUser = await db.createUser({
+                                email: input.adminEmail,
+                                name: input.adminEmail.split('@')[0],
+                                password: randomPassword // They should reset this
+                            });
+                            isNewUser = true;
+                        }
+                        ownerUserId = existingUser.id;
+                    }
+
+                    // 3. Call Onboard Process (Creates Client, Assigns Owner, Generates Policies/Controls)
+                    // Note: onboardClient takes framesworks and companyName
+                    const result = await db.onboardClient({
+                        name: input.name,
+                        industry: input.industry || 'Technology',
+                        userId: ownerUserId,
+                        frameworks: input.frameworks || [],
+                        companyName: input.name
+                    });
+
+                    // 4. Update additional metadata (Description, Size) which onboardClient doesn't handle
+                    if (input.description || input.size) {
+                        await db.updateClient(result.id, {
+                            description: input.description,
+                            size: input.size
+                        });
+                    }
+
+                    // 5. If we created it for someone else, ensure the Creator (Admin) also has access?
+                    // If I am Admin creating for User B, User B is Owner. 
+                    // Admin (me) might want access too?
+                    // Typically Admins have global access, so we don't strictly need to add them to `user_clients`.
+                    // But if it's a regular user creating for another? (Unlikely given permissions).
+
+
+                    // 6. Send Email Notification
+                    if (targetEmail) {
+                        const loginLink = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/auth/login`;
+                        const defaultMsg = `You have been added as an administrator for the new organization <strong>${input.name}</strong> on ComplianceOS.`;
+
+                        await sendEmail({
+                            to: targetEmail,
+                            subject: `Welcome to ${input.name} on ComplianceOS`,
+                            html: `
+                                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+                                    <h2 style="color: #1a1a1a;">Welcome to ComplianceOS</h2>
+                                    <p>${input.welcomeMessage ? input.welcomeMessage.replace(/\n/g, '<br/>') : defaultMsg}</p>
+                                    
+                                    <div style="margin: 24px 0; background-color: #f9f9f9; padding: 16px; border-radius: 4px;">
+                                        <strong>Organization:</strong> ${input.name}<br/>
+                                        <strong>Role:</strong> Owner
+                                    </div>
+                                    
+                                    ${isNewUser ? `<p>Your account has been created. Please use the "Forgot Password" function to set your password.</p>` : ''}
+                                    
+                                    <div style="margin: 24px 0;">
+                                        <a href="${loginLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Access Dashboard</a>
+                                    </div>
+                                    
+                                    <p style="color: #666; font-size: 14px;">If you didn't expect this, please contact support.</p>
+                                </div>
+                            `
+                        });
+                        console.log(`[Clients] Email sent to ${targetEmail}`);
+                    }
+
+                    // 7. Provision LaTorre demo data for the new client
+                    try {
+                        const { provisionLaTorreDemo } = await import('../../lib/demo-provisioning');
+                        await provisionLaTorreDemo(result.id);
+                    } catch (provErr) {
+                        console.error('[Clients] LaTorre provisioning failed (non-fatal):', provErr);
+                    }
+
+                    console.log(`[Clients] Created client ID: ${result.id}`);
+                    return result;
+                } catch (error: any) {
+                    console.error('[Clients] Create Error:', error);
+                    if (error instanceof TRPCError) throw error;
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to create client: ${error.message || 'Unknown error'}`
+                    });
+                }
+            }),
+        onboard: publicProcedure.use(isAuthed)
+            .input(z.object({
+                name: z.string(),
+                industry: z.string(),
+                frameworks: z.array(z.string()).default([]),
+                companyName: z.string(), // For policies
+                generatePolicies: z.boolean().default(true),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                try {
+                    console.log(`[Clients] Onboarding client: ${input.name} (User: ${ctx.user?.id})`);
+                    const d = await db.getDb();
+                    const fullUser = await db.getUserById(ctx.user.id);
+
+                    // Check Limits
+                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
+                        .from(schema.userClients)
+                        .where(and(
+                            eq(schema.userClients.userId, ctx.user.id),
+                            eq(schema.userClients.role, 'owner')
+                        ));
+
+                    const currentCount = Number(userOrgs[0]?.count || 0);
+                    const limit = fullUser?.maxClients || 2;
+
+                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+
+                    // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
+                    if (process.env.VITE_ENABLE_PREMIUM === 'false') {
+                        if (currentCount >= 1 && !isGlobalAdmin) {
+                            throw new TRPCError({
+                                code: 'FORBIDDEN',
+                                message: 'Community Edition is limited to a single workspace. Please upgrade to Enterprise for multi-tenancy.'
+                            });
+                        }
+                    } else {
+                        if (currentCount >= limit && !isGlobalAdmin) {
+                            throw new TRPCError({
+                                code: 'FORBIDDEN',
+                                message: `Organization Limit Reached: Your current plan allows for ${limit} organizations.`
+                            });
+                        }
+                    }
+
+                    // Transactional Onboarding
+                    const result = await db.onboardClient({
+                        name: input.name,
+                        industry: input.industry,
+                        userId: ctx.user.id,
+                        frameworks: input.frameworks,
+                        companyName: input.companyName
+                    });
+
+                    console.log(`[Clients] Onboarded client ID: ${result.id}`);
+                    return result;
+
+                } catch (error: any) {
+                    console.error('[Clients] Onboard Error:', error);
+                    if (error instanceof TRPCError) throw error;
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Failed to onboard client: ${error.message || 'Unknown error'}`
+                    });
+                }
+            }),
+        autoSetup: publicProcedure.use(isAuthed)
+            .input(z.object({
+                name: z.string(),
+                industry: z.string(),
+                frameworks: z.array(z.string()),
+                generatePolicies: z.boolean().default(true),
+                includeSampleData: z.boolean().default(false),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                try {
+                    if (!ctx.user) {
+                        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found in context' });
+                    }
+
+                    // DEMO SHARED WORKSPACE MODE: attach the user to the shared LaTorre LTD
+                    // workspace instead of creating a new organization (mirrors clients.create).
+                    if (process.env.DEMO_SHARED_WORKSPACE === 'true') {
+                        const demoDb = await db.getDb();
+                        const demoClientId = Number(process.env.DEMO_SHARED_CLIENT_ID || '7');
+                        const demoClient = await demoDb.select().from(schema.clients).where(eq(schema.clients.id, demoClientId)).limit(1);
+                        if (demoClient.length === 0) {
+                            throw new TRPCError({ code: 'NOT_FOUND', message: `Demo workspace ${demoClientId} not found` });
+                        }
+                        const existingMembership = await demoDb.select()
+                            .from(schema.userClients)
+                            .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, demoClientId)))
+                            .limit(1);
+                        if (existingMembership.length === 0) {
+                            await demoDb.insert(schema.userClients).values({
+                                userId: ctx.user.id,
+                                clientId: demoClientId,
+                                role: 'owner',
+                            });
+                            console.log(`[Clients] Demo mode (autoSetup): attached user ${ctx.user.id} to shared workspace ${demoClientId}`);
+                        }
+                        return demoClient[0];
+                    }
+
+                    const d = await db.getDb();
+                    const fullUser = await db.getUserById(ctx.user.id);
+                    const userOrgs = await d.select({ count: sql<number>`count(*)` })
+                        .from(schema.userClients)
+                        .where(and(
+                            eq(schema.userClients.userId, ctx.user.id),
+                            eq(schema.userClients.role, 'owner')
+                        ));
+
+                    const currentCount = Number(userOrgs[0]?.count || 0);
+                    const limit = fullUser?.maxClients || 2;
+
+                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+
+                    // ARCHITECTURE ENFORCEMENT: Self-hosted plan limit
+                    // Use user's maxClients (consultant=2, enterprise=unlimited)
+                    const userLimit = fullUser?.maxClients ?? 2;
+                    if (currentCount >= userLimit && !isGlobalAdmin) {
+                        throw new TRPCError({
+                            code: 'FORBIDDEN',
+                            message: `Organization Limit Reached: Your current plan allows for ${userLimit} organizations. Please upgrade to add more.`
+                        });
+                    }
+
+                    const selectedFrameworks = Array.isArray(input.frameworks)
+                        ? input.frameworks.filter((f: any) => typeof f === 'string' && f.trim().length > 0)
+                        : [];
+
+                    const canonicalNameByCode: Record<string, string> = {
+                        ISO27001: 'ISO 27001:2022',
+                        SOC2: 'SOC 2 Type II',
+                        GDPR: 'GDPR',
+                        NISTCSF: 'NIST CSF 2.0',
+                        NIST80053: 'NIST SP 800-53 Rev 5',
+                        NIST800171: 'NIST SP 800-171',
+                        PCIDSSV4: 'PCI DSS v4.0',
+                        CISV8: 'CIS Controls v8',
+                        ISO22301: 'ISO 22301:2019',
+                        FEDRAMP_LOW: 'FedRAMP Low',
+                        FEDRAMP_MODERATE: 'FedRAMP Moderate',
+                        FEDRAMP_HIGH: 'FedRAMP High',
+                        CCMV4: 'CSA CCM v4',
+                        CYBERESSENTIALS: 'Cyber Essentials',
+                        HITRUST: 'HITRUST-Aligned (Representative)',
+                    };
+                    const normalizedFrameworks = selectedFrameworks.map((code: any) => {
+                        const c = String(code).toUpperCase().replace(/\s/g, '');
+                        return canonicalNameByCode[c] || code;
+                    });
+
+                    const client = await db.onboardClient({
+                        name: input.name,
+                        industry: input.industry,
+                        userId: ctx.user.id,
+                        frameworks: normalizedFrameworks,
+                        companyName: input.name
+                    });
+
+                    try {
+                        // Skip duplicate "DEMO" org creation in Community Edition to save the slot
+                        if (process.env.VITE_ENABLE_PREMIUM !== 'false') {
+                            await db.seedSampleData(ctx.user.id, {
+                                name: `${input.name} DEMO`,
+                                industry: input.industry
+                            });
+                        }
+                    } catch (err) {
+                        console.error("Failed to create secondary demo organization:", err);
+                    }
+
+                    return client;
+                } catch (error: any) {
+                    console.error('[Clients] AutoSetup Error:', error);
+                    if (error instanceof TRPCError) throw error;
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Auto-setup failed: ${error?.message || 'Unknown error'}`
+                    });
+                }
+            }),
+        createSampleData: publicProcedure.use(isAuthed)
+            .input(z.object({
+                name: z.string(),
+                industry: z.string(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (!ctx.user) {
+                    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'You must be logged in to create sample data' });
+                }
+                return await db.seedSampleData(ctx.user.id, {
+                    name: input.name,
+                    industry: input.industry
+                });
+            }),
+        importDemoData: clientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                industry: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const client = await db.getClientById(input.clientId);
+                if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
+
+                try {
+                    console.log(`[Clients] Starting LaTorre demo data import for client ${input.clientId} (${client.name})`);
+                    const { provisionLaTorreDemo } = await import('../../lib/demo-provisioning');
+                    await provisionLaTorreDemo(input.clientId);
+                    console.log(`[Clients] Demo data import completed for client ${input.clientId}`);
+                    return { success: true, clientId: input.clientId };
+                } catch (error: any) {
+                    console.error(`[Clients] Demo data import failed for client ${input.clientId}:`, error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Import failed: ${error.message || 'Unknown error'}`
+                    });
+                }
+            }),
+        update: publicProcedure.use(isAuthed).use(requiresMFA)
+            .input(z.object({
+                id: z.number(),
+                name: z.string().optional(),
+                description: z.string().optional(),
+                industry: z.string().optional(),
+                size: z.string().optional(),
+                status: z.string().optional(),
+                notes: z.string().optional(),
+                primaryContactName: z.string().optional(),
+                primaryContactEmail: z.string().optional(),
+                primaryContactPhone: z.string().optional(),
+                cisoName: z.string().optional(),
+                dpoName: z.string().optional(),
+                headquarters: z.string().optional(),
+                mainServiceRegion: z.string().optional(),
+                deploymentType: z.string().optional(),
+                region: z.string().optional(),
+                clientTier: z.string().optional(),
+                logoUrl: z.string().nullable().optional(),
+                policyLanguage: z.string().optional(),
+                currency: z.string().optional(),
+                locale: z.string().optional(),
+                dateFormat: z.string().optional(),
+                legalEntityName: z.string().optional(),
+                regulatoryJurisdictions: z.array(z.string()).optional(),
+                defaultDocumentClassification: z.string().optional(),
+                // New Plan/Module Fields
+                planTier: z.string().optional(),
+                activeModules: z.array(z.string()).optional(),
+                // Branding
+                brandPrimaryColor: z.string().optional().nullable(),
+                brandSecondaryColor: z.string().optional().nullable(),
+                sidebarBg: z.string().optional().nullable(),
+                sidebarFg: z.string().optional().nullable(),
+                headingFont: z.string().optional().nullable(),
+                bodyFont: z.string().optional().nullable(),
+                baseFontSize: z.number().optional().nullable(),
+                portalTitle: z.string().optional().nullable(),
+                requireMfa: z.boolean().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const { id, ...data } = input;
+
+                // Security Check: Allow Global Admins OR Client Admins
+                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'owner' && ctx.user?.role !== 'super_admin') {
+                    const isAllowed = await db.isUserAllowedForClient(ctx.user.id, id, 'admin');
+                    if (!isAllowed) {
+                        throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to update this client.' });
+                    }
+                }
+
+                await db.updateClient(id, data);
+                return { success: true };
+            }),
+        getUsers: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                return await db.getClientUsers(input.clientId);
+            }),
+        getTeamMembers: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                // Alias for getUsers - returns team members for a client
+                return await db.getClientUsers(input.clientId);
+            }),
+        inviteUser: clientEditorProcedure
+            .input(z.object({
+                clientId: z.number(),
+                email: z.string().email(),
+                role: z.enum(['owner', 'editor', 'viewer']).default('viewer'),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const client = await db.getClientById(input.clientId);
+                if (!client) throw new TRPCError({ code: "NOT_FOUND", message: "Client not found" });
+
+                const { getPlanLimits } = await import("../../lib/limits");
+                const limits = getPlanLimits(client.planTier);
+
+                if (limits.maxUsers !== Infinity) {
+                    const currentUsers = await db.getClientUsers(input.clientId);
+                    if (currentUsers.length >= limits.maxUsers) {
+                        throw new TRPCError({
+                            code: "FORBIDDEN",
+                            message: `Plan limit reached. Your ${client.planTier || 'free'} plan allows a maximum of ${limits.maxUsers} users. Please upgrade to Pro.`
+                        });
+                    }
+                }
+
+                let user = await db.getUserByEmail(input.email);
+                if (!user) {
+                    user = await db.createUser({
+                        email: input.email,
+                        name: input.email.split('@')[0],
+                        password: 'temp_password_123'
+                    });
+                }
+                if (user) {
+                    const existing = await db.isUserAllowedForClient(user.id, input.clientId);
+                    if (!existing) {
+                        await db.assignUserToClient(user.id, input.clientId, input.role);
+                    }
+                }
+                return { success: true };
+            }),
+        delete: publicProcedure.use(isAuthed).use(requiresMFA)
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ input, ctx }: any) => {
+                // Security Check: Allow Global Admins OR Client Owner
+                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'owner' && ctx.user?.role !== 'super_admin') {
+                    const isOwner = await db.isUserAllowedForClient(ctx.user.id, input.id, 'owner');
+                    if (!isOwner) {
+                        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only organization owners or global admins can delete a client.' });
+                    }
+                }
+                await db.deleteClient(input.id);
+                return { success: true };
+            }),
+        grantSelfAccess: publicProcedure.use(isAuthed).use(requiresMFA)
+            .input(z.object({ clientId: z.number(), role: z.enum(['owner', 'admin', 'editor']).default('owner') }))
+            .mutation(async ({ input, ctx }: any) => {
+                const d = await db.getDb();
+                const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
+                if (hasAccess) return { success: true, message: 'Already a member' };
+                const owners = await d.select().from(schema.userClients)
+                    .where(and(eq(schema.userClients.clientId, input.clientId), eq(schema.userClients.role, 'owner')));
+                if (owners.length === 0 || ctx.user.role === 'admin' || ctx.user.role === 'super_admin') {
+                    await db.assignUserToClient(ctx.user.id, input.clientId, input.role as any);
+                    return { success: true, message: 'Access granted' };
+                }
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'An owner already exists for this workspace. Only admins can add themselves.'
+                });
+            }),
+        stats: publicProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                return await db.getClientStats(input.clientId);
+            }),
+        removeLogo: adminProcedure.use(requiresMFA)
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input }: any) => {
+                await db.updateClient(input.clientId, { logoUrl: null });
+                return { success: true };
+            }),
+        uploadLogo: adminProcedure.use(requiresMFA)
+            .input(z.object({
+                clientId: z.number(),
+                logoUrl: z.string()
+            }))
+            .mutation(async ({ input }: any) => {
+                await db.updateClient(input.clientId, { logoUrl: input.logoUrl });
+                return { success: true };
+            }),
+        updateContactInfo: adminProcedure.use(requiresMFA)
+            .input(z.object({
+                clientId: z.number(),
+                primaryContactName: z.string().optional(),
+                primaryContactEmail: z.string().optional().or(z.literal("")),
+                primaryContactPhone: z.string().optional(),
+                address: z.string().optional(),
+                serviceModel: z.string().optional(),
+                weeklyFocus: z.string().optional(),
+            }))
+            .mutation(async ({ input }: any) => {
+                const { clientId, ...updateData } = input;
+                await db.updateClient(clientId, updateData);
+                const updated = await db.getClientById(clientId);
+                return { success: true, client: updated };
+            }),
+        generateReport: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input }: any) => {
+                const buffer = await generateGapAnalysisReport(input.clientId);
+                return {
+                    filename: `compliance-report-${new Date().toISOString().split('T')[0]}.pdf`,
+                    pdfBase64: buffer.toString('base64')
+                };
+            }),
+        setTargetScore: clientProcedure
+            .input(z.object({ clientId: z.number(), targetScore: z.number().min(0).max(100) }))
+            .mutation(async ({ input }: any) => {
+                await db.updateClient(input.clientId, { targetComplianceScore: input.targetScore });
+                return { success: true };
+            })
+    });
+};

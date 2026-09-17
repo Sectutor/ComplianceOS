@@ -1,0 +1,1979 @@
+
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { getDb, getClientControls } from "../../db";
+import * as schema from "../../schema";
+import {
+    riskAssessments, riskTreatments, treatmentControls,
+    riskAssessmentStatusEnum,
+    threats, vulnerabilities,
+    riskPolicyMappings,
+    riskAppetite,
+    controls
+} from "../../schema";
+import { eq, and, desc, asc, sql, inArray, ilike, or, lt, lte, gt, gte, not, getTableColumns } from "drizzle-orm";
+import { calculateResidualScore, scoreToRiskLevel, getMatrixScoreLevel } from "../../lib/riskCalculations";
+import { logActivity } from "../../lib/audit";
+import { llmService } from "../../lib/llm/service";
+import { generateRiskReportDocx } from "../../riskExportProfessional";
+import { recalculateRiskScore } from "../services/riskService";
+import { safeDispatchWebhookEvent } from "../../lib/webhooks/webhookEvents";
+
+
+export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure: any) => {
+    console.log('[RISKS ROUTER] Creating risks router with procedures... AND RELOADED!');
+    return t.router({
+
+        // --- RISK APPETITE ---
+        getAppetite: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                const [appetite] = await db.select().from(riskAppetite).where(eq(riskAppetite.clientId, input.clientId)).limit(1);
+                return appetite || null;
+            }),
+
+        saveAppetite: procedure
+            .input(z.object({
+                clientId: z.number(),
+                financialThreshold: z.number().optional(),
+                reputationalThreshold: z.string().optional(),
+                operationalThreshold: z.number().optional(),
+                overallRiskLevel: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+
+                const existing = await db.select().from(riskAppetite).where(eq(riskAppetite.clientId, input.clientId)).limit(1);
+
+                if (existing.length > 0) {
+                    const [updated] = await db.update(riskAppetite)
+                        .set({ ...input, updatedAt: new Date() })
+                        .where(eq(riskAppetite.clientId, input.clientId))
+                        .returning();
+                    return updated;
+                } else {
+                    const [created] = await db.insert(riskAppetite).values(input).returning();
+                    return created;
+                }
+            }),
+
+        // --- ASSETS ---
+        getAssets: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+
+                // Fetch basic assets
+                const rawAssets = await db
+                    .select()
+                    .from(schema.assets)
+                    .where(eq(schema.assets.clientId, input.clientId));
+
+                // Fetch risk counts separately using a subquery approach
+                const assetIds = rawAssets.map((a: typeof schema.assets.$inferSelect) => a.id);
+
+                let riskCountMap: Record<number, number> = {};
+                let vulnCountMap: Record<number, number> = {};
+                let suggestionCountMap: Record<number, number> = {};
+
+                if (assetIds.length > 0) {
+                    // Get risk counts - count assessments where asset ID is in affectedAssets
+                    const riskAssessmentsData = await db
+                        .select({
+                            id: schema.riskAssessments.id,
+                            affectedAssets: schema.riskAssessments.affectedAssets
+                        })
+                        .from(schema.riskAssessments)
+                        .where(eq(schema.riskAssessments.clientId, input.clientId));
+
+                    // Count risks per asset - convert assetId to string for consistent comparison
+                    const assetIdStrings = assetIds.map(id => String(id));
+                    for (const ra of riskAssessmentsData) {
+                        if (ra.affectedAssets && Array.isArray(ra.affectedAssets)) {
+                            for (const assetId of assetIds) {
+                                const assetIdStr = String(assetId);
+                                if (ra.affectedAssets.includes(assetIdStr) || ra.affectedAssets.includes(assetId)) {
+                                    riskCountMap[assetId] = (riskCountMap[assetId] || 0) + 1;
+                                }
+                            }
+                        }
+                    }
+
+                    // Get CVE matches counts
+                    const cveMatches = await db
+                        .select({
+                            assetId: schema.assetCveMatches.assetId,
+                            status: schema.assetCveMatches.status
+                        })
+                        .from(schema.assetCveMatches)
+                        .where(inArray(schema.assetCveMatches.assetId, assetIds));
+
+                    for (const match of cveMatches) {
+                        if (match.assetId) {
+                            if (match.status === 'suggested') {
+                                suggestionCountMap[match.assetId] = (suggestionCountMap[match.assetId] || 0) + 1;
+                            }
+                        }
+                    }
+
+                    // Get vulnerability counts - FIXED: Added clientId filter (was fetching ALL vulnerabilities)
+                    const vulns = await db
+                        .select({
+                            id: schema.vulnerabilities.id,
+                            affectedAssets: schema.vulnerabilities.affectedAssets
+                        })
+                        .from(schema.vulnerabilities)
+                        .where(eq(schema.vulnerabilities.clientId, input.clientId));
+
+                    for (const vuln of vulns) {
+                        if (vuln.affectedAssets && Array.isArray(vuln.affectedAssets)) {
+                            for (const assetId of assetIds) {
+                                const assetIdStr = String(assetId);
+                                if (vuln.affectedAssets.includes(assetIdStr) || vuln.affectedAssets.includes(assetId)) {
+                                    vulnCountMap[assetId] = (vulnCountMap[assetId] || 0) + 1;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Merge counts into assets
+                return rawAssets.map((asset: typeof schema.assets.$inferSelect) => ({
+                    ...asset,
+                    riskCount: riskCountMap[asset.id] || 0,
+                    vulnerabilityCount: vulnCountMap[asset.id] || 0,
+                    suggestionCount: suggestionCountMap[asset.id] || 0
+                }));
+            }),
+
+        createAsset: procedure
+            .input(z.object({
+                clientId: z.number(),
+                name: z.string(),
+                type: z.string(),
+                owner: z.string().optional(),
+                valuationC: z.number().min(1).max(5).default(3),
+                valuationI: z.number().min(1).max(5).default(3),
+                valuationA: z.number().min(1).max(5).default(3),
+                description: z.string().optional(),
+                location: z.string().optional(),
+                department: z.string().optional(),
+                status: z.enum(["active", "archived", "disposed"]).default("active"),
+                acquisitionDate: z.string().optional(),
+                lastReviewDate: z.string().optional(),
+                vendor: z.string().optional(),
+                productName: z.string().optional(),
+                version: z.string().optional(),
+                technologies: z.array(z.string()).optional(),
+                cuiScope: z.boolean().optional(),
+                cuiCategory: z.string().optional(),
+                cuiJustification: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create assets' });
+                }
+                const db = await getDb();
+                const [newAsset] = await db.insert(schema.assets).values({
+                    ...input,
+                    acquisitionDate: input.acquisitionDate ? new Date(input.acquisitionDate) : null,
+                    lastReviewDate: input.lastReviewDate ? new Date(input.lastReviewDate) : null,
+                } as any).returning();
+
+                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "asset", entityId: newAsset.id, details: { name: newAsset.name } });
+                return newAsset;
+            }),
+
+        updateAsset: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+                name: z.string().optional(),
+                type: z.string().optional(),
+                owner: z.string().optional(),
+                valuationC: z.number().min(1).max(5).optional(),
+                valuationI: z.number().min(1).max(5).optional(),
+                valuationA: z.number().min(1).max(5).optional(),
+                description: z.string().optional(),
+                location: z.string().optional(),
+                department: z.string().optional(),
+                status: z.enum(["active", "archived", "disposed"]).optional(),
+                acquisitionDate: z.string().optional(),
+                lastReviewDate: z.string().optional(),
+                vendor: z.string().optional(),
+                productName: z.string().optional(),
+                version: z.string().optional(),
+                technologies: z.array(z.string()).optional(),
+                cuiScope: z.boolean().optional(),
+                cuiCategory: z.string().optional(),
+                cuiJustification: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update assets' });
+                }
+                const db = await getDb();
+                const { id, clientId, ...updates } = input;
+                const updateData: any = { ...updates };
+                if (updateData.acquisitionDate) updateData.acquisitionDate = new Date(updateData.acquisitionDate);
+                if (updateData.lastReviewDate) updateData.lastReviewDate = new Date(updateData.lastReviewDate);
+
+                const [updated] = await db.update(schema.assets)
+                    .set({ ...updateData, updatedAt: new Date() })
+                    .where(and(eq(schema.assets.id, id), eq(schema.assets.clientId, clientId)))
+                    .returning();
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "update", entityType: "asset", entityId: id, details: { changes: updates } });
+                return { success: true };
+            }),
+
+        deleteAsset: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete assets' });
+                }
+                const db = await getDb();
+                const { id, clientId } = input;
+
+                // Verify asset belongs to client
+                const [asset] = await db.select().from(schema.assets).where(and(eq(schema.assets.id, id), eq(schema.assets.clientId, clientId)));
+                if (!asset) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Asset not found' });
+                }
+
+                await db.delete(schema.assets)
+                    .where(and(eq(schema.assets.id, id), eq(schema.assets.clientId, clientId)));
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "delete", entityType: "asset", entityId: id, details: { name: asset.name } });
+                return { success: true };
+            }),
+
+        // Generate AI-driven Risk Management Analysis
+        generateAIAnalysis: procedure
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input, ctx }: any) => {
+                console.log(`[AI Analysis] Starting analysis for client ${input.clientId}`);
+                const db = await getDb();
+
+                // Fetch all risks for the client
+                console.log(`[AI Analysis] Fetching risks...`);
+                const assessments = await db.select()
+                    .from(riskAssessments)
+                    .where(eq(riskAssessments.clientId, input.clientId));
+
+                console.log(`[AI Analysis] Found ${assessments.length} risks`);
+
+                if (assessments.length === 0) {
+                    return "No risk assessments found to analyze. Please add some risks first.";
+                }
+
+                // Fetch Client Name
+                const [client] = await db.select({ name: schema.clients.name })
+                    .from(schema.clients)
+                    .where(eq(schema.clients.id, input.clientId))
+                    .limit(1);
+
+                const orgName = client?.name || "the Organization";
+
+                // Calculate Stats for AI Context using strictly verified score buckets
+                const totalRisks = assessments.length;
+                const criticalRisksList = assessments.filter((r: any) => (typeof r.inherentScore === 'number' ? r.inherentScore : 0) >= 15);
+                const highRisksList = assessments.filter((r: any) => {
+                    const s = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
+                    return s === 8 || s === 9;
+                });
+
+                const criticalCount = criticalRisksList.length; // Target 8
+                const highCount = highRisksList.length; // Target 92
+                const approvedRisks = assessments.filter((r: any) => r.status === 'approved').length;
+                const draftRisks = assessments.filter((r: any) => r.status === 'draft').length;
+
+                // Priority sort risks so Critical ones are ALWAYS seen by the AI first
+                const sortedAssessments = [...assessments].sort((a, b) =>
+                    (typeof b.inherentScore === 'number' ? b.inherentScore : 0) - (typeof a.inherentScore === 'number' ? a.inherentScore : 0)
+                );
+
+                // Format data for AI with score context
+                const riskSummary = sortedAssessments.map((r: any) => {
+                    const inherent = typeof r.inherentScore === 'number' ? r.inherentScore : 0;
+                    const residual = typeof r.residualScore === 'number' ? r.residualScore : inherent; // Fallback to inherent if null
+
+                    return {
+                        id: r.assessmentId,
+                        title: r.title,
+                        inherentScore: inherent,
+                        residualScore: residual,
+                        inherentLevel: inherent >= 15 ? 'Critical/Very High' : r.inherentRisk,
+                        residualLevel: r.residualRisk || (inherent >= 15 ? 'Critical/Very High' : r.inherentRisk),
+                        status: r.status,
+                        owner: r.riskOwner,
+                        treatment: r.treatmentOption
+                    };
+                });
+
+                const systemPrompt = `You are a Senior Risk Management Consultant for ${orgName}.
+Your task is to analyze the Risk Register and produce a professional, strategic Management Report.
+You MUST return the report as a structured JSON object.
+Use professional tone and industry standard (ISO 31000 / NIST SP 800-30) terminology.
+IMPORTANT: You must use the specific metrics provided in the context to back up your findings.`;
+
+                const userPrompt = `Analyze the following Risk Register data for ${orgName}:
+
+CONTEXT & METRICS (Use these exact numbers in your analysis):
+- Total Risks Identified: ${totalRisks}
+- Critical/Very High Risks (Score 15+): ${criticalCount}
+- High Priority Risks (Score 8-9): ${highCount}
+- Approval Status: ${approvedRisks} Approved, ${draftRisks} Draft
+
+DATASET SUMMARY (Prioritized by Score):
+${JSON.stringify(riskSummary.slice(0, 80), null, 2)}
+
+REPORT REQUIREMENTS:
+Return a JSON object with these EXACT keys (values MUST be Markdown strings):
+1. "title": "Strategic Risk Management Analysis for ${orgName} (${new Date().toLocaleString()})"
+2. "executiveSummary": Strategic overview. YOU MUST EXPLICITLY MENTION the total (${totalRisks}) and especially the ${criticalCount} critical risks. Use Markdown.
+3. "keyFindings": YOU MUST LIST AND ANALYZE ALL ${criticalCount} CRITICAL/VERY HIGH RISKS INDIVIDUALLY. For EACH risk, you MUST explicitly state the Inherent Risk Score and the Residual Risk Score. Use their specific IDs and professional English business names. Format as Markdown lists/headings.
+4. "recommendations": Strategic steps for the ${criticalCount} critical risks and the broader high-risk landscape. Format as Markdown.
+5. "conclusion": Forward-looking summary. Markdown string.
+6. "methodology": AI-driven quantitative and qualitative risk analysis. Markdown string.`;
+
+                console.log(`[AI Analysis] Calling LLM service...`);
+                try {
+                    const response = await llmService.generate({
+                        systemPrompt,
+                        userPrompt,
+                        feature: 'risk_analysis',
+                        temperature: 0.3,
+                        jsonMode: true
+                    }, { clientId: input.clientId, userId: ctx.user.id, endpoint: 'generateAIAnalysis' });
+
+                    console.log(`[AI Analysis] LLM service responded successfully`);
+                    const reportData = JSON.parse(response.text);
+
+                    // Save to Report Area as a NEW report every time
+                    console.log(`[AI Analysis] Creating new report entry...`);
+                    await db.insert(schema.riskReports)
+                        .values({
+                            clientId: input.clientId,
+                            ...reportData,
+                            status: 'draft',
+                            version: 1, // Every generation is a new baseline draft
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        });
+
+                    // Return as markdown for convenience (or the JSON)
+                    const fullMarkdown = `
+# ${reportData.title || 'Risk Management Report'}
+
+## Executive Summary
+${reportData.executiveSummary}
+
+## Key Findings
+${reportData.keyFindings}
+
+## Strategic Recommendations
+${reportData.recommendations}
+
+## Conclusion
+${reportData.conclusion}
+
+---
+*Analysis generated by AI Advisor on ${new Date().toLocaleDateString()}*
+`;
+                    return fullMarkdown;
+                } catch (error: any) {
+                    console.error(`[AI Analysis] LLM service ERROR:`, error);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `AI Analysis failed: ${error.message}`,
+                        cause: error
+                    });
+                }
+            }),
+
+        // Export Professional DOCX Report
+        exportReport: premiumClientProcedure
+            .input(z.object({
+                clientId: z.number(),
+                title: z.string().optional(),
+                executiveSummary: z.string().optional(),
+                introduction: z.string().optional(),
+                scope: z.string().optional(),
+                methodology: z.string().optional(),
+                keyFindings: z.string().optional(),
+                recommendations: z.string().optional(),
+                conclusion: z.string().optional(),
+                assumptions: z.string().optional(),
+                references: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                const [client] = await db.select({ name: schema.clients.name })
+                    .from(schema.clients)
+                    .where(eq(schema.clients.id, input.clientId))
+                    .limit(1);
+
+                const risks = await db.select()
+                    .from(schema.riskAssessments)
+                    .where(eq(schema.riskAssessments.clientId, input.clientId))
+                    .orderBy(desc(schema.riskAssessments.updatedAt));
+
+                const buffer = await generateRiskReportDocx({
+                    ...input,
+                    title: input.title || "Risk Management Report",
+                    clientName: client?.name || "Premium Client",
+                    risks: risks
+                });
+
+                return {
+                    base64: buffer.toString('base64'),
+                    filename: `Risk_Management_Report_${new Date().toISOString().split('T')[0]}.docx`
+                };
+            }),
+
+        // Get Risk Report Draft
+        getReport: procedure
+            .input(z.object({
+                clientId: z.number(),
+                reportId: z.number().optional()
+            }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+
+                let query = db.select()
+                    .from(schema.riskReports)
+                    .where(eq(schema.riskReports.clientId, input.clientId));
+
+                if (input.reportId) {
+                    query = query.where(eq(schema.riskReports.id, input.reportId));
+                } else {
+                    query = query.orderBy(desc(schema.riskReports.createdAt));
+                }
+
+                const [report] = await query.limit(1);
+                return report || null;
+            }),
+
+        // List all Risk Reports
+        listReports: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                return await db.select()
+                    .from(schema.riskReports)
+                    .where(eq(schema.riskReports.clientId, input.clientId))
+                    .orderBy(desc(schema.riskReports.createdAt));
+            }),
+
+        // Delete Risk Report
+        deleteReport: procedure
+            .input(z.object({
+                clientId: z.number(),
+                reportId: z.number()
+            }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                await db.delete(schema.riskReports)
+                    .where(and(
+                        eq(schema.riskReports.id, input.reportId),
+                        eq(schema.riskReports.clientId, input.clientId)
+                    ));
+                return { success: true };
+            }),
+
+        // Update Risk Report Status
+        updateReportStatus: procedure
+            .input(z.object({
+                clientId: z.number(),
+                reportId: z.number(),
+                status: z.string()
+            }))
+            .mutation(async ({ input }: any) => {
+                const db = await getDb();
+                await db.update(schema.riskReports)
+                    .set({ status: input.status, updatedAt: new Date() })
+                    .where(and(
+                        eq(schema.riskReports.id, input.reportId),
+                        eq(schema.riskReports.clientId, input.clientId)
+                    ));
+                return { success: true };
+            }),
+
+        // Save Risk Report Draft
+        saveReport: procedure
+            .input(z.object({
+                clientId: z.number(),
+                reportId: z.number().optional(),
+                title: z.string().optional(),
+                executiveSummary: z.string().optional(),
+                introduction: z.string().optional(),
+                scope: z.string().optional(),
+                methodology: z.string().optional(),
+                keyFindings: z.string().optional(),
+                recommendations: z.string().optional(),
+                conclusion: z.string().optional(),
+                assumptions: z.string().optional(),
+                references: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                console.log(`[RISKS] Saving report for client ${input.clientId}, reportId: ${input.reportId || 'NEW'}`);
+                const db = await getDb();
+
+                // If reportId is provided, update existing report
+                if (input.reportId) {
+                    const [updated] = await db.update(schema.riskReports)
+                        .set({
+                            title: input.title,
+                            executiveSummary: input.executiveSummary,
+                            introduction: input.introduction,
+                            scope: input.scope,
+                            methodology: input.methodology,
+                            keyFindings: input.keyFindings,
+                            recommendations: input.recommendations,
+                            conclusion: input.conclusion,
+                            assumptions: input.assumptions,
+                            references: input.references,
+                            updatedAt: new Date()
+                        })
+                        .where(and(
+                            eq(schema.riskReports.id, input.reportId),
+                            eq(schema.riskReports.clientId, input.clientId)
+                        ))
+                        .returning();
+
+                    if (!updated) {
+                        throw new TRPCError({
+                            code: 'NOT_FOUND',
+                            message: 'Report not found'
+                        });
+                    }
+
+                    return updated;
+                } else {
+                    // Create new report
+                    const [created] = await db.insert(schema.riskReports)
+                        .values({
+                            clientId: input.clientId,
+                            title: input.title || 'Risk Management Report',
+                            executiveSummary: input.executiveSummary,
+                            introduction: input.introduction,
+                            scope: input.scope,
+                            methodology: input.methodology,
+                            keyFindings: input.keyFindings,
+                            recommendations: input.recommendations,
+                            conclusion: input.conclusion,
+                            assumptions: input.assumptions,
+                            references: input.references,
+                            version: 1,
+                            status: 'draft'
+                        })
+                        .returning();
+                    return created;
+                }
+            }),
+
+        // List Risks with Filtering and Pagination
+        list: procedure
+            .input(z.object({
+                clientId: z.coerce.number(),
+                page: z.number().default(1),
+                limit: z.number().default(20),
+                status: z.enum(["draft", "approved", "reviewed"]).optional(),
+                search: z.string().optional(),
+                sortBy: z.enum(["inherentScore", "residualScore", "createdAt", "updatedAt"]).default("updatedAt"),
+                sortOrder: z.enum(["asc", "desc"]).default("desc"),
+                projectId: z.coerce.number().optional(),
+                category: z.string().optional(),
+                fismaSystemId: z.coerce.number().optional(),
+            }))
+            .query(async ({ input, ctx }: any) => {
+                const db = await getDb();
+                const offset = (input.page - 1) * input.limit;
+
+                const filters = [
+                    eq(riskAssessments.clientId, input.clientId),
+                    input.status ? eq(riskAssessments.status, input.status) : undefined,
+                    input.search ? or(
+                        ilike(riskAssessments.title, `%${input.search}%`),
+                        ilike(riskAssessments.assessmentId, `%${input.search}%`)
+                    ) : undefined,
+                    input.projectId ? eq(riskAssessments.projectId, input.projectId) : undefined,
+                    input.category ? eq(riskAssessments.category, input.category) : undefined,
+                    input.fismaSystemId ? eq(riskAssessments.fismaSystemId, input.fismaSystemId) : undefined
+                ].filter(Boolean);
+
+                const [total] = await db.select({ count: sql<number>`count(*)` })
+                    .from(riskAssessments)
+                    .where(and(...filters));
+
+                let orderBy;
+                switch (input.sortBy) {
+                    case 'inherentScore': orderBy = input.sortOrder === 'asc' ? riskAssessments.inherentScore : desc(riskAssessments.inherentScore); break;
+                    case 'residualScore': orderBy = input.sortOrder === 'asc' ? riskAssessments.residualScore : desc(riskAssessments.residualScore); break;
+                    case 'createdAt': orderBy = input.sortOrder === 'asc' ? riskAssessments.createdAt : desc(riskAssessments.createdAt); break;
+                    default: orderBy = desc(riskAssessments.updatedAt);
+                }
+
+                const items = await db.select()
+                    .from(riskAssessments)
+                    .where(and(...filters))
+                    .limit(input.limit)
+                    .offset(offset)
+                    .orderBy(orderBy);
+
+                return {
+                    items,
+                    total: Number(total?.count || 0),
+                    page: input.page,
+                    totalPages: Math.ceil(Number(total?.count || 0) / input.limit)
+                };
+            }),
+
+        getAll: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                return await db.select()
+                    .from(riskAssessments)
+                    .where(eq(riskAssessments.clientId, input.clientId))
+                    .orderBy(desc(riskAssessments.updatedAt));
+            }),
+
+        // Get Single Risk Assessment Details
+        get: procedure
+            .input(z.object({ id: z.number(), clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                const [assessment] = await db.select()
+                    .from(riskAssessments)
+                    .where(eq(riskAssessments.id, input.id));
+
+                if (!assessment) return null;
+                if (assessment.clientId !== input.clientId) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Risk assessment does not belong to this client' });
+                }
+
+                // Fetch treatments
+                const treatments = await db.select()
+                    .from(riskTreatments)
+                    .where(eq(riskTreatments.riskAssessmentId, input.id));
+
+                return { ...assessment, treatments };
+            }),
+
+        // Create or Update Risk Assessment
+        upsert: procedure
+            .input(z.object({
+                id: z.coerce.number().optional(),
+                clientId: z.coerce.number(),
+                title: z.string(),
+                threatId: z.coerce.number().optional(),
+                vulnerabilityId: z.coerce.number().optional(),
+                likelihood: z.union([z.number(), z.string()]).transform(v => typeof v === 'string' ? parseInt(v) || 3 : v),
+                impact: z.union([z.number(), z.string()]).transform(v => typeof v === 'string' ? parseInt(v) || 3 : v),
+                status: z.enum(["draft", "approved", "reviewed"]).default("draft"),
+                contextSnapshot: z.any().optional(),
+                riskOwner: z.string().optional(),
+                treatmentOption: z.string().optional(),
+                priority: z.string().optional(),
+                residualScore: z.number().optional(),
+                residualRisk: z.string().optional(),
+                existingControls: z.string().optional(),
+                controlEffectiveness: z.string().optional(),
+                threatDescription: z.string().optional(),
+                projectId: z.number().optional(),
+                category: z.string().optional(),
+                owaspCategory: z.string().optional(),
+                csfFunction: z.string().optional(),
+                privacyImpact: z.boolean().optional(),
+                assessor: z.string().optional(),
+                method: z.string().optional(),
+                vulnerabilityDescription: z.string().optional(),
+                affectedAssets: z.array(z.string()).optional(),
+                affectedProcessIds: z.array(z.number()).optional(),
+                recommendedActions: z.string().optional(),
+                targetResidualRisk: z.string().optional(),
+                notes: z.string().optional(),
+                assessmentDate: z.string().optional(),
+                reviewDueDate: z.string().optional(),
+                nextReviewDate: z.string().optional(),
+                controlIds: z.array(z.number()).optional(),
+                aiRmfCategory: z.string().optional(),
+                fismaSystemId: z.coerce.number().optional(),
+                gapResponseId: z.coerce.number().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                // MICRO-RBAC: Only Owners/Editors can edit
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot edit risks' });
+                }
+
+                const db = await getDb();
+
+                return await db.transaction(async (tx: any) => {
+                    const inherentScore = input.likelihood * input.impact;
+                    const inherentRisk = getMatrixScoreLevel(inherentScore);
+
+                    const data: any = {
+                        clientId: input.clientId,
+                        title: input.title,
+                        threatId: input.threatId,
+                        vulnerabilityId: input.vulnerabilityId,
+                        likelihood: String(input.likelihood),
+                        impact: String(input.impact),
+                        inherentScore,
+                        inherentRisk,
+                        status: input.status,
+                        contextSnapshot: input.contextSnapshot,
+                        riskOwner: input.riskOwner,
+                        fismaSystemId: input.fismaSystemId,
+                        treatmentOption: input.treatmentOption,
+                        priority: input.priority,
+                        residualScore: input.residualScore,
+                        residualRisk: input.residualRisk,
+                        existingControls: input.existingControls,
+                        controlEffectiveness: input.controlEffectiveness,
+                        threatDescription: input.threatDescription, // Map description if passed
+                        projectId: input.projectId,
+                        category: input.category,
+                        owaspCategory: input.owaspCategory,
+                        csfFunction: input.csfFunction,
+                        privacyImpact: input.privacyImpact,
+                        assessor: input.assessor,
+                        method: input.method,
+                        vulnerabilityDescription: input.vulnerabilityDescription,
+                        affectedAssets: input.affectedAssets,
+                        affectedProcessIds: input.affectedProcessIds,
+                        recommendedActions: input.recommendedActions,
+                        targetResidualRisk: input.targetResidualRisk,
+                        notes: input.notes,
+                        controlIds: input.controlIds,
+                        aiRmfCategory: input.aiRmfCategory,
+                        gapResponseId: input.gapResponseId,
+                        assessmentDate: input.assessmentDate ? new Date(input.assessmentDate) : undefined,
+                        reviewDueDate: input.reviewDueDate ? new Date(input.reviewDueDate) : undefined,
+                        nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : undefined,
+                        updatedAt: new Date()
+                    };
+
+                    if (input.id) {
+                        const [updated] = await tx.update(riskAssessments)
+                            .set(data)
+                            .where(eq(riskAssessments.id, input.id))
+                            .returning();
+
+                        await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "update", entityType: "risk", entityId: updated.id, details: { title: updated.title, changes: data } }, tx);
+
+                        if (String(inherentRisk || '').toLowerCase() === 'high' || String(inherentRisk || '').toLowerCase() === 'critical') {
+                            void safeDispatchWebhookEvent(input.clientId, 'risk.created', { riskId: updated.id, clientId: input.clientId, severity: inherentRisk }); // webhook event
+                        }
+
+                        // Index updated risk (Outside TX if needed? Indexing service usually handles its own or is silent fail. Keeping inside for simplicity as it was)
+                        // Indexing removed for Core split
+                        // try {
+                        //     const { IndexingService } = await import('../../lib/advisor/indexing');
+                        //     // ... indexing logic ...
+                        // } catch (e) { console.error("Failed to index risk:", e); }
+
+                        return { id: updated.id, success: true };
+                    } else {
+                        data.assessmentId = `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`;
+                        const [created] = await tx.insert(riskAssessments)
+                            .values(data)
+                            .returning();
+
+                        await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: created.id, details: { title: created.title } }, tx);
+
+                        if (String(inherentRisk || '').toLowerCase() === 'high' || String(inherentRisk || '').toLowerCase() === 'critical') {
+                            void safeDispatchWebhookEvent(input.clientId, 'risk.created', { riskId: created.id, clientId: input.clientId, severity: inherentRisk }); // webhook event
+                        }
+
+                        // Indexing removed for Core split
+                        // try {
+                        //     const { IndexingService } = await import('../../lib/advisor/indexing');
+                        //     // ... indexing logic ...
+                        // } catch (e) { console.error("Failed to index new risk:", e); }
+
+                        return { id: created.id, success: true };
+                    }
+                });
+            }),
+
+        // Delete Risk
+        delete: procedure
+            .input(z.object({ id: z.number(), clientId: z.number() }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole !== 'owner') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Only owners can delete risks' });
+                }
+                const db = await getDb();
+                await db.delete(riskAssessments).where(eq(riskAssessments.id, input.id));
+
+                // Remove from Index
+                // Remove from Index - removed for Core split
+                // try {
+                //     const { IndexingService } = await import('../../lib/advisor/indexing');
+                //     await IndexingService.deleteDocumentIndex(input.clientId, 'risk', input.id.toString());
+                // } catch (e) { console.error("Failed to delete risk index:", e); }
+
+                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "delete", entityType: "risk", entityId: input.id, details: { title: "Deleted Risk" } });
+                return { success: true };
+            }),
+
+        // Link Control to Treatment
+        linkControl: procedure
+            .input(z.object({
+                treatmentId: z.number(),
+                controlId: z.number(),
+                clientId: z.number()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                // MICRO-RBAC
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot link controls' });
+                }
+
+                const db = await getDb();
+                return await db.transaction(async (tx: any) => {
+                    // Check existence
+                    const existing = await tx.select().from(treatmentControls)
+                        .where(and(
+                            eq(treatmentControls.treatmentId, input.treatmentId),
+                            eq(treatmentControls.controlId, input.controlId)
+                        ));
+
+                    if (existing.length > 0) return existing[0];
+
+                    const [linked] = await tx.insert(treatmentControls).values({
+                        clientId: input.clientId,
+                        treatmentId: input.treatmentId,
+                        controlId: input.controlId
+                    }).returning();
+
+                    await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "update", entityType: "treatment", entityId: input.treatmentId, details: { action: "linked_control", controlId: input.controlId } }, tx);
+
+                    return linked;
+                });
+            }),
+
+        // Get Overdue Risk Items
+        getOverdueItems: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+
+                // Overdue Risk Reviews - calculate days overdue in SQL
+                const overdueReviews = await db.select({
+                    id: riskAssessments.id,
+                    title: riskAssessments.title,
+                    assessmentId: riskAssessments.assessmentId,
+                    daysOverdue: sql<number>`EXTRACT(DAY FROM CURRENT_DATE - ${riskAssessments.nextReviewDate})::integer`,
+                    type: sql<string>`'review'`
+                })
+                    .from(riskAssessments)
+                    .where(and(
+                        eq(riskAssessments.clientId, input.clientId),
+                        sql`${riskAssessments.nextReviewDate} < CURRENT_DATE`,
+                        eq(riskAssessments.status, 'approved')
+                    ))
+                    .limit(10);
+
+                // Overdue Treatments - calculate days overdue in SQL
+                const overdueTreatments = await db.select({
+                    id: riskTreatments.id,
+                    title: riskTreatments.strategy,
+                    daysOverdue: sql<number>`EXTRACT(DAY FROM CURRENT_DATE - ${riskTreatments.dueDate})::integer`,
+                    type: sql<string>`'treatment'`
+                })
+                    .from(riskTreatments)
+                    .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(and(
+                        eq(riskAssessments.clientId, input.clientId),
+                        sql`${riskTreatments.dueDate} < CURRENT_DATE`,
+                        sql`${riskTreatments.status} NOT IN ('implemented', 'completed')`
+                    ))
+                    .limit(10);
+
+                const items = [
+                    ...overdueReviews.map((r: any) => ({
+                        id: r.id,
+                        title: r.title || r.assessmentId,
+                        type: 'review',
+                        daysOverdue: r.daysOverdue || 0
+                    })),
+                    ...overdueTreatments.map((t: any) => ({
+                        id: t.id,
+                        title: t.title || 'Treatment',
+                        type: 'treatment',
+                        daysOverdue: t.daysOverdue || 0
+                    }))
+                ].sort((a: any, b: any) => b.daysOverdue - a.daysOverdue);
+
+                return items;
+            }),
+
+        // Get Upcoming Deadlines
+        getUpcomingDeadlines: procedure
+            .input(z.object({ clientId: z.number(), days: z.number().default(7) }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+
+                // Upcoming Risk Reviews - calculate days until due in SQL
+                const upcomingReviews = await db.select({
+                    id: riskAssessments.id,
+                    title: riskAssessments.title,
+                    assessmentId: riskAssessments.assessmentId,
+                    daysUntilDue: sql<number>`EXTRACT(DAY FROM ${riskAssessments.nextReviewDate} - CURRENT_DATE)::integer`,
+                })
+                    .from(riskAssessments)
+                    .where(and(
+                        eq(riskAssessments.clientId, input.clientId),
+                        sql`${riskAssessments.nextReviewDate} >= CURRENT_DATE`,
+                        sql`${riskAssessments.nextReviewDate} <= CURRENT_DATE + INTERVAL '${sql.raw(input.days.toString())} days'`,
+                        eq(riskAssessments.status, 'approved')
+                    ))
+                    .limit(10);
+
+                // Upcoming Treatments - calculate days until due in SQL
+                const upcomingTreatments = await db.select({
+                    id: riskTreatments.id,
+                    title: riskTreatments.strategy,
+                    daysUntilDue: sql<number>`EXTRACT(DAY FROM ${riskTreatments.dueDate} - CURRENT_DATE)::integer`,
+                })
+                    .from(riskTreatments)
+                    .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(and(
+                        eq(riskAssessments.clientId, input.clientId),
+                        sql`${riskTreatments.dueDate} >= CURRENT_DATE`,
+                        sql`${riskTreatments.dueDate} <= CURRENT_DATE + INTERVAL '${sql.raw(input.days.toString())} days'`,
+                        sql`${riskTreatments.status} NOT IN ('implemented', 'completed')`
+                    ))
+                    .limit(10);
+
+                const items = [
+                    ...upcomingReviews.map((r: any) => ({
+                        id: r.id,
+                        title: r.title || r.assessmentId,
+                        type: 'review',
+                        daysUntilDue: Math.max(0, r.daysUntilDue || 0)
+                    })),
+                    ...upcomingTreatments.map((t: any) => ({
+                        id: t.id,
+                        title: t.title || 'Treatment',
+                        type: 'treatment',
+                        daysUntilDue: Math.max(0, t.daysUntilDue || 0)
+                    }))
+                ].sort((a: any, b: any) => a.daysUntilDue - b.daysUntilDue);
+
+                return items;
+            }),
+
+        // Get KRI Statistics
+        getKRIStats: procedure
+            .input(z.object({ clientId: z.coerce.number().optional() }).optional())
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                const targetClientId = input?.clientId;
+
+                const clientWhere = targetClientId ? eq(riskAssessments.clientId, targetClientId) : sql`1=1`;
+
+                // 1. Overdue Risk Reviews
+                const [overdueReviewsResult] = await db.select({ count: sql<number>`count(*)` })
+                    .from(riskAssessments)
+                    .where(and(
+                        clientWhere,
+                        sql`${riskAssessments.nextReviewDate} < CURRENT_DATE`,
+                        eq(riskAssessments.status, 'approved')
+                    ));
+
+                // 2. Unmitigated Critical Risks (High/Critical/Extreme inherent risk with NO treatments)
+                // We find risks that match criteria and have 0 treatments
+                const unmitigatedRisks = await db.select({
+                    id: riskAssessments.id
+                })
+                    .from(riskAssessments)
+                    .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(and(
+                        clientWhere,
+                        sql`${riskAssessments.inherentScore} >= 15` // High/Critical threshold
+                    ))
+                    .groupBy(riskAssessments.id)
+                    .having(sql`count(${riskTreatments.id}) = 0`);
+
+                // 3. Risk Mitigation Efficiency (% where Residual < Inherent)
+                const [totalRisksResult] = await db.select({ count: sql<number>`count(*)` })
+                    .from(riskAssessments)
+                    .where(clientWhere);
+
+                const [mitigatedRisksResult] = await db.select({ count: sql<number>`count(*)` })
+                    .from(riskAssessments)
+                    .where(and(
+                        clientWhere,
+                        sql`${riskAssessments.residualScore} < ${riskAssessments.inherentScore}`
+                    ));
+
+                const totalRisks = Number(totalRisksResult?.count || 0);
+                const efficiencyRate = totalRisks > 0
+                    ? Math.round((Number(mitigatedRisksResult?.count || 0) / totalRisks) * 100)
+                    : 0;
+
+                // 4. Control Implementation Rate (Treatment Progress)
+                const [totalTreatments] = await db.select({ count: sql<number>`count(*)` })
+                    .from(riskTreatments)
+                    .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(clientWhere);
+
+                const [completedTreatments] = await db.select({ count: sql<number>`count(*)` })
+                    .from(riskTreatments)
+                    .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(and(
+                        clientWhere,
+                        sql`${riskTreatments.status} IN ('implemented', 'completed')`
+                    ));
+
+                const implementationRate = totalTreatments?.count > 0
+                    ? Math.round((Number(completedTreatments?.count || 0) / Number(totalTreatments.count)) * 100)
+                    : 0;
+
+                return {
+                    overdueReviews: Number(overdueReviewsResult?.count || 0),
+                    unmitigatedCriticalRisks: unmitigatedRisks.length,
+                    mitigationEfficiency: efficiencyRate,
+                    controlImplementationRate: implementationRate,
+
+                    // Legacy support if needed (optional)
+                    highRiskCount: Number(unmitigatedRisks.length), // Reusing this field or keep original logic? Better to stick to new API contract.
+                    avgResidualScore: 0, // Deprecating or calculate if UI still needs it
+                    linkedControlsCount: 0,
+                    treatmentProgress: implementationRate
+                };
+            }),
+
+        // Threats Management
+        getThreats: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                return await db.select()
+                    .from(threats)
+                    .where(eq(threats.clientId, input.clientId))
+                    .orderBy(desc(threats.createdAt));
+            }),
+
+        createThreat: procedure
+            .input(z.object({
+                clientId: z.number(),
+                threatId: z.string().optional(),
+                name: z.string(),
+                description: z.string().optional(),
+                category: z.string().optional(),
+                source: z.string().optional(),
+                intent: z.string().optional(),
+                likelihood: z.string().optional(),
+                potentialImpact: z.string().optional(),
+                affectedAssets: z.any().optional(),
+                relatedVulnerabilities: z.any().optional(),
+                associatedRisks: z.any().optional(),
+                scenario: z.string().optional(),
+                detectionMethod: z.string().optional(),
+                status: z.enum(["active", "dormant", "monitored"]).optional().default("active"),
+                owner: z.string().optional(),
+                lastReviewDate: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create threats' });
+                }
+                const db = await getDb();
+
+                const { lastReviewDate, ...rest } = input;
+                // If no threatId is provided, generate one
+                const data: any = {
+                    ...rest,
+                    threatId: input.threatId || `THREAT-${Date.now()}`
+                };
+                if (lastReviewDate !== undefined) {
+                    data.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+                }
+
+                const [threat] = await db.insert(threats)
+                    .values(data)
+                    .returning();
+
+                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "threat", entityId: threat.id, details: { name: threat.name } });
+                return threat;
+            }),
+
+        updateThreat: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+                name: z.string().optional(),
+                description: z.string().optional(),
+                category: z.string().optional(),
+                source: z.string().optional(),
+                intent: z.string().optional(),
+                likelihood: z.string().optional(),
+                potentialImpact: z.string().optional(),
+                affectedAssets: z.array(z.string()).optional(),
+                relatedVulnerabilities: z.array(z.string()).optional(),
+                associatedRisks: z.array(z.string()).optional(),
+                scenario: z.string().optional(),
+                detectionMethod: z.string().optional(),
+                status: z.enum(["active", "dormant", "monitored"]).optional(),
+                owner: z.string().optional(),
+                lastReviewDate: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update threats' });
+                }
+                const db = await getDb();
+                const { id, clientId, lastReviewDate, ...rest } = input;
+                const data: any = { ...rest };
+                if (lastReviewDate !== undefined) {
+                    data.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+                }
+                const [threat] = await db.update(threats)
+                    .set({ ...data, updatedAt: new Date() })
+                    .where(and(eq(threats.id, id), eq(threats.clientId, clientId)))
+                    .returning();
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "update", entityType: "threat", entityId: id, details: { changes: data } });
+                return threat;
+            }),
+
+        deleteThreat: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete threats' });
+                }
+                const db = await getDb();
+                const { id, clientId } = input;
+                
+                // Verify threat belongs to client
+                const [threat] = await db.select().from(threats).where(and(eq(threats.id, id), eq(threats.clientId, clientId)));
+                if (!threat) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Threat not found' });
+                }
+                
+                await db.delete(threats)
+                    .where(and(eq(threats.id, id), eq(threats.clientId, clientId)));
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "delete", entityType: "threat", entityId: id, details: { name: threat.name } });
+                return { success: true };
+            }),
+
+        // Vulnerabilities Management
+        getVulnerabilities: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                return await db.select()
+                    .from(vulnerabilities)
+                    .where(eq(vulnerabilities.clientId, input.clientId))
+                    .orderBy(desc(vulnerabilities.createdAt));
+            }),
+
+        createVulnerability: procedure
+            .input(z.object({
+                clientId: z.number(),
+                vulnerabilityId: z.string().optional(),
+                name: z.string(),
+                description: z.string().optional(),
+                cveId: z.string().optional(),
+                cvssScore: z.number().optional(),
+                severity: z.string().optional(),
+                affectedAssets: z.any().optional(),
+                discoveryDate: z.string().optional(),
+                source: z.string().optional(),
+                exploitability: z.string().optional(),
+                impact: z.string().optional(),
+                status: z.enum(["open", "mitigated", "accepted", "remediated"]).optional().default("open"),
+                owner: z.string().optional(),
+                remediationPlan: z.string().optional(),
+                dueDate: z.string().optional(),
+                lastReviewDate: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create vulnerabilities' });
+                }
+                const db = await getDb();
+                const { discoveryDate, dueDate, lastReviewDate, vulnerabilityId, ...rest } = input;
+                const values: any = {
+                    ...rest,
+                    // vulnerability_id is NOT NULL in the DB — generate when absent
+                    vulnerabilityId: vulnerabilityId || `VULN-${Date.now()}`,
+                };
+                if (discoveryDate !== undefined) values.discoveryDate = discoveryDate ? new Date(discoveryDate) : null;
+                if (dueDate !== undefined) values.dueDate = dueDate ? new Date(dueDate) : null;
+                if (lastReviewDate !== undefined) values.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+
+                const [vulnerability] = await db.insert(vulnerabilities)
+                    .values(values)
+                    .returning();
+
+                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "vulnerability", entityId: vulnerability.id, details: { name: vulnerability.name } });
+                return vulnerability;
+            }),
+
+        updateVulnerability: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+                name: z.string().optional(),
+                description: z.string().optional(),
+                cveId: z.string().optional(),
+                cvssScore: z.number().optional(),
+                severity: z.string().optional(),
+                affectedAssets: z.any().optional(),
+                discoveryDate: z.string().optional(),
+                source: z.string().optional(),
+                exploitability: z.string().optional(),
+                impact: z.string().optional(),
+                status: z.enum(["open", "mitigated", "accepted", "remediated"]).optional(),
+                owner: z.string().optional(),
+                remediationPlan: z.string().optional(),
+                dueDate: z.string().optional(),
+                lastReviewDate: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update vulnerabilities' });
+                }
+                const db = await getDb();
+                const { id, clientId, discoveryDate, dueDate, lastReviewDate, ...rest } = input;
+                const data: any = { ...rest };
+                // Timestamp columns need real Date objects (or null to clear)
+                if (discoveryDate !== undefined) data.discoveryDate = discoveryDate ? new Date(discoveryDate) : null;
+                if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
+                if (lastReviewDate !== undefined) data.lastReviewDate = lastReviewDate ? new Date(lastReviewDate) : null;
+
+                const [vulnerability] = await db.update(vulnerabilities)
+                    .set({ ...data, updatedAt: new Date() })
+                    .where(and(eq(vulnerabilities.id, id), eq(vulnerabilities.clientId, clientId)))
+                    .returning();
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "update", entityType: "vulnerability", entityId: id, details: { changes: data } });
+                return vulnerability;
+            }),
+
+        deleteVulnerability: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete vulnerabilities' });
+                }
+                const db = await getDb();
+                const { id, clientId } = input;
+
+                // First get the vulnerability to log the deletion
+                const [vulnerability] = await db.select()
+                    .from(vulnerabilities)
+                    .where(and(eq(vulnerabilities.id, id), eq(vulnerabilities.clientId, clientId)))
+                    .limit(1);
+
+                if (!vulnerability) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Vulnerability not found' });
+                }
+
+                await db.delete(vulnerabilities)
+                    .where(and(eq(vulnerabilities.id, id), eq(vulnerabilities.clientId, clientId)));
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "delete", entityType: "vulnerability", entityId: id, details: { name: vulnerability.name } });
+                return { success: true, id };
+            }),
+
+        // Risk Assessments (alias for list)
+        getRiskAssessments: procedure
+            .input(z.object({
+                clientId: z.number(),
+                assetId: z.number().optional()
+            }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+
+                const conditions = [eq(riskAssessments.clientId, input.clientId)];
+                if (input.assetId) {
+                    conditions.push(sql`${riskAssessments.contextSnapshot}->>'assetId' = ${input.assetId}::text`);
+                }
+
+                const results = await db
+                    .select({
+                        ...getTableColumns(riskAssessments),
+                        treatmentCount: sql<number>`(SELECT count(*)::int FROM risk_treatments WHERE risk_treatments.risk_assessment_id = ${riskAssessments.id})`.as('treatment_count'),
+                        policyCount: sql<number>`(SELECT count(*)::int FROM risk_policy_mappings WHERE risk_policy_mappings.risk_assessment_id = ${riskAssessments.id})`.as('policy_count'),
+                    })
+                    .from(riskAssessments)
+                    .where(and(...conditions))
+                    .orderBy(desc(riskAssessments.createdAt));
+
+                return results;
+            }),
+
+        createRiskAssessment: procedure
+            .input(z.object({
+                clientId: z.coerce.number(),
+                title: z.string(),
+                threatId: z.coerce.number().optional(),
+                vulnerabilityId: z.coerce.number().optional(),
+                likelihood: z.union([z.number(), z.string()]).transform(v => {
+                    const num = typeof v === 'string' ? parseInt(v) || 3 : v;
+                    return Math.max(1, Math.min(5, num)); // Clamp to 1-5
+                }),
+                impact: z.union([z.number(), z.string()]).transform(v => {
+                    const num = typeof v === 'string' ? parseInt(v) || 3 : v;
+                    return Math.max(1, Math.min(5, num)); // Clamp to 1-5
+                }),
+                status: z.enum(["draft", "approved", "reviewed"]).default("draft"),
+                contextSnapshot: z.any().optional(),
+                assessmentId: z.string().optional(),
+                threatDescription: z.string().optional(),
+                vulnerabilityDescription: z.string().optional(),
+                affectedAssets: z.any().optional(),
+                existingControls: z.string().optional(),
+                gapResponseId: z.coerce.number().optional(),
+                category: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create risk assessments' });
+                }
+                const db = await getDb();
+
+                // Validate likelihood and impact are in range
+                const likelihood = Math.max(1, Math.min(5, input.likelihood));
+                const impact = Math.max(1, Math.min(5, input.impact));
+
+                const inherentScore = likelihood * impact;
+                const inherentRisk = getMatrixScoreLevel(inherentScore);
+
+                const [assessment] = await db.insert(riskAssessments)
+                    .values({
+                        clientId: input.clientId,
+                        title: input.title,
+                        threatId: input.threatId,
+                        vulnerabilityId: input.vulnerabilityId,
+                        // Honour a caller-supplied id (e.g. "Raise Risk" from Gap Analysis)
+                        assessmentId: input.assessmentId
+                            || `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
+                        likelihood: String(likelihood),
+                        impact: String(impact),
+                        inherentScore,
+                        inherentRisk,
+                        status: input.status,
+                        contextSnapshot: input.contextSnapshot,
+                        threatDescription: input.threatDescription,
+                        vulnerabilityDescription: input.vulnerabilityDescription,
+                        affectedAssets: input.affectedAssets,
+                        existingControls: input.existingControls,
+                        gapResponseId: input.gapResponseId,
+                        category: input.category,
+                    } as any)
+                    .returning();
+
+                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "risk", entityId: assessment.id, details: { title: assessment.title } });
+                return assessment;
+            }),
+
+        updateRiskAssessment: procedure
+            .input(z.object({
+                id: z.coerce.number(),
+                clientId: z.coerce.number(),
+                title: z.string().optional(),
+                threatId: z.coerce.number().optional(),
+                vulnerabilityId: z.coerce.number().optional(),
+                likelihood: z.union([z.number(), z.string()]).transform(v => {
+                    const num = typeof v === 'string' ? parseInt(v) || 3 : v;
+                    return Math.max(1, Math.min(5, num)); // Clamp to 1-5
+                }).optional(),
+                impact: z.union([z.number(), z.string()]).transform(v => {
+                    const num = typeof v === 'string' ? parseInt(v) || 3 : v;
+                    return Math.max(1, Math.min(5, num)); // Clamp to 1-5
+                }).optional(),
+                status: z.enum(["draft", "approved", "reviewed"]).optional(),
+                contextSnapshot: z.any().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update risk assessments' });
+                }
+                const db = await getDb();
+                const { id, clientId, ...data } = input;
+
+                // Recalculate scores if likelihood or impact changed
+                const updateData: any = { ...data, updatedAt: new Date() };
+                if (data.likelihood !== undefined || data.impact !== undefined) {
+                    const [current] = await db.select().from(riskAssessments).where(eq(riskAssessments.id, id));
+                    if (!current) {
+                        throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+                    }
+                    // Clamp values to 1-5 range
+                    const likelihood = data.likelihood !== undefined ? Math.max(1, Math.min(5, data.likelihood)) : (parseInt(String(current.likelihood)) || 3);
+                    const impact = data.impact !== undefined ? Math.max(1, Math.min(5, data.impact)) : (parseInt(String(current.impact)) || 3);
+                    updateData.likelihood = String(likelihood);
+                    updateData.impact = String(impact);
+                    updateData.inherentScore = likelihood * impact;
+                    updateData.inherentRisk = getMatrixScoreLevel(updateData.inherentScore);
+                }
+
+                const [assessment] = await db.update(riskAssessments)
+                    .set(updateData)
+                    .where(and(eq(riskAssessments.id, id), eq(riskAssessments.clientId, clientId)))
+                    .returning();
+
+                if (!assessment) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found or does not belong to this client' });
+                }
+
+                await logActivity({ userId: ctx.user.id, clientId, action: "update", entityType: "risk", entityId: id, details: { changes: data } });
+
+                // Recalculate residual score if likelihood or impact changed
+                if (data.likelihood !== undefined || data.impact !== undefined) {
+                    await recalculateRiskScore(db, id);
+                }
+
+                return assessment;
+            }),
+
+        // Risk Treatments
+        getRiskTreatments: procedure
+            .input(z.object({ riskAssessmentId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                const treatments = await db.select()
+                    .from(riskTreatments)
+                    .where(eq(riskTreatments.riskAssessmentId, input.riskAssessmentId))
+                    .orderBy(desc(riskTreatments.createdAt));
+
+                if (treatments.length === 0) return treatments;
+
+                // Attach linked controls so the UI can show what treats the risk
+                // (previously write-only: links were saved but never returned).
+                const treatmentIds = treatments.map((t: any) => t.id);
+                const links = await db.select({
+                    link: treatmentControls,
+                    control: {
+                        id: controls.id,
+                        controlId: controls.controlId,
+                        name: controls.name,
+                        framework: controls.framework,
+                    },
+                })
+                    .from(treatmentControls)
+                    .leftJoin(controls, eq(treatmentControls.controlId, controls.id))
+                    .where(inArray(treatmentControls.treatmentId, treatmentIds));
+
+                const linksByTreatment = new Map<number, any[]>();
+                for (const l of links) {
+                    const arr = linksByTreatment.get(l.link.treatmentId) || [];
+                    arr.push(l.control || { id: l.link.controlId, controlId: `#${l.link.controlId}`, name: 'Control', framework: '' });
+                    linksByTreatment.set(l.link.treatmentId, arr);
+                }
+
+                return treatments.map((t: any) => ({
+                    ...t,
+                    linkedControls: linksByTreatment.get(t.id) || [],
+                }));
+            }),
+
+
+
+        getAllTreatments: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const db = await getDb();
+                return await db.select({
+                    id: riskTreatments.id,
+                    riskAssessmentId: riskTreatments.riskAssessmentId,
+                    strategy: riskTreatments.strategy,
+                    status: riskTreatments.status,
+                    dueDate: riskTreatments.dueDate,
+                    owner: riskTreatments.owner,
+                    priority: riskTreatments.priority,
+                    treatmentType: riskTreatments.treatmentType,
+                    estimatedCost: riskTreatments.estimatedCost,
+                    riskTitle: riskAssessments.title,
+                    riskId: riskAssessments.assessmentId,
+                    inherentRisk: riskAssessments.inherentRisk,
+                    residualRisk: riskAssessments.residualRisk,
+                    updatedAt: riskTreatments.updatedAt
+                })
+                    .from(riskTreatments)
+                    .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(eq(riskAssessments.clientId, input.clientId))
+                    .orderBy(desc(riskTreatments.dueDate));
+            }),
+
+        createRiskTreatment: procedure
+            .input(z.object({
+                clientId: z.number(),
+                riskAssessmentId: z.number().optional(),
+                riskScenarioId: z.number().optional(),
+                treatmentType: z.enum(['mitigate', 'transfer', 'accept', 'avoid']),
+                strategy: z.string().optional(),
+                justification: z.string().optional(),
+                owner: z.string().optional(),
+                dueDate: z.string().optional(),
+                priority: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+                estimatedCost: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot create treatments' });
+                const db = await getDb();
+
+                // Validate riskAssessmentId exists if provided
+                if (input.riskAssessmentId) {
+                    const [assessment] = await db.select().from(riskAssessments).where(eq(riskAssessments.id, input.riskAssessmentId));
+                    if (!assessment) {
+                        throw new TRPCError({ code: 'NOT_FOUND', message: 'Risk assessment not found' });
+                    }
+                    if (assessment.clientId !== input.clientId) {
+                        throw new TRPCError({ code: 'FORBIDDEN', message: 'Risk assessment does not belong to this client' });
+                    }
+                }
+
+                const [treatment] = await db.insert(riskTreatments).values({
+                    clientId: input.clientId,
+                    riskAssessmentId: input.riskAssessmentId,
+                    riskScenarioId: input.riskScenarioId,
+                    treatmentType: input.treatmentType,
+                    strategy: input.strategy,
+                    justification: input.justification,
+                    owner: input.owner,
+                    dueDate: input.dueDate ? new Date(input.dueDate) : null,
+                    priority: input.priority,
+                    estimatedCost: input.estimatedCost,
+                    status: 'planned'
+                } as any).returning();
+
+                if (input.riskAssessmentId) {
+                    await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "treatment", entityId: treatment.id, details: { strategy: treatment.strategy } });
+                }
+                return treatment;
+            }),
+
+        updateRiskTreatment: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+                treatmentType: z.enum(['mitigate', 'transfer', 'accept', 'avoid']).optional(),
+                strategy: z.string().optional(),
+                justification: z.string().optional(),
+                owner: z.string().optional(),
+                dueDate: z.string().optional(),
+                priority: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+                status: z.string().optional(),
+                estimatedCost: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot update treatments' });
+                const db = await getDb();
+                const { id, clientId, ...data } = input;
+
+                // Verify treatment belongs to client's risk assessment
+                const [treatment] = await db.select().from(riskTreatments).where(eq(riskTreatments.id, id));
+                if (!treatment) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Treatment not found' });
+                }
+                if (treatment.clientId !== clientId) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Treatment does not belong to this client' });
+                }
+
+                const updateData: any = { ...data, updatedAt: new Date() };
+                if (input.dueDate) updateData.dueDate = new Date(input.dueDate);
+
+                const [updated] = await db.update(riskTreatments)
+                    .set(updateData)
+                    .where(eq(riskTreatments.id, id))
+                    .returning();
+                return updated;
+            }),
+
+        deleteRiskTreatment: procedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot delete treatments' });
+                const db = await getDb();
+
+                // Verify treatment belongs to client
+                const [treatment] = await db.select().from(riskTreatments).where(eq(riskTreatments.id, input.id));
+                if (!treatment) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Treatment not found' });
+                }
+                if (treatment.clientId !== input.clientId) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Treatment does not belong to this client' });
+                }
+
+                // Delete the treatment
+                await db.delete(riskTreatments)
+                    .where(eq(riskTreatments.id, input.id));
+
+                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "delete", entityType: "treatment", entityId: input.id });
+                return { success: true };
+            }),
+
+        linkTreatmentControl: procedure
+            .input(z.object({
+                treatmentId: z.number(),
+                controlId: z.number(),
+                effectiveness: z.enum(['effective', 'partially_effective', 'ineffective']).optional(),
+                implementationNotes: z.string().optional()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') throw new TRPCError({ code: 'FORBIDDEN', message: 'Viewers cannot link controls' });
+                const db = await getDb();
+
+                // Check existence
+                const existing = await db.select().from(treatmentControls)
+                    .where(and(
+                        eq(treatmentControls.treatmentId, input.treatmentId),
+                        eq(treatmentControls.controlId, input.controlId)
+                    ));
+
+                if (existing.length > 0) {
+                    // treatment_controls has no updated_at column; including it
+                    // aborted the link+recalculate flow at runtime.
+                    const [updated] = await db.update(treatmentControls)
+                        .set({
+                            effectiveness: input.effectiveness,
+                            implementationNotes: input.implementationNotes,
+                        })
+                        .where(eq(treatmentControls.id, existing[0].id))
+                        .returning();
+
+                    // Get treatment to find risk
+                    const [treatment] = await db.select().from(riskTreatments)
+                        .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                        .where(eq(riskTreatments.id, input.treatmentId));
+
+                    if (treatment && treatment.risk_assessments) {
+                        await recalculateRiskScore(db, treatment.risk_assessments.id);
+                    }
+
+                    return updated;
+                }
+
+                // Need clientId
+                const [treatment] = await db.select().from(riskTreatments)
+                    .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(eq(riskTreatments.id, input.treatmentId));
+
+                if (!treatment) throw new TRPCError({ code: 'NOT_FOUND', message: 'Treatment not found' });
+                const clientId = treatment.risk_assessments.clientId;
+
+                const [linked] = await db.insert(treatmentControls).values({
+                    clientId,
+                    treatmentId: input.treatmentId,
+                    controlId: input.controlId,
+                    effectiveness: input.effectiveness,
+                    implementationNotes: input.implementationNotes
+                }).returning();
+
+                // Auto-recalculate risk score
+                if (treatment.risk_assessments) {
+                    await recalculateRiskScore(db, treatment.risk_assessments.id);
+                }
+
+                return linked;
+            }),
+
+
+        suggestControls: procedure
+            .input(z.object({
+                clientId: z.number(),
+                threat: z.string(),
+                vulnerability: z.string(),
+                framework: z.string().optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const { llmService } = await import('../../lib/llm/service');
+                const dbConn = await getDb();
+
+                // 1. Get all available client controls (filtered by framework if provided)
+                const clientControlsList = await getClientControls(input.clientId, input.framework);
+
+                if (clientControlsList.length === 0) {
+                    return { suggestions: [] };
+                }
+
+                // 2. Simplify control list for token efficiency
+                const controlContext = clientControlsList.map(c => ({
+                    id: c.clientControl.id,
+                    code: c.control?.controlId || c.clientControl.clientControlId,
+                    name: c.control?.name || c.clientControl.customDescription,
+                    description: c.control?.description,
+                }));
+
+                const prompt = `You are a risk management expert. Analyze the following Threat and Vulnerability and recommend the most effective controls from the provided list to mitigate this specific risk.
+
+Threat: ${input.threat}
+Vulnerability: ${input.vulnerability}
+
+Available Controls:
+${JSON.stringify(controlContext.map(c => `${c.id}: [${c.code}] ${c.name} - ${c.description || ''}`).slice(0, 50), null, 2)} 
+(Note: Only top 50 controls shown to save space)
+
+Return a JSON object with a list of "suggestions". Each suggestion must have:
+- "clientControlId": The numeric ID from the list above.
+- "reasoning": A brief explanation (1 sentence) of why this control is relevant.
+- "relevance": A score from 1-10 (10 being critical).
+
+Rank by relevance (descending). Return at most 5 suggestions.
+
+Example format:
+{
+  "suggestions": [
+    { "clientControlId": 12, "reasoning": "Encrypting data at rest directly mitigates the risk of data theft.", "relevance": 9 }
+  ]
+}`;
+
+                try {
+                    const response = await llmService.generate({
+                        systemPrompt: "You are a JSON-only API. You must strictly output valid JSON.",
+                        userPrompt: prompt,
+                        temperature: 0.1,
+                    });
+
+                    // Clean markdown code blocks if present
+                    const cleanJson = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+                    if (!cleanJson) throw new Error("Empty response from LLM");
+                    const result = JSON.parse(cleanJson);
+
+                    return result;
+                } catch (error) {
+                    console.error("AI Control suggestion failed:", error);
+                    return { suggestions: [] };
+                }
+            }),
+
+        saveTreatmentPlan: procedure
+            .input(z.object({
+                riskAssessmentId: z.number(),
+                clientId: z.number(),
+                treatmentType: z.enum(['mitigate', 'transfer', 'accept', 'avoid']),
+                strategy: z.string().optional(),
+                owner: z.string().optional(),
+                controlIds: z.array(z.number()).optional(),
+                effectiveness: z.enum(['effective', 'partially_effective', 'ineffective']).optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                if (ctx.clientRole === 'viewer') throw new TRPCError({ code: 'FORBIDDEN' });
+                const dbConn = await getDb();
+
+                return await dbConn.transaction(async (tx: any) => {
+                    // 1. Create/Update Treatment Record
+                    let [treatment] = await tx.select().from(riskTreatments)
+                        .where(eq(riskTreatments.riskAssessmentId, input.riskAssessmentId))
+                        .limit(1);
+
+                    if (treatment) {
+                        [treatment] = await tx.update(riskTreatments)
+                            .set({
+                                treatmentType: input.treatmentType,
+                                strategy: input.strategy,
+                                owner: input.owner,
+                                updatedAt: new Date()
+                            })
+                            .where(eq(riskTreatments.id, treatment.id))
+                            .returning();
+                    } else {
+                        [treatment] = await tx.insert(riskTreatments)
+                            .values({
+                                riskAssessmentId: input.riskAssessmentId,
+                                treatmentType: input.treatmentType,
+                                strategy: input.strategy,
+                                owner: input.owner,
+                                status: 'planned'
+                            })
+                            .returning();
+                    }
+
+                    // 2. Clear old links if any? Or just add new ones?
+                    if (input.controlIds) {
+                        // Delete existing links for this treatment
+                        await tx.delete(treatmentControls).where(eq(treatmentControls.treatmentId, treatment.id));
+
+                        // Insert new ones
+                        const toInsert = input.controlIds.map((cid: number) => ({
+                            clientId: input.clientId,
+                            treatmentId: treatment.id,
+                            controlId: cid,
+                            effectiveness: input.effectiveness || 'effective'
+                        }));
+
+                        if (toInsert.length > 0) {
+                            await tx.insert(treatmentControls).values(toInsert);
+                        }
+                    }
+
+                    // 3. Recalculate Risk Score
+                    await recalculateRiskScore(tx, input.riskAssessmentId);
+
+                    return { id: treatment.id, success: true };
+                });
+            }),
+
+
+        // --- STAKEHOLDERS ---
+        getStakeholders: procedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await getDb();
+
+                // Fetch from different tables
+                const [employees, crmContacts, vendorContacts, clientContacts] = await Promise.all([
+                    dbConn.select().from(schema.employees).where(eq(schema.employees.clientId, input.clientId)),
+                    dbConn.select().from(schema.crmContacts).where(eq(schema.crmContacts.clientId, input.clientId)),
+                    dbConn.select().from(schema.vendorContacts).where(eq(schema.vendorContacts.clientId, input.clientId)),
+                    dbConn.select().from(schema.clientContacts).where(eq(schema.clientContacts.clientId, input.clientId))
+                ]);
+
+                // Normalize and combine
+                const stakeholders = [
+                    ...employees.map((e: any) => ({
+                        id: `emp-${e.id}`,
+                        originalId: e.id,
+                        source: 'employee',
+                        firstName: e.firstName,
+                        lastName: e.lastName,
+                        email: e.email,
+                        jobTitle: e.jobTitle,
+                        department: e.department,
+                        role: 'Internal Employee',
+                        type: 'internal'
+                    })),
+                    ...clientContacts.map((c: any) => ({
+                        id: `cc-${c.id}`,
+                        originalId: c.id,
+                        source: 'client_contact',
+                        firstName: c.firstName,
+                        lastName: c.lastName,
+                        email: c.email,
+                        jobTitle: c.role,
+                        department: c.department,
+                        role: c.role || 'Stakeholder',
+                        type: 'external'
+                    })),
+                    ...crmContacts.map((c: any) => ({
+                        id: `crm-${c.id}`,
+                        originalId: c.id,
+                        source: 'crm_contact',
+                        firstName: c.firstName,
+                        lastName: c.lastName,
+                        email: c.email,
+                        jobTitle: c.jobTitle,
+                        department: null,
+                        role: c.category || 'CRM Contact',
+                        type: 'external'
+                    })),
+                    ...vendorContacts.map((c: any) => ({
+                        id: `vc-${c.id}`,
+                        originalId: c.id,
+                        source: 'vendor_contact',
+                        firstName: c.name.split(' ')[0], // Best effort
+                        lastName: c.name.split(' ').slice(1).join(' '), // Best effort
+                        email: c.email,
+                        jobTitle: c.role,
+                        department: null,
+                        role: 'Vendor Contact',
+                        type: 'external'
+                    }))
+                ];
+
+                return stakeholders;
+            }),
+
+        createStakeholder: procedure
+            .input(z.object({
+                clientId: z.number(),
+                firstName: z.string(),
+                lastName: z.string(),
+                email: z.string().email().optional().or(z.literal('')),
+                role: z.string().optional(),
+                department: z.string().optional(),
+                phone: z.string().optional(),
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                console.log('[createStakeholder] Mutation started', { input, userId: ctx.user?.id });
+                try {
+                    const db = await getDb();
+                    console.log('[createStakeholder] DB connected');
+
+                    const [newContact] = await db.insert(schema.clientContacts).values({
+                        clientId: input.clientId,
+                        firstName: input.firstName,
+                        lastName: input.lastName,
+                        email: input.email || null,
+                        role: input.role || "Stakeholder", // Default role
+                        department: input.department,
+                        phone: input.phone || null,
+                        createdBy: ctx.user?.id
+                    }).returning();
+
+                    console.log('[createStakeholder] Contact inserted', newContact);
+
+                    console.log('[createStakeholder] Logging activity...');
+                    await logActivity({
+                        userId: ctx.user.id,
+                        clientId: input.clientId,
+                        action: "create",
+                        entityType: "stakeholder",
+                        entityId: newContact.id,
+                        details: { name: `${input.firstName} ${input.lastName}`, email: input.email }
+                    });
+                    console.log('[createStakeholder] Activity logged. Success.');
+
+                    return newContact;
+                } catch (error) {
+                    console.error('[createStakeholder] Error failed:', error);
+                    throw error;
+                }
+            }),
+
+        deleteStakeholder: procedure
+            .input(z.object({
+                id: z.string(),
+                clientId: z.number()
+            }))
+            .mutation(async ({ input, ctx }: any) => {
+                const db = await getDb();
+
+                // Expect ID format "cc-123"
+                if (!input.id.startsWith('cc-')) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'Only manually created stakeholders can be deleted here.' });
+                }
+
+                const contactId = parseInt(input.id.replace('cc-', ''));
+                if (isNaN(contactId)) {
+                    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid stakeholder ID' });
+                }
+
+                await db.delete(schema.clientContacts).where(and(
+                    eq(schema.clientContacts.id, contactId),
+                    eq(schema.clientContacts.clientId, input.clientId)
+                ));
+
+                await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "delete", entityType: "stakeholder", entityId: contactId, details: {} });
+                return { success: true };
+            }),
+    });
+};
+

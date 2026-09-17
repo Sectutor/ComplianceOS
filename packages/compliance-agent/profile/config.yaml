@@ -1,0 +1,24 @@
+model:
+  default: deepseek-v4-flash
+  provider: deepseek
+fallback_providers: []
+agent:
+  max_turns: 60
+  gateway_timeout: 1800
+  tool_use_enforcement: auto
+  task_completion_guidance: true
+  reasoning_effort: low
+toolsets:
+  - hermes-cli
+terminal:
+  backend: local
+  timeout: 180
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+security:
+  redact_secrets: true
+  tirith_enabled: true
+  tirith_fail_open: true
+cron:
+  enabled: true

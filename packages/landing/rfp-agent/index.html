@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Questionnaire Agent | ComplianceOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .text-huge { font-size: clamp(3rem, 15vw, 12rem); line-height: 0.9; }
+        .brutal-border { border: 2px solid #E2E8F0; }
+        .accent-blue { color: #3B82F6; }
+        .bg-accent-blue { background-color: #3B82F6; }
+        
+        .stagger-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stagger-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Kinetic Response Animation */
+        .response-box {
+            position: relative;
+            background: #111;
+            border-left: 4px solid #3B82F6;
+        }
+        .typing-cursor {
+            width: 8px;
+            height: 18px;
+            background: #3B82F6;
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Cfilter id='noiseFilter'%3%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3%3C/filter%3%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3%3C/svg%3");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="fixed inset-0 noise-bg z-50"></div>
+
+    <main class="relative z-10">
+        
+        <!-- Hero Section -->
+        <section class="min-h-screen flex flex-col justify-center px-6 lg:px-20 py-20 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 text-[25vw] font-black opacity-[0.03] select-none pointer-events-none uppercase">AGENT</div>
+            
+            <div class="mb-12 stagger-reveal">
+                <img src="../assets/logo.png" alt="GRCompliance" class="h-12 w-auto brightness-200" />
+            </div>
+            
+            <div class="max-w-7xl">
+                <h1 class="font-display font-black text-huge uppercase tracking-tighter stagger-reveal">
+                    Deals Blocked By<br>
+                    <span class="accent-blue italic leading-none block mt-4">Spreadsheets.</span>
+                </h1>
+                
+                <div class="mt-12 grid lg:grid-cols-2 gap-12 items-end">
+                    <p class="text-xl lg:text-3xl text-slate-400 font-light leading-snug stagger-reveal" style="transition-delay: 0.2s;">
+                        The 150-question security questionnaire is the #1 revenue blocker in SaaS. <strong>Our AI Agent drafts responses in minutes using your actual control library.</strong> Stop the weeks-long manual grind. Accelerate your close.
+                    </p>
+                    
+                    <div class="stagger-reveal flex flex-col gap-4" style="transition-delay: 0.4s;">
+                        <a href="#demo" class="bg-accent-blue text-white font-display font-black uppercase text-xl px-12 py-7 text-center hover:scale-105 transition-transform duration-300">
+                            Accelerate My Sales Cycle
+                        </a>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-bold">Cutting Response Time by 80-90% Effortlessly</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Friction Section -->
+        <section class="py-32 px-6 lg:px-20 border-y border-slate-800 bg-[#0F0F0F]">
+            <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
+                <div class="stagger-reveal">
+                    <span class="text-accent-blue font-bold uppercase tracking-widest text-sm mb-6 block">The Bottleneck</span>
+                    <h2 class="text-5xl lg:text-7xl font-display font-black mb-8 uppercase leading-none">Weeks of Work <br><span class="text-slate-500 line-through">Kills Momentum</span></h2>
+                    <ul class="space-y-6">
+                        <li class="flex items-center gap-4 text-xl">
+                            <span class="text-red-500 font-black">✕</span>
+                            <span class="text-slate-400">Recurring 300+ question manual torture</span>
+                        </li>
+                        <li class="flex items-center gap-4 text-xl">
+                            <span class="text-red-500 font-black">✕</span>
+                            <span class="text-slate-400">Stalling enterprise revenue for 14+ days</span>
+                        </li>
+                        <li class="flex items-center gap-4 text-xl">
+                            <span class="text-green-500 font-black">✓</span>
+                            <span class="text-white">Autofill responses from real mappings</span>
+                        </li>
+                        <li class="flex items-center gap-4 text-xl">
+                            <span class="text-green-500 font-black">✓</span>
+                            <span class="text-white">Revenue acceleration. No more deal friction.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="stagger-reveal relative">
+                    <div class="brutal-border p-8 bg-black">
+                        <div class="mb-6 flex justify-between items-center text-xs font-mono text-slate-500">
+                            <span>Questionnaire_RFP_v2.xlsx</span>
+                            <span class="accent-blue">AI AGENT: ACTIVE</span>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="response-box p-4 bg-[#151515]">
+                                <div class="text-[10px] uppercase text-slate-500 mb-1">Question 142</div>
+                                <div class="text-sm font-bold mb-3">How do you manage privileged access to production environments?</div>
+                                <div class="text-xs text-slate-400 font-mono italic">
+                                    "Controlled via Just-in-Time access requests through Okta, requiring MFA and ticket-based justification. Logged in Splunk and reviewed weekly..."
+                                    <span class="typing-cursor"></span>
+                                </div>
+                            </div>
+                            <div class="h-1 bg-slate-900 overflow-hidden">
+                                <div class="h-full bg-accent-blue w-[92%] transition-all duration-1000"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] font-mono uppercase text-slate-500">
+                                <span>Drafting Progress</span>
+                                <span>92% - 276/300 Answered</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Capabilities -->
+        <section class="py-32 px-6 lg:px-20 overflow-hidden">
+            <div class="max-w-7xl mx-auto grid lg:grid-cols-3 gap-12">
+                <div class="stagger-reveal">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Context-Aware Drafting</h3>
+                    <p class="text-slate-400">We don't just "use ChatGPT". Our agent pulls data from your real evidence library and framework mappings. It answers with authority, not fluff.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.1s;">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">RFP Parsing Engine</h3>
+                    <p class="text-slate-400">Handles messy spreadsheets, vendor portals, and complex PDFs. Our engine extracts the intent and matches it to your security posture automatically.</p>
+                </div>
+                <div class="stagger-reveal" style="transition-delay: 0.2s;">
+                    <h3 class="text-3xl font-display font-black uppercase mb-6 italic accent-blue">Human-in-the-Loop</h3>
+                    <p class="text-slate-400">Draft. Review. Refine. Export. Our interface allows your security team to perform 5 days of validation in under 60 minutes.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section id="demo" class="py-40 px-6 lg:px-20 bg-white text-black relative">
+            <div class="absolute inset-0 grid-bg opacity-10"></div>
+            <div class="max-w-5xl mx-auto text-center relative z-10">
+                <h2 class="text-6xl lg:text-9xl font-display font-black uppercase tracking-tighter mb-12 stagger-reveal leading-none">Unblock <br>The Revenue.</h2>
+                <div class="text-3xl lg:text-5xl font-black mb-16 stagger-reveal italic">
+                    Weeks to Minutes. <br> <span class="accent-blue text-4xl">One Integrated Agent.</span>
+                </div>
+                <div class="stagger-reveal">
+                    <a href="/waitlist" class="inline-block bg-black text-white font-display font-black uppercase text-2xl px-16 py-8 hover:bg-slate-900 transition-colors shadow-2xl scale-110">
+                        Join the RFP Agent Waitlist
+                    </a>
+                    <p class="mt-12 text-slate-500 uppercase font-black tracking-[0.2em] italic text-sm">Beta Slots Opening April 2026</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.stagger-reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

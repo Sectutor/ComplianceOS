@@ -1,0 +1,46 @@
+# Prometheus Configuration — Agent Health Monitoring
+# PREMIUM FEATURE
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'sandbox-executor'
+    static_configs:
+      - targets: ['sandbox-executor:8020']
+    metrics_path: '/health'
+
+  - job_name: 'grcompliance-app'
+    static_configs:
+      - targets: ['app:3001']
+    metrics_path: '/health'
+
+  - job_name: 'hermes-agent'
+    static_configs:
+      - targets: ['hermes-agent:9090']
+    metrics_path: '/health'
+
+  - job_name: 'cisovault'
+    static_configs:
+      - targets: ['cisovault:3099']
+    metrics_path: '/health'
+
+  - job_name: 'wazuh-indexer'
+    static_configs:
+      - targets: ['wazuh-indexer:9200']
+    metrics_path: '/_cluster/health'
+
+  - job_name: 'thehive'
+    static_configs:
+      - targets: ['thehive:9000']
+    metrics_path: '/api/health'
+
+  - job_name: 'neo4j'
+    static_configs:
+      - targets: ['neo4j:7474']
+    metrics_path: '/'
+
+  - job_name: 'rag-server'
+    static_configs:
+      - targets: ['rag-server:8000']
+    metrics_path: '/health'

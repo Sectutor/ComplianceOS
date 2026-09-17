@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: ../../../../..
+      dockerfile: deploy/docker/Dockerfile.prod
+    ports:
+      - "3005:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/complianceos
+      - VITE_ENABLE_PREMIUM=true
+      # Add your AI/provider keys here or in a .env file
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - complianceos-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: complianceos
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - complianceos-network
+
+networks:
+  complianceos-network:
+    name: complianceos-network
+
+volumes:
+  db_data:

@@ -1,0 +1,381 @@
+import React, { useState } from 'react';
+import { trpc } from '@/lib/trpc';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@complianceos/ui/ui/table';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from '@complianceos/ui/ui/dropdown-menu';
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger
+} from '@complianceos/ui/ui/tabs';
+import { Button } from '@complianceos/ui/ui/button';
+import { MoreHorizontal, Download, Trash2, UserPlus, Mail, Link as LinkIcon } from 'lucide-react';
+import { Badge } from '@complianceos/ui/ui/badge';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@complianceos/ui/ui/dialog';
+import { Label } from '@complianceos/ui/ui/label';
+import { Input } from '@complianceos/ui/ui/input';
+
+export default function WaitlistManagement() {
+    const { data: leads, isLoading, refetch } = trpc.waitlist.list.useQuery();
+    const { data: clients } = trpc.clients.list.useQuery();
+    const updateStatus = trpc.waitlist.updateStatus.useMutation();
+    const deleteLead = trpc.waitlist.remove.useMutation();
+    const convertToGlobalCrm = trpc.globalCrm.convertFromWaitlist.useMutation();
+    const inviteMutation = trpc.waitlist.invite.useMutation();
+
+    const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const [inviteLead, setInviteLead] = useState<any | null>(null);
+    const [inviteRole, setInviteRole] = useState<'viewer' | 'editor' | 'user' | 'admin'>('viewer');
+    const [invitePlanTier, setInvitePlanTier] = useState<'free' | 'pro' | 'enterprise'>('pro');
+    const [inviteExpiresInDays, setInviteExpiresInDays] = useState<number>(30);
+    const [inviteUsageLimit, setInviteUsageLimit] = useState<number | null>(1);
+    const [statusFilter, setStatusFilter] = useState('all');
+
+
+    const handleStatusChange = async (id: number, status: string) => {
+        console.log("Updating status for:", id, "to", status);
+        try {
+            await updateStatus.mutateAsync({ id, status });
+            console.log("Status updated successfully");
+            toast.success('Status updated');
+            refetch();
+        } catch (e) {
+            console.error("Status update failed:", e);
+            toast.error('Failed to update status');
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        // Temporarily removed confirm dialog for testing
+        try {
+            await deleteLead.mutateAsync({ id });
+            toast.success('Lead deleted');
+            refetch();
+        } catch (e) {
+            toast.error('Failed to delete lead: ' + (e as Error).message);
+        }
+    };
+
+    const handleConvertToLead = async (lead: any) => {
+        try {
+            const result = await convertToGlobalCrm.mutateAsync({
+                firstName: lead.firstName || '',
+                lastName: lead.lastName || '',
+                email: lead.email,
+                company: lead.company || '',
+                role: lead.role || '',
+            });
+            await updateStatus.mutateAsync({ id: lead.id, status: 'converted' });
+
+            if (result.alreadyExisted) {
+                toast.info('Contact already exists in Global CRM');
+            } else {
+                toast.success('Converted to Global CRM contact');
+            }
+            refetch();
+        } catch (e) {
+            console.error("Conversion failed:", e);
+            toast.error('Failed to convert: ' + (e as Error).message);
+        }
+    };
+
+    const openInviteModal = (lead: any) => {
+        setInviteLead(lead);
+        setInviteRole('viewer');
+        setInvitePlanTier('pro');
+        setInviteExpiresInDays(30);
+        setInviteUsageLimit(1);
+        setIsInviteOpen(true);
+    };
+
+    const submitInvite = async () => {
+        if (!inviteLead) return;
+        try {
+            const link = await inviteMutation.mutateAsync({
+                id: inviteLead.id,
+                role: inviteRole,
+                planTier: invitePlanTier,
+                expiresInDays: inviteExpiresInDays,
+                usageLimit: inviteUsageLimit
+            });
+            const url = `${window.location.origin}/auth/redeem-link?token=${link.token}`;
+            await navigator.clipboard.writeText(url);
+            toast.success('Invitation sent and link copied to clipboard!');
+            setIsInviteOpen(false);
+            setInviteLead(null);
+            refetch();
+        } catch (e) {
+            console.error("Invite failed:", e);
+            toast.error('Failed to send invite: ' + (e as Error).message);
+        }
+    };
+
+
+    const exportCsv = () => {
+        if (!leads) return;
+        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Industry', 'Org Size', 'Certification', 'Status', 'Date'];
+        const csvContent = [
+            headers.join(','),
+            ...leads.map((l: any) => [
+                l.firstName,
+                l.lastName,
+                `"${l.email}"`,
+                `"${l.company}"`,
+                l.industry,
+                l.orgSize,
+                l.certification,
+                l.status,
+                new Date(l.createdAt).toLocaleDateString()
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `waitlist_leads_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    return (
+        <div className="space-y-6 w-full animate-in fade-in duration-500">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold tracking-tight">Waitlist Management</h1>
+                        <Badge variant="outline" className="border-brand-bright/20 text-brand-bright bg-brand-bright/5 flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
+                            Premium
+                        </Badge>
+                    </div>
+                    <p className="text-muted-foreground">Review and manage early access requests.</p>
+                </div>
+                <Button onClick={exportCsv} variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                </Button>
+            </div>
+
+            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+                <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl mb-6">
+                    <TabsTrigger
+                        value="all"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                    >
+                        All Leads
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="pending"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                    >
+                        Pending
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="contacted"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                    >
+                        Contacted
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="invited"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                    >
+                        Invited
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="converted"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg flex items-center gap-2"
+                    >
+                        Converted
+                    </TabsTrigger>
+                </TabsList>
+
+                <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-brand hover:bg-brand border-none">
+                                <TableHead className="text-white font-semibold py-4">Contact</TableHead>
+                                <TableHead className="text-white font-semibold py-4">Company</TableHead>
+                                <TableHead className="text-white font-semibold py-4">Details</TableHead>
+                                <TableHead className="text-white font-semibold py-4">Target Cert</TableHead>
+                                <TableHead className="text-white font-semibold py-4">Status</TableHead>
+                                <TableHead className="text-white font-semibold py-4">Date</TableHead>
+                                <TableHead className="text-right text-white font-semibold py-4">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-8 text-slate-500 bg-white">
+                                        Loading leads...
+                                    </TableCell>
+                                </TableRow>
+                            ) : leads?.filter((l: any) => statusFilter === 'all' || l.status === statusFilter).length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-8 text-slate-500 bg-white">
+                                        No leads found in this category.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                leads?.filter((l: any) => statusFilter === 'all' || l.status === statusFilter).map((lead: any) => (
+                                    <TableRow key={lead.id} className="bg-white border-b border-slate-200 transition-all duration-200 hover:bg-slate-50 group">
+                                        <TableCell className="py-4 font-medium text-black">
+                                            <div className="font-medium">{lead.firstName} {lead.lastName}</div>
+                                            <div className="text-sm text-slate-500 flex items-center gap-1">
+                                                <Mail className="h-3 w-3" />
+                                                {lead.email}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="font-medium text-black">{lead.company || 'N/A'}</div>
+                                            <div className="text-xs text-slate-500">{lead.industry || lead.orgSize ? `${lead.industry} • ${lead.orgSize}` : ''}</div>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <div className="text-xs text-slate-600">
+                                                {lead.role && <div>Role: {lead.role}</div>}
+                                                {lead.source && <div>Src: {lead.source}</div>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                {lead.certification || 'Any'}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                            <Badge
+                                                variant={lead.status === 'converted' ? 'success' : lead.status === 'pending' ? 'secondary' : 'default'}
+                                                className={
+                                                    lead.status === 'contacted' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                                        lead.status === 'converted' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                            lead.status === 'invited' ? 'bg-teal-100 text-indigo-700 border-teal-200' : ''
+                                                }
+                                            >
+                                                {lead.status?.toUpperCase()}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="py-4 text-slate-500 text-sm">
+                                            {new Date(lead.createdAt).toLocaleDateString()}
+                                        </TableCell>
+                                        <TableCell className="py-4 text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleConvertToLead(lead)} disabled={lead.status === 'converted'}>
+                                                        <UserPlus className="mr-2 h-4 w-4" />
+                                                        Convert to Contact
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'contacted')}>
+                                                        Mark as Contacted
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openInviteModal(lead)} disabled={lead.status === 'invited'}>
+                                                        <LinkIcon className="mr-2 h-4 w-4" />
+                                                        Send Invitation
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'pending')}>
+                                                        Reset to Pending
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDelete(lead.id)} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete Lead
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </Tabs>
+            <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Send Invitation</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Role</Label>
+                            <div className="flex gap-2">
+                                {(['viewer', 'editor', 'user', 'admin'] as const).map(r => (
+                                    <Button
+                                        key={r}
+                                        type="button"
+                                        variant={inviteRole === r ? 'default' : 'outline'}
+                                        onClick={() => setInviteRole(r)}
+                                        className="capitalize"
+                                    >
+                                        {r === 'admin' ? 'Global Admin' : r === 'user' ? 'Org Admin' : r}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Plan Tier</Label>
+                            <div className="flex gap-2">
+                                {(['free', 'pro', 'enterprise'] as const).map(p => (
+                                    <Button
+                                        key={p}
+                                        type="button"
+                                        variant={invitePlanTier === p ? 'default' : 'outline'}
+                                        onClick={() => setInvitePlanTier(p)}
+                                        className="capitalize"
+                                    >
+                                        {p}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Expires In (Days)</Label>
+                                <Input
+                                    type="number"
+                                    value={inviteExpiresInDays}
+                                    onChange={(e) => setInviteExpiresInDays(parseInt(e.target.value))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Usage Limit (1 = single use, 0 = unlimited)</Label>
+                                <Input
+                                    type="number"
+                                    value={inviteUsageLimit ?? 0}
+                                    onChange={(e) => {
+                                        const v = parseInt(e.target.value);
+                                        setInviteUsageLimit(v === 0 ? null : v);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsInviteOpen(false)}>Cancel</Button>
+                        <Button onClick={submitInvite} disabled={inviteMutation.isPending}>
+                            {inviteMutation.isPending ? 'Sending...' : 'Send Invitation'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div >
+    );
+}

@@ -1,0 +1,40 @@
+# Weekly gap report — runs Monday 9 AM
+schedule: "0 9 * * 1"
+name: weekly-gap-report
+deliver: "telegram,email"
+skills: ["compliance-agent"]
+prompt: |
+  Generate the weekly compliance gap report.
+
+  1. **Query all frameworks** — GET /api/v1/frameworks for pass rates
+  2. **Get full gap lists** — For each framework, GET /api/v1/gaps
+  3. **Calculate trends** — Compare against the previous report's numbers if available
+  4. **Compile report** with:
+     - Executive summary (1-2 sentences)
+     - Per-framework pass rate table
+     - Top 10 gaps by severity
+     - Evidence health (total, expiring, expired)
+     - Week-over-week change
+  5. **Recommend top 3 actions**
+
+  Report format:
+  ```
+  📊 Weekly Compliance Report — Week N, YYYY
+  ╔════════════╤══════╤══════╤══════════╗
+  ║ Framework  │ Pass │ Gaps │ Change   ║
+  ╠════════════╪══════╪══════╪══════════╣
+  ║ NIS2       │ 72%  │ 14   │ +5% 📈  ║
+  ║ ISO 27001  │ 88%  │ 6    │ +2% 📈  ║
+  ║ DORA       │ 45%  │ 22   │ NEW 🆕  ║
+  ╚════════════╧══════╧══════╧══════════╝
+
+  🔴 Critical: 2
+  🟡 High: 8
+  🟢 Medium: 15
+  ⚪ Low: 7
+
+  Top 3 Recommendations:
+  1. ...
+  2. ...
+  3. ...
+  ```
