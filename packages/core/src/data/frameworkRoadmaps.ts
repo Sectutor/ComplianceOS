@@ -57,7 +57,7 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     id: 'm1_scope',
                     title: 'Define ISMS Scope Statement & Interested Parties',
                     desc: 'Identify organizational boundaries, regulatory requirements (GDPR/NIS2), and publish executive scope statement.',
-                    link: `/clients/${clientId}/iso27001/governance`,
+                    link: `/clients/${clientId}/iso27001/governance?tab=scope`,
                     cta: 'Go to Scope',
                     articleRef: 'Clauses 4.1–4.3'
                 },
@@ -73,7 +73,7 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     id: 'm1_objectives',
                     title: 'Establish Measurable Security Objectives & KPIs',
                     desc: 'Define measurable information security objectives aligned with business goals and establish metrics to track fulfillment.',
-                    link: `/clients/${clientId}/iso27001/governance`,
+                    link: `/clients/${clientId}/iso27001/governance?tab=objectives`,
                     cta: 'Set Objectives',
                     articleRef: 'Clause 6.2'
                 },
@@ -89,7 +89,7 @@ export const getIso27001Roadmap = (clientId: number): FrameworkRoadmapSpec => ({
                     id: 'm1_risks',
                     title: 'Execute ISO 27005 Threat & Vulnerability Risk Assessment',
                     desc: 'Identify threat scenarios, compute inherent risk scores (1-25), and set corporate risk appetite thresholds.',
-                    link: `/clients/${clientId}/iso27001/risks`,
+                    link: `/clients/${clientId}/risks/vulnerabilities`,
                     cta: 'Go to Risks',
                     articleRef: 'Clause 6.1.2'
                 },

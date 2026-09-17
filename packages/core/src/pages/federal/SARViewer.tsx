@@ -19,14 +19,34 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@complianceos/ui/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 
 export default function SARViewer() {
     const { id } = useParams<{ id: string }>();
     const clientId = parseInt(id || "0");
     const [_location, setLocation] = useLocation();
+
+    // Query params for roadmap context
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const returnTo = searchParams?.get('returnTo');
+    const returnLabel = searchParams?.get('returnLabel') || (returnTo?.includes('program-guide') ? 'Federal 90-Day Roadmap' : 'Previous View');
+    const frameworkId = searchParams?.get('frameworkId');
+    const taskId = searchParams?.get('taskId');
+    const taskTitle = searchParams?.get('taskTitle');
+
     const [createOpen, setCreateOpen] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
-    const [newSarTitle, setNewSarTitle] = useState("");
+    const [createForm, setCreateForm] = useState({
+        title: "",
+        sspId: "" as string,
+        systemAcronym: "",
+        packageType: "FedRAMP Moderate",
+        systemType: "Cloud Service Provider (CSP / SaaS)",
+        impact: "Moderate",
+        assessorName: "",
+        assessmentCompletionDate: "",
+        executiveSummary: "",
+    });
     const [selectedSarId, setSelectedSarId] = useState<number | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -40,9 +60,19 @@ export default function SARViewer() {
 
     const createMutation = trpc.federal.createSAR.useMutation({
         onSuccess: (data) => {
-            toast.success("SAR created successfully");
+            toast.success("Security Assessment Report created successfully");
             setCreateOpen(false);
-            setNewSarTitle("");
+            setCreateForm({
+                title: "",
+                sspId: "",
+                systemAcronym: "",
+                packageType: "FedRAMP Moderate",
+                systemType: "Cloud Service Provider (CSP / SaaS)",
+                impact: "Moderate",
+                assessorName: "",
+                assessmentCompletionDate: "",
+                executiveSummary: "",
+            });
             utils.federal.listSARs.invalidate({ clientId });
             setSelectedSarId(data.id);
         },
@@ -65,11 +95,21 @@ export default function SARViewer() {
     });
 
     const handleCreate = () => {
-        if (!newSarTitle) return;
+        if (!createForm.title.trim()) {
+            toast.error("Please provide a report title");
+            return;
+        }
         createMutation.mutate({
             clientId,
-            title: newSarTitle,
-            assessorName: "Internal Assessor"
+            title: createForm.title.trim(),
+            sspId: createForm.sspId ? parseInt(createForm.sspId) : undefined,
+            systemAcronym: createForm.systemAcronym.trim() || undefined,
+            packageType: createForm.packageType,
+            systemType: createForm.systemType,
+            impact: createForm.impact,
+            assessorName: createForm.assessorName.trim() || "Independent Assessor",
+            assessmentCompletionDate: createForm.assessmentCompletionDate || undefined,
+            executiveSummary: createForm.executiveSummary.trim() || undefined,
         });
     };
 
@@ -403,6 +443,29 @@ export default function SARViewer() {
     return (
         <DashboardLayout>
             <div className="space-y-6 pb-20 px-6">
+                {returnTo && (
+                    <div className="flex items-center justify-between p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl text-blue-900 shadow-sm animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2.5">
+                            <Badge variant="outline" className="bg-white text-blue-700 border-blue-300 font-semibold px-2 py-0.5 text-xs">
+                                {frameworkId ? frameworkId.toUpperCase() : 'ROADMAP'}
+                            </Badge>
+                            <span className="text-sm">
+                                Navigated from <strong className="font-semibold text-blue-950">{returnLabel}</strong>
+                                {taskTitle && <> &bull; Task: <span className="font-medium text-blue-800">{taskTitle}</span></>}
+                            </span>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setLocation(returnTo)}
+                            className="border-blue-300 bg-white hover:bg-blue-100/70 text-blue-900 text-xs font-semibold h-8"
+                        >
+                            <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                            Back to {returnLabel}
+                        </Button>
+                    </div>
+                )}
+
                 <Breadcrumb
                     items={[
                         { label: "Federal", href: `/clients/${clientId}/federal` },
@@ -412,8 +475,13 @@ export default function SARViewer() {
 
                 <div className="flex items-center justify-between">
                     <div>
-                        <Button variant="ghost" className="mb-2 pl-0 hover:pl-2 transition-all" onClick={() => setLocation(`/clients/${clientId}/federal`)}>
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                        <Button
+                            variant="ghost"
+                            className="mb-2 pl-0 hover:pl-2 transition-all text-slate-600 hover:text-slate-900"
+                            onClick={() => returnTo ? setLocation(returnTo) : setLocation(`/clients/${clientId}/federal`)}
+                        >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            {returnTo ? `Back to ${returnLabel}` : 'Back to Dashboard'}
                         </Button>
                         <h1 className="text-4xl font-black text-foreground tracking-tight">Security Assessment Reports (SAR)</h1>
                         <p className="text-muted-foreground mt-1">Manage and review your security assessment findings for authorization.</p>
@@ -446,25 +514,41 @@ export default function SARViewer() {
                                         <div className="bg-muted p-2 rounded-lg group-hover:bg-blue-50 transition-colors">
                                             <FileText className="h-5 w-5 text-muted-foreground group-hover:text-blue-600" />
                                         </div>
-                                        <Badge className={sar.status === 'final' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}>
-                                            {sar.status?.toUpperCase() || 'DRAFT'}
-                                        </Badge>
+                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                            {sar.packageType && (
+                                                <Badge variant="secondary" className="text-[11px] font-medium bg-slate-100 text-slate-700">
+                                                    {sar.packageType}
+                                                </Badge>
+                                            )}
+                                            <Badge className={sar.status === 'final' ? "bg-green-100 text-green-800 border-green-200" : "bg-blue-100 text-blue-800 border-blue-200"}>
+                                                {sar.status?.toUpperCase() || 'DRAFT'}
+                                            </Badge>
+                                        </div>
                                     </div>
                                     <CardTitle className="text-lg font-bold text-foreground mt-4">{sar.title}</CardTitle>
                                     <CardDescription className="flex items-center gap-2 mt-1">
                                         <Calendar className="h-3 w-3" />
                                         {new Date(sar.createdAt).toLocaleDateString()}
+                                        {sar.systemAcronym && (
+                                            <span className="font-mono text-xs text-blue-600 font-semibold">[{sar.systemAcronym}]</span>
+                                        )}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-3">
+                                    <div className="space-y-2.5">
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground font-medium">Assessor:</span>
-                                            <span className="text-foreground font-semibold">{sar.assessorName || 'None'}</span>
+                                            <span className="text-foreground font-semibold truncate max-w-[180px]">{sar.assessorName || 'None'}</span>
                                         </div>
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground font-medium">Findings:</span>
-                                            <span className="text-foreground font-semibold">--</span>
+                                            <span className="text-muted-foreground font-medium">Impact Level:</span>
+                                            <span className="text-foreground font-semibold">{sar.impact || 'Moderate'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground font-medium">Target Date:</span>
+                                            <span className="text-foreground font-semibold">
+                                                {sar.assessmentCompletionDate ? new Date(sar.assessmentCompletionDate).toLocaleDateString() : 'Pending'}
+                                            </span>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -489,8 +573,8 @@ export default function SARViewer() {
                                 </div>
                                 <h3 className="text-xl font-bold text-foreground">No Assessment Data Found</h3>
                                 <p className="text-muted-foreground mt-2 mb-8 leading-relaxed">
-                                    Security Assessment Reports (SAR) are generated after technical testing.
-                                    Create a report to document your findings.
+                                    Security Assessment Reports (SAR) document technical test results, vulnerabilities,
+                                    and risk impact for Authorizing Official (AO) sign-off.
                                 </p>
                                 <Button onClick={() => setCreateOpen(true)} className="bg-blue-600 hover:bg-blue-700 h-11 px-8">
                                     <Plus className="mr-2 h-4 w-4" />
@@ -503,25 +587,202 @@ export default function SARViewer() {
 
                 <EnhancedDialog
                     open={createOpen}
-                    onOpenChange={setCreateOpen}
-                    title="Create New SAR"
-                    description="Start a new Security Assessment Report based on recent testing."
+                    onOpenChange={(open) => {
+                        setCreateOpen(open);
+                        if (!open) {
+                            setCreateForm({
+                                title: "",
+                                sspId: "",
+                                systemAcronym: "",
+                                packageType: "FedRAMP Moderate",
+                                systemType: "Cloud Service Provider (CSP / SaaS)",
+                                impact: "Moderate",
+                                assessorName: "",
+                                assessmentCompletionDate: "",
+                                executiveSummary: "",
+                            });
+                        }
+                    }}
+                    title="Create New Security Assessment Report (SAR)"
+                    description="Initiate an independent Security Assessment Report (SAR) documenting security controls testing and authorization findings."
+                    size="lg"
                     primaryAction={{
-                        label: "Create Report",
+                        label: "Create Assessment Report",
                         onClick: handleCreate,
-                        disabled: !newSarTitle || createMutation.isPending,
+                        disabled: !createForm.title.trim() || createMutation.isPending,
                         loading: createMutation.isPending
                     }}
+                    secondaryAction={{
+                        label: "Cancel",
+                        onClick: () => setCreateOpen(false)
+                    }}
                 >
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="sar-title" className="font-bold">Report Title</Label>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sar-title" className="font-semibold text-slate-800 text-sm">
+                                Report Title <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="sar-title"
-                                value={newSarTitle}
-                                onChange={(e) => setNewSarTitle(e.target.value)}
-                                placeholder="e.g. FY26 Q1 FedRAMP Assessment"
-                                className="border-border focus:ring-blue-500"
+                                value={createForm.title}
+                                onChange={(e) => setCreateForm(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="e.g. FY26 FedRAMP Moderate 3PAO Security Assessment Report"
+                                className="border-slate-300 focus:ring-blue-500 text-sm h-10"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="font-semibold text-slate-800 text-sm">
+                                    Linked System Security Plan (SSP)
+                                </Label>
+                                <Select
+                                    value={createForm.sspId || "none"}
+                                    onValueChange={(val) => {
+                                        const sspId = val === "none" ? "" : val;
+                                        setCreateForm(prev => {
+                                            const selectedSsp = ssps?.find((s: any) => String(s.id) === val);
+                                            return {
+                                                ...prev,
+                                                sspId,
+                                                systemAcronym: prev.systemAcronym || selectedSsp?.systemName || "",
+                                                title: prev.title || (selectedSsp ? `${selectedSsp.systemName || selectedSsp.title} Security Assessment Report` : "")
+                                            };
+                                        });
+                                    }}
+                                >
+                                    <SelectTrigger className="border-slate-300 h-10 bg-white">
+                                        <SelectValue placeholder="Select an SSP or standalone" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None (Standalone Assessment)</SelectItem>
+                                        {ssps?.map((ssp: any) => (
+                                            <SelectItem key={ssp.id} value={String(ssp.id)}>
+                                                SSP #{ssp.id}: {ssp.systemName || ssp.title} ({ssp.framework || 'Federal'})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label className="font-semibold text-slate-800 text-sm">
+                                    Assessment Framework / Package Type
+                                </Label>
+                                <Select
+                                    value={createForm.packageType}
+                                    onValueChange={(val) => setCreateForm(prev => ({ ...prev, packageType: val }))}
+                                >
+                                    <SelectTrigger className="border-slate-300 h-10 bg-white">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="FedRAMP Moderate">FedRAMP Moderate (NIST 800-53 Rev 5)</SelectItem>
+                                        <SelectItem value="FedRAMP High">FedRAMP High (NIST 800-53 Rev 5)</SelectItem>
+                                        <SelectItem value="FedRAMP LiSaaS">FedRAMP Low / LiSaaS</SelectItem>
+                                        <SelectItem value="CMMC 2.0 Level 2">CMMC 2.0 Level 2 (NIST 800-171)</SelectItem>
+                                        <SelectItem value="CMMC 2.0 Level 3">CMMC 2.0 Level 3 (NIST 800-172)</SelectItem>
+                                        <SelectItem value="DoD IL4 / IL5">DoD Impact Level 4/5 (Cloud SRG)</SelectItem>
+                                        <SelectItem value="FISMA Moderate">FISMA Moderate</SelectItem>
+                                        <SelectItem value="FISMA High">FISMA High</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="sar-acronym" className="font-semibold text-slate-800 text-sm">
+                                    System Acronym / Identifier
+                                </Label>
+                                <Input
+                                    id="sar-acronym"
+                                    value={createForm.systemAcronym}
+                                    onChange={(e) => setCreateForm(prev => ({ ...prev, systemAcronym: e.target.value }))}
+                                    placeholder="e.g. COMP-OS, ACME-CLOUD"
+                                    className="border-slate-300 focus:ring-blue-500 text-sm h-10"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label className="font-semibold text-slate-800 text-sm">
+                                    System Type
+                                </Label>
+                                <Select
+                                    value={createForm.systemType}
+                                    onValueChange={(val) => setCreateForm(prev => ({ ...prev, systemType: val }))}
+                                >
+                                    <SelectTrigger className="border-slate-300 h-10 bg-white">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Cloud Service Provider (CSP / SaaS)">Cloud Service Provider (CSP / SaaS)</SelectItem>
+                                        <SelectItem value="Major Application">Major Application</SelectItem>
+                                        <SelectItem value="General Support System (GSS)">General Support System (GSS)</SelectItem>
+                                        <SelectItem value="Common Control Provider (CCP)">Common Control Provider (CCP)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="font-semibold text-slate-800 text-sm">
+                                    FIPS 199 Overall Impact Level
+                                </Label>
+                                <Select
+                                    value={createForm.impact}
+                                    onValueChange={(val) => setCreateForm(prev => ({ ...prev, impact: val }))}
+                                >
+                                    <SelectTrigger className="border-slate-300 h-10 bg-white">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Low">Low (FIPS 199 Low-Low-Low)</SelectItem>
+                                        <SelectItem value="Moderate">Moderate (FIPS 199 Mod-Mod-Mod)</SelectItem>
+                                        <SelectItem value="High">High (FIPS 199 High-High-High)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="sar-assessor" className="font-semibold text-slate-800 text-sm">
+                                    Assessor Organization / 3PAO Lead
+                                </Label>
+                                <Input
+                                    id="sar-assessor"
+                                    value={createForm.assessorName}
+                                    onChange={(e) => setCreateForm(prev => ({ ...prev, assessorName: e.target.value }))}
+                                    placeholder="e.g. Coalfire Systems, Schellman, 3PAO Lead"
+                                    className="border-slate-300 focus:ring-blue-500 text-sm h-10"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sar-date" className="font-semibold text-slate-800 text-sm">
+                                Assessment / Completion Target Date
+                            </Label>
+                            <Input
+                                id="sar-date"
+                                type="date"
+                                value={createForm.assessmentCompletionDate}
+                                onChange={(e) => setCreateForm(prev => ({ ...prev, assessmentCompletionDate: e.target.value }))}
+                                className="border-slate-300 focus:ring-blue-500 text-sm h-10 max-w-xs"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sar-summary" className="font-semibold text-slate-800 text-sm">
+                                Scope & Assessment Summary
+                            </Label>
+                            <Textarea
+                                id="sar-summary"
+                                rows={3}
+                                value={createForm.executiveSummary}
+                                onChange={(e) => setCreateForm(prev => ({ ...prev, executiveSummary: e.target.value }))}
+                                placeholder="Summary of assessment methodology, system authorization boundary, and testing objectives..."
+                                className="border-slate-300 focus:ring-blue-500 text-sm resize-none"
                             />
                         </div>
                     </div>

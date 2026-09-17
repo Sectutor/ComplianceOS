@@ -204,14 +204,14 @@ export default function VendorDashboard() {
                         rationale="Monitor vendor compliance and security posture to mitigate supply chain risks. Your supply chain is often your weakest security link."
                         howToUse={[
                             {
-                                step: "Supply Chain Intel",
-                                description: "Monitor OSINT and Dark Web feeds for potential breaches in your 3rd and 4th-party ecosystem.",
-                                targetId: "vendor-intel-banner"
-                            },
-                            {
                                 step: "Follow Lifecycle",
                                 description: "Follow the 5-step lifecycle: Discover, Profile, Assess, Analyze, and Monitor.",
                                 targetId: "vendor-lifecycle-workflow"
+                            },
+                            {
+                                step: "Supply Chain Intel",
+                                description: "Monitor OSINT and Dark Web feeds for potential breaches in your 3rd and 4th-party ecosystem.",
+                                targetId: "vendor-intel-banner"
                             },
                         ]}
                         integrations={[
@@ -232,6 +232,91 @@ export default function VendorDashboard() {
                         ]}
                     />
                 </div>
+
+                {/* Workflow Introduction Section - Getting Started with Vendor Risks */}
+                <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl overflow-hidden relative mb-6 animate-fade-in" id="vendor-lifecycle-workflow">
+                    <div className="absolute top-0 right-0 p-32 bg-teal-500/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 p-32 bg-blue-500/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
+                    <CardHeader className="relative z-10 pb-2">
+                        <CardTitle className="flex items-center gap-3 text-2xl font-black tracking-tight">
+                            <Globe className="w-7 h-7 text-teal-400" />
+                            Getting Started with Vendor Risks
+                        </CardTitle>
+                        <CardDescription className="text-sidebar-foreground/80 font-medium text-base">
+                            Manage vendor lifecycle from discovery to termination.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="relative z-10 pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
+                            {/* Connector Line (Desktop) */}
+                            <div className="hidden md:block absolute top-[28px] left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-500/0 via-teal-500/50 to-emerald-500/0 -z-10"></div>
+
+                            {[
+                                {
+                                    step: "1. Discover",
+                                    title: "Add Vendors",
+                                    desc: "Import or discover new vendors.",
+                                    link: `/clients/${clientId}/vendors/discovery`,
+                                    icon: Search,
+                                    color: "text-blue-300",
+                                    bg: "bg-blue-900/60 border-blue-500/30",
+                                    shadow: "shadow-blue-900/50"
+                                },
+                                {
+                                    step: "2. Profile",
+                                    title: "Categorize",
+                                    desc: "Set criticality and tiering.",
+                                    link: `/clients/${clientId}/vendors/all`,
+                                    icon: Building2,
+                                    color: "text-amber-300",
+                                    bg: "bg-amber-900/60 border-amber-500/30",
+                                    shadow: "shadow-amber-900/50"
+                                },
+                                {
+                                    step: "3. Assess",
+                                    title: "Security Review",
+                                    desc: "Send questionnaires (SIG/CAIQ).",
+                                    link: `/clients/${clientId}/vendors/reviews`,
+                                    icon: ShieldAlert,
+                                    color: "text-red-300",
+                                    bg: "bg-red-900/60 border-red-500/30",
+                                    shadow: "shadow-red-900/50"
+                                },
+                                {
+                                    step: "4. Analyze",
+                                    title: "Risk Analysis",
+                                    desc: "Review findings and gaps.",
+                                    link: `/clients/${clientId}/vendors/reviews`,
+                                    icon: FileCheck,
+                                    color: "text-teal-300",
+                                    bg: "bg-teal-900/60 border-teal-500/30",
+                                    shadow: "shadow-teal-900/50"
+                                },
+                                {
+                                    step: "5. Monitor",
+                                    title: "Continuous",
+                                    desc: "Track performance and renewal.",
+                                    link: `/clients/${clientId}/vendors/overview`,
+                                    icon: Activity,
+                                    color: "text-emerald-300",
+                                    bg: "bg-emerald-900/60 border-emerald-500/30",
+                                    shadow: "shadow-emerald-900/50"
+                                }
+                            ].map((item, i) => (
+                                <Link key={i} href={item.link}>
+                                    <div className="group relative flex flex-col items-center text-center p-5 rounded-2xl hover:bg-sidebar-foreground/5 transition-all duration-300 cursor-pointer h-full border border-transparent hover:border-sidebar-foreground/10 hover:shadow-xl backdrop-blur-sm">
+                                        <div className={`w-14 h-14 rounded-2xl border ${item.bg} flex items-center justify-center mb-4 shadow-lg ${item.shadow} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                                            <item.icon className={`w-7 h-7 ${item.color}`} />
+                                        </div>
+                                        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-bright mb-1.5">{item.step}</div>
+                                        <div className="font-bold text-lg mb-1.5 text-white">{item.title}</div>
+                                        <div className="text-sm text-sidebar-foreground/70 leading-snug font-medium group-hover:text-sidebar-foreground transition-colors">{item.desc}</div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {/* AI Supply Chain Intelligence Banner */}
                 <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 p-1 rounded-2xl shadow-xl mb-6" id="vendor-intel-banner">
@@ -347,91 +432,6 @@ export default function VendorDashboard() {
                                 View Program Guide <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
                         </Link>
-                    </CardContent>
-                </Card>
-
-                {/* Workflow Introduction Section */}
-                <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-2xl overflow-hidden relative mb-6 animate-fade-in delay-200" id="vendor-lifecycle-workflow">
-                    <div className="absolute top-0 right-0 p-32 bg-teal-500/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 p-32 bg-blue-500/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
-                    <CardHeader className="relative z-10 pb-2">
-                        <CardTitle className="flex items-center gap-3 text-2xl font-black tracking-tight">
-                            <Globe className="w-7 h-7 text-teal-400" />
-                            Getting Started with Vendor Risks
-                        </CardTitle>
-                        <CardDescription className="text-sidebar-foreground/80 font-medium text-base">
-                            Manage vendor lifecycle from discovery to termination.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="relative z-10 pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
-                            {/* Connector Line (Desktop) */}
-                            <div className="hidden md:block absolute top-[28px] left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-500/0 via-teal-500/50 to-emerald-500/0 -z-10"></div>
-
-                            {[
-                                {
-                                    step: "1. Discover",
-                                    title: "Add Vendors",
-                                    desc: "Import or discover new vendors.",
-                                    link: `/clients/${clientId}/vendors/discovery`,
-                                    icon: Search,
-                                    color: "text-blue-300",
-                                    bg: "bg-blue-900/60 border-blue-500/30",
-                                    shadow: "shadow-blue-900/50"
-                                },
-                                {
-                                    step: "2. Profile",
-                                    title: "Categorize",
-                                    desc: "Set criticality and tiering.",
-                                    link: `/clients/${clientId}/vendors/all`,
-                                    icon: Building2,
-                                    color: "text-amber-300",
-                                    bg: "bg-amber-900/60 border-amber-500/30",
-                                    shadow: "shadow-amber-900/50"
-                                },
-                                {
-                                    step: "3. Assess",
-                                    title: "Security Review",
-                                    desc: "Send questionnaires (SIG/CAIQ).",
-                                    link: `/clients/${clientId}/vendors/reviews`,
-                                    icon: ShieldAlert,
-                                    color: "text-red-300",
-                                    bg: "bg-red-900/60 border-red-500/30",
-                                    shadow: "shadow-red-900/50"
-                                },
-                                {
-                                    step: "4. Analyze",
-                                    title: "Risk Analysis",
-                                    desc: "Review findings and gaps.",
-                                    link: `/clients/${clientId}/vendors/reviews`,
-                                    icon: FileCheck,
-                                    color: "text-teal-300",
-                                    bg: "bg-indigo-900/60 border-teal-500/30",
-                                    shadow: "shadow-indigo-900/50"
-                                },
-                                {
-                                    step: "5. Monitor",
-                                    title: "Continuous",
-                                    desc: "Track performance and renewal.",
-                                    link: `/clients/${clientId}/vendors/overview`,
-                                    icon: Activity,
-                                    color: "text-emerald-300",
-                                    bg: "bg-emerald-900/60 border-emerald-500/30",
-                                    shadow: "shadow-emerald-900/50"
-                                }
-                            ].map((item, i) => (
-                                <Link key={i} href={item.link}>
-                                    <div className="group relative flex flex-col items-center text-center p-5 rounded-2xl hover:bg-sidebar-foreground/5 transition-all duration-300 cursor-pointer h-full border border-transparent hover:border-sidebar-foreground/10 hover:shadow-xl backdrop-blur-sm">
-                                        <div className={`w-14 h-14 rounded-2xl border ${item.bg} flex items-center justify-center mb-4 shadow-lg ${item.shadow} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                                            <item.icon className={`w-7 h-7 ${item.color}`} />
-                                        </div>
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-bright mb-1.5">{item.step}</div>
-                                        <div className="font-bold text-lg mb-1.5 text-white">{item.title}</div>
-                                        <div className="text-sm text-sidebar-foreground/70 leading-snug font-medium group-hover:text-sidebar-foreground transition-colors">{item.desc}</div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
                     </CardContent>
                 </Card>
 

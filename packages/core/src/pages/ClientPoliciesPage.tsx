@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, FileText, Plus, Trash2, Edit, Sparkles, FileSearch, Send, Loader2, Layers, Search, Filter, Check, Eye } from "lucide-react";
 import { BulkGenerateDialog } from "@/components/policy/BulkGenerateDialog";
+import { PolicyRichTextViewer } from "@/components/policy/PolicyRichTextViewer";
 import { DistributionDialog } from "@/components/policy/DistributionDialog";
 import PolicyReviewDialog from "@/components/PolicyReviewDialog";
 import { PageGuide } from "@/components/PageGuide";
@@ -33,12 +34,13 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 
-export default function ClientPoliciesPage({ hideLayout = false, clientId: propClientId }: { hideLayout?: boolean, clientId?: number }) {
+export default function ClientPoliciesPage({ hideLayout = false, clientId: propClientId, id: routeId }: { hideLayout?: boolean, clientId?: number, id?: string }) {
     const params = useParams();
-    const idParam = params.clientId || params.id;
-    const clientId = propClientId || parseInt(idParam || "0");
-    const { user } = useAuth();
     const [location, setLocation] = useLocation();
+    const urlMatch = location.match(/\/clients\/(\d+)/);
+    const idParam = propClientId || routeId || (params as any)?.clientId || (params as any)?.id || (urlMatch ? urlMatch[1] : undefined);
+    const clientId = typeof idParam === "number" ? idParam : parseInt(idParam || "0", 10);
+    const { user } = useAuth();
 
     const { data: client, isLoading: clientLoading } = trpc.clients.get.useQuery(
         { id: clientId },
@@ -524,7 +526,7 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                                     placeholder="e.g., 'Make it strict regarding password complexity'"
                                     value={customInstruction}
                                     onChange={(e) => setCustomInstruction(e.target.value)}
-                                    className="h-20 text-sm resize-none bg-background"
+                                    className="h-20 text-sm resize-none"
                                 />
                             </div>
 
@@ -612,29 +614,26 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                     <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
                         {previewTemplate.sections && Array.isArray(previewTemplate.sections) && previewTemplate.sections.length > 0 ? (
                             <div className="space-y-3">
-                                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                                     Sections ({previewTemplate.sections.length})
                                 </h4>
                                 <div className="space-y-2.5">
                                     {previewTemplate.sections.map((sec: any, i: number) => (
-                                        <div key={i} className="border rounded-md p-3 bg-muted/20">
-                                            <p className="text-sm font-medium text-foreground">{sec.title || `Section ${i + 1}`}</p>
+                                        <div key={i} className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900 shadow-xs">
+                                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{sec.title || `Section ${i + 1}`}</p>
                                             {sec.content && (
-                                                <div
-                                                    className="text-xs text-muted-foreground mt-1 line-clamp-3 prose dark:prose-invert max-w-none"
-                                                    dangerouslySetInnerHTML={{ __html: sec.content }}
-                                                />
+                                                <div className="mt-2 text-xs text-slate-700 dark:text-slate-300">
+                                                    <PolicyRichTextViewer content={sec.content} maxHeight="200px" showRawToggle={false} />
+                                                </div>
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         ) : previewTemplate.content ? (
-                            <div className="prose dark:prose-invert max-w-none text-sm border rounded-md p-4 bg-muted/20">
-                                <div dangerouslySetInnerHTML={{ __html: previewTemplate.content }} />
-                            </div>
+                            <PolicyRichTextViewer content={previewTemplate.content} maxHeight="450px" />
                         ) : (
-                            <div className="text-sm text-muted-foreground py-6 text-center">
+                            <div className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
                                 Standard template with default ISO/SOC 2 governance sections.
                             </div>
                         )}

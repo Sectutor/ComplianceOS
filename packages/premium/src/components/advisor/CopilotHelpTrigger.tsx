@@ -15,7 +15,7 @@ export function CopilotHelpTrigger() {
             variant="ghost"
             size="icon"
             onClick={handleHelpClick}
-            className="rounded-full text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+            className="rounded-full text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
             title="Get AI Assistance for this page"
         >
             <HelpCircle className="w-5 h-5" />

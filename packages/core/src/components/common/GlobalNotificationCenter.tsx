@@ -241,11 +241,11 @@ export const GlobalNotificationCenter: React.FC = () => {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative p-2 rounded-xl bg-card/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="relative p-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-xs"
         title="Notifications"
         aria-expanded={isOpen}
       >
-        <Bell className="w-4 h-4 text-primary" />
+        <Bell className="w-4 h-4 text-blue-600 dark:text-blue-400" />
         {totalUnreadCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground font-extrabold text-[9px] flex items-center justify-center animate-pulse shadow-sm">
             {totalUnreadCount > 9 ? "9+" : totalUnreadCount}

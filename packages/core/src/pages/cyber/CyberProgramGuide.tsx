@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
 import { Badge } from '@complianceos/ui/ui/badge';
@@ -7,12 +7,13 @@ import {
     CheckCircle2, Shield, ShieldCheck, ShieldAlert, Target, FileText, Zap, AlertTriangle,
     ArrowRight, BookOpen, ArrowLeft, Info, Calendar, Download,
     Sparkles, Copy, Layers, Clock, Globe, Lock, Activity, Server, Users, Award,
-    CalendarClock
+    CalendarClock, Compass
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useClientContext } from '@/contexts/ClientContext';
 import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
 import { getNis2Roadmap, getDoraRoadmap } from '@/data/frameworkRoadmaps';
 
@@ -75,9 +76,14 @@ External DevOps Consultancy,CI/CD Pipeline Mgmt,Tier 1 (Critical),Yes,SOC 2 Type
 CRM & Support SaaS,Customer Support Desk,Tier 2 (High),No,ISO 27001,Data Processing Addendum + Encryption,2025-08-12,Low
 `;
 
-export default function CyberProgramGuide() {
-    const params = useParams();
-    const clientId = parseInt(params.id || params.clientId || "0");
+export default function CyberProgramGuide(props?: { id?: string | number; clientId?: string | number }) {
+    const params = useParams<{ id?: string; clientId?: string }>();
+    const [location, setLocation] = useLocation();
+    const { selectedClientId } = useClientContext();
+    const urlMatch = location.match(/\/clients\/(\d+)/);
+    const idParam = props?.id || props?.clientId || params?.id || params?.clientId || (urlMatch ? urlMatch[1] : undefined);
+    const clientId = typeof idParam === "number" ? idParam : parseInt(idParam || "0", 10) || selectedClientId || 0;
+
     // Read optional ?tab= query parameter
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const tabParam = searchParams?.get('tab');
@@ -88,6 +94,95 @@ export default function CyberProgramGuide() {
     const initialFramework: 'nis2' | 'nist_csf' | 'dora' = typeof window !== 'undefined' && window.location.pathname.includes('/dora') ? 'dora' : 'nis2';
     const [selectedFramework, setSelectedFramework] = useState<'nis2' | 'nist_csf' | 'dora'>(initialFramework);
     const [selectedPillarId, setSelectedPillarId] = useState<string | null>(null);
+
+    // Track origin if user navigated from Start Here (persists in sessionStorage across reloads and tab switches)
+    const [returnToStartHere, setReturnToStartHere] = useState<string | null>(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const sp = new URLSearchParams(window.location.search);
+            const returnTo = sp.get('returnTo');
+            if (returnTo && returnTo.includes('/start-here')) {
+                const payload = JSON.stringify({ url: returnTo, timestamp: Date.now() });
+                sessionStorage.setItem(`cyber_start_here_origin_${clientId}`, payload);
+                return returnTo;
+            }
+            if (document.referrer && document.referrer.includes('/start-here')) {
+                const defaultUrl = `/clients/${clientId}/start-here`;
+                const payload = JSON.stringify({ url: defaultUrl, timestamp: Date.now() });
+                sessionStorage.setItem(`cyber_start_here_origin_${clientId}`, payload);
+                return defaultUrl;
+            }
+            const stored = sessionStorage.getItem(`cyber_start_here_origin_${clientId}`);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed?.url && parsed.url.includes('/start-here')) {
+                    return parsed.url;
+                }
+            }
+            const startHereStored = sessionStorage.getItem(`start_here_origin_${clientId}`);
+            if (startHereStored) {
+                const parsed = JSON.parse(startHereStored);
+                if (parsed?.url && parsed.url.includes('/start-here') && (Date.now() - (parsed.timestamp || 0)) < 2 * 60 * 60 * 1000) {
+                    sessionStorage.setItem(`cyber_start_here_origin_${clientId}`, JSON.stringify({
+                        url: parsed.url,
+                        timestamp: Date.now()
+                    }));
+                    return parsed.url;
+                }
+            }
+        } catch {}
+        return null;
+    });
+
+    // Keep origin synced if query parameter changes or is re-introduced
+    useEffect(() => {
+        try {
+            const sp = new URLSearchParams(window.location.search);
+            const returnTo = sp.get('returnTo');
+            if (returnTo && returnTo.includes('/start-here')) {
+                sessionStorage.setItem(`cyber_start_here_origin_${clientId}`, JSON.stringify({
+                    url: returnTo,
+                    timestamp: Date.now()
+                }));
+                setReturnToStartHere(returnTo);
+            }
+        } catch {}
+    }, [clientId]);
+
+    // Switch tabs while preserving query parameters and origin memory
+    const handleTabChange = (newTab: 'tutorials' | 'roadmap' | 'architecture' | 'auditor') => {
+        setActiveTab(newTab);
+        try {
+            const u = new URL(window.location.href);
+            u.searchParams.set('tab', newTab);
+            if (returnToStartHere) {
+                u.searchParams.set('returnTo', returnToStartHere);
+                u.searchParams.set('returnLabel', 'Start Here');
+            }
+            window.history.replaceState({}, '', u.toString());
+        } catch {}
+    };
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const sp = new URLSearchParams(window.location.search);
+            const currentTab = sp.get('tab');
+            if (currentTab && validTabs.includes(currentTab as any) && currentTab !== activeTab) {
+                setActiveTab(currentTab as any);
+            }
+        }
+    }, [location]);
+
+    // Return to Start Here and clean up session memory
+    const handleReturnToStartHere = () => {
+        try {
+            sessionStorage.removeItem(`cyber_start_here_origin_${clientId}`);
+            sessionStorage.removeItem(`start_here_origin_${clientId}`);
+        } catch {}
+        const target = returnToStartHere || `/clients/${clientId}/start-here`;
+        setReturnToStartHere(null);
+        setLocation(target);
+    };
 
     // Fetch live system telemetry
     const { data: controlsData } = trpc.clientControls.list.useQuery({ clientId }, { enabled: !!clientId });
@@ -300,6 +395,34 @@ export default function CyberProgramGuide() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-2 md:p-6">
+            {/* Return to Start Here Banner (if originated from Start Here) */}
+            {returnToStartHere && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border border-border p-4 rounded-2xl shadow-xs animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                            <Target className="w-4 h-4" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Launchpad Origin</span>
+                                <span className="text-[11px] text-muted-foreground">• Strategic Roadmaps</span>
+                            </div>
+                            <p className="text-xs text-foreground mt-0.5 font-medium">
+                                You navigated to this guide from the <strong>Start Here Command Center</strong>.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        size="sm"
+                        onClick={handleReturnToStartHere}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs gap-2 shrink-0 self-start sm:self-auto transition-all"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Start Here
+                    </Button>
+                </div>
+            )}
+
             {/* Hero Header */}
             <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
@@ -368,7 +491,7 @@ export default function CyberProgramGuide() {
             <div className="flex gap-2 border-b border-border pb-2">
                 <Button
                     variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
-                    onClick={() => setActiveTab('tutorials')}
+                    onClick={() => handleTabChange('tutorials')}
                     className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <BookOpen className="w-4 h-4 mr-2" />
@@ -376,7 +499,7 @@ export default function CyberProgramGuide() {
                 </Button>
                 <Button
                     variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
-                    onClick={() => setActiveTab('roadmap')}
+                    onClick={() => handleTabChange('roadmap')}
                     className={cn("font-bold rounded-xl", activeTab === 'roadmap' ? "bg-blue-600 text-white shadow-sm" : "text-muted-foreground")}
                 >
                     <CalendarClock className="w-4 h-4 mr-2" />
@@ -384,7 +507,7 @@ export default function CyberProgramGuide() {
                 </Button>
                 <Button
                     variant={activeTab === 'architecture' ? 'default' : 'ghost'}
-                    onClick={() => setActiveTab('architecture')}
+                    onClick={() => handleTabChange('architecture')}
                     className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <Layers className="w-4 h-4 mr-2" />
@@ -392,7 +515,7 @@ export default function CyberProgramGuide() {
                 </Button>
                 <Button
                     variant={activeTab === 'auditor' ? 'default' : 'ghost'}
-                    onClick={() => setActiveTab('auditor')}
+                    onClick={() => handleTabChange('auditor')}
                     className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                 >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -687,6 +810,33 @@ export default function CyberProgramGuide() {
             {/* TAB: 90-Day NIS2 / DORA Implementation Roadmap */}
             {activeTab === 'roadmap' && (
                 <div className="space-y-4">
+                    {returnToStartHere && (
+                        <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs animate-in fade-in duration-300">
+                            <div className="flex items-start sm:items-center gap-3.5">
+                                <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400 shrink-0 shadow-xs">
+                                    <Target className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                        Active 90-Day Roadmap Execution
+                                        <Badge variant="outline" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] py-0 px-2 font-bold">
+                                            Start Here Linked
+                                        </Badge>
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                                        Executing phased milestones for Cyber Resilience & NIS2. Complete individual tasks or return to Start Here anytime.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                onClick={handleReturnToStartHere}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 gap-2 self-start sm:self-auto transition-all"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                Return to Start Here
+                            </Button>
+                        </div>
+                    )}
                     <Framework90DayRoadmap
                         spec={selectedFramework === 'dora' ? getDoraRoadmap(clientId) : getNis2Roadmap(clientId)}
                         clientId={clientId}

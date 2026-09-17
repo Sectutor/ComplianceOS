@@ -1621,16 +1621,16 @@ function DashboardLayoutContent({
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <button
               onClick={() => setLocation('/agent?tab=sentinel')}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-all cursor-pointer text-xs font-bold shadow-xs shrink-0"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 transition-all cursor-pointer text-xs font-semibold shadow-xs shrink-0"
               title="Autonomous Sentinel AI Patrol Active"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <Bot className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span className="hidden md:inline font-semibold">AI Sentinel</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-200/80 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-200 font-extrabold">
+              <Bot className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="hidden md:inline font-semibold text-slate-800 dark:text-slate-100">AI Sentinel</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-bold">
                 Active
               </span>
             </button>
@@ -1803,7 +1803,7 @@ function CollapsibleGroup({
                         />
                         <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(translatedItemLabel, menuSearch)}</span>
                         {item.isPremium && (
-                          <Badge className="ml-auto bg-indigo-500/20 text-indigo-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
+                          <Badge className="ml-auto bg-blue-500/20 text-blue-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
                             Pro
                           </Badge>
                         )}

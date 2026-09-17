@@ -434,6 +434,187 @@ export const createIso27001Router = (t: any, clientProcedure: any, clientEditorP
                     policies: policyList,
                     generatedAt: new Date().toISOString()
                 };
+            }),
+
+        getContext: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: any) => {
+                const dbConn = await db.getDb();
+                const [client] = await dbConn.select().from(clients).where(eq(clients.id, input.clientId)).limit(1);
+
+                const { clientSettings: clientSettingsTable } = await import('../../schema_client_settings');
+                const [settings] = await dbConn.select().from(clientSettingsTable).where(eq(clientSettingsTable.clientId, input.clientId)).limit(1);
+
+                const custom = (settings?.customSettings as any) || {};
+                const saved = custom.isoContext || null;
+
+                const defaultScope = {
+                    orgUnit: client ? `All business operations, products, and engineering departments of ${client.name}.` : "The entirety of the organization including Engineering, Cloud Infrastructure, and Operations.",
+                    locations: "Cloud-hosted multi-region production infrastructure (AWS/GCP/Azure) with distributed remote/hybrid workforce.",
+                    technology: "Web applications, microservices architecture, managed relational databases, CI/CD automated deployment pipelines, and corporate cloud productivity platforms.",
+                    exclusions: "None. All controls of ISO/IEC 27001:2022 Annex A are evaluated within the Statement of Applicability (SoA)."
+                };
+
+                const defaultParties = [
+                    { id: 1, name: "Enterprise Customers & Platform Users", type: "External", requirements: "Data confidentiality, 99.9% uptime SLA, SOC 2 Type II / ISO 27001 compliance, GDPR compliance", priority: "Critical" },
+                    { id: 2, name: "Data Protection Authorities & Regulators", type: "External", requirements: "Compliance with GDPR / CCPA, mandatory breach notifications within 72h, Article 30 RoPA", priority: "Critical" },
+                    { id: 3, name: "Internal Employees & Contractors", type: "Internal", requirements: "Clear information security policies, annual security awareness training, secure remote workstations", priority: "High" },
+                    { id: 4, name: "Cloud Service & Infrastructure Providers", type: "External", requirements: "Shared responsibility model alignment, DPA, ISO 27001 / SOC 2 certification validation", priority: "High" },
+                    { id: 5, name: "Board of Directors & Executive Leadership", type: "Internal", requirements: "Continuous risk visibility, regulatory compliance assurance, business continuity governance", priority: "High" }
+                ];
+
+                const defaultIssues = [
+                    { id: 1, description: "Reliance on third-party cloud service providers (AWS, GitHub, Google Workspace)", context: "External", category: "Technology", impact: "Negative", priority: "High" },
+                    { id: 2, description: "Strict global privacy regulations and customer contractual audit requirements", context: "External", category: "Legal", impact: "Negative", priority: "High" },
+                    { id: 3, description: "Established DevSecOps culture with automated CI/CD security gating and scanning", context: "Internal", category: "Culture", impact: "Positive", priority: "Medium" },
+                    { id: 4, description: "Distributed remote workforce requiring robust endpoint encryption and Zero Trust access", context: "Internal", category: "Operations", impact: "Negative", priority: "High" },
+                    { id: 5, description: "Growing cyber threat landscape including phishing, credential theft, and supply chain vulnerabilities", context: "External", category: "Threats", impact: "Negative", priority: "Critical" }
+                ];
+
+                const defaultObjectives = [
+                    {
+                        id: 1,
+                        title: "Maintain Production Infrastructure Availability & SLA",
+                        category: "Availability & Resilience",
+                        targetMetric: "≥ 99.95% monthly uptime",
+                        currentValue: "99.98%",
+                        owner: "Head of Infrastructure / DevOps",
+                        frequency: "Monthly",
+                        evaluationMethod: "Synthetic uptime monitoring and cloud status dashboards",
+                        status: "On Track"
+                    },
+                    {
+                        id: 2,
+                        title: "Universal Security Awareness Training & Phishing Simulations",
+                        category: "Security Training & Awareness",
+                        targetMetric: "100% completion for all personnel within 30 days of joining & annually",
+                        currentValue: "96.5%",
+                        owner: "CISO / People Operations",
+                        frequency: "Quarterly",
+                        evaluationMethod: "LMS training records and automated phishing simulation test results",
+                        status: "On Track"
+                    },
+                    {
+                        id: 3,
+                        title: "Rapid Remediation of Critical Vulnerabilities (MTTR SLA)",
+                        category: "Vulnerability Management",
+                        targetMetric: "MTTR ≤ 14 days for Critical / CVSS 9.0+ CVEs",
+                        currentValue: "6.2 days MTTR",
+                        owner: "Security Engineering Lead",
+                        frequency: "Continuous",
+                        evaluationMethod: "Vulnerability scanning pipeline reports and issue tracker SLA logs",
+                        status: "Achieved"
+                    },
+                    {
+                        id: 4,
+                        title: "Zero Uncontained Confidential Data Breaches",
+                        category: "Incident Response & Detection",
+                        targetMetric: "0 uncontained data security incidents per calendar year",
+                        currentValue: "0 incidents",
+                        owner: "Security Operations Center (SOC)",
+                        frequency: "Annual",
+                        evaluationMethod: "SIEM incident logs and annual ISMS management review minutes",
+                        status: "Achieved"
+                    },
+                    {
+                        id: 5,
+                        title: "Verify Backup Integrity and Disaster Recovery Drills",
+                        category: "Disaster Recovery",
+                        targetMetric: "100% successful quarterly restoration drill with RTO < 4h, RPO < 1h",
+                        currentValue: "100% verified (Q1 drill)",
+                        owner: "Cloud Reliability Engineering",
+                        frequency: "Quarterly",
+                        evaluationMethod: "Quarterly automated database restore drill logs and DR validation reports",
+                        status: "On Track"
+                    }
+                ];
+
+                return {
+                    client: client ? {
+                        id: client.id,
+                        name: client.name,
+                        industry: client.industry || "Technology & Cloud Services",
+                        size: client.size || "10-100",
+                        primaryContactName: client.primaryContactName || "Information Security Manager"
+                    } : null,
+                    scope: saved?.scope || defaultScope,
+                    parties: saved?.parties && saved.parties.length > 0 ? saved.parties : defaultParties,
+                    issues: saved?.issues && saved.issues.length > 0 ? saved.issues : defaultIssues,
+                    objectives: saved?.objectives && saved.objectives.length > 0 ? saved.objectives : defaultObjectives,
+                    updatedAt: saved?.updatedAt || null
+                };
+            }),
+
+        saveContext: clientEditorProcedure
+            .input(z.object({
+                clientId: z.number(),
+                scope: z.object({
+                    orgUnit: z.string().optional(),
+                    locations: z.string().optional(),
+                    technology: z.string().optional(),
+                    exclusions: z.string().optional()
+                }),
+                parties: z.array(z.object({
+                    id: z.number(),
+                    name: z.string(),
+                    type: z.string(),
+                    requirements: z.string().optional(),
+                    priority: z.string().optional()
+                })),
+                issues: z.array(z.object({
+                    id: z.number(),
+                    description: z.string(),
+                    context: z.string(),
+                    category: z.string().optional(),
+                    impact: z.string().optional(),
+                    priority: z.string().optional()
+                })),
+                objectives: z.array(z.object({
+                    id: z.number(),
+                    title: z.string(),
+                    category: z.string().optional(),
+                    targetMetric: z.string().optional(),
+                    currentValue: z.string().optional(),
+                    owner: z.string().optional(),
+                    frequency: z.string().optional(),
+                    evaluationMethod: z.string().optional(),
+                    status: z.string().optional()
+                })).optional()
+            }))
+            .mutation(async ({ input }: any) => {
+                const dbConn = await db.getDb();
+                const { clientSettings: clientSettingsTable } = await import('../../schema_client_settings');
+                const [existing] = await dbConn.select().from(clientSettingsTable).where(eq(clientSettingsTable.clientId, input.clientId)).limit(1);
+
+                const isoContextData = {
+                    scope: input.scope,
+                    parties: input.parties,
+                    issues: input.issues,
+                    objectives: input.objectives || [],
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (existing) {
+                    const currentCustom = (existing.customSettings as any) || {};
+                    await dbConn.update(clientSettingsTable)
+                        .set({
+                            customSettings: {
+                                ...currentCustom,
+                                isoContext: isoContextData
+                            },
+                            updatedAt: new Date()
+                        })
+                        .where(eq(clientSettingsTable.clientId, input.clientId));
+                } else {
+                    await dbConn.insert(clientSettingsTable).values({
+                        clientId: input.clientId,
+                        customSettings: {
+                            isoContext: isoContextData
+                        }
+                    });
+                }
+
+                return { success: true, savedAt: isoContextData.updatedAt };
             })
     });
 };

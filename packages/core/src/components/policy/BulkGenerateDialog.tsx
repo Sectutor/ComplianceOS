@@ -35,6 +35,7 @@ import {
     FrameworkSuite,
     FrameworkPolicyDefinition
 } from "@/data/frameworkPolicySuites";
+import { PolicyRichTextViewer } from "./PolicyRichTextViewer";
 
 export interface BulkGenerateDialogProps {
     open: boolean;
@@ -429,10 +430,10 @@ export function BulkGenerateDialog({
                     </div>
 
                     {/* Tailoring & Custom Directives Box */}
-                    <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-3">
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xs space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <Label className="text-xs font-bold">Organization Entity Name</Label>
+                                <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Organization Entity Name</Label>
                                 <Input
                                     value={companyName}
                                     onChange={(e) => setCompanyName(e.target.value)}
@@ -442,7 +443,7 @@ export function BulkGenerateDialog({
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-3 pt-4 sm:pt-6">
                                 <div className="space-y-0.5 text-right">
-                                    <Label className="text-xs font-bold cursor-pointer" htmlFor="tailor-switch">
+                                    <Label className="text-xs font-bold cursor-pointer text-slate-900 dark:text-slate-100" htmlFor="tailor-switch">
                                         Tailor to Industry
                                     </Label>
                                     <p className="text-[10px] text-muted-foreground">
@@ -457,7 +458,7 @@ export function BulkGenerateDialog({
                             </div>
                         </div>
                         <div className="space-y-1 pt-1">
-                            <Label className="text-xs font-semibold text-muted-foreground">
+                            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                                 Optional Custom Directives / Cloud Scope (appended to all generated policies)
                             </Label>
                             <Input
@@ -600,24 +601,25 @@ export function BulkGenerateDialog({
                             </div>
                         }
                     >
-                        <div className="space-y-3">
-                            <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/60 text-xs">
-                                <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                <span className="text-blue-950 dark:text-blue-200 font-semibold">
-                                    Mandated Controls:
-                                </span>
+                        <div className="space-y-3.5">
+                            <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 text-xs shadow-xs">
+                                <div className="flex items-center gap-1.5 text-blue-900 dark:text-blue-200 font-bold shrink-0">
+                                    <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                    <span>Mandated Controls:</span>
+                                </div>
                                 <div className="flex flex-wrap gap-1.5">
                                     {previewPolicy.keyControls.map((ctrl, i) => (
-                                        <Badge key={i} variant="secondary" className="text-[10px] font-normal bg-white/90 dark:bg-slate-900/90 border-border shadow-xs">
+                                        <span
+                                            key={i}
+                                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-blue-200 dark:border-blue-800/70 shadow-2xs"
+                                        >
                                             {ctrl}
-                                        </Badge>
+                                        </span>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="p-4 rounded-xl border border-border bg-muted/20 font-mono text-xs whitespace-pre-wrap max-h-[520px] overflow-y-auto leading-relaxed text-foreground select-text selection:bg-blue-200 dark:selection:bg-blue-900 shadow-inner">
-                                {content}
-                            </div>
+                            <PolicyRichTextViewer content={content} maxHeight="520px" />
                         </div>
                     </EnhancedDialog>
                 );

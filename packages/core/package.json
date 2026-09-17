@@ -104,6 +104,7 @@
     "react-quill-new": "^3.8.3",
     "react-resizable-panels": "^2.0.16",
     "recharts": "^2.12.3",
+    "remark-gfm": "^4.0.1",
     "serverless-http": "^4.0.0",
     "sonner": "^1.4.41",
     "stripe": "^20.1.0",

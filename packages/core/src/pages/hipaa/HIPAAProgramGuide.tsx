@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
@@ -14,14 +14,23 @@ import { trpc } from '@/lib/trpc';
 import { Progress } from '@complianceos/ui/ui/progress';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useClientContext } from '@/contexts/ClientContext';
 import { Framework90DayRoadmap } from '@/components/roadmap/Framework90DayRoadmap';
 import { getHipaaRoadmap } from '@/data/frameworkRoadmaps';
 import { FrameworkDocumentTracker } from '@/components/documents/FrameworkDocumentTracker';
 
-export default function HIPAAProgramGuide() {
-    const params = useParams();
-    const clientId = parseInt(params.id || params.clientId || "0", 10);
-    const [, setLocation] = useLocation();
+interface HIPAAProgramGuideProps {
+    id?: string | number;
+    clientId?: string | number;
+}
+
+export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
+    const params = useParams<{ id?: string; clientId?: string }>();
+    const [location, setLocation] = useLocation();
+    const { selectedClientId } = useClientContext();
+    const urlMatch = location.match(/\/clients\/(\d+)/);
+    const idParam = props?.id || props?.clientId || params?.id || params?.clientId || (urlMatch ? urlMatch[1] : undefined);
+    const clientId = typeof idParam === "number" ? idParam : parseInt(idParam || "0", 10) || selectedClientId || 0;
 
     // Read ?tab= query parameter
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -30,6 +39,93 @@ export default function HIPAAProgramGuide() {
     const initialTab = validTabs.includes(tabParam as any) ? (tabParam as any) : 'tutorials';
 
     const [activeTab, setActiveTab] = useState<'tutorials' | 'roadmap' | 'documents' | 'architecture' | 'auditor'>(initialTab);
+
+    // Track origin if user navigated from Start Here
+    const [returnToStartHere, setReturnToStartHere] = useState<string | null>(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const sp = new URLSearchParams(window.location.search);
+            const returnTo = sp.get('returnTo');
+            if (returnTo && returnTo.includes('/start-here')) {
+                const payload = JSON.stringify({ url: returnTo, timestamp: Date.now() });
+                sessionStorage.setItem(`hipaa_start_here_origin_${clientId}`, payload);
+                return returnTo;
+            }
+            if (document.referrer && document.referrer.includes('/start-here')) {
+                const defaultUrl = `/clients/${clientId}/start-here`;
+                const payload = JSON.stringify({ url: defaultUrl, timestamp: Date.now() });
+                sessionStorage.setItem(`hipaa_start_here_origin_${clientId}`, payload);
+                return defaultUrl;
+            }
+            const stored = sessionStorage.getItem(`hipaa_start_here_origin_${clientId}`);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed?.url && parsed.url.includes('/start-here')) {
+                    return parsed.url;
+                }
+            }
+            const startHereStored = sessionStorage.getItem(`start_here_origin_${clientId}`);
+            if (startHereStored) {
+                const parsed = JSON.parse(startHereStored);
+                if (parsed?.url && parsed.url.includes('/start-here') && (Date.now() - (parsed.timestamp || 0)) < 2 * 60 * 60 * 1000) {
+                    sessionStorage.setItem(`hipaa_start_here_origin_${clientId}`, JSON.stringify({
+                        url: parsed.url,
+                        timestamp: Date.now()
+                    }));
+                    return parsed.url;
+                }
+            }
+        } catch {}
+        return null;
+    });
+
+    // Keep origin synced if query parameter changes or is re-introduced
+    useEffect(() => {
+        try {
+            const sp = new URLSearchParams(window.location.search);
+            const returnTo = sp.get('returnTo');
+            if (returnTo && returnTo.includes('/start-here') && clientId > 0) {
+                sessionStorage.setItem(`hipaa_start_here_origin_${clientId}`, JSON.stringify({
+                    url: returnTo,
+                    timestamp: Date.now()
+                }));
+                setReturnToStartHere(returnTo);
+            }
+        } catch {}
+    }, [clientId, location]);
+
+    const handleTabChange = (newTab: 'tutorials' | 'roadmap' | 'documents' | 'architecture' | 'auditor') => {
+        setActiveTab(newTab);
+        try {
+            const u = new URL(window.location.href);
+            u.searchParams.set('tab', newTab);
+            if (returnToStartHere) {
+                u.searchParams.set('returnTo', returnToStartHere);
+                u.searchParams.set('returnLabel', 'Start Here');
+            }
+            window.history.replaceState({}, '', u.toString());
+        } catch {}
+    };
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const sp = new URLSearchParams(window.location.search);
+            const currentTab = sp.get('tab');
+            if (currentTab && validTabs.includes(currentTab as any) && currentTab !== activeTab) {
+                setActiveTab(currentTab as any);
+            }
+        }
+    }, [location]);
+
+    const handleReturnToStartHere = () => {
+        try {
+            sessionStorage.removeItem(`hipaa_start_here_origin_${clientId}`);
+            sessionStorage.removeItem(`start_here_origin_${clientId}`);
+        } catch {}
+        const target = returnToStartHere || `/clients/${clientId}/start-here`;
+        setReturnToStartHere(null);
+        setLocation(target);
+    };
 
     // Fetch real system telemetry
     const { data: clientPolicies } = trpc.clientPolicies.list.useQuery({ clientId }, { enabled: !!clientId });
@@ -149,12 +245,20 @@ export default function HIPAAProgramGuide() {
                 {/* Header Breadcrumb & Back */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
                     <div className="flex items-center gap-3">
-                        <Link href={`/clients/${clientId}/start-here`}>
-                            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-slate-600 dark:text-slate-300">
-                                <ArrowLeft className="w-4 h-4" />
-                                Back to Start Here
-                            </Button>
-                        </Link>
+                        <Button
+                            variant={returnToStartHere ? "outline" : "ghost"}
+                            size="sm"
+                            onClick={handleReturnToStartHere}
+                            className={cn(
+                                "h-8 gap-1.5 font-bold text-xs transition-colors",
+                                returnToStartHere
+                                    ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
+                                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
+                            )}
+                        >
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                            Back to Start Here
+                        </Button>
                         <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                             HIPAA Security & Privacy Rule Program Guide
@@ -170,6 +274,38 @@ export default function HIPAAProgramGuide() {
                         </Link>
                     </div>
                 </div>
+
+                {/* Start Here Return Banner */}
+                {returnToStartHere && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                                <Sparkles className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                        Strategic Roadmap Workflow Active
+                                    </span>
+                                    <Badge className="bg-emerald-600/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                                        Origin Saved
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-foreground mt-0.5 font-medium">
+                                    You navigated to this guide from the <strong>Start Here Command Center</strong>.
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            size="sm"
+                            onClick={handleReturnToStartHere}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs gap-2 shrink-0 self-start sm:self-auto transition-all"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back to Start Here
+                        </Button>
+                    </div>
+                )}
 
                 {/* Hero Banner */}
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 p-6 md:p-8 text-white shadow-xl">
@@ -204,6 +340,15 @@ export default function HIPAAProgramGuide() {
                                 <div>Workforce: <strong className="text-white">{safeEmployees.length}</strong></div>
                                 <div>BAA Vendors: <strong className="text-white">{safeVendors.length}</strong></div>
                             </div>
+                            <Button
+                                size="sm"
+                                onClick={() => handleTabChange('roadmap')}
+                                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs mt-2 rounded-lg h-8 gap-1.5 shadow"
+                            >
+                                <CalendarClock className="w-3.5 h-3.5" />
+                                Continue 90-Day Roadmap
+                                <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -213,7 +358,7 @@ export default function HIPAAProgramGuide() {
                     <Button
                         variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setActiveTab('tutorials')}
+                        onClick={() => handleTabChange('tutorials')}
                         className={cn("font-bold text-xs rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
                     >
                         <BookOpen className="w-4 h-4 mr-1.5" />
@@ -222,7 +367,7 @@ export default function HIPAAProgramGuide() {
                     <Button
                         variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setActiveTab('roadmap')}
+                        onClick={() => handleTabChange('roadmap')}
                         className={cn("font-bold text-xs rounded-xl", activeTab === 'roadmap' ? "bg-cyan-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
                     >
                         <CalendarClock className="w-4 h-4 mr-1.5" />
@@ -313,6 +458,23 @@ export default function HIPAAProgramGuide() {
                 {/* TAB 2: 90-Day Roadmap */}
                 {activeTab === 'roadmap' && (
                     <div className="space-y-4">
+                        {returnToStartHere && (
+                            <div className="flex items-center justify-between bg-card border border-border p-3.5 rounded-2xl shadow-xs">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Target className="w-4 h-4 text-emerald-600" />
+                                    <span>Active 90-Day Roadmap Execution Mode</span>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleReturnToStartHere}
+                                    className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold text-xs h-8 gap-1.5"
+                                >
+                                    <ArrowLeft className="w-3.5 h-3.5" />
+                                    Back to Start Here
+                                </Button>
+                            </div>
+                        )}
                         <Framework90DayRoadmap
                             spec={getHipaaRoadmap(clientId)}
                             clientId={clientId}

@@ -242,13 +242,42 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 sspId: z.number().optional(),
                 title: z.string(),
                 assessorName: z.string().optional(),
+                systemAcronym: z.string().optional(),
+                systemIdentification: z.string().optional(),
+                systemType: z.string().optional(),
+                version: z.string().optional(),
+                agency: z.string().optional(),
+                assessmentCompletionDate: z.union([z.string(), z.date(), z.null()]).optional().nullable(),
+                systemOwnerId: z.number().optional(),
+                confidentiality: z.string().optional(),
+                integrity: z.string().optional(),
+                availability: z.string().optional(),
+                impact: z.string().optional(),
+                packageType: z.string().optional(),
+                executiveSummary: z.string().optional(),
+                summaryOfFindings: z.string().optional(),
+                riskExecutiveSummary: z.string().optional(),
             }))
             .mutation(async ({ input }: any) => {
                 const dbConn = await getDb();
-                const [sar] = await dbConn.insert(schema.federalSARs).values({
+                const parseDate = (d?: string | Date | null) => {
+                    if (d instanceof Date) return d;
+                    if (typeof d === 'string' && d.trim().length > 0) {
+                        const parsed = new Date(d);
+                        return isNaN(parsed.getTime()) ? null : parsed;
+                    }
+                    return null;
+                };
+
+                const insertData: any = {
                     ...input,
                     status: 'draft',
-                }).returning();
+                };
+                if ('assessmentCompletionDate' in input) {
+                    insertData.assessmentCompletionDate = parseDate(input.assessmentCompletionDate);
+                }
+
+                const [sar] = await dbConn.insert(schema.federalSARs).values(insertData).returning();
                 return sar;
             }),
 

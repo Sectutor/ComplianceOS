@@ -439,7 +439,7 @@ export default function StartHere() {
             // Route to dedicated comprehensive program guide
             const matchedTemplate = templates.find(t => t.id === startedId);
             if (matchedTemplate?.programGuideUrl) {
-                setLocation(`/clients/${clientId}${matchedTemplate.programGuideUrl}`);
+                setLocation(withStartHereOrigin(`/clients/${clientId}${matchedTemplate.programGuideUrl}`));
             } else {
                 const destination = getDestinationForRoadmap(res.roadmap);
                 setLocation(destination);
@@ -463,49 +463,65 @@ export default function StartHere() {
         }
     };
 
+    // Helper to append returnTo and store origin when navigating out from Start Here
+    const withStartHereOrigin = (url: string) => {
+        try {
+            const originPayload = JSON.stringify({
+                url: `/clients/${clientId}/start-here`,
+                timestamp: Date.now()
+            });
+            sessionStorage.setItem(`start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`cyber_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`iso27001_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`bcp_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`soc2_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`hipaa_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`federal_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`risk_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`tprm_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`vendor_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`privacy_start_here_origin_${clientId}`, originPayload);
+            sessionStorage.setItem(`governance_start_here_origin_${clientId}`, originPayload);
+        } catch {}
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}returnTo=${encodeURIComponent(`/clients/${clientId}/start-here`)}&returnLabel=${encodeURIComponent('Start Here')}`;
+    };
+
     // Route active roadmaps to comprehensive program guides when available
     const getDestinationForRoadmap = (r: any) => {
         if (!r) return `/clients/${clientId}/start-here`;
         const titleLower = (r.title || '').toLowerCase();
         const frameworkLower = (r.framework || '').toLowerCase();
         
+        let destination = `/clients/${clientId}/roadmap/${r.id}`;
         if (titleLower.includes('iso 27001') || frameworkLower.includes('iso 27001') || frameworkLower.includes('iso')) {
-            return `/clients/${clientId}/iso27001/program-guide?tab=roadmap`;
+            destination = `/clients/${clientId}/iso27001/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('nis2') || frameworkLower.includes('nis2') || titleLower.includes('cyber resilience')) {
+            destination = `/clients/${clientId}/cyber/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('privacy') || frameworkLower.includes('gdpr') || titleLower.includes('gdpr')) {
+            destination = `/clients/${clientId}/privacy/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('continuity') || frameworkLower.includes('bcp') || frameworkLower.includes('22301') || titleLower.includes('business continuity')) {
+            destination = `/clients/${clientId}/business-continuity/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('vendor') || frameworkLower.includes('tprm') || titleLower.includes('third-party')) {
+            destination = `/clients/${clientId}/vendors/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('soc 2') || frameworkLower.includes('soc 2') || titleLower.includes('soc2')) {
+            destination = `/clients/${clientId}/soc2/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('cmmc') || frameworkLower.includes('cmmc') || titleLower.includes('defense') || frameworkLower.includes('federal')) {
+            destination = `/clients/${clientId}/federal/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('hipaa') || frameworkLower.includes('hipaa')) {
+            destination = `/clients/${clientId}/hipaa/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('risk') || frameworkLower.includes('31000') || frameworkLower.includes('rmf')) {
+            destination = `/clients/${clientId}/risks/program-guide?tab=roadmap`;
+        } else if (titleLower.includes('incident') || titleLower.includes('csirt')) {
+            destination = `/clients/${clientId}/cyber/incidents`;
         }
-        if (titleLower.includes('nis2') || frameworkLower.includes('nis2') || titleLower.includes('cyber resilience')) {
-            return `/clients/${clientId}/cyber/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('privacy') || frameworkLower.includes('gdpr') || titleLower.includes('gdpr')) {
-            return `/clients/${clientId}/privacy/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('continuity') || frameworkLower.includes('bcp') || frameworkLower.includes('22301') || titleLower.includes('business continuity')) {
-            return `/clients/${clientId}/business-continuity/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('vendor') || frameworkLower.includes('tprm') || titleLower.includes('third-party')) {
-            return `/clients/${clientId}/vendors/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('soc 2') || frameworkLower.includes('soc 2') || titleLower.includes('soc2')) {
-            return `/clients/${clientId}/soc2/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('cmmc') || frameworkLower.includes('cmmc') || titleLower.includes('defense') || frameworkLower.includes('federal')) {
-            return `/clients/${clientId}/federal/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('hipaa') || frameworkLower.includes('hipaa')) {
-            return `/clients/${clientId}/hipaa/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('risk') || frameworkLower.includes('31000') || frameworkLower.includes('rmf')) {
-            return `/clients/${clientId}/risks/program-guide?tab=roadmap`;
-        }
-        if (titleLower.includes('incident') || titleLower.includes('csirt')) {
-            return `/clients/${clientId}/cyber/incidents`;
-        }
-        return `/clients/${clientId}/roadmap/${r.id}`;
+        return withStartHereOrigin(destination);
     };
 
     // Route catalog templates to comprehensive program guides
     const getDestinationForTemplate = (template: any, activeRoadmap?: any) => {
         if (template.programGuideUrl) {
-            return `/clients/${clientId}${template.programGuideUrl}`;
+            return withStartHereOrigin(`/clients/${clientId}${template.programGuideUrl}`);
         }
         return getDestinationForRoadmap({
             title: template.title,
@@ -517,7 +533,7 @@ export default function StartHere() {
     const handleNavigateStep = (stepLink: string) => {
         // Resolve client placeholder
         const resolved = stepLink.replace('/clients/select', `/clients/${clientId}`);
-        setLocation(resolved);
+        setLocation(withStartHereOrigin(resolved));
     };
 
     const handleSwitchClient = (newId: number) => {

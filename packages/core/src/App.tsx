@@ -848,67 +848,67 @@ function Router() {
           <ProtectedRoute component={GovernanceAlignmentPage} />
         </Route>
         <Route path="/clients/:id/governance/guide">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/governance/program-guide">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceProgramGuide} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/program-guide">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={FederalProgramGuide} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/federal/documents">
-          {(_params) => <UnifiedClientGuard requirePremium><Redirect to={`/clients/${_params.id}/federal/program-guide?tab=documents`} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><Redirect to={`/clients/${params.id}/federal/program-guide?tab=documents`} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/risks/program-guide">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={RiskProgramGuide} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={RiskProgramGuide} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/vendors/program-guide">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={VendorProgramGuide} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={VendorProgramGuide} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/privacy">
-          {(_params) => (
+          {(params) => (
             <UnifiedClientGuard requirePremium>
-              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
-                <PrivacyProgramGuide />
+              <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
+                <PrivacyProgramGuide {...params} />
               </PrivacyLayout>
             </UnifiedClientGuard>
           )}
         </Route>
         <Route path="/clients/:id/gdpr">
-          {(_params) => (
+          {(params) => (
             <UnifiedClientGuard requirePremium>
-              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
-                <PrivacyProgramGuide />
+              <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
+                <PrivacyProgramGuide {...params} />
               </PrivacyLayout>
             </UnifiedClientGuard>
           )}
         </Route>
         <Route path="/clients/:id/privacy/guide">
-          {(_params) => (
+          {(params) => (
             <UnifiedClientGuard requirePremium>
-              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
-                <PrivacyProgramGuide />
+              <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
+                <PrivacyProgramGuide {...params} />
               </PrivacyLayout>
             </UnifiedClientGuard>
           )}
         </Route>
         <Route path="/clients/:id/privacy/program-guide">
-          {(_params) => (
+          {(params) => (
             <UnifiedClientGuard requirePremium>
-              <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
-                <PrivacyProgramGuide />
+              <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
+                <PrivacyProgramGuide {...params} />
               </PrivacyLayout>
             </UnifiedClientGuard>
           )}
         </Route>
         <Route path="/clients/:id/business-continuity/program-guide">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={BCPProgramGuide} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={BCPProgramGuide} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/governance">
-          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} /></UnifiedClientGuard>}
+          {(params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} {...params} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:clientId/training/management">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={TrainingManagement} /></UnifiedClientGuard>}
@@ -966,7 +966,7 @@ function Router() {
           <ProtectedRoute component={FrameworkStudio} />
         </Route>
         <Route path="/clients/:id/policies">
-          {(_params) => <ProtectedRoute component={ClientPoliciesPage} />}
+          {(params) => <ProtectedRoute component={ClientPoliciesPage} {...params} />}
         </Route>
         <Route path="/clients/:id/policies/:policyId">
           {(params) => <ProtectedRoute component={PolicyEditor} {...params} />}
@@ -1044,28 +1044,28 @@ function Router() {
         </Route>
 
         <Route path="/clients/:id/compliance-journey">
-          {(_params) => <ProtectedRoute component={ComplianceJourneyDashboard} />}
+          {(params) => <ProtectedRoute component={ComplianceJourneyDashboard} {...params} />}
         </Route>
         <Route path="/clients/:id/soc2/program-guide">
-          {(_params) => <ProtectedRoute component={SOC2ProgramGuide} />}
+          {(params) => <ProtectedRoute component={SOC2ProgramGuide} {...params} />}
         </Route>
         <Route path="/clients/:id/soc2/documents">
-          {(_params) => <Redirect to={`/clients/${_params.id}/soc2/program-guide?tab=documents`} />}
+          {(params) => <Redirect to={`/clients/${params.id}/soc2/program-guide?tab=documents`} />}
         </Route>
         <Route path="/clients/:id/soc2/system-description">
-          {(_params) => <Redirect to={`/clients/${_params.id}/soc2/program-guide?tab=system-description`} />}
+          {(params) => <Redirect to={`/clients/${params.id}/soc2/program-guide?tab=system-description`} />}
         </Route>
         <Route path="/clients/:id/readiness/wizard/:standardId?">
-          {(_params) => <ProtectedRoute component={ReadinessWizardPage} />}
+          {(params) => <ProtectedRoute component={ReadinessWizardPage} {...params} />}
         </Route>
         <Route path="/clients/:id/hipaa/program-guide">
-          {(_params) => <ProtectedRoute component={HIPAAProgramGuide} />}
+          {(params) => <ProtectedRoute component={HIPAAProgramGuide} {...params} />}
         </Route>
         <Route path="/clients/:id/hipaa/documents">
-          {(_params) => <Redirect to={`/clients/${_params.id}/hipaa/program-guide?tab=documents`} />}
+          {(params) => <Redirect to={`/clients/${params.id}/hipaa/program-guide?tab=documents`} />}
         </Route>
         <Route path="/clients/:id/start-here">
-          {(_params) => <ProtectedRoute component={StartHere} />}
+          {(params) => <ProtectedRoute component={StartHere} {...params} />}
         </Route>
         <Route path="/clients/:id/roadmap">
           {(_params) => <Redirect to={`/clients/${_params.id}/start-here`} />}
@@ -1473,10 +1473,10 @@ function Router() {
           )}
         </Route>
         <Route path="/clients/:id/ai-governance">
-          {(_params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernance /></PremiumGuard>} />}
+          {(params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernance {...params} /></PremiumGuard>} />}
         </Route>
         <Route path="/clients/:id/ai-governance/program-guide">
-          {(_params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernanceProgramGuide /></PremiumGuard>} />}
+          {(params) => <ProtectedRoute component={() => <PremiumGuard><AIGovernanceProgramGuide {...params} /></PremiumGuard>} />}
         </Route>
 
         {/* TPRM Subroute Safeguards (prevent param capture by :vendorId) */}
@@ -1732,16 +1732,16 @@ function Router() {
           )}
         </Route>
         <Route path="/clients/:id/privacy/guide">
-          {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
-              <PrivacyProgramGuide />
+          {(params) => (
+            <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
+              <PrivacyProgramGuide {...params} />
             </PrivacyLayout>
           )}
         </Route>
         <Route path="/clients/:id/privacy/program-guide">
-          {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
-              <PrivacyProgramGuide />
+          {(params) => (
+            <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
+              <PrivacyProgramGuide {...params} />
             </PrivacyLayout>
           )}
         </Route>
@@ -1856,16 +1856,16 @@ function Router() {
 
         {/* Cyber Resilience Routes */}
         <Route path="/clients/:id/cyber/guide">
-          {(_params) => (
+          {(params) => (
             <CyberLayout fullWidth>
-              <CyberProgramGuide />
+              <CyberProgramGuide {...params} />
             </CyberLayout>
           )}
         </Route>
         <Route path="/clients/:id/cyber/program-guide">
-          {(_params) => (
+          {(params) => (
             <CyberLayout fullWidth>
-              <CyberProgramGuide />
+              <CyberProgramGuide {...params} />
             </CyberLayout>
           )}
         </Route>
@@ -1979,22 +1979,19 @@ function Router() {
           )}
         </Route>
         <Route path="/clients/:id/iso27001/governance">
-          {(_params) => <ProtectedRoute component={ISOContext} />}
+          {(params) => <ProtectedRoute component={ISOContext} {...params} />}
         </Route>
         <Route path="/clients/:id/iso27001/management-review">
-          {(_params) => <ProtectedRoute component={ISOManagementReview} />}
+          {(params) => <ProtectedRoute component={ISOManagementReview} {...params} />}
         </Route>
         <Route path="/clients/:id/iso27001/documents">
-          {(_params) => <ProtectedRoute component={ISODocumentTracker} />}
-        </Route>
-        <Route path="/clients/:id/iso27001">
-          {(_params) => <ProtectedRoute component={ISOProgramGuide} />}
+          {(params) => <ProtectedRoute component={ISODocumentTracker} {...params} />}
         </Route>
         <Route path="/clients/:id/iso27001/guide">
-          {(_params) => <ProtectedRoute component={ISOProgramGuide} />}
+          {(params) => <ProtectedRoute component={ISOProgramGuide} {...params} />}
         </Route>
         <Route path="/clients/:id/iso27001/program-guide">
-          {(_params) => <ProtectedRoute component={ISOProgramGuide} />}
+          {(params) => <ProtectedRoute component={ISOProgramGuide} {...params} />}
         </Route>
         <Route path="/clients/:id/audit-manager">
           {(params) => (
