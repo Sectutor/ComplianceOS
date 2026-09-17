@@ -8,14 +8,16 @@
 # Or with options:
 #   curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash -s -- -p 3002
 # =============================================================================
-set -euo pipefail
+set -e
+set -u
+set -o pipefail 2>/dev/null || true
 
 PORT="${PORT:-3002}"
 TARGET_DIR="${TARGET_DIR:-${HOME}/complianceos}"
 COMPOSE_FILE_URL="https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/docker-compose.selfhost.yml"
 
 # Parse optional arguments
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
   case "$1" in
     -p|--port) PORT="$2"; shift 2 ;;
     -d|--dir)  TARGET_DIR="$2"; shift 2 ;;
