@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Check, Copy, Terminal, Code2, AlertCircle, Info, ShieldAlert } from "lucide-react";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Button } from "@complianceos/ui/ui/button";
@@ -17,6 +18,7 @@ export function RichMarkdownMessage({ content, isUser = false }: RichMarkdownMes
   return (
     <div className="rich-agent-message text-xs leading-relaxed space-y-2 text-foreground break-words">
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           // Headings
           h1: ({ node, ...props }) => (

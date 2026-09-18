@@ -57,6 +57,15 @@ function renderInlineMarkdown(text: string, baseKey: number): React.ReactNode[] 
       return null;
     }
 
+    // Check for markdown table
+    const tableLines = para.split('\n').filter((l) => l.trim());
+    if (tableLines.length >= 2 && tableLines.every((l) => /^\s*\|/.test(l) && /\|\s*$/.test(l))) {
+      const sepLine = tableLines[1];
+      if (/^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(sepLine)) {
+        return <div key={key} className="table-wrap">{renderTable(tableLines, key)}</div>;
+      }
+    }
+
     // Check for list items
     const listLines = para.split('\n');
     if (
@@ -104,6 +113,61 @@ function renderInlineMarkdown(text: string, baseKey: number): React.ReactNode[] 
 
     return <p key={key}>{inlineElements}</p>;
   });
+}
+
+function renderTable(lines: string[], baseKey: string): React.ReactNode {
+  const parseRow = (row: string): string[] =>
+    row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1).map((c) => c.trim());
+
+  const header = parseRow(lines[0]);
+  const body = lines.slice(2).map(parseRow);
+
+  const cellStyle: React.CSSProperties = {
+    padding: '8px 12px',
+    textAlign: 'left',
+    borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+    fontSize: '13px',
+    lineHeight: 1.4,
+  };
+
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', margin: '6px 0', fontSize: '13px' }}>
+      <thead>
+        <tr>
+          {header.map((h, i) => (
+            <th
+              key={`${baseKey}-h-${i}`}
+              style={{
+                ...cellStyle,
+                fontWeight: 700,
+                color: 'var(--primary, #3b82f6)',
+                borderBottom: '2px solid rgba(148, 163, 184, 0.35)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                fontSize: '11px',
+              }}
+            >
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {body.map((row, rIdx) => (
+          <tr key={`${baseKey}-r-${rIdx}`} style={{ background: rIdx % 2 === 0 ? 'rgba(148,163,184,0.04)' : 'transparent' }}>
+            {row.map((cell, cIdx) => (
+              <td
+                key={`${baseKey}-c-${rIdx}-${cIdx}`}
+                style={{ ...cellStyle, color: 'inherit' }}
+              >
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }
 
 function renderInlineFormatting(
