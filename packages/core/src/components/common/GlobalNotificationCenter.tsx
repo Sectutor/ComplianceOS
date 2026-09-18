@@ -241,7 +241,7 @@ export const GlobalNotificationCenter: React.FC = () => {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative p-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-xs"
+        className="relative p-2 rounded-xl bg-background hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-xs"
         title="Notifications"
         aria-expanded={isOpen}
       >
@@ -301,7 +301,7 @@ export const GlobalNotificationCenter: React.FC = () => {
                 <div
                   key={n.id}
                   onClick={() => handleNotificationClick(n)}
-                  className={`group p-3 rounded-xl border text-xs space-y-1.5 relative transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  className={`group p-3.5 rounded-xl border text-sm space-y-1.5 relative transition-all cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     n.isRead
                       ? "bg-card/60 border-border hover:bg-accent opacity-75 hover:opacity-100"
                       : "bg-primary/5 border-primary/30 hover:bg-primary/10 hover:border-primary/50 text-foreground"
@@ -315,21 +315,21 @@ export const GlobalNotificationCenter: React.FC = () => {
                     }
                   }}
                 >
-                  <div className="flex items-center justify-between font-semibold">
-                    <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                  <div className="flex items-center justify-between font-bold">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
                       {getNotificationIcon(n.type)}
-                      <span className="truncate group-hover:text-primary transition-colors">
+                      <span className="truncate group-hover:text-primary transition-colors text-sm font-bold">
                         {n.title}
                       </span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground/70 shrink-0">{n.timestamp}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{n.timestamp}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2">
                     {n.message}
                   </p>
-                  <div className="flex items-center justify-between pt-1 border-t border-border/60 mt-1">
-                    <span className="text-[10px] text-primary/80 group-hover:text-primary flex items-center gap-1 font-medium transition-colors">
-                      <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <div className="flex items-center justify-between pt-1.5 border-t border-border/60 mt-1">
+                    <span className="text-xs text-primary/90 group-hover:text-primary flex items-center gap-1.5 font-semibold transition-colors">
+                      <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                       {n.sourceLabel ? `Open ${n.sourceLabel}` : "Open source"}
                     </span>
                     {!n.isDb && (
@@ -341,7 +341,7 @@ export const GlobalNotificationCenter: React.FC = () => {
                         className="text-muted-foreground/50 hover:text-destructive p-1 -m-1 rounded transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         title="Dismiss notification"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>

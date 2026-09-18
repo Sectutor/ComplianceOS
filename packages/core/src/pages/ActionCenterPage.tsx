@@ -427,14 +427,14 @@ export default function ActionCenterPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
                 activeTab === tab.key
                   ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
                   : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60"
               }`}
             >
               {tab.label}
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+              <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
                 activeTab === tab.key 
                   ? "bg-white/20 text-white dark:bg-black/20 dark:text-slate-900" 
                   : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
@@ -452,7 +452,7 @@ export default function ActionCenterPage() {
               variant="outline"
               size="sm"
               onClick={selectAllFiltered}
-              className="text-xs rounded-xl h-8 font-semibold text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+              className="text-xs sm:text-sm rounded-xl h-9 px-3.5 font-bold text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 cursor-pointer"
             >
               {selectedActionIds.length === filteredActions.length ? "Deselect All" : "Select All"}
             </Button>
@@ -462,18 +462,18 @@ export default function ActionCenterPage() {
                   size="sm"
                   onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "approved" })}
                   disabled={batchReview.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-xl h-8 font-bold flex items-center gap-1.5 shadow-xs"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-xl h-9 px-4 font-bold flex items-center gap-2 shadow-xs cursor-pointer"
                 >
-                  <Check className="w-3.5 h-3.5" /> Approve ({selectedActionIds.length})
+                  <Check className="w-4 h-4" /> Approve ({selectedActionIds.length})
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "rejected" })}
                   disabled={batchReview.isPending}
-                  className="text-rose-700 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950 text-xs rounded-xl h-8 font-bold"
+                  className="text-rose-700 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950 text-xs sm:text-sm rounded-xl h-9 px-4 font-bold flex items-center gap-2 cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" /> Dismiss ({selectedActionIds.length})
+                  <X className="w-4 h-4" /> Dismiss ({selectedActionIds.length})
                 </Button>
               </>
             )}
@@ -564,14 +564,14 @@ export default function ActionCenterPage() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelectAction(action.id)}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                        className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 h-4.5 w-4.5 cursor-pointer"
                       />
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${botBadge.color}`}>
-                        <BotIcon className="w-3.5 h-3.5" />
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border ${botBadge.color}`}>
+                        <BotIcon className="w-4 h-4" />
                         {botBadge.name}
                       </span>
                       <Badge
-                        className={`text-[10px] uppercase font-extrabold px-2.5 py-0.5 shadow-xs ${
+                        className={`text-xs uppercase font-extrabold px-3 py-1 shadow-xs tracking-wider ${
                           isCritical
                             ? "bg-rose-600 text-white"
                             : action.priority === "high"
@@ -581,7 +581,7 @@ export default function ActionCenterPage() {
                       >
                         {action.priority || "MEDIUM"}
                       </Badge>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-semibold">
                         Detected: {action.createdAt ? new Date(action.createdAt).toLocaleDateString() : "Recently"}
                       </span>
                     </div>
@@ -590,56 +590,56 @@ export default function ActionCenterPage() {
                       <Button
                         size="sm"
                         onClick={() => setInspectingActionId(action.id)}
-                        className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-extrabold rounded-xl h-8 px-3.5 text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all border border-slate-800 dark:border-slate-200"
+                        className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-extrabold rounded-xl h-9 px-4 text-xs sm:text-sm flex items-center gap-2 cursor-pointer shadow-xs transition-all border border-slate-800 dark:border-slate-200"
                       >
-                        <Eye className="w-3.5 h-3.5 text-sky-400 dark:text-sky-600 shrink-0" />
+                        <Eye className="w-4 h-4 text-sky-400 dark:text-sky-600 shrink-0" />
                         <span className="font-extrabold">View Details</span>
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
                         disabled={reviewAction.isPending}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-4 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-9 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
                       >
-                        <Check className="w-3.5 h-3.5" /> Approve Fix
+                        <Check className="w-4 h-4" /> Approve Fix
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => setDelegateDialogAction(action)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-8 px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-9 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
                       >
-                        <UserCheck className="w-3.5 h-3.5" /> Delegate
+                        <UserCheck className="w-4 h-4" /> Delegate
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "rejected" })}
                         disabled={reviewAction.isPending}
-                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl h-8 w-8 p-0 flex items-center justify-center cursor-pointer transition-colors"
+                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl h-9 w-9 p-0 flex items-center justify-center cursor-pointer transition-colors"
                         title="Dismiss recommendation"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-4.5 h-4.5" />
                       </Button>
                     </div>
                   </div>
 
                   <CardTitle 
                     onClick={() => setInspectingActionId(action.id)}
-                    className="text-base font-extrabold text-slate-950 dark:text-white mt-2 leading-snug cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors flex items-center gap-2 group"
+                    className="text-lg sm:text-xl font-black text-slate-950 dark:text-white mt-2.5 leading-snug cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors flex items-center gap-2.5 group"
                   >
                     <span>{action.title}</span>
-                    <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-blue-600 dark:text-blue-400 transition-opacity shrink-0" />
+                    <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-600 dark:text-blue-400 transition-opacity shrink-0" />
                   </CardTitle>
                 </CardHeader>
 
-                <CardContent className="space-y-3 pt-0">
-                  {/* AI Rationale Box - High Contrast Insight Alert */}
-                  <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border-l-4 border-l-blue-600 border border-blue-100 dark:border-blue-900/50 text-xs leading-relaxed">
-                    <div className="flex items-center gap-1.5 font-bold text-blue-950 dark:text-blue-200 mb-1.5 text-xs">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <CardContent className="space-y-3.5 pt-0">
+                  {/* AI Rationale Box - High Contrast Accessible Insight Alert */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-l-blue-600 border border-blue-200/80 dark:border-blue-900/60 leading-relaxed">
+                    <div className="flex items-center gap-2 font-black text-blue-950 dark:text-blue-200 mb-2 text-sm sm:text-base">
+                      <Sparkles className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
                       Sentinel Analysis & Findings:
                     </div>
-                    <div className="text-slate-800 dark:text-slate-200 text-xs font-normal">
+                    <div className="text-slate-900 dark:text-slate-100 text-sm sm:text-base font-medium leading-relaxed">
                       {action.aiRationale || action.description}
                     </div>
                   </div>
@@ -647,20 +647,20 @@ export default function ActionCenterPage() {
                   {/* Fix Preview - High Contrast Diff Card */}
                   {meta.fixType === "policy_clause_addition" && meta.suggestedAddition && (
                     <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 overflow-hidden shadow-xs mt-3">
-                      <div className="bg-emerald-50 dark:bg-emerald-950/70 border-b border-emerald-200 dark:border-emerald-800/80 px-3.5 py-2 flex items-center justify-between">
-                        <div className="font-bold text-xs text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-                          <span className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-xs leading-none">+</span>
+                      <div className="bg-emerald-50 dark:bg-emerald-950/70 border-b border-emerald-200 dark:border-emerald-800/80 px-4 py-2.5 flex items-center justify-between">
+                        <div className="font-bold text-sm text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
+                          <span className="w-4.5 h-4.5 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-xs leading-none">+</span>
                           Proposed Addition: {meta.clauseTitle || "New Policy Section"}
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/80 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/80 px-2.5 py-0.5 rounded-full">
                           Ready to Merge
                         </span>
                       </div>
-                      <pre className="text-xs font-mono text-emerald-400 bg-slate-950 dark:bg-black p-4 whitespace-pre-wrap leading-relaxed shadow-inner overflow-x-auto selection:bg-emerald-800">
+                      <pre className="text-sm font-mono text-emerald-400 bg-slate-950 dark:bg-black p-4 whitespace-pre-wrap leading-relaxed shadow-inner overflow-x-auto selection:bg-emerald-800">
                         {meta.suggestedAddition}
                       </pre>
-                      <div className="bg-slate-50 dark:bg-slate-900 border-t border-emerald-100 dark:border-emerald-900/40 px-3.5 py-2 text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <div className="bg-slate-50 dark:bg-slate-900 border-t border-emerald-100 dark:border-emerald-900/40 px-4 py-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         Approving this fix will automatically append this clause into the policy document and generate a compliance log entry.
                       </div>
                     </div>
@@ -668,15 +668,15 @@ export default function ActionCenterPage() {
 
                   {/* Residual Risk Metrics */}
                   {meta.residualScore && meta.appetite && (
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-3 text-xs mt-3">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-3 text-sm mt-3">
                       <div className="text-slate-700 dark:text-slate-300 font-medium">
-                        Residual Risk: <span className="font-black text-rose-600 bg-rose-50 dark:bg-rose-950/80 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">{meta.residualScore}</span>
+                        Residual Risk: <span className="font-black text-rose-600 bg-rose-50 dark:bg-rose-950/80 px-2.5 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">{meta.residualScore}</span>
                       </div>
                       <div className="text-slate-700 dark:text-slate-300 font-medium">
-                        Appetite Limit: <span className="font-black text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">{meta.appetite}</span>
+                        Appetite Limit: <span className="font-black text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 rounded-md">{meta.appetite}</span>
                       </div>
-                      <div className="text-rose-700 dark:text-rose-400 text-xs font-semibold ml-auto flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <div className="text-rose-700 dark:text-rose-400 text-xs sm:text-sm font-semibold ml-auto flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
                         Breaches accepted risk threshold
                       </div>
                     </div>
@@ -790,11 +790,11 @@ export default function ActionCenterPage() {
                   <DialogHeader className="space-y-2 pb-3 border-b border-slate-200 dark:border-slate-800">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1.5">
-                          <Bot className="w-3.5 h-3.5" />
+                        <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1.5">
+                          <Bot className="w-4 h-4" />
                           {act.type || "Sentinel Finding"}
                         </span>
-                        <Badge className={`text-[10px] uppercase font-bold px-2.5 py-0.5 ${
+                        <Badge className={`text-xs uppercase font-extrabold px-3 py-1 ${
                           act.priority === "critical" ? "bg-rose-600 text-white" : act.priority === "high" ? "bg-amber-600 text-white" : "bg-slate-700 text-white"
                         }`}>
                           {act.priority || "MEDIUM"}
@@ -808,67 +808,67 @@ export default function ActionCenterPage() {
                             setInspectingActionId(null);
                             setLocation(ent.deepLink);
                           }}
-                          className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-xs font-bold rounded-xl h-8 px-3.5 flex items-center gap-1.5 shadow-sm hover:bg-slate-800 dark:hover:bg-slate-100 cursor-pointer transition-colors"
+                          className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-xs sm:text-sm font-bold rounded-xl h-9 px-4 flex items-center gap-2 shadow-sm hover:bg-slate-800 dark:hover:bg-slate-100 cursor-pointer transition-colors"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <ExternalLink className="w-4 h-4" />
                           Open in Full Editor
                         </Button>
                       )}
                     </div>
 
-                    <DialogTitle className="text-lg font-black text-slate-950 dark:text-white leading-tight">
+                    <DialogTitle className="text-xl sm:text-2xl font-black text-slate-950 dark:text-white leading-tight mt-1">
                       {act.title}
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    <DialogDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                       Action ID #{act.id} • Created {act.createdAt ? new Date(act.createdAt).toLocaleString() : "Recently"}
                     </DialogDescription>
                   </DialogHeader>
 
                   {/* Document & Record Details */}
                   {ent ? (
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50 p-4 space-y-4">
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50 p-4 sm:p-5 space-y-4">
                       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                         <div className="flex items-center gap-2">
-                          <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                          <BookOpen className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
+                          <h4 className="font-extrabold text-base text-slate-900 dark:text-white">
                             {ent.title || ent.name || "Source Entity Record"}
                           </h4>
                         </div>
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           {ent.status || "Active"}
                         </span>
                       </div>
 
                       {/* Metadata Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Version</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{ent.version || "1.0"}</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <span className="text-xs uppercase font-bold text-slate-400 block mb-0.5">Version</span>
+                          <span className="font-bold text-slate-900 dark:text-slate-100">{ent.version || "1.0"}</span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Last Tested</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <span className="text-xs uppercase font-bold text-slate-400 block mb-0.5">Last Tested</span>
+                          <span className="font-bold text-slate-900 dark:text-slate-100">
                             {ent.lastTestedDate ? new Date(ent.lastTestedDate).toLocaleDateString() : "Never Tested"}
                           </span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Next Test Due</span>
-                          <span className="font-bold text-rose-600 dark:text-rose-400">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <span className="text-xs uppercase font-bold text-slate-400 block mb-0.5">Next Test Due</span>
+                          <span className="font-black text-rose-600 dark:text-rose-400">
                             {ent.nextTestDate ? new Date(ent.nextTestDate).toLocaleDateString() : "Unscheduled"}
                           </span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Status</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">{ent.status || "Active"}</span>
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                          <span className="text-xs uppercase font-bold text-slate-400 block mb-0.5">Status</span>
+                          <span className="font-bold text-slate-900 dark:text-slate-100 capitalize">{ent.status || "Active"}</span>
                         </div>
                       </div>
 
                       {/* Full Plan / Document Body */}
                       <div className="space-y-1.5">
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200 block">
                           Document Content & Operating Procedures:
                         </span>
-                        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto font-sans shadow-inner">
+                        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto font-sans shadow-inner">
                           {ent.content || "Standard operating procedures for disaster recovery and operational continuity."}
                         </div>
                       </div>
@@ -876,19 +876,19 @@ export default function ActionCenterPage() {
                       {/* Associated Strategies / Scenarios if present */}
                       {Array.isArray(ent.strategies) && ent.strategies.length > 0 && (
                         <div className="space-y-2">
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200 block">
                             Associated Continuity Strategies ({ent.strategies.length}):
                           </span>
                           <div className="space-y-1.5 max-h-36 overflow-y-auto">
                             {ent.strategies.map((strat: any) => (
-                              <div key={strat.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between gap-3">
+                              <div key={strat.id} className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm flex items-center justify-between gap-3">
                                 <div>
                                   <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">{strat.strategy_type || "Strategy"}</span>
-                                  <p className="text-[11px] text-slate-500 dark:text-slate-400">{strat.description}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">{strat.description}</p>
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <span className="text-[10px] font-bold text-blue-600 block">RTO: {strat.rto_target || "N/A"}</span>
-                                  <span className="text-[10px] font-medium text-slate-400 block">RPO: {strat.rpo_target || "N/A"}</span>
+                                  <span className="text-xs font-bold text-blue-600 block">RTO: {strat.rto_target || "N/A"}</span>
+                                  <span className="text-xs font-medium text-slate-400 block">RPO: {strat.rpo_target || "N/A"}</span>
                                 </div>
                               </div>
                             ))}
@@ -897,26 +897,26 @@ export default function ActionCenterPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs">
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-sm">
                       No linked document found directly in database. Showing Sentinel diagnostic data below.
                     </div>
                   )}
 
                   {/* Sentinel AI Analysis & Impact */}
-                  <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border-l-4 border-l-blue-600 border border-blue-100 dark:border-blue-900/50 space-y-2">
-                    <div className="flex items-center gap-1.5 font-bold text-blue-950 dark:text-blue-200 text-xs">
-                      <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-l-blue-600 border border-blue-200/80 dark:border-blue-900/60 space-y-2.5">
+                    <div className="flex items-center gap-2 font-black text-blue-950 dark:text-blue-200 text-sm sm:text-base">
+                      <Sparkles className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
                       Sentinel AI Rationale & Regulatory Context:
                     </div>
-                    <p className="text-slate-800 dark:text-slate-200 text-xs leading-relaxed">
+                    <p className="text-slate-900 dark:text-slate-100 text-sm sm:text-base leading-relaxed font-medium">
                       {act.aiRationale || act.description}
                     </p>
                     {meta.nis2Article && (
-                      <div className="pt-2 flex items-center gap-2">
-                        <Badge className="bg-blue-600 text-white font-bold text-[10px]">
+                      <div className="pt-2 flex items-center gap-2 flex-wrap">
+                        <Badge className="bg-blue-600 text-white font-bold text-xs px-2.5 py-0.5">
                           NIS2 Article {meta.nis2Article}
                         </Badge>
-                        <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                        <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
                           Requires regular testing of business continuity and incident response plans.
                         </span>
                       </div>
@@ -927,7 +927,7 @@ export default function ActionCenterPage() {
                     <Button
                       size="sm"
                       onClick={() => setInspectingActionId(null)}
-                      className="rounded-xl h-9 px-4 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white dark:border-slate-700 transition-colors shadow-xs cursor-pointer"
+                      className="rounded-xl h-10 px-4 text-xs sm:text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white dark:border-slate-700 transition-colors shadow-xs cursor-pointer"
                     >
                       Close
                     </Button>
@@ -940,9 +940,9 @@ export default function ActionCenterPage() {
                           setInspectingActionId(null);
                           setDelegateDialogAction(targetAct);
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-9 px-4 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-10 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
                       >
-                        <UserCheck className="w-3.5 h-3.5" /> Delegate Task...
+                        <UserCheck className="w-4 h-4" /> Delegate Task...
                       </Button>
                       <Button
                         size="sm"
@@ -951,9 +951,9 @@ export default function ActionCenterPage() {
                           setInspectingActionId(null);
                         }}
                         disabled={reviewAction.isPending}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-9 px-4 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
                       >
-                        <Check className="w-3.5 h-3.5" /> Approve Fix
+                        <Check className="w-4 h-4" /> Approve Fix
                       </Button>
                     </div>
                   </DialogFooter>

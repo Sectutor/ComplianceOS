@@ -2695,7 +2695,75 @@ export function createTeammatesRouter(t: any, procedure: any) {
 
           // F. General Fleet Orchestration & Live Compliance Telemetry
           } else {
-            const hermesReplyContent = getExpertComplianceKnowledge(input.content, "Hermes", "Chief Compliance Orchestrator", stats, targetClientId);
+            let hermesReplyContent = "";
+            let providerNotice = "";
+            try {
+              const cortexSnapshot = await vfsMemoryEngine.getClientCortexSnapshot(targetClientId);
+
+              // Build conversation history from in-memory store (last 10 turns for this channel)
+              const recentHistory = messagesStore
+                .filter((m) => m.channelId === "war_room" && m.content.trim().length > 0)
+                .slice(-20) // last 20 msgs
+                .map((m) => ({
+                  role: (m.senderId === "user" ? "user" : "assistant") as "user" | "assistant",
+                  content: m.content,
+                }));
+
+              const completion = await llmService.generate({
+                systemPrompt: `You are Hermes, Chief Compliance Orchestrator in ComplianceOS.
+You coordinate a fleet of specialized autonomous agents:
+- @Tara (Policy Lifecycle Lead)
+- @Marcus (FAIR Quantitative Risk Lead)
+- @Morgan (Autonomous Cloud & IaC Fixer)
+- @Alex (Vendor Trust & TPRM Scout)
+- @Riley (Access Reviews & Evidence Harvester)
+- @Sasha (AppSec & Vulnerability Sentinel)
+- @Nova (Incident Response & CSIRT Coordinator)
+- @Sam (Mock Auditor & Audit Defense Lead)
+
+=== 📊 LIVE CLIENT DATABASE STATE (${stats.clientName}, Client #${targetClientId}) ===
+* Total Identified Risks: ${stats.totalRisks} registered risks in Risk Register
+  - Critical Severity: ${stats.criticalRisks}
+  - High / Very High: ${stats.highRisks}
+  - Medium Severity: ${stats.mediumRisks}
+  - Low / Negligible: ${stats.lowRisks}
+  - Top Active Scenarios:
+${stats.risksList.map((r, i) => `    ${i + 1}. [Risk #${r.id}] ${r.title} (Inherent: ${r.inherentRisk})`).join("\n") || "    None registered yet"}
+* Registered Third-Party Vendors (${stats.totalVendors}): ${stats.vendorNames.join(", ") || "None"}
+* Documented Master Policies (${stats.totalPolicies}): ${stats.policyNames.join(", ") || "None"}
+* Harvested Evidence Records: ${stats.totalEvidence} records
+========================================================================
+${cortexSnapshot ? `\n${cortexSnapshot}\n` : ""}
+
+CRITICAL OPERATIONAL RULES:
+1. You HAVE real-time, live connection to the database state above.
+2. When the user asks factual questions like "how many risks do we have?", "what risks are registered?", "list our vendors", or asks for a count/summary, use the exact numbers and details from the LIVE CLIENT DATABASE STATE above.
+3. Provide direct, highly accurate, and in-depth compliance and technical guidance. Use clear Markdown headings and bullet points.
+4. Do NOT output generic boilerplate. Formulate your own intelligent synthesis tailored to the prompt.
+5. VERY IMPORTANT: You have the full conversation history above. When the user says "this risk", "that one", "it", "them", or any pronoun or reference to something mentioned in a prior message, resolve it from the conversation history. NEVER ask the user to re-specify something already established in the conversation.`,
+                messages: recentHistory,
+                userPrompt: input.content,
+                temperature: 0.3,
+                maxTokens: 1200
+              });
+
+              if (completion?.text && completion.text.trim().length > 20) {
+                hermesReplyContent = completion.text;
+                circuitBreaker.recordUsage("hermes_orchestrator", 850);
+              }
+            } catch (err: any) {
+              console.warn('[Hermes / War Room] LLM generation failed, falling back to expert knowledge:', err?.message);
+              if (err?.message?.includes('402') || err?.message?.includes('Insufficient Balance')) {
+                providerNotice = `\n\n> ℹ️ **Live LLM Note:** Configured API key returned \`402 Insufficient Balance\`. Add balance or configure OpenAI / Anthropic under **Settings > AI Providers** for live dynamic reasoning.`;
+              } else if (err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+                providerNotice = `\n\n> ℹ️ **Live LLM Note:** Configured API key is invalid/unauthorized. Add a valid API key under **Settings > AI Providers** or \`.env\`.`;
+              }
+            }
+
+            if (!hermesReplyContent) {
+              hermesReplyContent = getExpertComplianceKnowledge(input.content, "Hermes", "Chief Compliance Orchestrator", stats, targetClientId) + providerNotice;
+            }
+
             const hermesMsg: ChatMessage = {
               id: `msg_hermes_${Date.now() + 1}`,
               channelId: "war_room",
@@ -2742,6 +2810,15 @@ export function createTeammatesRouter(t: any, procedure: any) {
 
           // Attempt real LLM generation
           try {
+            // Build conversation history for this direct-bot channel (last 20 msgs)
+            const directBotHistory = messagesStore
+              .filter((m) => m.channelId === input.channelId && m.content.trim().length > 0)
+              .slice(-20)
+              .map((m) => ({
+                role: (m.senderId === "user" ? "user" : "assistant") as "user" | "assistant",
+                content: m.content,
+              }));
+
             const completion = await llmService.generate({
               systemPrompt: `You are ${botName}, ${botRole} in ComplianceOS.
 Description and capabilities: ${currentBot?.description || "You are an expert AI compliance orchestrator."}
@@ -2765,7 +2842,9 @@ ${ragContext ? `\n${ragContext}\n` : ""}
 CRITICAL OPERATIONAL RULES:
 1. You HAVE real-time, live connection to the database state above.
 2. When the user asks factual questions like "how many risks do we have?", "what risks are registered?", "list our vendors", or asks for a count/summary, use the exact numbers and details from the LIVE CLIENT DATABASE STATE above. Never say you do not have live access or tell the user to check the UI manually when you already have the live data above.
-3. Provide direct, highly accurate, and in-depth compliance and technical guidance. Use clear Markdown headings and bullet points.`,
+3. Provide direct, highly accurate, and in-depth compliance and technical guidance. Use clear Markdown headings and bullet points.
+4. VERY IMPORTANT: You have the full conversation history above. When the user says "this risk", "that one", "it", "them", or any pronoun or reference to something mentioned in a prior message, resolve it from the conversation history. NEVER ask the user to re-specify something already established in the conversation.`,
+              messages: directBotHistory,
               userPrompt: injectionAnalysis.sanitizedContent,
               temperature: 0.3,
               maxTokens: 1200

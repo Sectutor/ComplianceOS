@@ -740,27 +740,15 @@ function DashboardLayoutContent({
   // Group Definition
   const groups = [
     {
-      label: "Platform & Overview",
-      items: [
-        { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-        {
-          icon: Inbox,
-          label: "Action Center",
-          path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
-          badge: pendingSentinelCount > 0 ? `${pendingSentinelCount}` : undefined,
-        },
-        { icon: Bot, label: "Agent", path: "/agent" },
-        { icon: Users, label: "Clients", path: "/clients" },
-        { icon: Settings, label: "Settings", path: "/settings" },
-        { icon: Sparkles, label: "License & Plans", path: "/settings/license" },
-        ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
-        { icon: GraduationCap, label: "User Onboarding", path: "/onboarding" },
-      ]
-    },
-    {
       label: "Start Here & Roadmaps",
       items: [
-        { icon: Rocket, label: "Start Here Launchpad", path: "/start-here" },
+        {
+          icon: Rocket,
+          label: "Start Here Launchpad",
+          path: "/start-here",
+          isAccent: true,
+          badge: "START",
+        },
         { icon: Target, label: "Strategic Roadmaps", path: "/start-here" },
         ...(persistentClientId ? [
           {
@@ -782,6 +770,24 @@ function DashboardLayoutContent({
         ] : []),
         { icon: Calendar, label: "Implementation Plans", path: "/implementation/dashboard" },
         { icon: BookOpen, label: "Roadmap Templates", path: "/roadmap/templates" },
+      ]
+    },
+    {
+      label: "Platform & Overview",
+      items: [
+        { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+        {
+          icon: Inbox,
+          label: "Action Center",
+          path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
+          badge: pendingSentinelCount > 0 ? `${pendingSentinelCount}` : undefined,
+        },
+        { icon: Bot, label: "Agent", path: "/agent" },
+        { icon: Users, label: "Clients", path: "/clients" },
+        { icon: Settings, label: "Settings", path: "/settings" },
+        { icon: Sparkles, label: "License & Plans", path: "/settings/license" },
+        ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
+        { icon: GraduationCap, label: "User Onboarding", path: "/onboarding" },
       ]
     },
     {
@@ -1815,6 +1821,7 @@ function CollapsibleGroup({
                 const navigationPath = resolveNavigationPath(item.path, persistentClientId);
                 const isActive = item === bestMatchItem;
                 const translatedItemLabel = translateNavLabel(item.label, t);
+                const isAccent = item.isAccent || item.label === "Start Here Launchpad";
 
                 return (
                   <SidebarMenuItem key={`${item.path ?? item.label ?? 'item'}-${idx}`}>
@@ -1823,17 +1830,34 @@ function CollapsibleGroup({
                         isActive={isActive}
                         onClick={() => setLocation(navigationPath)}
                         tooltip={translatedItemLabel}
-                        className={`h-11 px-3 transition-all font-medium rounded-lg mb-1 mx-2 w-[calc(100%-16px)] ${isActive
-                          ? "bg-[var(--sidebar-primary)] text-white hover:bg-[var(--sidebar-primary)] hover:text-white shadow-[0_4px_12px_rgba(0,163,255,0.3)]"
-                          : "text-slate-300 hover:text-white hover:bg-white/5"
-                          }`}
+                        className={`h-11 px-3 transition-all rounded-lg mb-1 mx-2 w-[calc(100%-16px)] cursor-pointer ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-[0_4px_16px_rgba(37,99,235,0.4)] border border-blue-400/80"
+                            : isAccent
+                            ? "bg-gradient-to-r from-blue-600/30 via-indigo-600/20 to-blue-900/30 border border-blue-400/60 text-white hover:from-blue-600/40 hover:to-indigo-600/30 hover:border-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/30 font-bold"
+                            : "text-slate-300 hover:text-white hover:bg-white/5 font-medium"
+                        }`}
                       >
                         <item.icon
-                          className={`h-4.5 w-4.5 min-w-[1.125rem] ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
+                          className={`h-4.5 w-4.5 min-w-[1.125rem] ${
+                            isActive
+                              ? "text-white"
+                              : isAccent
+                              ? "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]"
+                              : "text-slate-400 group-hover:text-white"
+                          }`}
                         />
-                        <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(translatedItemLabel, menuSearch)}</span>
+                        <span className={`ml-2 uppercase text-[11px] tracking-wide flex-1 truncate ${
+                          isAccent ? "font-black text-white tracking-wider" : ""
+                        }`}>
+                          {highlightMatch(translatedItemLabel, menuSearch)}
+                        </span>
                         {item.badge && (
-                          <Badge className="ml-auto bg-rose-500/20 text-rose-300 border border-rose-500/30 px-1.5 py-0 text-[9px] font-bold">
+                          <Badge className={`ml-auto px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                            isAccent
+                              ? "bg-blue-500 text-white border border-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse"
+                              : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                          }`}>
                             {item.badge}
                           </Badge>
                         )}

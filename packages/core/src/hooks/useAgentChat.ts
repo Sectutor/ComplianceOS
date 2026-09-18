@@ -152,11 +152,13 @@ export function useAgentChat(): UseAgentChatReturn {
 
   const conversationIdRef = useRef<string | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
 
   const clearChat = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setMessages([]);
+    messagesRef.current = [];
     setError(null);
     conversationIdRef.current = undefined;
   }, []);
@@ -185,6 +187,12 @@ export function useAgentChat(): UseAgentChatReturn {
     // Reset error state
     setError(null);
 
+    // Capture conversation history BEFORE appending new turn (last 10 completed turns)
+    const historySnapshot = messagesRef.current
+      .filter((m) => m.content.trim().length > 0)
+      .slice(-20) // last 20 messages (10 turns)
+      .map((m) => ({ role: (m.role === 'agent' ? 'assistant' : 'user') as 'user' | 'assistant', content: m.content }));
+
     // Append user message immediately
     const userMsg: ChatMessage = {
       id: uid(),
@@ -201,7 +209,11 @@ export function useAgentChat(): UseAgentChatReturn {
       timestamp: Date.now(),
     };
 
-    setMessages((prev) => [...prev, userMsg, agentMsg]);
+    setMessages((prev) => {
+      const next = [...prev, userMsg, agentMsg];
+      messagesRef.current = next;
+      return next;
+    });
     setIsLoading(true);
 
     // Abort previous in-flight request if any
@@ -250,6 +262,7 @@ export function useAgentChat(): UseAgentChatReturn {
           message: text.trim(),
           context: context || '',
           conversation_id: conversationIdRef.current,
+          history: historySnapshot,
         }),
         signal: controller.signal,
       });
@@ -287,14 +300,15 @@ export function useAgentChat(): UseAgentChatReturn {
             conversationIdRef.current = conversationId;
             console.log('[AgentChat] Saved conversation ID:', conversationId);
           }
-          // Ensure final content is set
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === agentMsg.id
-                ? { ...m, content: lastContent || _fullText }
-                : m,
-            ),
-          );
+          // Ensure final content is set and sync ref so history is accurate for next turn
+          const finalContent = lastContent || _fullText;
+          setMessages((prev) => {
+            const next = prev.map((m) =>
+              m.id === agentMsg.id ? { ...m, content: finalContent } : m,
+            );
+            messagesRef.current = next;
+            return next;
+          });
           setIsLoading(false);
         },
         // onError

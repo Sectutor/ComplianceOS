@@ -68,6 +68,7 @@ import { jobRouter } from './packages/core/src/server/routers/jobs';
 import { localAuth } from './packages/core/src/lib/auth/local-auth';
 import { apiV1Router } from './packages/core/src/server/routers/api-v1';
 import { clients, riskAssessments, controls, clientControls, evidence, vendors, clientPolicies } from './packages/core/src/schema';
+import { llmService } from './packages/core/src/lib/llm/service';
 
 // V14.1.2: Strict production secrets validation (AL 3)
 validateSecrets();
@@ -456,94 +457,96 @@ app.get('/api/v1/compliance/stream', realtimeComplianceStreamHandler);
 console.log('[AgentCompliance] Mounted REST routers under /api/v1/agent-compliance & SSE stream under /api/v1/compliance/stream');
 
 
-// Intelligent Local Fallback Compliance Assistant Engine
-async function streamLocalAgentResponse(message: string, res: express.Response, conversationId: string) {
+// Dynamic Local Compliance Assistant Engine powered by LLMService & Live DB Telemetry
+async function streamLocalAgentResponse(
+    message: string,
+    res: express.Response,
+    conversationId: string,
+    history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const msgLower = message.toLowerCase();
     let reply = "";
 
     try {
         const db = await getDb();
 
-        if (msgLower.includes("risk") || msgLower.includes("threat") || msgLower.includes("vulnerab")) {
-            const allRisks = await db.select().from(riskAssessments);
-            const totalCount = allRisks.length;
+        // 1. Gather live compliance telemetry from DB to ground LLM responses
+        let telemetrySummary = "";
+        try {
+            const [allRisks, clientList, ctrlList, evList, vList, pList] = await Promise.all([
+                db.select().from(riskAssessments).limit(20),
+                db.select().from(clients).limit(10),
+                db.select().from(clientControls).limit(10),
+                db.select().from(evidence).limit(10),
+                db.select().from(vendors).limit(10),
+                db.select().from(clientPolicies).limit(10),
+            ]);
 
-            const criticalCount = allRisks.filter(r => r.severity === 'critical' || (r.inherentRiskScore && r.inherentRiskScore >= 80)).length;
-            const highCount = allRisks.filter(r => r.severity === 'high' || (r.inherentRiskScore && r.inherentRiskScore >= 60 && r.inherentRiskScore < 80)).length;
-            const mediumCount = allRisks.filter(r => r.severity === 'medium' || (r.inherentRiskScore && r.inherentRiskScore >= 40 && r.inherentRiskScore < 60)).length;
-            const lowCount = totalCount - (criticalCount + highCount + mediumCount);
-
-            reply = `### 🛡️ Risk Register Analytics & Count\n\n`;
-            reply += `You currently have **${totalCount} total risk assessments** recorded in your Risk Register across your organization:\n\n`;
-            reply += `- **Critical Severity (Score ≥ 80):** \`${criticalCount}\` risks\n`;
-            reply += `- **High Severity (Score 60-79):** \`${highCount}\` risks\n`;
-            reply += `- **Medium Severity (Score 40-59):** \`${mediumCount}\` risks\n`;
-            reply += `- **Low Severity (Score < 40):** \`${Math.max(0, lowCount)}\` risks\n\n`;
-
-            if (allRisks.length > 0) {
-                reply += `#### Top Active Security Risks:\n`;
-                const topRisks = allRisks.slice(0, 5);
-                topRisks.forEach((r, idx) => {
-                    reply += `${idx + 1}. **${r.title || 'Security Risk'}** — Category: \`${r.category || 'General'}\` | Severity: **${r.severity?.toUpperCase() || 'MEDIUM'}** | Inherent Score: **${r.inherentRiskScore || 50}/100**\n`;
-                });
-                reply += `\n*You can explore, filter, and remediate all ${totalCount} risks under the Risks & Threats menu.*`;
-            } else {
-                reply += `*All system risks are currently mitigated or at acceptable levels.*`;
-            }
-        } else if (msgLower.includes("client") || msgLower.includes("organization")) {
-            const clientList = await db.select().from(clients);
-            reply = `### 🏢 Managed Client Portfolio (${clientList.length} Total)\n\n`;
-            reply += `You are managing **${clientList.length} client organizations** in ComplianceOS:\n\n`;
-            if (clientList.length > 0) {
-                clientList.forEach((c, idx) => {
-                    reply += `${idx + 1}. **${c.name}** (ID: \`${c.id}\`) — Industry: ${c.industry || 'Technology'} | Status: \`${c.status || 'Active'}\`\n`;
-                });
-                reply += `\n*Select any client in the top navigation bar to access its controls, evidence, and audit packages.*`;
-            } else {
-                reply += "No client organizations registered yet.";
-            }
-        } else if (msgLower.includes("control") || msgLower.includes("framework")) {
-            const ctrlList = await db.select().from(clientControls);
-            const totalControls = ctrlList.length;
-            const implemented = ctrlList.filter(c => c.status === 'implemented' || c.status === 'passed').length;
-            const inProgress = ctrlList.filter(c => c.status === 'in_progress' || c.status === 'warning').length;
-            const notImplemented = totalControls - (implemented + inProgress);
-
-            reply = `### 📋 Security Controls & Framework Baselines\n\n`;
-            reply += `You have **${totalControls} assigned control requirements** across active frameworks (ISO 27001, SOC 2, FedRAMP, NIS2):\n\n`;
-            reply += `- **Implemented & Verified:** \`${implemented}\` controls (${totalControls > 0 ? Math.round((implemented / totalControls) * 100) : 0}%)\n`;
-            reply += `- **In Progress / Under Review:** \`${inProgress}\` controls\n`;
-            reply += `- **Not Implemented / Pending Proof:** \`${Math.max(0, notImplemented)}\` controls\n`;
-        } else if (msgLower.includes("evidence") || msgLower.includes("collector") || msgLower.includes("proof")) {
-            const evList = await db.select().from(evidence);
-            reply = `### 📁 Verified Audit Evidence Vault (${evList.length} Proof Items)\n\n`;
-            reply += `There are **${evList.length} verified evidence proofs** stored in your compliance vault auto-collected via GitHub, AWS, and Okta connectors.`;
-        } else if (msgLower.includes("vendor") || msgLower.includes("third-party") || msgLower.includes("tprm")) {
-            const vList = await db.select().from(vendors);
-            reply = `### 🏬 Vendor Security Management (${vList.length} Vendors)\n\n`;
-            reply += `You have **${vList.length} third-party vendors** tracked in your TPRM matrix with automated SOC 2 report parsing and annual questionnaire scheduling.`;
-        } else if (msgLower.includes("policy") || msgLower.includes("policies")) {
-            const pList = await db.select().from(clientPolicies);
-            reply = `### 📜 Information Security Policies (${pList.length} Documents)\n\n`;
-            reply += `You have **${pList.length} active security policy documents** approved and published in your governance center.`;
-        } else if (msgLower.includes("audit") || msgLower.includes("readiness") || msgLower.includes("score")) {
-            reply = `### 📋 Compliance Audit Readiness Summary\n\n- **Overall Audit Readiness:** **94%** (Audit Ready)\n- **Active Frameworks:** ISO 27001:2022, SOC 2 Type II, EU NIS2 Directive, FedRAMP Moderate Baseline\n- **Automated Evidence Collectors:** 12 verified proof items auto-collected via GitHub, AWS, and Okta connectors.\n\n*Use the 1-Click Automated Audit Package Generator under Governance to compile your audit PDF.*`;
-        } else {
-            reply = `### 🤖 ComplianceOS AI Assistant\n\nI can answer questions and run real-time analytics across your database:\n\n1. **Risks**: Ask *"How many risks do we have?"* or *"What are our top risks?"*.\n2. **Clients**: Ask *"How many clients do we have?"* or *"List my clients"*.\n3. **Controls**: Ask *"How many controls do we have?"* or *"Show control implementation status"*.\n4. **Evidence**: Ask *"How many evidence items do we have?"*\n5. **Vendors & Policies**: Ask *"How many vendors do we have?"* or *"Show policy count"*.\n\nHow can I help you today with **${message}**?`;
+            telemetrySummary = `
+=== 📊 LIVE DATABASE STATE ===
+- Total Clients: ${clientList.length} (${clientList.map(c => c.name).join(", ") || "None"})
+- Risks on Record: ${allRisks.length} (Sample: ${allRisks.slice(0, 10).map(r => `[#${r.id}] ${r.title} (${r.inherentRisk || 'Medium'})`).join(", ") || "None"})
+- Controls Assigned: ${ctrlList.length}
+- Verified Evidence Records: ${evList.length}
+- Third-Party Vendors: ${vList.length} (${vList.map(v => v.name).join(", ") || "None"})
+- Master Governance Policies: ${pList.length} (${pList.map(p => p.name).join(", ") || "None"})
+==============================`;
+        } catch (dbErr) {
+            console.warn('[streamLocalAgentResponse] DB telemetry fetch note:', dbErr);
         }
-    } catch (err: any) {
-        reply = `### 🤖 ComplianceOS AI Assistant\n\nI am ready to assist with your compliance and risk management tasks. Message received: "${message}".`;
+
+        // 2. Query the real LLM engine with conversation history for multi-turn context
+        const completion = await llmService.generate({
+            systemPrompt: `You are the ComplianceOS AI Assistant, an expert GRC, cybersecurity, and regulatory compliance co-pilot.
+You have real-time access to the user's live database state:
+${telemetrySummary}
+
+CRITICAL RULES:
+1. Answer the user's question directly, intelligently, and with deep technical accuracy.
+2. When the user asks about risks, clients, controls, policies, or vendors, refer to the live database figures above.
+3. Use clear, formatted Markdown with headings, lists, and bold text.
+4. Do NOT output canned or generic placeholder answers. Reason dynamically over the user's specific request.
+5. VERY IMPORTANT: You have access to the full conversation history above. When the user says "this risk", "that risk", "it", "them", or any reference to something mentioned earlier, look at the previous messages to understand what they are referring to. NEVER ask the user to repeat or clarify something that was already established in the conversation.`,
+            messages: history,
+            userPrompt: message,
+            temperature: 0.3,
+            maxTokens: 1200
+        });
+
+        if (completion?.text && completion.text.trim().length > 10) {
+            reply = completion.text.trim();
+        }
+    } catch (llmErr: any) {
+        console.warn('[streamLocalAgentResponse] LLM execution note:', llmErr?.message);
+    }
+
+    // 3. Graceful fallback if no LLM provider responds
+    if (!reply) {
+        const msgLower = message.toLowerCase();
+        try {
+            const db = await getDb();
+            if (msgLower.includes("risk") || msgLower.includes("threat")) {
+                const allRisks = await db.select().from(riskAssessments);
+                reply = `### 🛡️ Risk Register Summary\n\nYou currently have **${allRisks.length} risks** recorded in your Risk Register across active frameworks.`;
+            } else if (msgLower.includes("client")) {
+                const clientList = await db.select().from(clients);
+                reply = `### 🏢 Managed Client Portfolio\n\nYou are managing **${clientList.length} client organizations** in ComplianceOS.`;
+            } else {
+                reply = `### 🤖 ComplianceOS AI Assistant\n\nI have received your query: "${message}". Please ensure an active LLM provider (OpenRouter, OpenAI, or Anthropic) is configured for dynamic reasoning.`;
+            }
+        } catch {
+            reply = `### 🤖 ComplianceOS AI Assistant\n\nI have received your query: "${message}".`;
+        }
     }
 
     // Stream token chunks for smooth UI response
-    const chunks = reply.split(" ");
+    const chunks = reply.split(/(\s+)/);
     for (const chunk of chunks) {
-        res.write(`data: ${JSON.stringify({ token: chunk + " " })}\n\n`);
-        await new Promise((r) => setTimeout(r, 15));
+        res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`);
+        await new Promise((r) => setTimeout(r, 10));
     }
     res.write(`data: ${JSON.stringify({ conversation_id: conversationId, done: true })}\n\n`);
     res.end();
@@ -551,10 +554,17 @@ async function streamLocalAgentResponse(message: string, res: express.Response, 
 
 // Agent Chat Proxy — must be before authMiddleware
 app.post('/api/agent-chat', express.json(), async (req: any, res: express.Response) => {
-    const { message, conversation_id } = req.body;
+    const { message, conversation_id, history } = req.body;
     if (!message) {
         return res.status(400).json({ error: 'Message required' });
     }
+
+    // Validate history: must be array of {role, content}
+    const safeHistory: Array<{ role: 'user' | 'assistant'; content: string }> = Array.isArray(history)
+        ? history
+            .filter((h: any) => h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string' && h.content.trim().length > 0)
+            .slice(-20) // Never pass more than 20 turns (safety cap)
+        : [];
 
     const effectiveConversationId = conversation_id || crypto.randomUUID();
     const agentUrl = process.env.AGENT_API_URL;
@@ -562,11 +572,11 @@ app.post('/api/agent-chat', express.json(), async (req: any, res: express.Respon
 
     // If no external AGENT_API_URL is configured, serve instant local compliance assistant
     if (!agentUrl || agentUrl.includes('hermes-agent')) {
-        return await streamLocalAgentResponse(message, res, effectiveConversationId);
+        return await streamLocalAgentResponse(message, res, effectiveConversationId, safeHistory);
     }
 
     try {
-        const requestBody = JSON.stringify({ message, conversation_id: effectiveConversationId });
+        const requestBody = JSON.stringify({ message, conversation_id: effectiveConversationId, history: safeHistory });
         const contentLength = Buffer.byteLength(requestBody, 'utf-8');
 
         const controller = new AbortController();
@@ -587,7 +597,7 @@ app.post('/api/agent-chat', express.json(), async (req: any, res: express.Respon
 
         if (!response.ok) {
             console.warn('[Agent Proxy] External agent unavailable, using intelligent local engine fallback.');
-            return await streamLocalAgentResponse(message, res, effectiveConversationId);
+            return await streamLocalAgentResponse(message, res, effectiveConversationId, safeHistory);
         }
 
         const contentType = response.headers.get('content-type') || '';
@@ -625,7 +635,7 @@ app.post('/api/agent-chat', express.json(), async (req: any, res: express.Respon
         res.end();
     } catch (err: any) {
         console.warn('[Agent Proxy Note] External agent unreachable, serving intelligent local compliance assistant fallback.');
-        return await streamLocalAgentResponse(message, res, effectiveConversationId);
+        return await streamLocalAgentResponse(message, res, effectiveConversationId, safeHistory);
     }
 });
 

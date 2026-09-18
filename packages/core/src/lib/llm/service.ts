@@ -154,8 +154,9 @@ export class LLMService {
         // 3. Check environment variables if no valid DB providers exist
         const hasLiveProvider = providers.some(p => !this.isPlaceholderKey(p.apiKey));
         if (!hasLiveProvider) {
+            const envProviders: LLMProvider[] = [];
             if (process.env.OPENROUTER_API_KEY && !process.env.OPENROUTER_API_KEY.includes('placeholder')) {
-                providers.unshift({
+                envProviders.push({
                     id: 9990,
                     name: 'OpenRouter (Live Env)',
                     provider: 'openrouter',
@@ -163,13 +164,13 @@ export class LLMService {
                     baseUrl: 'https://openrouter.ai/api/v1',
                     apiKey: encrypt(process.env.OPENROUTER_API_KEY),
                     isEnabled: true,
-                    priority: 101,
+                    priority: 105,
                     createdAt: new Date(),
                     updatedAt: new Date()
                 } as any);
             }
             if (process.env.DEEPSEEK_API_KEY && !process.env.DEEPSEEK_API_KEY.includes('placeholder')) {
-                providers.unshift({
+                envProviders.push({
                     id: 9991,
                     name: 'DeepSeek (Live Env)',
                     provider: 'deepseek',
@@ -183,7 +184,7 @@ export class LLMService {
                 } as any);
             }
             if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('placeholder')) {
-                providers.unshift({
+                envProviders.push({
                     id: 9992,
                     name: 'OpenAI (Live Env)',
                     provider: 'openai',
@@ -197,7 +198,7 @@ export class LLMService {
                 } as any);
             }
             if (process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes('placeholder')) {
-                providers.unshift({
+                envProviders.push({
                     id: 9993,
                     name: 'Anthropic (Live Env)',
                     provider: 'anthropic',
@@ -211,7 +212,7 @@ export class LLMService {
                 } as any);
             }
             if (process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('placeholder')) {
-                providers.unshift({
+                envProviders.push({
                     id: 9994,
                     name: 'Gemini (Live Env)',
                     provider: 'gemini',
@@ -224,7 +225,11 @@ export class LLMService {
                     updatedAt: new Date()
                 } as any);
             }
+            providers.unshift(...envProviders);
         }
+
+        // Sort all active providers by priority in descending order
+        providers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
         // Update cache
         LLMService.providerCache = { providers, timestamp: now };
