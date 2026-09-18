@@ -288,6 +288,92 @@ app.use((req, res, next) => {
     express.urlencoded({ limit: '50mb', extended: true })(req, res, next);
 });
 
+// Local auth fallback: init default admin + fast login endpoints (before sessions/rate limits)
+if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
+  const adminEmail = process.env.COMPLIANCE_ADMIN_EMAIL || 'admin@complianceos.local';
+  const adminPassword = process.env.COMPLIANCE_ADMIN_PASSWORD || 'Admin@ComplianceOS1';
+  localAuth.initDefaultAdmin(adminEmail, adminPassword);
+  console.log(`[LocalAuth] Local authentication active — admin: ${adminEmail} / ${adminPassword}`);
+  console.log(`╔══════════════════════════════════════════════════════╗`);
+  console.log(`║  🔑 Admin login: ${adminEmail}                         ║`);
+  console.log(`║  🔑 Password:    ${adminPassword}                         ║`);
+  console.log(`╚══════════════════════════════════════════════════════╝`);
+}
+
+// Local login endpoint (fast-path: evaluated before session/rate-limits/auth-guards)
+app.post('/api/auth/local-login', async (req: any, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const result = localAuth.login(email, password);
+  if (!result.success) {
+    return res.status(401).json({ error: result.error || 'Invalid credentials' });
+  }
+
+  // Sync user to database
+  try {
+    const { getDb } = await import('./packages/core/src/db');
+    const { users } = await import('./packages/core/src/schema');
+    const { eq } = await import('drizzle-orm');
+    const dbConn = await getDb();
+    
+    // Check if user exists in database
+    let dbUser = await dbConn.query.users.findFirst({
+      where: eq(users.email, email)
+    });
+    
+    if (!dbUser) {
+      // Create user in database
+      const [newUser] = await dbConn.insert(users).values({
+        email,
+        name: result.user?.name || email.split('@')[0],
+        role: result.user?.role === 'admin' ? 'owner' : 'editor',
+        openId: `local-${result.user?.id || Date.now()}`,
+        loginMethod: 'local',
+        lastSignedIn: new Date(),
+      }).returning();
+      dbUser = newUser;
+    }
+    
+    // Return user with database ID
+    res.json({
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        role: dbUser.role,
+      },
+      token: result.token,
+    });
+  } catch (dbErr) {
+    console.error('[LocalLogin] DB sync notice (continuing with local token):', dbErr);
+    res.json({
+      user: result.user,
+      token: result.token,
+    });
+  }
+});
+
+// Local registration endpoint
+app.post('/api/auth/local-register', (req: any, res) => {
+  const { email, password, name } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const result = localAuth.register(email, password, name || undefined);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error || 'Registration failed' });
+  }
+
+  res.json({
+    user: result.user,
+    token: result.token,
+  });
+});
+
 import session from 'express-session';
 
 // Session Security Management (Item #44)
@@ -555,96 +641,6 @@ app.get('/api/agent-chat-suggested', async (_req: any, res: express.Response) =>
 
 app.use(authMiddleware);
 
-// Local auth fallback: init default admin + login endpoint
-
-// Local auth fallback: init default admin + login endpoint
-if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
-  const adminEmail = process.env.COMPLIANCE_ADMIN_EMAIL || 'admin@complianceos.local';
-  const adminPassword = process.env.COMPLIANCE_ADMIN_PASSWORD || randomBytes(4).toString('hex') + '-change-me';
-  localAuth.initDefaultAdmin(adminEmail, adminPassword);
-  console.log(`[LocalAuth] Local authentication active — admin: ${adminEmail} / ${adminPassword}`);
-  // Log password prominently for first-run discovery
-  console.log(`╔══════════════════════════════════════════════════════╗`);
-  console.log(`║  🔑 Admin login: ${adminEmail}                         ║`);
-  console.log(`║  🔑 Password:    ${adminPassword}                         ║`);
-  console.log(`╚══════════════════════════════════════════════════════╝`);
-}
-
-// Local login endpoint (used when Supabase is not configured)
-app.post('/api/auth/local-login', express.json(), async (req: any, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
-  }
-
-  const result = localAuth.login(email, password);
-  if (!result.success) {
-    return res.status(401).json({ error: result.error || 'Invalid credentials' });
-  }
-
-  // Sync user to database
-  try {
-    const { getDb } = await import('./packages/core/src/db');
-    const { users } = await import('./packages/core/src/schema');
-    const { eq } = await import('drizzle-orm');
-    const dbConn = await getDb();
-    
-    // Check if user exists in database
-    let dbUser = await dbConn.query.users.findFirst({
-      where: eq(users.email, email)
-    });
-    
-    if (!dbUser) {
-      // Create user in database
-      const [newUser] = await dbConn.insert(users).values({
-        email,
-        name: result.user?.name || email.split('@')[0],
-        role: result.user?.role === 'admin' ? 'owner' : 'editor',
-        openId: `local-${result.user?.id || Date.now()}`,
-        loginMethod: 'local',
-        lastSignedIn: new Date(),
-      }).returning();
-      dbUser = newUser;
-    }
-    
-    // Return user with database ID
-    res.json({
-      user: {
-        id: dbUser.id,
-        email: dbUser.email,
-        name: dbUser.name,
-        role: dbUser.role,
-      },
-      token: result.token,
-    });
-  } catch (dbErr) {
-    console.error('[LocalLogin] DB sync error:', dbErr);
-    // Fallback to local auth response
-    res.json({
-      user: result.user,
-      token: result.token,
-    });
-  }
-});
-
-// Local registration endpoint (creates new users)
-app.post('/api/auth/local-register', express.json(), (req: any, res) => {
-  const { email, password, name } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
-  }
-
-  const result = localAuth.register(email, password, name || undefined);
-  if (!result.success) {
-    return res.status(400).json({ error: result.error || 'Registration failed' });
-  }
-
-  res.json({
-    user: result.user,
-    token: result.token,
-  });
-});
-
 
 // Secure static uploads - must be after authMiddleware
 app.use('/uploads', (req: any, res, next) => {
@@ -799,89 +795,97 @@ app.use('/api', (req, res) => {
     });
 });
 
-// Optional background syncs
-if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
-    threatScheduler.start();
-}
+// Background schedulers
+const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+const allowSchedulers = !isDev || process.env.ENABLE_DEV_SCHEDULERS === 'true';
 
-// License renewal scheduler
-if (process.env.ENABLE_LICENSE_RENEWAL_SCHEDULER === 'true') {
-    licenseRenewalScheduler.start();
-    console.log('[Server] License renewal scheduler started');
-}
+if (!allowSchedulers) {
+    console.log('[Server] Development Mode: Background schedulers paused for optimal UI responsiveness (set ENABLE_DEV_SCHEDULERS=true to activate)');
+} else {
+    // Optional background syncs
+    if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
+        threatScheduler.start();
+    }
 
-// Policy review scheduler
-if (process.env.ENABLE_POLICY_REVIEW_SCHEDULER !== 'false') {
-    policyReviewScheduler.start();
-    console.log('[Server] Policy review scheduler started');
-}
+    // License renewal scheduler
+    if (process.env.ENABLE_LICENSE_RENEWAL_SCHEDULER === 'true') {
+        licenseRenewalScheduler.start();
+        console.log('[Server] License renewal scheduler started');
+    }
 
-// Evidence expiration scheduler
-if (process.env.ENABLE_EVIDENCE_EXPIRATION_SCHEDULER !== 'false') {
-    evidenceExpirationScheduler.start();
-    console.log('[Server] Evidence expiration scheduler started');
-}
+    // Policy review scheduler
+    if (process.env.ENABLE_POLICY_REVIEW_SCHEDULER !== 'false') {
+        policyReviewScheduler.start();
+        console.log('[Server] Policy review scheduler started');
+    }
 
-// Evidence renewal scheduler (auto-remediation, P1 #14)
-if (process.env.ENABLE_EVIDENCE_RENEWAL_SCHEDULER !== 'false') {
-    evidenceRenewalScheduler.start();
-    console.log('[Server] Evidence renewal scheduler started');
-}
+    // Evidence expiration scheduler
+    if (process.env.ENABLE_EVIDENCE_EXPIRATION_SCHEDULER !== 'false') {
+        evidenceExpirationScheduler.start();
+        console.log('[Server] Evidence expiration scheduler started');
+    }
 
-// Policy ACK reminder scheduler (P1 #4)
-if (process.env.ENABLE_POLICY_ACK_REMINDERS !== 'false') {
-    policyAckReminderScheduler.start();
-    console.log('[Server] Policy ACK reminder scheduler started');
-}
+    // Evidence renewal scheduler (auto-remediation, P1 #14)
+    if (process.env.ENABLE_EVIDENCE_RENEWAL_SCHEDULER !== 'false') {
+        evidenceRenewalScheduler.start();
+        console.log('[Server] Evidence renewal scheduler started');
+    }
 
-// Access review overdue sweep scheduler (P2 #7)
-if (process.env.ENABLE_ACCESS_REVIEW_SCHEDULER !== 'false') {
-    accessReviewScheduler.start();
-    console.log('[Server] Access review scheduler started');
-}
+    // Policy ACK reminder scheduler (P1 #4)
+    if (process.env.ENABLE_POLICY_ACK_REMINDERS !== 'false') {
+        policyAckReminderScheduler.start();
+        console.log('[Server] Policy ACK reminder scheduler started');
+    }
 
-// Control auto-testing scheduler
-if (process.env.ENABLE_CONTROL_AUTO_TESTING_SCHEDULER !== 'false') {
-    controlAutoTestScheduler.start();
-    console.log('[Server] Control auto-testing scheduler started');
-}
+    // Access review overdue sweep scheduler (P2 #7)
+    if (process.env.ENABLE_ACCESS_REVIEW_SCHEDULER !== 'false') {
+        accessReviewScheduler.start();
+        console.log('[Server] Access review scheduler started');
+    }
 
-// DSAR statutory deadline scheduler (7-day warnings + overdue tasks)
-if (process.env.ENABLE_DSAR_DEADLINE_SCHEDULER !== 'false') {
-    import('./packages/core/src/server/services/dsarDeadlineScheduler').then((m) => {
-        m.start();
-        console.log('[Server] DSAR deadline scheduler started');
-    }).catch((err) => console.error('[Server] DSAR deadline scheduler failed to start:', err?.message));
-}
+    // Control auto-testing scheduler
+    if (process.env.ENABLE_CONTROL_AUTO_TESTING_SCHEDULER !== 'false') {
+        controlAutoTestScheduler.start();
+        console.log('[Server] Control auto-testing scheduler started');
+    }
 
-// Weekly compliance snapshot capture (populates trend charts automatically)
-if (process.env.ENABLE_COMPLIANCE_SNAPSHOT_SCHEDULER !== 'false') {
-    import('./packages/core/src/server/services/complianceSnapshotScheduler').then((m) => {
-        m.start();
-        console.log('[Server] Compliance snapshot scheduler started');
-    }).catch((err) => console.error('[Server] Compliance snapshot scheduler failed to start:', err?.message));
-}
+    // DSAR statutory deadline scheduler (7-day warnings + overdue tasks)
+    if (process.env.ENABLE_DSAR_DEADLINE_SCHEDULER !== 'false') {
+        import('./packages/core/src/server/services/dsarDeadlineScheduler').then((m) => {
+            m.start();
+            console.log('[Server] DSAR deadline scheduler started');
+        }).catch((err) => console.error('[Server] DSAR deadline scheduler failed to start:', err?.message));
+    }
 
-// Compliance monitor hourly check (health checks + drift events)
-if (process.env.ENABLE_COMPLIANCE_MONITOR_CRON !== 'false') {
-    import('./packages/core/src/server/cron/compliance-monitor-cron').then((m) => {
-        const run = () => m.hourlyComplianceCheck().catch((err: any) =>
-            console.error('[Server] Compliance monitor cron run failed:', err?.message));
-        setTimeout(run, 90_000); // let boot-time work settle first
-        setInterval(run, 60 * 60 * 1000);
-        console.log('[Server] Compliance monitor cron started (hourly)');
-    }).catch((err) => console.error('[Server] Compliance monitor cron failed to start:', err?.message));
-}
+    // Weekly compliance snapshot capture (populates trend charts automatically)
+    if (process.env.ENABLE_COMPLIANCE_SNAPSHOT_SCHEDULER !== 'false') {
+        import('./packages/core/src/server/services/complianceSnapshotScheduler').then((m) => {
+            m.start();
+            console.log('[Server] Compliance snapshot scheduler started');
+        }).catch((err) => console.error('[Server] Compliance snapshot scheduler failed to start:', err?.message));
+    }
 
-// Evidence collection scheduler (automated evidence collection, P0)
-if (process.env.ENABLE_EVIDENCE_SCHEDULER !== 'false') {
-    startEvidenceScheduler();
-    console.log('[Server] Evidence collection scheduler started');
-}
+    // Compliance monitor hourly check (health checks + drift events)
+    if (process.env.ENABLE_COMPLIANCE_MONITOR_CRON !== 'false') {
+        import('./packages/core/src/server/cron/compliance-monitor-cron').then((m) => {
+            const run = () => m.hourlyComplianceCheck().catch((err: any) =>
+                console.error('[Server] Compliance monitor cron run failed:', err?.message));
+            setTimeout(run, 90_000); // let boot-time work settle first
+            setInterval(run, 60 * 60 * 1000);
+            console.log('[Server] Compliance monitor cron started (hourly)');
+        }).catch((err) => console.error('[Server] Compliance monitor cron failed to start:', err?.message));
+    }
 
-// VFS Memory Cortex continuous background synchronization
-if (process.env.ENABLE_VFS_AUTO_SYNC !== 'false') {
-    startVfsAutoSyncScheduler(300_000); // sync every 5 minutes automatically
+    // Evidence collection scheduler (automated evidence collection, P0)
+    if (process.env.ENABLE_EVIDENCE_SCHEDULER !== 'false') {
+        startEvidenceScheduler();
+        console.log('[Server] Evidence collection scheduler started');
+    }
+
+    // VFS Memory Cortex continuous background synchronization
+    if (process.env.ENABLE_VFS_AUTO_SYNC !== 'false') {
+        startVfsAutoSyncScheduler(300_000); // sync every 5 minutes automatically
+    }
 }
 
 // Addon system initialization

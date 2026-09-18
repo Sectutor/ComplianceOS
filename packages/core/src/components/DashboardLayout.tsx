@@ -79,6 +79,7 @@ export function translateNavLabel(label: string, t: (key: string, options?: any)
     "Settings & Administration": "navigation:settingsAdmin",
 
     // Items & Menus
+    "Action Center": "navigation:actionCenter",
     "Start Here": "navigation:startHere",
     "Dashboard": "navigation:dashboard",
     "Agent": "navigation:agent",
@@ -166,6 +167,7 @@ export function translateNavLabel(label: string, t: (key: string, options?: any)
 
 const globalMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: Inbox, label: "Action Center", path: "/action-center" },
   { icon: Bot, label: "Agent", path: "/agent" },
   { icon: Rocket, label: "Client Onboarding", path: "/onboarding" }, // New
   { icon: Users, label: "Clients", path: "/clients" },
@@ -540,6 +542,16 @@ function DashboardLayoutContent({
     ? clientsData
     : DEFAULT_FALLBACK_CLIENTS;
 
+  const effectiveSentinelClientId = persistentClientId || (availableClientsList?.[0]?.id as number) || 1;
+  const { data: sentinelStats } = trpc.sentinel.getStats.useQuery(
+    { clientId: effectiveSentinelClientId },
+    {
+      enabled: !!effectiveSentinelClientId,
+      refetchInterval: 15000,
+    }
+  );
+  const pendingSentinelCount = sentinelStats?.totalPending ?? 0;
+
   useEffect(() => {
     if (clientError && clientError.data?.code === 'FORBIDDEN' && isClientSpecificPage) {
       // Clear invalid client ID
@@ -731,6 +743,12 @@ function DashboardLayoutContent({
       label: "Platform & Overview",
       items: [
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+        {
+          icon: Inbox,
+          label: "Action Center",
+          path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
+          badge: pendingSentinelCount > 0 ? `${pendingSentinelCount}` : undefined,
+        },
         { icon: Bot, label: "Agent", path: "/agent" },
         { icon: Users, label: "Clients", path: "/clients" },
         { icon: Settings, label: "Settings", path: "/settings" },
@@ -1573,7 +1591,7 @@ function DashboardLayoutContent({
                   className="h-9 px-2.5 sm:px-3 gap-1.5 sm:gap-2 bg-card hover:bg-muted border-border text-foreground font-semibold text-xs rounded-lg shadow-sm"
                 >
                   <Building2 className="h-4 w-4 text-primary shrink-0" />
-                  <span className="max-w-[120px] sm:max-w-[160px] truncate hidden xs:inline-block">
+                  <span className="max-w-[120px] sm:max-w-[180px] truncate inline-block">
                     {clientInfo?.portalTitle || clientInfo?.name || (persistentClientId ? `Client #${persistentClientId}` : "Select Client")}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -1588,7 +1606,9 @@ function DashboardLayoutContent({
                     key={c.id}
                     onClick={() => {
                       setSelectedClientId(c.id);
-                      if (location.includes('/clients/')) {
+                      if (location.startsWith('/action-center')) {
+                        setLocation(`/action-center?clientId=${c.id}`);
+                      } else if (location.includes('/clients/')) {
                         const newPath = location.replace(/\/clients\/\d+/, `/clients/${c.id}`);
                         setLocation(newPath);
                       } else {
@@ -1620,19 +1640,29 @@ function DashboardLayoutContent({
             {/* <LanguageSwitcher compact /> */}
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
             <button
-              onClick={() => setLocation('/agent?tab=sentinel')}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 transition-all cursor-pointer text-xs font-semibold shadow-xs shrink-0"
-              title="Autonomous Sentinel AI Patrol Active"
+              onClick={() => setLocation(persistentClientId ? `/action-center?clientId=${persistentClientId}` : '/action-center')}
+              className={`h-9 flex items-center gap-2 px-3 rounded-lg border transition-all cursor-pointer text-xs font-semibold shadow-xs shrink-0 ${
+                pendingSentinelCount > 0
+                  ? "bg-card hover:bg-accent border-rose-300 dark:border-rose-800/80 text-foreground ring-1 ring-rose-500/20"
+                  : "bg-card hover:bg-muted border-border text-foreground"
+              }`}
+              title={pendingSentinelCount > 0 ? `${pendingSentinelCount} Autonomous Sentinel actions awaiting review in Action Center` : "Autonomous Sentinel AI Patrol Active"}
             >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pendingSentinelCount > 0 ? "bg-rose-500" : "bg-emerald-400"}`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${pendingSentinelCount > 0 ? "bg-rose-600" : "bg-emerald-500"}`}></span>
               </span>
-              <Bot className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span className="hidden md:inline font-semibold text-slate-800 dark:text-slate-100">AI Sentinel</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-bold">
-                Active
-              </span>
+              <Bot className={`w-4 h-4 shrink-0 ${pendingSentinelCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-primary"}`} />
+              <span className="hidden md:inline font-bold text-foreground">Action Center</span>
+              {pendingSentinelCount > 0 ? (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white shadow-xs tracking-tight">
+                  {pendingSentinelCount} pending
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  Active
+                </span>
+              )}
             </button>
             <ExtensionSlot name="topbar.copilot-help" />
             <GlobalNotificationCenter />
@@ -1802,6 +1832,11 @@ function CollapsibleGroup({
                           className={`h-4.5 w-4.5 min-w-[1.125rem] ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
                         />
                         <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(translatedItemLabel, menuSearch)}</span>
+                        {item.badge && (
+                          <Badge className="ml-auto bg-rose-500/20 text-rose-300 border border-rose-500/30 px-1.5 py-0 text-[9px] font-bold">
+                            {item.badge}
+                          </Badge>
+                        )}
                         {item.isPremium && (
                           <Badge className="ml-auto bg-blue-500/20 text-blue-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
                             Pro

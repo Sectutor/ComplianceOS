@@ -128,8 +128,16 @@ export async function processObservation(
     priority: obs.proposedAction.priority ?? (obs.severity === "critical" ? "critical" : obs.severity === "warning" ? "high" : "medium"),
     status: executeDirectly ? "executed" : "pending", // legacy UI filter expects 'pending'
     targetEntity: JSON.stringify({ entityType: obs.entityType, entityId: obs.entityId ?? null }),
-    aiRationale: obs.rationale.slice(0, 4000),
-    metadata: { botId, dedupeKey: obs.dedupeKey, severity: obs.severity, proposedAction: obs.proposedAction, confidence: obs.confidence ?? 80, autoRemediationId: obs.autoRemediationId ?? null },
+    metadata: { 
+      botId, 
+      dedupeKey: obs.dedupeKey, 
+      severity: obs.severity, 
+      proposedAction: obs.proposedAction, 
+      confidence: obs.confidence ?? 80, 
+      autoRemediationId: obs.autoRemediationId ?? null,
+      ...(obs.metadata || {}) 
+    },
+    aiRationale: obs.rationale,
   }).returning();
 
   // 3. Execute or hold for review

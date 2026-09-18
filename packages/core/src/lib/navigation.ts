@@ -1,6 +1,7 @@
-import { Shield, FileText, BookOpen, Sparkles, Link, ClipboardCheck, AlertTriangle, Code, Activity, Compass, Flag, Brain, Building2, Users, FileBarChart, Calendar, Bell, Settings, ListTodo, MessageSquare, History, GraduationCap, Palette, ClipboardList, ShieldCheck, ShoppingBag } from "lucide-react";
+import { Shield, FileText, BookOpen, Sparkles, Link, ClipboardCheck, AlertTriangle, Code, Activity, Compass, Flag, Brain, Building2, Users, FileBarChart, Calendar, Bell, Settings, ListTodo, MessageSquare, History, GraduationCap, Palette, ClipboardList, ShieldCheck, ShoppingBag, Inbox } from "lucide-react";
 
 export const clientSpecificMenuItems = [
+    { icon: Inbox, label: "Action Center", path: "/action-center" },
     { icon: Shield, label: "Controls", path: "/client-controls" },
     { icon: ClipboardList, label: "Requirements", path: "/compliance-requirements" },
     { icon: FileText, label: "Policies", path: "/client-policies" },
@@ -49,6 +50,7 @@ export function resolveNavigationPath(itemPath: string | undefined | null, clien
     // Public questionnaire routes (vendor response tokens) should not be rewritten
     if (purePath.startsWith('/questionnaire/')) return itemPath;
 
+    if (purePath === "/action-center") return `/action-center${query ? `?${query}` : (clientId ? `?clientId=${clientId}` : '')}`;
     if (purePath === "/governance") return `/clients/${clientId}/governance${queryStr}`;
     if (purePath === "/governance/workbench") return `/clients/${clientId}/governance/workbench${queryStr}`;
     if (purePath === "/compliance") return `/clients/${clientId}/compliance${queryStr}`;

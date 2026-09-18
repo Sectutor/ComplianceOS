@@ -1427,9 +1427,28 @@ export async function ensureDefaultDataSeeded() {
       ALTER TABLE clients ADD COLUMN IF NOT EXISTS currency varchar(10) DEFAULT 'USD';
       ALTER TABLE clients ADD COLUMN IF NOT EXISTS locale varchar(20) DEFAULT 'en-US';
       ALTER TABLE clients ADD COLUMN IF NOT EXISTS date_format varchar(20) DEFAULT 'YYYY-MM-DD';
+      ALTER TABLE IF EXISTS fips_categorizations ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_rmf_workflows ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_fisma_reports ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_ssp_controls ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_nist_800_53_assessments ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS intake_items ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_ssps ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_poams ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_ssp_sections ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_fips_categorizations ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_sar_findings ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_inheritances ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS nist_80030_threat_sources ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS nist_80030_threat_events ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_contracts ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS nist_80030_impact_assessments ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS federal_sars ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS audit_findings ADD COLUMN IF NOT EXISTS fisma_system_id integer;
+      ALTER TABLE IF EXISTS risk_assessments ADD COLUMN IF NOT EXISTS fisma_system_id integer;
     `);
   } catch (migErr) {
-    console.warn('[DB Migration Warning] Column auto-migration for clients failed or skipped:', migErr);
+    console.warn('[DB Migration Warning] Column auto-migration for clients/federal tables failed or skipped:', migErr);
   }
 
   // Seed Controls if empty

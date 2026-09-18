@@ -87,12 +87,19 @@ export const createMcpRouter = (t: any, premiumClientProcedure: any, protectedPr
                 const controlsList = await getClientControls(input.clientId);
                 
                 const total = controlsList.length;
-                const implemented = controlsList.filter(c => c.status === 'implemented').length;
-                const inProgress = controlsList.filter(c => c.status === 'in_progress').length;
+
+                // Accept all known "done" status values from DB
+                const IMPLEMENTED_STATUSES = ['implemented', 'active', 'completed'];
+                const implemented = controlsList.filter(c => IMPLEMENTED_STATUSES.includes(c.clientControl?.status || '')).length;
+                const inProgress = controlsList.filter(c => c.clientControl?.status === 'in_progress').length;
+
+                // Composite score: implemented = 1.0 weight, in_progress = 0.5 weight
+                const weightedScore = implemented + (inProgress * 0.5);
+                const complianceLevel = total > 0 ? Math.round((weightedScore / total) * 100) : 0;
                 
                 return {
                     organization: client.name,
-                    complianceLevel: total > 0 ? Math.round((implemented / total) * 100) : 0,
+                    complianceLevel,
                     metrics: {
                         totalControls: total,
                         implemented,

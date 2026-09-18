@@ -88,6 +88,87 @@ export class AgentService {
     }
 
     /**
+     * Build a live compliance context snapshot for system prompt injection.
+     * Fetches real-time data: control status, critical risks, expiring evidence, open incidents.
+     */
+    static async buildContextSnapshot(clientId: number): Promise<string> {
+        try {
+            const db = await getDb();
+            const { clientControls, riskAssessments, evidence, incidents, clients } = await import('../../schema');
+            const { desc, gte, lte, and: dbAnd, eq: dbEq } = await import('drizzle-orm');
+
+            // 1. Org name
+            const [org] = await db.select({ name: clients.name, industry: (clients as any).industry })
+                .from(clients).where(dbEq(clients.id, clientId)).limit(1);
+
+            // 2. Controls summary
+            const controls = await db.select({ status: clientControls.status })
+                .from(clientControls).where(dbEq(clientControls.clientId, clientId));
+
+            const IMPLEMENTED_STATUSES = ['implemented', 'active', 'completed'];
+            const total = controls.length;
+            const implemented = controls.filter(c => IMPLEMENTED_STATUSES.includes(c.status || '')).length;
+            const inProgress = controls.filter(c => c.status === 'in_progress').length;
+            const complianceLevel = total > 0 ? Math.round((implemented / total) * 100) : 0;
+
+            // 3. Top critical/high risks
+            const criticalRisks = await db.select({
+                title: riskAssessments.title,
+                inherentRisk: riskAssessments.inherentRisk,
+                status: riskAssessments.status,
+            })
+                .from(riskAssessments)
+                .where(dbEq(riskAssessments.clientId, clientId))
+                .orderBy(desc(riskAssessments.inherentScore))
+                .limit(5);
+
+            // 4. Expiring evidence (next 30 days)
+            const now = new Date();
+            const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            let expiringCount = 0;
+            try {
+                const expiring = await db.select({ id: evidence.id })
+                    .from(evidence)
+                    .where(dbAnd(
+                        dbEq(evidence.clientId, clientId),
+                        gte(evidence.expiresAt, now),
+                        lte(evidence.expiresAt, in30Days)
+                    ) as any);
+                expiringCount = expiring.length;
+            } catch { /* expiresAt column may not exist on all deployments */ }
+
+            // 5. Open incidents count
+            let openIncidents = 0;
+            try {
+                const openInc = await db.select({ id: incidents.id })
+                    .from(incidents)
+                    .where(dbAnd(dbEq(incidents.clientId, clientId), dbEq(incidents.status, 'open')) as any);
+                openIncidents = openInc.length;
+            } catch { /* incidents table may be empty */ }
+
+            // Format context block
+            const riskLines = criticalRisks.length > 0
+                ? criticalRisks.map(r => `  - ${r.title} [${r.inherentRisk || 'unknown'} risk, ${r.status}]`).join('\n')
+                : '  - No risks registered';
+
+            return `
+
+## Live Compliance Dashboard — ${org?.name || `Workspace #${clientId}`} (as of ${now.toLocaleDateString()})
+- **Overall Compliance:** ${complianceLevel}% (${implemented}/${total} controls implemented, ${inProgress} in progress)
+- **Open Incidents:** ${openIncidents}
+- **Evidence Expiring (30 days):** ${expiringCount} items
+
+### Top Risks (by inherent score)
+${riskLines}
+
+Use this live data to answer questions accurately. Do NOT speculate about the user's compliance posture — reference the numbers above.`;
+        } catch (err) {
+            console.warn('[AgentService.buildContextSnapshot] Failed to fetch context:', err);
+            return ''; // Graceful degradation — LLM still responds, just without live data
+        }
+    }
+
+    /**
      * Generate a system prompt part describing available tools
      */
     static async getAgentPrompt(clientId: number) {

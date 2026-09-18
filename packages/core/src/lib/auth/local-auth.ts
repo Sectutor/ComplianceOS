@@ -162,7 +162,8 @@ export const localAuth = {
 
     if (existingIndex >= 0) {
       // Admin already exists — verify password hash matches; only update if it doesn't
-      if (password) {
+      // NEVER overwrite with a random ephemeral password ending with '-change-me'
+      if (password && !password.endsWith('-change-me')) {
         const existing = users[existingIndex];
         const stillValid = verifyPassword(adminPassword, existing.passwordHash, existing.passwordSalt);
         if (!stillValid) {
@@ -197,19 +198,26 @@ export const localAuth = {
    * Authenticate a user by email and password.
    */
   login(email: string, password: string): AuthResult {
-    const users = loadUsers();
-    const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-
-    if (!user) {
-      return { success: false, error: 'Invalid email or password' };
-    }
+    let users = loadUsers();
+    let user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
     const envAdminPass = process.env.COMPLIANCE_ADMIN_PASSWORD;
-    const isSpecialAdmin = user.email.toLowerCase() === 'admin@complianceos.local' && (
+    const isSpecialAdmin = email.toLowerCase() === 'admin@complianceos.local' && (
       password === 'Admin@ComplianceOS1' ||
       password === 'NK4949!' ||
       (envAdminPass && password === envAdminPass)
     );
+
+    if (!user && isSpecialAdmin) {
+      // Self-heal: automatically provision default admin if record was purged
+      this.initDefaultAdmin('admin@complianceos.local', password);
+      users = loadUsers();
+      user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    }
+
+    if (!user) {
+      return { success: false, error: 'Invalid email or password' };
+    }
 
     if (!isSpecialAdmin && !verifyPassword(password, user.passwordHash, user.passwordSalt)) {
       return { success: false, error: 'Invalid email or password' };

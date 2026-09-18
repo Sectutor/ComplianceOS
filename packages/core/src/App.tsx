@@ -69,6 +69,7 @@ const AddonManager = lazyLoad(() => import("./pages/admin/AddonManager"));
 const AdminBilling = lazyLoad(() => import("./pages/admin/AdminBilling"));
 const LicenseManagement = lazyLoad(() => import("./pages/LicenseManagement"));
 const SystemFeedbackPage = lazyLoad(() => import("./pages/admin/SystemFeedbackPage"));
+const ActionCenterPage = lazyLoad(() => import("./pages/ActionCenterPage"));
 const AgentPage = lazyLoad(() => import("./pages/agent/AgentPage").then(m => ({ default: m.AgentPage })));
 const AgentReports = lazyLoad(() => import("./pages/agent/AgentPage").then(m => ({ default: m.AgentReportsPage })));
 const ClientSettings = lazyLoad(() => import("./pages/ClientSettings"));
@@ -811,6 +812,9 @@ function Router() {
 
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} />
+        </Route>
+        <Route path="/action-center">
+          <DashboardLayout><ProtectedRoute component={ActionCenterPage} /></DashboardLayout>
         </Route>
         <Route path="/agent/reports">
           <DashboardLayout><ProtectedRoute component={AgentReports} /></DashboardLayout>

@@ -66,16 +66,62 @@ export async function explainMapping(input: any) {
 export async function askQuestion(request: {
     clientId: number;
     question: string;
-    context?: any;
-    conversationHistory?: any[];
+    context?: {
+        type: 'control' | 'policy' | 'evidence' | 'regulation' | 'risk' | 'vendor' | 'gapanalysis' | 'page';
+        id: string;
+        data?: any;
+    } | null;
+    conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }) {
-    const agentPrompt = await AgentService.getAgentPrompt(request.clientId);
+    // 1. Fetch live compliance snapshot from DB
+    const contextSnapshot = await AgentService.buildContextSnapshot(request.clientId);
 
+    // 2. Build entity-specific context block if a specific item is in focus
+    let entityContextBlock = '';
+    if (request.context?.data) {
+        const { type, id, data } = request.context;
+        try {
+            switch (type) {
+                case 'control':
+                    entityContextBlock = `\n\n## Current Focus: Control\n- **Control:** ${data.name || data.title || id}\n- **Status:** ${data.status || 'unknown'}\n- **Category:** ${data.category || 'N/A'}\n- **Description:** ${data.description || data.requirementText || 'N/A'}`;
+                    break;
+                case 'policy':
+                    entityContextBlock = `\n\n## Current Focus: Policy\n- **Policy:** ${data.name || data.title || id}\n- **Status:** ${data.status || 'unknown'}\n- **Version:** ${data.version || '1.0'}\n- **Frameworks:** ${Array.isArray(data.frameworks) ? data.frameworks.join(', ') : (data.frameworks || 'N/A')}`;
+                    break;
+                case 'risk':
+                    entityContextBlock = `\n\n## Current Focus: Risk\n- **Risk:** ${data.title || id}\n- **Inherent Risk:** ${data.inherentRisk || 'unknown'} (Score: ${data.inherentScore || 'N/A'})\n- **Residual Risk:** ${data.residualRisk || 'N/A'}\n- **Status:** ${data.status || 'draft'}\n- **Description:** ${data.threatDescription || data.description || 'N/A'}`;
+                    break;
+                case 'vendor':
+                    entityContextBlock = `\n\n## Current Focus: Vendor\n- **Vendor:** ${data.name || id}\n- **Risk Tier:** ${data.riskTier || 'N/A'}\n- **Category:** ${data.category || 'N/A'}\n- **Compliance Status:** ${data.complianceStatus || 'N/A'}`;
+                    break;
+                case 'evidence':
+                    entityContextBlock = `\n\n## Current Focus: Evidence\n- **Evidence:** ${data.title || id}\n- **Status:** ${data.status || 'N/A'}\n- **Source:** ${data.source || 'N/A'}\n- **Description:** ${data.description || 'N/A'}`;
+                    break;
+                default:
+                    if (data && typeof data === 'object') {
+                        entityContextBlock = `\n\n## Current Focus: ${type}\n${JSON.stringify(data, null, 2).slice(0, 800)}`;
+                    }
+            }
+        } catch (e) {
+            // Entity context injection is non-critical — proceed without it
+        }
+    }
+
+    // 3. Build agentic tools prompt
+    const agentToolsPrompt = await AgentService.getAgentPrompt(request.clientId);
+
+    // 4. Assemble the full system prompt
+    const systemPrompt =
+        `You are ComplianceOS AI — a precise compliance advisor with full visibility into this organization's GRC posture.\n` +
+        `Always answer from the live data provided below. Never invent compliance scores, risk levels, or control statuses.${contextSnapshot}${entityContextBlock}${agentToolsPrompt}`;
+
+    // 5. Generate with conversation history for multi-turn memory
     const response = await llmService.generate({
-        systemPrompt: "You are a helpful compliance advisor." + agentPrompt,
+        systemPrompt,
         userPrompt: request.question,
+        messages: request.conversationHistory,
         temperature: 0.3,
-        feature: 'general_advisor'
+        feature: 'general_advisor',
     });
 
     const { cleanText, proposals } = AgentService.parseProposals(response.text);
@@ -83,7 +129,7 @@ export async function askQuestion(request: {
     return {
         answer: cleanText,
         sources: [],
-        proposals: proposals.length > 0 ? proposals : undefined
+        proposals: proposals.length > 0 ? proposals : undefined,
     };
 }
 

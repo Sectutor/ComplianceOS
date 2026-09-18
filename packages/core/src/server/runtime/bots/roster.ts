@@ -88,7 +88,7 @@ export const riskWatchdog: SentinelBot = {
       .from(riskScenarios)
       .where(and(eq(riskScenarios.clientId, ctx.clientId), sql`${riskScenarios.residualScore} > ${appetiteScore}`));
 
-    for (const r of rRows.slice(0, 15)) { // cap volume
+    for (const r of rRows.slice(0, 150)) { // enterprise volume budget
       out.push({
         severity: "critical",
         title: `Residual risk above appetite: "${r.title}" (score ${r.residualScore} > ${appetiteScore})`,
@@ -122,7 +122,7 @@ export const riskWatchdog: SentinelBot = {
           or(isNull(riskAssessments.riskOwner), eq(riskAssessments.status, "draft"))
         ));
 
-      for (const u of unassignedRisks.slice(0, 10)) {
+      for (const u of unassignedRisks.slice(0, 150)) {
         out.push({
           severity: "warning",
           title: `Unassigned high-impact risk: "${u.title}"`,
@@ -220,8 +220,9 @@ export const policySteward: SentinelBot = {
     const db = await getDb();
     if (!db) return [];
     const out: Observation[] = [];
+    const nowMs = ctx.now.getTime();
 
-    // Policies stuck in "review" status > 21 days
+    // 1. Policies stuck in "review" status > 21 days
     const stuck = await db
       .select({
         id: clientPolicies.id,
@@ -233,12 +234,12 @@ export const policySteward: SentinelBot = {
       .where(and(eq(clientPolicies.clientId, ctx.clientId), eq(clientPolicies.status, "review")));
 
     for (const p of stuck) {
-      const daysStuck = Math.floor((ctx.now.getTime() - p.updatedAt!.getTime()) / 86400000);
+      const daysStuck = Math.floor((nowMs - (p.updatedAt ? p.updatedAt.getTime() : nowMs)) / 86400000);
       if (daysStuck < 21) continue;
       out.push({
         severity: "warning",
         title: `Policy "${p.name}" stuck in review for ${daysStuck} days`,
-        rationale: `Policy "${p.name}" has been in "review" status since ${p.updatedAt!.toISOString().slice(0, 10)} (${daysStuck} days). Stalled reviews block approval workflows and leave the policy without an authoritative version — a standard ISO A.5.1 audit finding.`,
+        rationale: `Policy "${p.name}" has been in "review" status since ${p.updatedAt ? p.updatedAt.toISOString().slice(0, 10) : 'unknown'} (${daysStuck} days). Stalled reviews block approval workflows and leave the policy without an authoritative version — a standard ISO A.5.1 audit finding.`,
         entityType: "policy",
         entityId: p.id,
         proposedAction: {
@@ -252,6 +253,106 @@ export const policySteward: SentinelBot = {
         metadata: { daysStuck },
       });
     }
+
+    // 2. Approved policies overdue for annual/semi-annual review
+    try {
+      const allPolicies = await db
+        .select({
+          id: clientPolicies.id,
+          name: clientPolicies.name,
+          content: clientPolicies.content,
+          status: clientPolicies.status,
+          updatedAt: clientPolicies.updatedAt,
+          nextReviewDate: clientPolicies.nextReviewDate,
+        })
+        .from(clientPolicies)
+        .where(eq(clientPolicies.clientId, ctx.clientId));
+
+      for (const pol of allPolicies) {
+        const lastUpdated = pol.updatedAt ? pol.updatedAt.getTime() : 0;
+        const daysSinceUpdate = Math.floor((nowMs - lastUpdated) / 86400000);
+        const nextReviewMs = pol.nextReviewDate ? pol.nextReviewDate.getTime() : 0;
+        const isPastNextReview = nextReviewMs > 0 && nextReviewMs < nowMs;
+
+        if (pol.status === "approved" && (daysSinceUpdate >= 180 || isPastNextReview)) {
+          const isCritical = daysSinceUpdate >= 365 || (isPastNextReview && Math.floor((nowMs - nextReviewMs) / 86400000) > 30);
+          out.push({
+            severity: isCritical ? "critical" : "warning",
+            title: `Policy "${pol.name}" overdue for review (${daysSinceUpdate} days since last update)`,
+            rationale: `Policy "${pol.name}" is currently active but has not undergone a formal review cycle in ${daysSinceUpdate} days. Standard frameworks (ISO 27001 A.5.1, SOC 2 CC5.3, NIST CSF ID.GV-1) mandate at least annual re-approval to maintain compliance validity.`,
+            entityType: "policy",
+            entityId: pol.id,
+            proposedAction: {
+              kind: "create_task",
+              taskType: "policy_review",
+              priority: isCritical ? "critical" : "high",
+              dueInDays: 14,
+            },
+            dedupeKey: `policy-review-overdue:${pol.id}`,
+            confidence: 96,
+            metadata: { 
+              policyName: pol.name,
+              daysSinceUpdate,
+              actionType: "schedule_review"
+            },
+          });
+        }
+
+        // 3. Clause Gap Detection: check common policies for missing mandatory clauses
+        const polNameLower = (pol.name || "").toLowerCase();
+        const polContentLower = (pol.content || "").toLowerCase();
+
+        if (polNameLower.includes("access") || polNameLower.includes("authentication")) {
+          if (!polContentLower.includes("mfa") && !polContentLower.includes("multi-factor")) {
+            out.push({
+              severity: "warning",
+              title: `Missing Multi-Factor Authentication clause in "${pol.name}"`,
+              rationale: `The Access Control policy does not mention Multi-Factor Authentication (MFA) or two-factor requirements. SOC 2 CC6.1 and ISO 27001 A.9.4.2 require documented MFA mandates for administrative and remote system access.`,
+              entityType: "policy",
+              entityId: pol.id,
+              proposedAction: {
+                kind: "create_task",
+                taskType: "policy_review",
+                priority: "high",
+                dueInDays: 7,
+              },
+              dedupeKey: `policy-clause-mfa:${pol.id}`,
+              confidence: 95,
+              metadata: {
+                fixType: "policy_clause_addition",
+                clauseTitle: "Mandatory Multi-Factor Authentication (MFA)",
+                suggestedAddition: "\n\n### Mandatory Multi-Factor Authentication (MFA)\nAll personnel and privileged administrators accessing corporate systems, cloud infrastructure, and email must authenticate using Multi-Factor Authentication (MFA). Hardware tokens or authenticator applications are required; SMS-based MFA is permitted only as a secondary fallback."
+              }
+            });
+          }
+        }
+
+        if (polNameLower.includes("incident") || polNameLower.includes("breach")) {
+          if (!polContentLower.includes("72") && !polContentLower.includes("statutory notification")) {
+            out.push({
+              severity: "warning",
+              title: `Missing 72-Hour Breach Notification SLA in "${pol.name}"`,
+              rationale: `The Incident Response policy lacks the standard 72-hour regulatory breach notification timeline mandated by GDPR (Article 33) and EU NIS2 Directive.`,
+              entityType: "policy",
+              entityId: pol.id,
+              proposedAction: {
+                kind: "create_task",
+                taskType: "policy_review",
+                priority: "high",
+                dueInDays: 7,
+              },
+              dedupeKey: `policy-clause-breach-72h:${pol.id}`,
+              confidence: 94,
+              metadata: {
+                fixType: "policy_clause_addition",
+                clauseTitle: "72-Hour Breach Notification Protocol",
+                suggestedAddition: "\n\n### Regulatory Breach Notification SLA\nIn the event of a confirmed security incident involving personal or sensitive customer data, the Data Protection Officer and CISO must notify relevant supervisory authorities within 72 hours of becoming aware of the breach, pursuant to GDPR Article 33 and NIS2 standards."
+              }
+            });
+          }
+        }
+      }
+    } catch { /* graceful fallback */ }
 
     return out;
   },

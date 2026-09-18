@@ -126,7 +126,17 @@ function buildRouter() {
   );
 }
 
-const CLIENT_ROUTES = ["runNow", "listActions", "reviewSentinelAction", "escalationSweep", "sendDigestNow"];
+const CLIENT_ROUTES = [
+  "runNow",
+  "listActions",
+  "getActionDetail",
+  "reviewSentinelAction",
+  "escalationSweep",
+  "sendDigestNow",
+  "getStats",
+  "updateCadence",
+  "batchReviewActions",
+];
 const ADMIN_MUTATIONS = ["startRuntime", "stopRuntime"];
 const ADMIN_QUERIES = ["runtimeStatus"];
 
@@ -137,11 +147,14 @@ beforeEach(() => {
 // ── Route shape ──────────────────────────────────────────────────────────────
 
 describe("sentinel router — route shape", () => {
-  it("exposes exactly the 8 documented procedures, each with a callable handler", () => {
+  it("exposes exactly the 12 documented procedures, each with a callable handler", () => {
     const router = buildRouter();
     expect(Object.keys(router).sort()).toEqual(
       [
+        "batchReviewActions",
         "escalationSweep",
+        "getActionDetail",
+        "getStats",
         "listActions",
         "reviewSentinelAction",
         "runNow",
@@ -149,6 +162,7 @@ describe("sentinel router — route shape", () => {
         "sendDigestNow",
         "startRuntime",
         "stopRuntime",
+        "updateCadence",
       ].sort()
     );
     for (const name of Object.keys(router)) {
@@ -158,7 +172,7 @@ describe("sentinel router — route shape", () => {
 
   it("registers queries vs mutations through the stubbed procedure chain", () => {
     const router = buildRouter();
-    for (const name of ["listActions", "runtimeStatus"]) {
+    for (const name of ["listActions", "runtimeStatus", "getStats", "getActionDetail"]) {
       expect((router as any)[name].type, `"${name}" type`).toBe("query");
     }
     for (const name of [
@@ -168,6 +182,8 @@ describe("sentinel router — route shape", () => {
       "sendDigestNow",
       "startRuntime",
       "stopRuntime",
+      "updateCadence",
+      "batchReviewActions",
     ]) {
       expect((router as any)[name].type, `"${name}" type`).toBe("mutation");
     }
@@ -175,7 +191,17 @@ describe("sentinel router — route shape", () => {
 
   it("attaches zod input schemas to the input-taking routes (lifecycle routes take no input)", () => {
     const router = buildRouter();
-    for (const name of ["runNow", "listActions", "reviewSentinelAction", "escalationSweep", "sendDigestNow"]) {
+    for (const name of [
+      "runNow",
+      "listActions",
+      "getActionDetail",
+      "reviewSentinelAction",
+      "escalationSweep",
+      "sendDigestNow",
+      "getStats",
+      "updateCadence",
+      "batchReviewActions",
+    ]) {
       expect((router as any)[name].schema, `schema of "${name}"`).toBeDefined();
     }
     for (const name of [...ADMIN_MUTATIONS, ...ADMIN_QUERIES]) {
@@ -594,5 +620,76 @@ describe("sentinel router — reviewSentinelAction ghost-action & clientId guard
     const insert = db.queries.find(q => /INSERT\s+INTO\s+work_items/i.test(q.text));
     expect(insert, "a work_items INSERT must run").toBeDefined();
     expect(insert!.params[0]).toBe(9); // fell back to the request clientId
+  });
+
+  describe("proactive Action Center endpoints", () => {
+    it("getStats returns aggregated counts and schedule cadence", async () => {
+      const countsRow = {
+        totalPending: "5",
+        criticalCount: "2",
+        warningCount: "3",
+        executedCount: "10",
+        rejectedCount: "1",
+      };
+      const cfgRow = {
+        schedule: "1h",
+        lastRunAt: new Date("2026-09-18T10:00:00Z"),
+      };
+
+      const db = {
+        execute: vi.fn()
+          .mockResolvedValueOnce({ rows: [countsRow] })
+          .mockResolvedValueOnce({ rows: [cfgRow] }),
+      };
+      dbMocks.getDb.mockResolvedValue(db);
+
+      const router = buildRouter();
+      const stats = await router.getStats.handler({
+        input: { clientId: 42 },
+        ctx: { user: { id: 1, role: "admin" } },
+      });
+
+      expect(stats).toEqual({
+        totalPending: 5,
+        criticalCount: 2,
+        warningCount: 3,
+        executedCount: 10,
+        rejectedCount: 1,
+        cadence: "1h",
+        lastRunAt: expect.any(Date),
+      });
+    });
+
+    it("updateCadence updates the client schedule cadence", async () => {
+      const db = {
+        execute: vi.fn().mockResolvedValue({ rows: [] }),
+      };
+      dbMocks.getDb.mockResolvedValue(db);
+
+      const router = buildRouter();
+      const res = await router.updateCadence.handler({
+        input: { clientId: 42, schedule: "30m" },
+        ctx: { user: { id: 1, role: "admin" } },
+      });
+
+      expect(res).toEqual({ success: true, schedule: "30m" });
+      expect(db.execute).toHaveBeenCalled();
+    });
+
+    it("batchReviewActions updates multiple actions at once", async () => {
+      const db = {
+        execute: vi.fn().mockResolvedValue({ rows: [] }),
+      };
+      dbMocks.getDb.mockResolvedValue(db);
+
+      const router = buildRouter();
+      const res = await router.batchReviewActions.handler({
+        input: { clientId: 42, actionIds: [101, 102, 103], decision: "approved" },
+        ctx: { user: { id: 1, role: "admin" } },
+      });
+
+      expect(res).toEqual({ success: true, processed: 3 });
+      expect(db.execute).toHaveBeenCalled();
+    });
   });
 });

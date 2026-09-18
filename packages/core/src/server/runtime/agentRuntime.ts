@@ -23,8 +23,14 @@ interface AutopilotConfig {
 }
 
 const SCHEDULE_MIN_HOURS: Record<string, number> = {
+  "15m": 0.25,
+  "30m": 0.5,
   hourly: 1,
+  "1h": 1,
+  "6h": 6,
+  "12h": 12,
   daily: 24,
+  "24h": 24,
   weekly: 24 * 7,
 };
 

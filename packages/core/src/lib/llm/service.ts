@@ -22,6 +22,8 @@ if (typeof globalThis !== 'undefined') {
 export interface CompletionRequest {
     systemPrompt?: string;
     userPrompt: string;
+    /** Optional conversation history for multi-turn chat. Each entry is { role, content }. */
+    messages?: Array<{ role: 'user' | 'assistant'; content: string }>;
     temperature?: number;
     maxTokens?: number;
     jsonMode?: boolean; // Enable JSON output mode
@@ -532,6 +534,8 @@ export class LLMService {
 
         const messages: any[] = [
             { role: 'system', content: request.systemPrompt || 'You are a helpful compliance assistant.' },
+            // Inject conversation history for multi-turn context
+            ...(request.messages || []).map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: request.userPrompt }
         ];
 
@@ -619,6 +623,8 @@ export class LLMService {
             max_tokens: request.maxTokens || 4096,
             temperature: request.temperature ?? 0.7,
             messages: [
+                // Inject conversation history for multi-turn context
+                ...(request.messages || []).map(m => ({ role: m.role, content: m.content })),
                 { role: 'user', content: request.userPrompt }
             ],
         };
@@ -672,9 +678,14 @@ export class LLMService {
         const client = this.getGeminiClient(provider);
         const model = client.getGenerativeModel({ model: provider.model });
 
+        // Build history turns as formatted text since this SDK uses a single prompt
+        const historyText = (request.messages || [])
+            .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n');
+
         const prompt = request.systemPrompt
-            ? `${request.systemPrompt}\n\n${request.userPrompt}`
-            : request.userPrompt;
+            ? `${request.systemPrompt}\n\n${historyText ? historyText + '\n' : ''}User: ${request.userPrompt}`
+            : `${historyText ? historyText + '\n' : ''}User: ${request.userPrompt}`;
 
         const result = await model.generateContent({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
