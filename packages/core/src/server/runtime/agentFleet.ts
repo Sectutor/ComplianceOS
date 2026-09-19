@@ -27,8 +27,12 @@ import {
   readChannelMessages,
   markAgentWorking,
   markAgentIdle,
+  recordAgentActivity,
   type AgentTaskRecord,
 } from "./agentStores";
+
+/** Current time as an ISO string for accurate, non-static message timestamps. */
+const nowIso = () => new Date().toISOString();
 
 const log = (...a: any[]) => console.log("[agent-fleet]", ...a);
 
@@ -307,7 +311,7 @@ async function executePersistedTask(row: RawTask, db: any): Promise<void> {
       senderAvatar: agent.avatar,
       senderRole: agent.role,
       content: reply,
-      timestamp: "Just now",
+      timestamp: nowIso(),
     }, broadcast);
     // If Tara authored a policy, publish it to the live DB + memory cortex.
     await publishTaraPolicy(agent, row.client_id, row.channel_id, reply, row.input || {});
@@ -351,7 +355,7 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
       senderAvatar: agent.avatar,
       senderRole: agent.role,
       content: reply,
-      timestamp: "Just now",
+      timestamp: nowIso(),
     }, rec.channelId === "war_room");
     // If Tara authored a policy, publish it to the live DB + memory cortex.
     await publishTaraPolicy(agent, rec.clientId, rec.channelId, reply, (rec as any).input || {});
@@ -460,7 +464,7 @@ async function executeRoutine(routine: AgentRoutine): Promise<void> {
       senderAvatar: agent.avatar,
       senderRole: agent.role,
       content: `🔄 **Routine — ${agent.name}:**\n\n${reply}`,
-      timestamp: "Just now",
+      timestamp: nowIso(),
     }, true);
     log(`routine done (${agent.name})`);
   } catch (err: any) {

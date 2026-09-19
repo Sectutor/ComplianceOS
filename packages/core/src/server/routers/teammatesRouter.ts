@@ -41,6 +41,7 @@ import {
   markAgentWorking,
   markAgentIdle,
   getActiveAgents,
+  getLastActive,
 } from "../runtime/agentStores";
 // Shared message array — both the War Room router and the fleet runtime write
 // to this same array, so agent replies posted by the heartbeat appear live.
@@ -2363,11 +2364,11 @@ export function createTeammatesRouter(t: any, procedure: any) {
         }
       }),
 
-    /** Live agent activity for "Tara is working..." UI indicators. */
+    /** Live agent activity for "Tara is working..." UI indicators + last-active times. */
     getAgentStatus: procedure
       .query(async () => {
         try {
-          return { active: getActiveAgents() };
+          return { active: getActiveAgents(), lastActive: getLastActive() };
         } catch (err) {
           throw asInternalError("getting agent status", err);
         }

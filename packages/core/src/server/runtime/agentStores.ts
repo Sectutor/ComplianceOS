@@ -40,6 +40,10 @@ export function postAgentReply(msg: ChatMessage, broadcastToWarRoom: boolean): v
   if (broadcastToWarRoom) {
     agentMessages.push({ ...msg, channelId: "war_room" });
   }
+  // Track last activity so the sidebar shows a live "last active" time.
+  if (msg.senderId && msg.senderId !== "user") {
+    recordAgentActivity(msg.senderId);
+  }
 }
 
 /** Read the most recent messages for a channel (newest last). */
@@ -102,4 +106,18 @@ export function getActiveAgents(): AgentActivity[] {
     if (act.startedAt < cutoff) activeAgents.delete(id);
   }
   return Array.from(activeAgents.values());
+}
+
+// ── Last-active timestamps (drives the sidebar "Active Now / 5m ago") ───────
+
+const lastActive = new Map<string, number>();
+
+/** Record that an agent just did something (post, routine, etc). */
+export function recordAgentActivity(agentId: string): void {
+  lastActive.set(agentId, Date.now());
+}
+
+/** Snapshot of every agent's last activity epoch (ms). */
+export function getLastActive(): Record<string, number> {
+  return Object.fromEntries(lastActive);
 }

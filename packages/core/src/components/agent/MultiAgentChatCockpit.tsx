@@ -51,6 +51,25 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+/** Format a timestamp as a short relative string: "Just now", "5m ago", "2h ago". */
+function formatRelativeTime(ts: string): string {
+  if (!ts) return "Just now";
+  const then = new Date(ts).getTime();
+  if (isNaN(then)) {
+    // Not an ISO date — could be "Today, 11:45 AM" seed data; return as-is.
+    return ts;
+  }
+  const diff = Date.now() - then;
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return "Just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 export function MultiAgentChatCockpit() {
   const { data: teammates, refetch: refetchTeammates } = useTeammatesQuery();
   const { data: routines, refetch: refetchRoutines } = useRoutinesQuery();
@@ -62,6 +81,7 @@ export function MultiAgentChatCockpit() {
 
   const { data: messages, refetch: refetchMessages, isLoading: loadingMessages } = useMessagesQuery(activeChannelId);
   const { data: agentStatus } = useAgentStatusQuery();
+  const lastActiveMap = agentStatus?.lastActive || {};
 
   const { data: guardrailsStatus } = useGuardrailsStatusQuery();
   const { data: auditCert } = useAuditCertificateQuery("SOC 2 Type II & ISO 27001 Multi-Agent Execution");
@@ -283,7 +303,11 @@ export function MultiAgentChatCockpit() {
                         </Badge>
                       )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{tm.lastActive}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {lastActiveMap[tm.id]
+                        ? (Date.now() - lastActiveMap[tm.id] < 60_000 ? "Active now" : formatRelativeTime(new Date(lastActiveMap[tm.id]).toISOString()))
+                        : tm.lastActive}
+                    </span>
                   </div>
                   <div className="text-[10px] text-primary font-medium truncate">{tm.role}</div>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">
@@ -415,7 +439,7 @@ export function MultiAgentChatCockpit() {
                     {msg.senderRole && (
                       <span className="text-primary font-medium text-[10px]">({msg.senderRole})</span>
                     )}
-                    <span className="text-muted-foreground text-[10px]">{msg.timestamp}</span>
+                    <span className="text-muted-foreground text-[10px]">{formatRelativeTime(msg.timestamp)}</span>
                   </div>
 
                   {/* Delegated Banner if inter-agent handoff */}
