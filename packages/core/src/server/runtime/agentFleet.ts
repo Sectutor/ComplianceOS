@@ -323,6 +323,7 @@ async function executePersistedTask(row: RawTask, db: any): Promise<void> {
         UPDATE agent_tasks SET status = 'failed', completed_at = now(), error = ${err?.message || "failed"} WHERE id = ${row.id}
       `);
     } catch { /* best-effort */ }
+    postAgentFailure(agent, row.channel_id, row.title, err?.message || "unknown error");
   } finally {
     markAgentIdle(agent.id);
   }
@@ -365,9 +366,32 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
     rec.error = err?.message;
     rec.completedAt = Date.now();
     log(`memory task failed (${rec.agentId}):`, err?.message);
+    postAgentFailure(agent, rec.channelId, rec.title, err?.message || "unknown error");
   } finally {
     markAgentIdle(agent.id);
   }
+}
+
+/**
+ * Post a visible failure message when an agent task errors out, so the user is
+ * never left staring at silence. Posts to the agent's own channel + the War Room.
+ */
+function postAgentFailure(agent: AgentDefinition, channelId: string, taskTitle: string, errMsg: string): void {
+  const friendly = errMsg.includes("placeholder")
+    ? "No live AI provider is configured. Add an API key under **Settings > AI Providers** (OpenAI, Anthropic, DeepSeek, or OpenRouter) to enable agent work."
+    : errMsg.includes("All LLM providers failed")
+    ? "All AI providers are currently unavailable (rate-limited or unreachable). Add more provider keys under **Settings > AI Providers** for redundancy."
+    : `Task failed: ${errMsg.slice(0, 200)}`;
+  postAgentReply({
+    id: `msg_${agent.id}_err_${Date.now()}`,
+    channelId,
+    senderId: agent.id,
+    senderName: agent.name,
+    senderAvatar: agent.avatar,
+    senderRole: agent.role,
+    content: `⚠️ I couldn't complete **${taskTitle}**.\n\n${friendly}`,
+    timestamp: nowIso(),
+  }, channelId === "war_room");
 }
 
 /**
@@ -469,6 +493,7 @@ async function executeRoutine(routine: AgentRoutine): Promise<void> {
     log(`routine done (${agent.name})`);
   } catch (err: any) {
     log(`routine failed (${agent.id}):`, err?.message);
+    postAgentFailure(agent, "war_room", routine.title, err?.message || "unknown error");
   } finally {
     markAgentIdle(agent.id);
   }
