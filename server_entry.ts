@@ -954,6 +954,11 @@ if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
         import('./packages/core/src/server/runtime/agentRuntime')
             .then(m => { m.startAgentRuntime(); })
             .catch(e => console.warn('[Server] agent runtime failed to start:', e.message));
+        // Autonomous Fleet: start the specialist-agent heartbeat (Phase 2).
+        // Drains agent_tasks and runs each specialist as a real LLM call.
+        import('./packages/core/src/server/runtime/agentFleet')
+            .then(m => { m.startFleetRuntime(); })
+            .catch(e => console.warn('[Server] agent fleet failed to start:', e.message));
     });
     server.on('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {

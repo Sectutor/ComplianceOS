@@ -11,6 +11,7 @@ export * from './policies';
 export * from './risks';
 export * from './vendors';
 export * from './governance';
+export * from './agent';
 export * from './personnel';
 export * from './enterprise';
 export * from './licenses';

@@ -34,6 +34,16 @@ import {
 import { agentRoutineScheduler } from "../../lib/agent/agentRoutineScheduler";
 import { agentChatStorage } from "../../lib/agent/agentChatStorage";
 import { formatCurrency, getCurrencySymbol } from "../../lib/currency";
+import {
+  agentMessages,
+  postAgentMessage,
+  readChannelMessages,
+} from "../runtime/agentStores";
+// Shared message array — both the War Room router and the fleet runtime write
+// to this same array, so agent replies posted by the heartbeat appear live.
+const messagesStore = agentMessages;
+import { dispatchTask } from "../runtime/agentFleet";
+import { HERMES_ORCHESTRATOR_PROMPT, listAgents, getAgent } from "../../lib/agent/fleet";
 
 // ── Defensive bounds & error helpers ─────────────────────────────────────────
 
@@ -1582,63 +1592,11 @@ export interface ChatMessage {
   browserPreview?: { url: string; title: string; steps: string[]; status: string };
 }
 
-// In-memory state for initial runtime (backed by persistent tables when DB migration runs)
-let messagesStore: ChatMessage[] = [
-  // Fleet War Room
-  {
-    id: "msg_wr_1",
-    channelId: "war_room",
-    senderId: "user",
-    senderName: "You",
-    senderAvatar: "👤",
-    content: "@Alex and @Morgan, we need to complete the Stripe vendor risk review and verify our AWS S3 bucket encryption policy for SOC 2 Type II audit.",
-    timestamp: "Yesterday, 4:15 PM",
-    mentions: ["alex_tprm", "morgan_iac"]
-  },
-  {
-    id: "msg_wr_2",
-    channelId: "war_room",
-    senderId: "alex_tprm",
-    senderName: "Alex",
-    senderAvatar: "🕵️",
-    senderRole: "Vendor Trust & SOC 2 Scout",
-    content: "On it! I visited the Stripe Trust Center, authenticated the session, and harvested their latest 2026 SOC 2 Type II report. Section IV reveals zero control exceptions. TPRM residual risk scored at **Low (96/100)**.\n\n↳ @Morgan, the trust report notes vendor data in AWS must enforce server-side encryption with KMS keys. Can you audit our terraform config?",
-    timestamp: "Yesterday, 4:16 PM",
-    delegatedTo: "morgan_iac",
-    attachments: [
-      { title: "Stripe_SOC2_Type_II_2026.pdf", type: "pdf", size: "14.2 MB", status: "verified" },
-      { title: "TPRM_Stripe_Scorecard.json", type: "code", size: "3.4 KB", status: "applied" }
-    ],
-    browserPreview: {
-      url: "https://trust.stripe.com",
-      title: "Stripe Trust Center — SOC 2 Vault",
-      steps: ["Navigated to trust portal", "Signed automated NDA", "Downloaded PDF", "Deposited in Vault"],
-      status: "completed"
-    }
-  },
-  {
-    id: "msg_wr_3",
-    channelId: "war_room",
-    senderId: "morgan_iac",
-    senderName: "Morgan",
-    senderAvatar: "🛠️",
-    senderRole: "Autonomous Cloud & IaC Fixer",
-    content: "Thanks @Alex. I ran a continuous cloud drift scan on our AWS production environment. 3 out of 14 S3 buckets lacked default KMS encryption.\n\nI generated and tested the Terraform remediation patch in my sandbox:\n```hcl\nresource \"aws_s3_bucket_server_side_encryption_configuration\" \"compliance_enforce\" {\n  bucket = aws_s3_bucket.data_lake.id\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n      kms_master_key_id = aws_kms_key.compliance_key.arn\n    }\n  }\n}\n```\nGitHub Pull Request **#42** created and ready for your approval in the Approval Inbox.",
-    timestamp: "Yesterday, 4:18 PM",
-    attachments: [
-      { title: "PR #42: enforce-kms-s3-encryption.patch", type: "patch", size: "1.8 KB", status: "pending_approval" }
-    ]
-  },
-  {
-    id: "msg_wr_4",
-    channelId: "war_room",
-    senderId: "riley_evidence",
-    senderName: "Riley",
-    senderAvatar: "📋",
-    senderRole: "Evidence Harvester & UAR Auditor",
-    content: "I've linked both Alex's SOC 2 report and Morgan's Terraform PR #42 to Control **CC6.1** and **CC6.8** in Audit Hub. Cryptographic hashes logged with SHA-256.",
-    timestamp: "Yesterday, 4:19 PM"
-  },
+// NOTE: messagesStore is now the shared agentMessages array (see import at top).
+// The fleet runtime (agentFleet.ts) writes to the SAME array, so agent replies
+// posted by the heartbeat appear in the War Room channel automatically.
+// Seed direct-channel demo messages into the shared store on load.
+const _channelSeeds: ChatMessage[] = [
   // Direct Alex Messages
   {
     id: "msg_alex_1",
@@ -1844,8 +1802,10 @@ let messagesStore: ChatMessage[] = [
     senderRole: "Mock Auditor & Audit Defense Compiler",
     content: "Mock CPA Audit Simulation Complete:\n\n* **Sampled Controls:** 35 sampled controls tested\n* **Pass Rate:** **100% (35/35 passing)**\n* **Auditor Package:** Prepared 1-Click ZIP bundle with SHA-256 integrity manifest for external audit firm.",
     timestamp: "Today, 3:01 PM"
-  }
+  },
 ];
+_channelSeeds.forEach((m) => agentMessages.push(m));
+
 let teammatesStore: Teammate[] = [
   {
     id: "hermes_orchestrator",
@@ -2437,6 +2397,58 @@ export function createTeammatesRouter(t: any, procedure: any) {
           const userId = (ctx as any)?.user?.id || 0;
           const acSummary = await getActionCenterSummary(targetClientId, userId);
 
+          // ── Real-agent dispatch helper ───────────────────────────────────────
+          // Posts Hermes' acknowledgment immediately (so the user gets instant
+          // feedback) AND queues a REAL independent LLM task for the specialist
+          // agent. The agent runs on the fleet heartbeat with its own expert
+          // prompt + token budget and posts its genuine reply to the channel.
+          const requestAgent = (agentId: string, title: string, prompt: string, resultContext?: string) => {
+            const agent = listAgents().find((a) => a.id === agentId);
+            const aname = agent?.name || agentId;
+            const aavatar = agent?.avatar || "🤖";
+            postAgentMessage({
+              id: `msg_hermes_ack_${agentId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              channelId: "war_room",
+              senderId: "hermes_orchestrator",
+              senderName: "Hermes",
+              senderAvatar: "🧠",
+              senderRole: "Chief Compliance Orchestrator",
+              content: `I'm asking **@${aname}** ${title}.${resultContext ? `\n\n${resultContext}` : ""}\n\n_@${aname} is working on this now and will post their expert analysis shortly._`,
+              timestamp: "Just now",
+              delegatedTo: agentId,
+            });
+            void dispatchTask({
+              clientId: targetClientId,
+              channelId: "war_room",
+              agentId,
+              type: title.slice(0, 60),
+              title,
+              description: prompt,
+              prompt,
+              priority: "medium",
+              context: { clientName: stats.clientName, clientId: targetClientId },
+            }).catch((e) => console.warn("[dispatch]", aname, "failed:", e?.message));
+          };
+
+          // Parse a Hermes reply for an explicit dispatch announcement so we can
+          // honor it with a real fleet task. Matches "@Tara", "@Marcus", etc.
+          const parseDispatchMention = (text: string): { agentId: string; context: string } | null => {
+            const mentionRe = /@(\w+)/g;
+            let match: RegExpExecArray | null;
+            while ((match = mentionRe.exec(text)) !== null) {
+              const name = match[1].toLowerCase();
+              const agent = listAgents().find((a) => a.name.toLowerCase() === name);
+              if (agent) {
+                // Grab the sentence around the mention for context.
+                const start = Math.max(0, text.lastIndexOf("\n", match.index));
+                const end = text.indexOf("\n", match.index);
+                const ctx = (end === -1 ? text.slice(start) : text.slice(start, end)).trim();
+                return { agentId: agent.id, context: ctx || text.slice(0, 200) };
+              }
+            }
+            return null;
+          };
+
           // Fix / resolve / "do it" commands are handled before the passive
           // question-answering branches so the agent acts instead of just talking.
           const fixCmd = detectFixIntent(input.content);
@@ -2554,33 +2566,23 @@ export function createTeammatesRouter(t: any, procedure: any) {
               completedAt: new Date().toISOString()
             });
 
-            const hermesMsg: ChatMessage = {
-              id: `msg_hermes_${Date.now() + 1}`,
-              channelId: "war_room",
-              senderId: "hermes_orchestrator",
-              senderName: "Hermes",
-              senderAvatar: "🧠",
-              senderRole: "Chief Compliance Orchestrator",
-              content: `Policy request synthesized and committed. I coordinated with **@Tara** to author the **${policyData.title}** aligned with ${policyData.frameworks.join(", ")}.\n\n* **Database Status:** Committed to PostgreSQL \`client_policies\` table for Client #${targetClientId}\n* **Memory Cortex Path:** \`memory://${policyData.vfsPath}\`\n* **Background Worker:** [Task #${newTaskId} Finished](/agent)\n* **Direct Link:** [Open in Policy Center](/clients/${targetClientId}/policies)`,
-              timestamp: "Just now",
-              delegatedTo: "tara_governance"
-            };
-            messagesStore.push(hermesMsg);
+            // Hermes does NOT fabricate Tara's reply. It dispatches a REAL task
+            // to Tara, who runs as an independent LLM call with her own expert
+            // prompt + token budget and posts her genuine analysis.
+            const policySummary = policyData.content.slice(0, 800);
+            requestAgent(
+              "tara_governance",
+              `to finalize and publish the policy "${policyData.title}"`,
+              `A policy "${policyData.title}" has been drafted and committed to the database for Client #${targetClientId} (${stats.clientName}). Frameworks: ${policyData.frameworks.join(", ")}.
 
-            const taraMsg: ChatMessage = {
-              id: `msg_tara_${Date.now() + 2}`,
-              channelId: "war_room",
-              senderId: "tara_governance",
-              senderName: "Tara",
-              senderAvatar: "📜",
-              senderRole: "Policy Lifecycle Lead",
-              content: policyData.content,
-              timestamp: "Just now",
-              attachments: [
-                { title: policyData.filename, type: "markdown", size: "4.2 KB", status: "verified" }
-              ]
-            };
-            messagesStore.push(taraMsg);
+Your task: review the committed policy below and post your expert analysis to the War Room. Include: (1) a brief gap check against the stated frameworks, (2) the next lifecycle step (review/acknowledge schedule), (3) any missing sections you recommend adding. Do NOT re-output the full policy — summarize your review in a few concise paragraphs.
+
+Draft content (truncated):
+${policySummary}`,
+              `* **Database Status:** Committed to PostgreSQL \`client_policies\` table for Client #${targetClientId}
+* **Memory Cortex Path:** \`memory://${policyData.vfsPath}\`
+* **Direct Link:** [Open in Policy Center](/clients/${targetClientId}/policies)`
+            );
 
           // C. Risk Modeling & FAIR Assessment in War Room (Hermes + Marcus)
           } else if (isRiskAssessIntent || mentionMarcus) {
@@ -2621,35 +2623,29 @@ export function createTeammatesRouter(t: any, procedure: any) {
               completedAt: new Date().toISOString()
             });
 
-            const hermesMsg: ChatMessage = {
-              id: `msg_hermes_${Date.now() + 1}`,
-              channelId: "war_room",
-              senderId: "hermes_orchestrator",
-              senderName: "Hermes",
-              senderAvatar: "🧠",
-              senderRole: "Chief Compliance Orchestrator",
-              content: `Risk assessment dispatched to **@Marcus** for quantitative FAIR modeling.\n\n* **Risk ID:** [Risk #${riskId}](/clients/${targetClientId}/risks/register)\n* **Simulated ALE:** ${toolResult.success ? fmtUsd(ale, stats.currency, stats.locale) : "unavailable"} (${iterations.toLocaleString()} iterations, genuine simulation)\n* **Status:** Draft — requires human review before it enters reporting\n* **Background Worker:** [Task #${newTaskId} Completed](/agent)`,
-              timestamp: "Just now",
-              delegatedTo: "marcus_risk"
-            };
-            messagesStore.push(hermesMsg);
+            // Dispatch a REAL Marcus task to interpret the FAIR results and
+            // produce his expert risk analysis as an independent LLM call.
+            requestAgent(
+              "marcus_risk",
+              "to analyze the FAIR risk simulation results",
+              `A FAIR Monte Carlo simulation just ran for Client #${targetClientId} (${stats.clientName}).
 
-            const marcusMsg: ChatMessage = {
-              id: `msg_marcus_${Date.now() + 2}`,
-              channelId: "war_room",
-              senderId: "marcus_risk",
-              senderName: "Marcus",
-              senderAvatar: "🎯",
-              senderRole: "Enterprise Risk & Threat Modeler",
-              content: toolResult.success
-                ? `### 🎯 Quantitative FAIR Risk Assessment Complete\n\n* **Assessed Scenario:** ${d.title ?? "Supplied scenario"}\n* **Target Organization:** Client #${targetClientId} (${stats.clientName})\n* **Inherent Risk Score:** **${d.inherentRiskScore ?? "?"}/25 (${d.inherentRiskBand ?? "unrated"})**\n* **Monte Carlo Simulation (${Number(iterations).toLocaleString()} iterations, Poisson × lognormal):**\n  * **Single Loss Expectancy:** ${fmtUsd(Number(d.singleLossExpectancyUsd ?? 0), stats.currency, stats.locale)}\n  * **Annualized Loss Expectancy:** **${fmtUsd(ale, stats.currency, stats.locale)} / year**\n  * **90% Value-at-Risk:** ${fmtUsd(var90, stats.currency, stats.locale)}\n  * **99% Value-at-Risk:** ${fmtUsd(Number(d.valueAtRisk99Usd ?? 0), stats.currency, stats.locale)}\n\n---\n\n✅ **Persistence:**\n1. **Risk Register Record Created:** ID #${riskId} saved to PostgreSQL for Client #${targetClientId}.\n2. All figures above are outputs of the actual simulation run this session — no canned values.\n\n🔗 [Open Risk Register](/clients/${targetClientId}/risks/register)`
-                : `### ⚠️ Risk assessment could not be persisted\n\n${toolResult.summary}\n\nNo numbers were fabricated in place of the failed run.`,
-              timestamp: "Just now",
-              attachments: [
-                { title: `Risk_Assessment_Client_${targetClientId}.json`, type: "json", size: "1.4 KB", status: toolResult.success ? "verified" : "failed" }
-              ]
-            };
-            messagesStore.push(marcusMsg);
+Simulation results:
+- Risk Register ID: #${riskId} (${toolResult.success ? "persisted to PostgreSQL" : "not persisted"})
+- Scenario: ${d.title ?? input.content.slice(0, 120)}
+- Inherent Risk Score: ${d.inherentRiskScore ?? "?"}/25 (${d.inherentRiskBand ?? "unrated"})
+- Iterations: ${iterations.toLocaleString()} (Poisson × lognormal)
+- Single Loss Expectancy: ${fmtUsd(Number(d.singleLossExpectancyUsd ?? 0), stats.currency, stats.locale)}
+- Annualized Loss Expectancy (ALE): ${fmtUsd(ale, stats.currency, stats.locale)}/year
+- 90% Value-at-Risk: ${fmtUsd(var90, stats.currency, stats.locale)}
+- 99% Value-at-Risk: ${fmtUsd(Number(d.valueAtRisk99Usd ?? 0), stats.currency, stats.locale)}
+- Methodology: ${d.methodology ?? "FAIR-style Monte Carlo"}
+
+${toolResult.success ? "Your task: post your expert risk analysis to the War Room. Interpret these numbers — what does this ALE mean for the business? Recommend a specific 4T risk treatment (Terminate/Treat/Transfer/Tolerate) with an owner and target date. Keep it concise and actionable." : `The simulation failed: ${toolResult.summary}. Explain what went wrong and what to do next.`}`,
+              `* **Risk ID:** [Risk #${riskId}](/clients/${targetClientId}/risks/register)
+* **Simulated ALE:** ${toolResult.success ? fmtUsd(ale, stats.currency, stats.locale) : "unavailable"} (${iterations.toLocaleString()} iterations, genuine simulation)
+* **Status:** Draft — requires human review before it enters reporting`
+            );
 
           // D. Cloud Infrastructure Drift / Terraform Remediation (Hermes + Morgan)
           } else if (isCloudFixIntent || mentionMorgan) {
@@ -2705,37 +2701,24 @@ export function createTeammatesRouter(t: any, procedure: any) {
               });
             }
 
-            const hermesMsg: ChatMessage = {
-              id: `msg_hermes_${Date.now() + 1}`,
-              channelId: "war_room",
-              senderId: "hermes_orchestrator",
-              senderName: "Hermes",
-              senderAvatar: "🧠",
-              senderRole: "Chief Compliance Orchestrator",
-              content: `**@Morgan** ran a cloud posture check against the live connection registry.\n\n* **Result:** ${toolResult.summary}\n${hasRealFinding ? `* **Approval Card:** [Approval #${newApprId} in Approvals Tab](/agent)\n` : "* No approval staged — reporting findings only, no invented remediation.\n"}* **Background Worker:** [Task #${newTaskId} Completed](/agent)`,
-              timestamp: "Just now",
-              delegatedTo: "morgan_iac"
-            };
-            messagesStore.push(hermesMsg);
+            // Dispatch a REAL Morgan task to interpret the cloud scan and
+            // produce his expert remediation guidance as an independent LLM call.
+            const cloudCtx = toolResult.success
+              ? (d.configured === true
+                ? `Connections: ${Array.isArray(d.connections) ? d.connections.length : 0} (${d.connectedCount ?? 0} healthy, ${d.errorCount ?? 0} erroring). Assets: ${d.assetInventoryTotal ?? 0}.${Array.isArray(d.staleOver7Days) && d.staleOver7Days.length ? ` Stale(>7d): ${d.staleOver7Days.join(", ")}.` : ""}`
+                : "Cloud account not connected — report only.")
+              : `Scan failed: ${toolResult.summary}`;
+            requestAgent(
+              "morgan_iac",
+              "to analyze the cloud posture scan and recommend remediation",
+              `A cloud posture scan just ran for Client #${targetClientId} (${stats.clientName}).
 
-            const morganMsg: ChatMessage = {
-              id: `msg_morgan_${Date.now() + 2}`,
-              channelId: "war_room",
-              senderId: "morgan_iac",
-              senderName: "Morgan",
-              senderAvatar: "🛠️",
-              senderRole: "Autonomous Cloud & IaC Fixer",
-              content: toolResult.success
-                ? (d.configured === true
-                  ? `### 🛠️ Cloud Posture Report (live data)\n\n* **Registered connections:** ${Array.isArray(d.connections) ? d.connections.length : 0} (${d.connectedCount ?? 0} healthy, ${d.errorCount ?? 0} erroring)\n${Array.isArray(d.staleOver7Days) && d.staleOver7Days.length ? `* **⚠️ Stale (>7d since sync):** ${d.staleOver7Days.join(", ")}\n` : ""}* **Asset inventory:** ${d.assetInventoryTotal ?? 0} assets on record (${Array.isArray(d.storageRelatedAssets) ? d.storageRelatedAssets.length : 0} storage-related)\n\n${hasRealFinding ? "An approval card with the specific issues is staged for your sign-off. I do not generate Terraform patches without a verified infrastructure finding." : "All registered connections are healthy and recently synced. No drift findings to report — I won't invent any."}`
-                  : `### 🛠️ Cloud Posture Report\n\n${toolResult.summary}\n\nOnce a cloud account is connected (Settings → Integrations), this scan reports real infrastructure state. I don't simulate bucket scans against accounts that were never connected.`)
-                : `### ⚠️ Cloud posture scan failed\n\n${toolResult.summary}`,
-              timestamp: "Just now",
-              attachments: hasRealFinding
-                ? [{ title: "cloud-posture-findings.json", type: "json", size: "1.1 KB", status: "staged" }]
-                : undefined
-            };
-            messagesStore.push(morganMsg);
+${cloudCtx}
+Real finding to remediate: ${hasRealFinding ? "YES — approval #" + newApprId + " staged" : "no"}
+
+${hasRealFinding ? "Your task: post your expert cloud remediation plan to the War Room. For each finding, recommend the exact fix (Terraform HCL, AWS CLI, or console steps), flag any blast-radius or maintenance-window concerns, and cite the relevant control (e.g. CIS AWS, SOC 2 CC6.6). Be specific — real commands, real resource names." : "Your task: post a brief cloud health summary. All connections healthy — say so, and note what to monitor next."}`,
+              `* **Result:** ${toolResult.summary}${hasRealFinding ? `\n* **Approval Card:** [Approval #${newApprId} in Approvals Tab](/agent)` : "\n* No approval staged — reporting findings only."}`
+            );
 
           // E. Vendor Audit / TPRM in War Room (Hermes + Alex)
           } else if (isVendorAuditIntent || mentionAlex) {
@@ -2779,30 +2762,20 @@ export function createTeammatesRouter(t: any, procedure: any) {
               completedAt: new Date().toISOString()
             });
 
-            const hermesMsg: ChatMessage = {
-              id: `msg_hermes_${Date.now() + 1}`,
-              channelId: "war_room",
-              senderId: "hermes_orchestrator",
-              senderName: "Hermes",
-              senderAvatar: "🧠",
-              senderRole: "Chief Compliance Orchestrator",
-              content: `Supply chain verification dispatched to **@Alex** against your registered vendors (${stats.totalVendors} on register).\n\n* **TPRM Registry:** [Open TPRM Hub](/clients/${targetClientId}/tprm)\n* **Background Worker:** [Task #${newTaskId} Completed](/agent)`,
-              timestamp: "Just now",
-              delegatedTo: "alex_tprm"
-            };
-            messagesStore.push(hermesMsg);
+            // Dispatch a REAL Alex task to score the vendor register and produce
+            // his expert TPRM assessment as an independent LLM call.
+            requestAgent(
+              "alex_tprm",
+              "to assess your vendor register and score third-party risk",
+              `A vendor register sweep just ran for Client #${targetClientId} (${stats.clientName}).
 
-            const alexMsg: ChatMessage = {
-              id: `msg_alex_${Date.now() + 2}`,
-              channelId: "war_room",
-              senderId: "alex_tprm",
-              senderName: "Alex",
-              senderAvatar: "🕵️",
-              senderRole: "Vendor Trust & SOC 2 Scout",
-              content: vendorSummary,
-              timestamp: "Just now"
-            };
-            messagesStore.push(alexMsg);
+Live findings:
+${vendorSummary}
+
+Your task: post your expert TPRM assessment to the War Room. For each high-risk vendor, assign a risk tier (Critical/High/Medium/Low), flag missing SOC 2 reports and subprocessor transfer gaps, and recommend a review frequency. Be specific and cite the live data above.`,
+              `* **TPRM Registry:** [Open TPRM Hub](/clients/${targetClientId}/tprm)
+* **Vendors on register:** ${stats.totalVendors}`
+            );
 
           // F. Audit Room Compilation / Mock Audit (Hermes + Sam)
           } else if (isAuditRoomIntent || mentionSam) {
@@ -2838,37 +2811,29 @@ export function createTeammatesRouter(t: any, procedure: any) {
               completedAt: new Date().toISOString()
             });
 
-            const hermesMsg: ChatMessage = {
-              id: `msg_hermes_${Date.now() + 1}`,
-              channelId: "war_room",
-              senderId: "hermes_orchestrator",
-              senderName: "Hermes",
-              senderAvatar: "🧠",
-              senderRole: "Chief Compliance Orchestrator",
-              content: `Mock audit check complete. **@Sam** scanned the live evidence register.\n\n* **Verdict:** ${verdict}\n* **Evidence:** ${recordCount} record(s), ${fileCount} file(s)\n* **Manifest:** \`${sha ? sha + "…" : "n/a"}\` (SHA-256 over current record list)\n* **Background Worker:** [Task #${newTaskId} Completed](/agent)`,
-              timestamp: "Just now",
-              delegatedTo: "sam_auditor"
-            };
-            messagesStore.push(hermesMsg);
+            // Dispatch a REAL Sam task to interpret the evidence scan and produce
+            // his expert audit-readiness assessment as an independent LLM call.
+            const evidenceDetail = toolResult.success
+              ? `Expired: ${(d.expiredEvidence ?? []).length}, Never verified: ${(d.neverVerified ?? []).length}, Stale >365d: ${(d.staleOver365Days ?? []).length}`
+              : `Compilation failed: ${toolResult.summary}`;
+            requestAgent(
+              "sam_auditor",
+              "to assess audit readiness from the evidence register",
+              `An evidence register scan just ran for Client #${targetClientId} (${stats.clientName}).
 
-            const samMsg: ChatMessage = {
-              id: `msg_sam_${Date.now() + 2}`,
-              channelId: "war_room",
-              senderId: "sam_auditor",
-              senderName: "Sam",
-              senderAvatar: "💼",
-              senderRole: "Mock Auditor & Audit Defense Lead",
-              content: toolResult.success
-                ? (recordCount === 0
-                  ? `### 💼 Audit Room Compilation — HALTED\n\n${toolResult.summary}\n\nAn empty archive with a green badge would be false assurance to an external auditor. Collect and verify evidence first; then I can compile a package whose manifest reflects real records.`
-                  : `### 💼 Audit Room Report (live register)\n\n* **Evidence Records:** **${recordCount}** (${fileCount} file(s))\n* **Expired:** ${(d.expiredEvidence ?? []).length} • **Never verified:** ${(d.neverVerified ?? []).length} • **Stale >365d:** ${(d.staleOver365Days ?? []).length}\n* **Manifest SHA-256:** \`${sha}…\`\n* **Verdict:** **${verdict}**\n\n${verdict.startsWith("READY") ? "All records fresh and verified — the manifest hash covers exactly the current record list, so an auditor can reproduce it." : "⚠️ Fix the flagged records before presenting this to an external auditor. I report the true state rather than packaging around gaps."}`)
-                : `### ⚠️ Audit room compilation failed\n\n${toolResult.summary}`,
-              timestamp: "Just now",
-              attachments: [
-                { title: "audit_room_manifest.json", type: "json", size: `${Math.max(1, Math.round(recordCount * 1.2))} KB`, status: verdict.startsWith("READY") ? "verified" : "attention_required" }
-              ]
-            };
-            messagesStore.push(samMsg);
+Live results:
+- Verdict: ${verdict}
+- Evidence records: ${recordCount} (${fileCount} file(s))
+- Integrity: ${evidenceDetail}
+- Manifest SHA-256 (prefix): ${sha || "n/a"}
+
+${recordCount === 0 ? "No evidence on register — compilation halted." : ""}
+
+Your task: post your expert audit-readiness assessment to the War Room. ${verdict.startsWith("READY") ? "Confirm readiness and summarize why the evidence package would withstand external scrutiny." : "Identify the specific gaps (expired, unverified, stale evidence) and give a remediation plan with deadlines so the client can reach audit-ready status."}`,
+              `* **Verdict:** ${verdict}
+* **Evidence:** ${recordCount} record(s), ${fileCount} file(s)
+* **Manifest:** \`${sha ? sha + "…" : "n/a"}\` (SHA-256 over current record list)`
+            );
 
           // G. General Fleet Orchestration & Live Compliance Telemetry
           } else {
@@ -2886,17 +2851,10 @@ export function createTeammatesRouter(t: any, procedure: any) {
                   content: m.content,
                 }));
 
-              const completion = await llmService.generate({
-                systemPrompt: `You are Hermes, Chief Compliance Orchestrator in ComplianceOS.
-You coordinate a fleet of specialized autonomous agents:
-- @Tara (Policy Lifecycle Lead)
-- @Marcus (FAIR Quantitative Risk Lead)
-- @Morgan (Autonomous Cloud & IaC Fixer)
-- @Alex (Vendor Trust & TPRM Scout)
-- @Riley (Access Reviews & Evidence Harvester)
-- @Sasha (AppSec & Vulnerability Sentinel)
-- @Nova (Incident Response & CSIRT Coordinator)
-- @Sam (Mock Auditor & Audit Defense Lead)
+              // Hermes is the orchestrator. He answers factual questions
+              // directly using live data, and dispatches specialist work to the
+              // fleet rather than fabricating replies.
+              const hermesSystemPrompt = `${HERMES_ORCHESTRATOR_PROMPT}
 
 === 📊 LIVE CLIENT DATABASE STATE (${stats.clientName}, Client #${targetClientId}) ===
 * Total Identified Risks: ${stats.totalRisks} registered risks in Risk Register
@@ -2911,19 +2869,14 @@ ${stats.risksList.map((r, i) => `    ${i + 1}. [Risk #${r.id}] ${r.title} (Inher
 * Harvested Evidence Records: ${stats.totalEvidence} records
 ========================================================================
 ${acSummary.text}
-${cortexSnapshot ? `\n${cortexSnapshot}\n` : ""}
+${cortexSnapshot ? `\n${cortexSnapshot}\n` : ""}`;
 
-CRITICAL OPERATIONAL RULES:
-1. You HAVE real-time, live connection to the database state above AND the Action Center state. When the user asks "what's in the Action Center?", "any issues?", "open findings?", or asks about a specific action by #id or name, use the ACTION CENTER STATE section above — quote the exact item titles and priorities.
-2. When the user asks factual questions like "how many risks do we have?", "what risks are registered?", "list our vendors", or asks for a count/summary, use the exact numbers and details from the LIVE CLIENT DATABASE STATE above.
-3. Provide direct, highly accurate, and in-depth compliance and technical guidance. Use clear Markdown headings and bullet points.
-4. Do NOT output generic boilerplate or claim you lack access to the Action Center — the data is provided above. Formulate your own intelligent synthesis tailored to the prompt.
-5. VERY IMPORTANT: You have the full conversation history above. When the user says "this risk", "that one", "it", "them", or any pronoun or reference to something mentioned in a prior message, resolve it from the conversation history. NEVER ask the user to re-specify something already established in the conversation.
-6. When the user asks you to FIX / RESOLVE / REMEDIATE an Action Center item, respond conversationally in this chat (the fix is handled by a separate command-detect path — just acknowledge and direct them, e.g. "Say 'fix #123' and I'll draft a patch for your approval.").`,
+              const completion = await llmService.generate({
+                systemPrompt: hermesSystemPrompt,
                 messages: recentHistory,
                 userPrompt: input.content,
                 temperature: 0.3,
-                maxTokens: 1200
+                maxTokens: 1500
               });
 
               if (completion?.text && completion.text.trim().length > 20) {
@@ -2954,6 +2907,29 @@ CRITICAL OPERATIONAL RULES:
               timestamp: "Just now"
             };
             messagesStore.push(hermesMsg);
+
+            // If Hermes' reply announces a dispatch to a specialist, honor it by
+            // creating a REAL fleet task so the agent runs independently.
+            if (hermesReplyContent) {
+              const dispatched = parseDispatchMention(hermesReplyContent);
+              if (dispatched) {
+                void dispatchTask({
+                  clientId: targetClientId,
+                  channelId: "war_room",
+                  agentId: dispatched.agentId,
+                  type: "hermes_dispatch",
+                  title: `to follow up on your request`,
+                  description: input.content,
+                  prompt: `The user asked: "${input.content}"
+
+Hermes (your orchestrator) dispatched you to handle this. Hermes' note: "${dispatched.context}"
+
+Respond with your expert analysis. Use the live client data available to you.`,
+                  priority: "medium",
+                  context: { dispatchedBy: "hermes_orchestrator", originalInput: input.content },
+                }).catch(() => {});
+              }
+            }
           }
         } else {
           // 2. Direct Bot Messaging
@@ -3000,9 +2976,11 @@ CRITICAL OPERATIONAL RULES:
                 content: m.content,
               }));
 
-            const completion = await llmService.generate({
-              systemPrompt: `You are ${botName}, ${botRole} in ComplianceOS.
-Description and capabilities: ${currentBot?.description || "You are an expert AI compliance orchestrator."}
+            // Use the fleet agent's specialized expert prompt (not a generic
+            // one). Each agent reasons with its own domain prompt + token budget.
+            const fleetAgent = currentBot?.id ? getAgent(currentBot.id) : undefined;
+            const directBotSystem = fleetAgent
+              ? `${fleetAgent.systemPrompt}
 
 === 📊 LIVE CLIENT DATABASE STATE (${stats.clientName}, Client #${targetClientId}) ===
 * Total Identified Risks: ${stats.totalRisks} registered risks in Risk Register
@@ -3017,18 +2995,15 @@ ${stats.risksList.map((r, i) => `    ${i + 1}. [Risk #${r.id}] ${r.title} (Inher
 * Harvested Evidence Records: ${stats.totalEvidence} records
 ========================================================================
 ${acSummary.text}
-${cortexSnapshot ? `\n${cortexSnapshot}\n` : ""}
-${ragContext ? `\n${ragContext}\n` : ""}
+${ragContext ? `\n${ragContext}\n` : ""}`
+              : `You are ${botName}, ${botRole} in ComplianceOS.\nDescription and capabilities: ${currentBot?.description || "You are an expert AI compliance orchestrator."}\n\n=== 📊 LIVE CLIENT DATABASE STATE (${stats.clientName}, Client #${targetClientId}) ===\n* Total Identified Risks: ${stats.totalRisks} registered risks in Risk Register\n  - Critical Severity: ${stats.criticalRisks}\n  - High / Very High: ${stats.highRisks}\n  - Medium Severity: ${stats.mediumRisks}\n  - Low / Negligible: ${stats.lowRisks}\n* Registered Third-Party Vendors (${stats.totalVendors}): ${stats.vendorNames.join(", ") || "None"}\n* Documented Master Policies (${stats.totalPolicies}): ${stats.policyNames.join(", ") || "None"}\n* Harvested Evidence Records: ${stats.totalEvidence} records\n========================================================================\n${acSummary.text}${cortexSnapshot ? `\n${cortexSnapshot}\n` : ""}${ragContext ? `\n${ragContext}\n` : ""}`;
 
-CRITICAL OPERATIONAL RULES:
-1. You HAVE real-time, live connection to the database state above AND the Action Center state. When the user asks "what's in the Action Center?", "any issues?", "open findings?", or references an action by #id or name, use the ACTION CENTER STATE section above.
-2. When the user asks factual questions like "how many risks do we have?", "what risks are registered?", "list our vendors", or asks for a count/summary, use the exact numbers and details from the LIVE CLIENT DATABASE STATE above. Never say you do not have live access or tell the user to check the UI manually when you already have the live data above.
-3. Provide direct, highly accurate, and in-depth compliance and technical guidance. Use clear Markdown headings and bullet points.
-4. VERY IMPORTANT: You have the full conversation history above. When the user says "this risk", "that one", "it", "them", or any pronoun or reference to something mentioned in a prior message, resolve it from the conversation history. NEVER ask the user to re-specify something already established in the conversation.`,
+            const completion = await llmService.generate({
+              systemPrompt: directBotSystem,
               messages: directBotHistory,
               userPrompt: injectionAnalysis.sanitizedContent,
-              temperature: 0.3,
-              maxTokens: 1200
+              temperature: fleetAgent?.temperature ?? 0.3,
+              maxTokens: fleetAgent?.maxTokens ?? 1200
             });
             if (completion?.text && completion.text.trim().length > 20) {
               replyText = completion.text;
