@@ -71,14 +71,51 @@ const ROUTINES: AgentRoutine[] = [
   },
 ];
 
+// ── Self-bootstrapping the task table ────────────────────────────────────────
+// drizzle-kit migrations aren't run automatically, so the fleet ensures its
+// own queue table exists on startup. No-op if already present.
+
+export async function ensureAgentTasksTable(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS agent_tasks (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL,
+        channel_id VARCHAR(64) NOT NULL DEFAULT 'war_room',
+        agent_id VARCHAR(64) NOT NULL,
+        type VARCHAR(64) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        priority VARCHAR(20) DEFAULT 'medium',
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        input JSONB DEFAULT '{}'::jsonb,
+        result JSONB DEFAULT '{}'::jsonb,
+        error TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_agent_task_client_status ON agent_tasks (client_id, status)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_agent_task_agent ON agent_tasks (agent_id, status)`);
+    log("agent_tasks table ready");
+  } catch (err: any) {
+    log("ensureAgentTasksTable note:", err?.message);
+  }
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 export function isFleetRunning(): boolean {
   return timer !== null;
 }
 
-export function startFleetRuntime(): void {
+export async function startFleetRuntime(): Promise<void> {
   if (timer) return;
+  // Make sure the queue table exists before the first tick.
+  await ensureAgentTasksTable();
   log("starting — heartbeat every", TICK_INTERVAL_MS / 1000, "s");
   // First tick shortly after boot, then on interval.
   setTimeout(() => { void tick(); }, 20_000);
