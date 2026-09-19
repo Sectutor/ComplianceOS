@@ -2613,7 +2613,7 @@ Produce the FULL policy in Markdown. Include ALL of these sections:
 
 Be specific and practical — real control requirements, real procedures. No placeholders or "TBD". This policy will be saved directly to the compliance database and published to the organization.`,
               priority: "medium",
-              context: { clientName: stats.clientName, clientId: targetClientId },
+              context: { clientName: stats.clientName, clientId: targetClientId, policyTitle: hintedTitle },
             }).catch((e) => console.warn("[dispatch] tara policy failed:", e?.message));
 
             // Hermes acknowledges immediately; Tara posts her own work moments later.

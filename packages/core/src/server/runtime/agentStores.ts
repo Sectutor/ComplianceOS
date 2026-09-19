@@ -44,6 +44,8 @@ export interface AgentTaskRecord {
   status: "pending" | "running" | "completed" | "failed";
   title: string;
   description?: string;
+  /** Dispatch payload (prompt + context) stored for in-memory tasks. */
+  input?: Record<string, unknown>;
   result?: Record<string, unknown>;
   error?: string;
   createdAt: number;

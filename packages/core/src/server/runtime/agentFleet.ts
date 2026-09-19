@@ -196,6 +196,7 @@ export async function dispatchTask(input: {
     status: "pending",
     title: input.title,
     description: input.description,
+    input: { prompt: input.prompt, context: input.context || {} },
     createdAt: Date.now(),
   };
   agentTaskQueue.push(rec);
@@ -347,10 +348,12 @@ async function publishTaraPolicy(agent: AgentDefinition, clientId: number, chann
   const db = await getDb();
   if (!db) return;
 
-  // Determine the title: prefer the one Hermes put in the task title, else derive.
-  const taskTitle = (rawInput as any).title || "";
-  const mentioned = taskTitle.replace(/^.*?"(.+?)"/, "$1").trim();
-  const title = mentioned || `Generated Compliance Policy — ${new Date().toLocaleDateString()}`;
+  // Determine the title: prefer the one passed via context, else derive from
+  // the LLM's own heading, else a dated fallback.
+  const fromContext = ((rawInput as any).context as any)?.policyTitle as string | undefined;
+  const fromHeading = reply.match(/^#+\s+(.+)$/m)?.[1]?.trim();
+  const title =
+    fromContext || fromHeading || `Generated Compliance Policy — ${new Date().toLocaleDateString()}`;
 
   // Extract a framework list for metadata.
   const fwMatch = reply.match(/(ISO|SOC 2|NIST|GDPR|NIS2|DORA|HIPAA|PCI)[^,\n]*/g);
