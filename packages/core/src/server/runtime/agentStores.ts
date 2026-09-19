@@ -28,6 +28,20 @@ export function postAgentMessage(msg: ChatMessage): void {
   agentMessages.push(msg);
 }
 
+/**
+ * Post an agent reply to its OWN direct channel AND (if dispatched from the War
+ * Room) to the War Room broadcast. This makes each agent's individual sidebar
+ * chat show their work history, not just the War Room.
+ */
+export function postAgentReply(msg: ChatMessage, broadcastToWarRoom: boolean): void {
+  // Always post to the agent's own direct channel.
+  agentMessages.push({ ...msg, channelId: msg.senderId });
+  // Also broadcast to the War Room if the task originated there.
+  if (broadcastToWarRoom) {
+    agentMessages.push({ ...msg, channelId: "war_room" });
+  }
+}
+
 /** Read the most recent messages for a channel (newest last). */
 export function readChannelMessages(channelId: string, limit = 100): ChatMessage[] {
   return agentMessages.filter((m) => m.channelId === channelId).slice(-limit);

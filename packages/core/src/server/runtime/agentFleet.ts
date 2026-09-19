@@ -23,6 +23,7 @@ import {
   agentMessages,
   agentTaskQueue,
   postAgentMessage,
+  postAgentReply,
   readChannelMessages,
   markAgentWorking,
   markAgentIdle,
@@ -296,7 +297,9 @@ async function executePersistedTask(row: RawTask, db: any): Promise<void> {
       WHERE id = ${row.id}
     `);
 
-    postAgentMessage({
+    // Post to the agent's own channel + broadcast to War Room if dispatched from there.
+    const broadcast = row.channel_id === "war_room";
+    postAgentReply({
       id: `msg_${row.agent_id}_${Date.now()}`,
       channelId: row.channel_id,
       senderId: agent.id,
@@ -305,7 +308,7 @@ async function executePersistedTask(row: RawTask, db: any): Promise<void> {
       senderRole: agent.role,
       content: reply,
       timestamp: "Just now",
-    });
+    }, broadcast);
     // If Tara authored a policy, publish it to the live DB + memory cortex.
     await publishTaraPolicy(agent, row.client_id, row.channel_id, reply, row.input || {});
     log(`task ${row.id} done in ${Date.now() - t0}ms (${agent.name})`);
@@ -339,7 +342,8 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
     rec.status = "completed";
     rec.completedAt = Date.now();
     rec.result = { replyLength: reply.length, posted: true };
-    postAgentMessage({
+    // Post to the agent's own channel + broadcast to War Room if dispatched from there.
+    postAgentReply({
       id: `msg_${rec.agentId}_${Date.now()}`,
       channelId: rec.channelId,
       senderId: agent.id,
@@ -348,7 +352,7 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
       senderRole: agent.role,
       content: reply,
       timestamp: "Just now",
-    });
+    }, rec.channelId === "war_room");
     // If Tara authored a policy, publish it to the live DB + memory cortex.
     await publishTaraPolicy(agent, rec.clientId, rec.channelId, reply, (rec as any).input || {});
     log(`memory task done (${agent.name})`);
@@ -418,7 +422,8 @@ async function publishTaraPolicy(agent: AgentDefinition, clientId: number, chann
     });
   } catch { /* best-effort */ }
 
-  postAgentMessage({
+  // Publish confirmation goes to the agent's own channel + War Room broadcast.
+  postAgentReply({
     id: `msg_${agent.id}_pub_${Date.now()}`,
     channelId,
     senderId: agent.id,
@@ -427,7 +432,7 @@ async function publishTaraPolicy(agent: AgentDefinition, clientId: number, chann
     senderRole: agent.role,
     content: `📜 **Policy published.** I've authored and saved **"${title}"** to the database and Company Memory Cortex.\n\n* **Frameworks:** ${frameworks.join(", ")}\n* **Direct Link:** [Open in Policy Center](/clients/${clientId}/policies)\n* **Memory Cortex:** \`memory://${vfsPath}\``,
     timestamp: "Just now",
-  });
+  }, channelId === "war_room");
 }
 
 async function executeRoutine(routine: AgentRoutine): Promise<void> {
@@ -446,7 +451,8 @@ async function executeRoutine(routine: AgentRoutine): Promise<void> {
   try {
     markAgentWorking(agent.id, `Running routine: ${routine.title}`.slice(0, 80));
     const reply = await runAgent(agent, "war_room", clientId, { prompt: routine.buildPrompt({ clientName, clientId }) }, routine.title);
-    postAgentMessage({
+    // Routines broadcast to War Room AND appear in the agent's own channel.
+    postAgentReply({
       id: `msg_routine_${routine.agentId}_${Date.now()}`,
       channelId: "war_room",
       senderId: agent.id,
@@ -455,7 +461,7 @@ async function executeRoutine(routine: AgentRoutine): Promise<void> {
       senderRole: agent.role,
       content: `🔄 **Routine — ${agent.name}:**\n\n${reply}`,
       timestamp: "Just now",
-    });
+    }, true);
     log(`routine done (${agent.name})`);
   } catch (err: any) {
     log(`routine failed (${agent.id}):`, err?.message);
