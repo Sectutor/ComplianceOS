@@ -24,6 +24,8 @@ import {
   agentTaskQueue,
   postAgentMessage,
   readChannelMessages,
+  markAgentWorking,
+  markAgentIdle,
   type AgentTaskRecord,
 } from "./agentStores";
 
@@ -270,10 +272,17 @@ interface RawTask {
 
 async function executePersistedTask(row: RawTask, db: any): Promise<void> {
   const t0 = Date.now();
+  const agent = getAgent(row.agent_id);
+  if (!agent) {
+    log(`task ${row.id}: unknown agent ${row.agent_id}`);
+    return;
+  }
   try {
     await db.execute(sql`UPDATE agent_tasks SET status = 'running', started_at = now() WHERE id = ${row.id}`);
-    const agent = getAgent(row.agent_id);
-    if (!agent) throw new Error(`unknown agent ${row.agent_id}`);
+
+    // Tell the UI this agent is now working (shows typing indicator).
+    const taskLabel = ((row.input as any)?.prompt || row.title || "working").slice(0, 80);
+    markAgentWorking(agent.id, taskLabel);
 
     const reply = await runAgent(agent, row.channel_id, row.client_id, row.input || {}, row.title);
 
@@ -304,15 +313,25 @@ async function executePersistedTask(row: RawTask, db: any): Promise<void> {
         UPDATE agent_tasks SET status = 'failed', completed_at = now(), error = ${err?.message || "failed"} WHERE id = ${row.id}
       `);
     } catch { /* best-effort */ }
+  } finally {
+    markAgentIdle(agent.id);
   }
 }
 
 async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
   rec.status = "running";
   const agent = getAgent(rec.agentId);
+  if (!agent) {
+    log(`memory task: unknown agent ${rec.agentId}`);
+    rec.status = "failed";
+    rec.error = `unknown agent ${rec.agentId}`;
+    rec.completedAt = Date.now();
+    return;
+  }
   try {
-    if (!agent) throw new Error(`unknown agent ${rec.agentId}`);
     const input = (rec as any).input || {};
+    // Tell the UI this agent is now working (shows typing indicator).
+    markAgentWorking(agent.id, (input.prompt || rec.title || "working").toString().slice(0, 80));
     const reply = await runAgent(agent, rec.channelId, rec.clientId, input, rec.title);
     rec.status = "completed";
     rec.completedAt = Date.now();
@@ -335,6 +354,8 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
     rec.error = err?.message;
     rec.completedAt = Date.now();
     log(`memory task failed (${rec.agentId}):`, err?.message);
+  } finally {
+    markAgentIdle(agent.id);
   }
 }
 
@@ -420,6 +441,7 @@ async function executeRoutine(routine: AgentRoutine): Promise<void> {
     } catch { /* ignore */ }
   }
   try {
+    markAgentWorking(agent.id, `Running routine: ${routine.title}`.slice(0, 80));
     const reply = await runAgent(agent, "war_room", clientId, { prompt: routine.buildPrompt({ clientName, clientId }) }, routine.title);
     postAgentMessage({
       id: `msg_routine_${routine.agentId}_${Date.now()}`,
@@ -434,6 +456,8 @@ async function executeRoutine(routine: AgentRoutine): Promise<void> {
     log(`routine done (${agent.name})`);
   } catch (err: any) {
     log(`routine failed (${agent.id}):`, err?.message);
+  } finally {
+    markAgentIdle(agent.id);
   }
 }
 

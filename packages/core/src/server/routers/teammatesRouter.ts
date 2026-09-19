@@ -38,6 +38,9 @@ import {
   agentMessages,
   postAgentMessage,
   readChannelMessages,
+  markAgentWorking,
+  markAgentIdle,
+  getActiveAgents,
 } from "../runtime/agentStores";
 // Shared message array — both the War Room router and the fleet runtime write
 // to this same array, so agent replies posted by the heartbeat appear live.
@@ -2360,6 +2363,16 @@ export function createTeammatesRouter(t: any, procedure: any) {
         }
       }),
 
+    /** Live agent activity for "Tara is working..." UI indicators. */
+    getAgentStatus: procedure
+      .query(async () => {
+        try {
+          return { active: getActiveAgents() };
+        } catch (err) {
+          throw asInternalError("getting agent status", err);
+        }
+      }),
+
     sendMessage: procedure
       .input(messageSendInputSchema)
       .mutation(async ({ ctx, input }: { ctx: any; input: z.infer<typeof messageSendInputSchema> }) => {
@@ -2423,6 +2436,8 @@ export function createTeammatesRouter(t: any, procedure: any) {
             const agent = listAgents().find((a) => a.id === agentId);
             const aname = agent?.name || agentId;
             const aavatar = agent?.avatar || "🤖";
+            // Show the "working" indicator immediately.
+            markAgentWorking(agentId, title.slice(0, 80));
             postAgentMessage({
               id: `msg_hermes_ack_${agentId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
               channelId: "war_room",

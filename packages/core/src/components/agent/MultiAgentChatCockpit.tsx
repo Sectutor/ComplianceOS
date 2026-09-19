@@ -10,6 +10,7 @@ import {
   useTakeControlSandboxMutation,
   useClearMessagesMutation,
   useListThreadsQuery,
+  useAgentStatusQuery,
 } from "../../pages/agent/agentCockpitApi";
 import { RichMarkdownMessage } from "./RichMarkdownMessage";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -60,6 +61,7 @@ export function MultiAgentChatCockpit() {
   const [isTakingControl, setIsTakingControl] = useState(false);
 
   const { data: messages, refetch: refetchMessages, isLoading: loadingMessages } = useMessagesQuery(activeChannelId);
+  const { data: agentStatus } = useAgentStatusQuery();
 
   const { data: guardrailsStatus } = useGuardrailsStatusQuery();
   const { data: auditCert } = useAuditCertificateQuery("SOC 2 Type II & ISO 27001 Multi-Agent Execution");
@@ -489,6 +491,40 @@ export function MultiAgentChatCockpit() {
               </div>
             );
           })}
+          {/* Live per-agent working indicators (Tara is drafting, Marcus is scanning...) */}
+          {isWarRoom && agentStatus?.active && agentStatus.active.length > 0 && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {agentStatus.active.map((a) => {
+                const agent = teammates?.find((t) => t.id === a.agentId);
+                const avatar = agent?.avatar || "🤖";
+                const name = agent?.name || a.agentId;
+                return (
+                  <div key={a.agentId} className="flex gap-3 justify-start">
+                    <div className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center text-base shrink-0 shadow-inner mt-0.5 relative">
+                      <span className="animate-pulse">{avatar}</span>
+                      <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                      </span>
+                    </div>
+                    <div className="bg-card border border-amber-500/30 rounded-2xl rounded-tl-xs px-3 py-2 shadow-xs flex items-center gap-2 max-w-[85%]">
+                      <div className="flex gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                      <span className="text-[11px] text-foreground">
+                        <strong className="text-amber-700 dark:text-amber-400">{name}</strong>{" "}
+                        <span className="text-muted-foreground">is working:</span>{" "}
+                        <span className="italic">{a.task}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Active Agent Working / Reasoning Animation Card */}
           {(sendMessageMutation.isPending || sendMessageMutation.isLoading) && (
             <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">

@@ -263,6 +263,14 @@ export function useMessagesQuery(channelId: string) {
   );
 }
 
+/** Live agent activity for "Tara is working..." UI indicators. */
+export function useAgentStatusQuery() {
+  return getCockpitApi().teammates.getAgentStatus.useQuery(undefined, {
+    retry: false,
+    refetchInterval: 2000,
+  });
+}
+
 /** DLP / zero-trust / provenance / circuit-breaker posture strip. */
 export function useGuardrailsStatusQuery() {
   return getCockpitApi().teammates.getGuardrailsStatus.useQuery({

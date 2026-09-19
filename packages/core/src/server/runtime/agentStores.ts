@@ -54,3 +54,38 @@ export interface AgentTaskRecord {
 
 /** In-memory mirror of queued tasks for fast status queries. */
 export const agentTaskQueue: AgentTaskRecord[] = [];
+
+// ── Live agent activity (for "Tara is working..." UI indicators) ─────────────
+
+export interface AgentActivity {
+  agentId: string;
+  /** What the agent is currently doing, e.g. "Drafting Access Control Policy". */
+  task: string;
+  startedAt: number;
+}
+
+/**
+ * Agents currently doing work. Keyed by agentId so the UI can subscribe and show
+ * a per-agent "working" indicator (typing dots + task description).
+ */
+const activeAgents = new Map<string, AgentActivity>();
+
+/** Mark an agent as working on a task. */
+export function markAgentWorking(agentId: string, task: string): void {
+  activeAgents.set(agentId, { agentId, task, startedAt: Date.now() });
+}
+
+/** Clear an agent's working status (task done or failed). */
+export function markAgentIdle(agentId: string): void {
+  activeAgents.delete(agentId);
+}
+
+/** Snapshot of all currently-working agents. */
+export function getActiveAgents(): AgentActivity[] {
+  // Auto-stale: drop anything older than 5 minutes (safety net).
+  const cutoff = Date.now() - 5 * 60_000;
+  for (const [id, act] of activeAgents) {
+    if (act.startedAt < cutoff) activeAgents.delete(id);
+  }
+  return Array.from(activeAgents.values());
+}
