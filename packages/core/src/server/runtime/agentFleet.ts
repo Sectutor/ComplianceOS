@@ -435,7 +435,7 @@ async function publishTaraPolicy(agent: AgentDefinition, clientId: number, chann
     senderAvatar: agent.avatar,
     senderRole: agent.role,
     content: `📜 **Policy published.** I've authored and saved **"${title}"** to the database and Company Memory Cortex.\n\n* **Frameworks:** ${frameworks.join(", ")}\n* **Direct Link:** [Open in Policy Center](/clients/${clientId}/policies)\n* **Memory Cortex:** \`memory://${vfsPath}\``,
-    timestamp: "Just now",
+    timestamp: nowIso(),
   }, channelId === "war_room");
 }
 
