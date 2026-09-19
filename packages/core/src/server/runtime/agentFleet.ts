@@ -355,9 +355,21 @@ async function publishTaraPolicy(agent: AgentDefinition, clientId: number, chann
   const title =
     fromContext || fromHeading || `Generated Compliance Policy — ${new Date().toLocaleDateString()}`;
 
-  // Extract a framework list for metadata.
-  const fwMatch = reply.match(/(ISO|SOC 2|NIST|GDPR|NIS2|DORA|HIPAA|PCI)[^,\n]*/g);
-  const frameworks = fwMatch ? Array.from(new Set(fwMatch)).slice(0, 8) : ["General"];
+  // Extract a clean framework list for metadata. Match canonical references
+  // like "ISO 27001", "SOC 2", "NIST CSF 2.0", "GDPR", "NIS2", etc.
+  const fwMap: Record<string, RegExp> = {
+    "ISO 27001": /\bISO\/?IEC?\s*27001\b/i,
+    "SOC 2": /\bSOC\s*2\b/i,
+    "NIST CSF": /\bNIST\s*CSF\b/i,
+    "NIST SP 800-53": /\bNIST\s*SP\s*800-53\b/i,
+    "GDPR": /\bGDPR\b/i,
+    "NIS2": /\bNIS2\b/i,
+    "DORA": /\bDORA\b/i,
+    "HIPAA": /\bHIPAA\b/i,
+    "PCI DSS": /\bPCI(?:[-\s]?DSS)?\b/i,
+  };
+  const frameworks = Object.keys(fwMap).filter((name) => fwMap[name].test(reply));
+  if (frameworks.length === 0) frameworks.push("General");
 
   try {
     await db.execute(sql`
