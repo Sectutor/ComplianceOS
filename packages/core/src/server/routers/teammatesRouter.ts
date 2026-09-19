@@ -22,9 +22,15 @@ import { policyVectorRag } from "../../lib/agent/policyVectorRag";
 import { toolDispatcher } from "../../lib/agent/toolDispatcher";
 import { getDb } from "../../db";
 import { riskAssessments, vendors, clientPolicies, evidence, clients } from "../../schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { vfsMemoryEngine } from "../../lib/memory/vfsMemoryEngine";
 import { agentDelegationEngine } from "../../lib/agent/agentDelegationEngine";
+import {
+  getActionCenterSummary,
+  detectFixIntent,
+  resolveFixTarget,
+  loadEntity,
+} from "../../lib/action-center-agent";
 import { agentRoutineScheduler } from "../../lib/agent/agentRoutineScheduler";
 import { agentChatStorage } from "../../lib/agent/agentChatStorage";
 import { formatCurrency, getCurrencySymbol } from "../../lib/currency";
@@ -243,6 +249,84 @@ export async function getClientComplianceStats(clientId: number): Promise<Client
 // ── Currency formatting for agent narratives ─────────────────────────────────
 function fmtUsd(n: number, currency: string = "USD", locale: string = "en-US"): string {
   return formatCurrency(n, currency, locale);
+}
+
+// ── Action Center fix-patch generation ───────────────────────────────────────
+
+export interface GeneratedFix {
+  patch: Record<string, unknown>;
+  patchSummary: string;
+  description: string;
+  rationale: string;
+  priority: string;
+  entityType?: string;
+  entityId?: number;
+}
+
+/**
+ * Ask the LLM to produce a concrete, safe patch for a single Action Center
+ * item. Returns structured fields; the patch is NOT applied here — it is
+ * staged as a pending sentinel action and only applied after human approval.
+ */
+export async function generateEntityFix(
+  target: { actionType: string; id: number | string; title: string; entityType: string; entityId?: number },
+  entity: import("../../lib/action-center-agent").EntityDetails | null,
+  clientId: number,
+  userInstruction: string,
+): Promise<GeneratedFix | null> {
+  const entityContext = entity
+    ? `\n=== TARGET ENTITY (${entity.entityType}#${entity.entityId}) ===\nTitle: ${entity.title || "-"}\nStatus: ${entity.status || "-"}\nContent (truncated):\n${(entity.content || "-").slice(0, 2500)}\n=========================`
+    : "";
+
+  const prompt = `You are an autonomous GRC remediation agent. The user asked: "${userInstruction}"
+
+Action Center item: "${target.title}" (type: ${target.entityType}${target.entityId ? `, id: #${target.entityId}` : ""}).${entityContext}
+
+Propose a SAFE, MINIMAL fix. Return STRICT JSON inside a code fence, no other text:
+\`\`\`json
+{
+  "patch": { "content": "...full revised policy text if a policy, else status/description fields..." },
+  "patchSummary": "one-line human readable summary of the change",
+  "description": "what this fix does",
+  "rationale": "why this is the correct remediation",
+  "priority": "critical|high|medium|low",
+  "entityType": "${entity?.entityType || target.entityType}",
+  "entityId": ${entity?.entityId ?? target.entityId ?? null}
+}
+\`\`\`
+
+Rules:
+- Only include fields that actually change in "patch". For policies, "patch.content" MUST be the complete improved policy (Markdown headings + bullet points). For status-only fixes, patch may be {"status":"implemented"}.
+- Never invent ids, vendor names, or control references not shown above.
+- If no safe automated fix exists, set patch to {} and explain in rationale.`;
+
+  try {
+    const completion = await llmService.generate({
+      systemPrompt: "You are a precise GRC remediation agent. Output only the requested JSON fix proposal.",
+      userPrompt: prompt,
+      temperature: 0.2,
+      maxTokens: 1500,
+    });
+    const text = completion?.text || "";
+    // Extract JSON from a fenced block, fallback to first {...}
+    const fence = text.match(/```json\s*([\s\S]*?)```/i) || text.match(/```\s*([\s\S]*?)```/);
+    const raw = fence ? fence[1] : text.match(/\{[\s\S]*\}/)?.[0];
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed.patch || typeof parsed.patch !== "object") return null;
+    return {
+      patch: parsed.patch,
+      patchSummary: parsed.patchSummary || "proposed change",
+      description: parsed.description || userInstruction,
+      rationale: parsed.rationale || "Remediation proposed by agent.",
+      priority: parsed.priority || "medium",
+      entityType: parsed.entityType,
+      entityId: parsed.entityId ?? undefined,
+    };
+  } catch (err: any) {
+    console.warn('[generateEntityFix] LLM parse failed:', err?.message);
+    return null;
+  }
 }
 
 // ── Comprehensive Policy Drafting Engine ──────────────────────────────────────
@@ -2347,8 +2431,101 @@ export function createTeammatesRouter(t: any, procedure: any) {
           const isIncidentIntent = lower.includes("incident") || lower.includes("breach") || lower.includes("csirt") || lower.includes("timer") || lower.includes("dora") || lower.includes("nis2");
           const isAuditRoomIntent = lower.includes("audit room") || lower.includes("mock audit") || lower.includes("compile") || lower.includes("evidence pack") || lower.includes("cpa");
 
-          // A. Policy Drafting in War Room (Hermes + Tara)
-          if (isPolicyDraftIntent || mentionTara) {
+          // Gather Action Center state once — injected into the Hermes prompt so the
+          // agent can answer "what's in the Action Center?" and so fix commands can
+          // resolve their targets.
+          const userId = (ctx as any)?.user?.id || 0;
+          const acSummary = await getActionCenterSummary(targetClientId, userId);
+
+          // Fix / resolve / "do it" commands are handled before the passive
+          // question-answering branches so the agent acts instead of just talking.
+          const fixCmd = detectFixIntent(input.content);
+          const isFixIntent = fixCmd.isFix && acSummary.openCount > 0;
+
+          // A. Fix / Remediate Action Center issues (Hermes proposes a patch,
+          //    human approves in the Action Center UI)
+          if (isFixIntent) {
+            const history = messagesStore
+              .filter((m) => m.channelId === "war_room" && m.content.trim().length > 0)
+              .slice(-20)
+              .map((m) => ({ role: (m.senderId === "user" ? "user" : "assistant") as "user" | "assistant", content: m.content }));
+
+            const targets = await resolveFixTarget(targetClientId, userId, fixCmd, history);
+
+            if (targets.length === 0) {
+              const hermesMsg: ChatMessage = {
+                id: `msg_hermes_${Date.now() + 1}`,
+                channelId: "war_room",
+                senderId: "hermes_orchestrator",
+                senderName: "Hermes",
+                senderAvatar: "🧠",
+                senderRole: "Chief Compliance Orchestrator",
+                content: `I understood you want to fix something, but I couldn't resolve a specific Action Center item from "${input.content}".\n\nYou can point me precisely, e.g.:\n- **"fix #123"** — act on sentinel action #123\n- **"fix that policy issue"** — I'll match it from our conversation\n- **"fix all"** — propose patches for every open item\n\nCurrently open in the Action Center: **${acSummary.openCount}** item(s) (${acSummary.criticalCount} critical).\n\n🔗 [Open Action Center](/action-center?clientId=${targetClientId})`,
+                timestamp: "Just now",
+              };
+              messagesStore.push(hermesMsg);
+            } else {
+              // Build a concrete patch via the LLM for each target and stage them
+              // as pending sentinel actions holding a proposedFix.
+              const staged: Array<{ actionId: number; title: string }> = [];
+              for (const target of targets) {
+                if (target.actionType !== 'sentinel') continue;
+                const entity = await loadEntity(target);
+                const fix = await generateEntityFix(target, entity, targetClientId, input.content);
+                if (!fix) continue;
+
+                const db = await getDb();
+                if (!db) continue;
+                const [row] = await db.execute(sql`
+                  INSERT INTO autopilot_actions
+                    (client_id, run_id, type, title, description, priority, status, target_entity, metadata, ai_rationale)
+                  VALUES (
+                    ${targetClientId},
+                    0,
+                    'agent_fix:patch',
+                    ${`Agent fix: ${target.title}`.slice(0, 250)},
+                    ${fix.description.slice(0, 4000)},
+                    ${fix.priority},
+                    'pending',
+                    ${JSON.stringify({ entityType: entity?.entityType || 'unknown', entityId: entity?.entityId ?? null })}::jsonb,
+                    ${JSON.stringify({ botId: 'hermes_orchestrator', proposedFix: fix.patch, patchSummary: fix.patchSummary })}::jsonb,
+                    ${fix.rationale.slice(0, 4000)}
+                  )
+                  RETURNING id
+                `).then((r: any) => (r.rows ?? r)) as any[];
+                if (row?.id) staged.push({ actionId: row.id, title: target.title });
+              }
+
+              if (staged.length === 0) {
+                const hermesMsg: ChatMessage = {
+                  id: `msg_hermes_${Date.now() + 1}`,
+                  channelId: "war_room",
+                  senderId: "hermes_orchestrator",
+                  senderName: "Hermes",
+                  senderAvatar: "🧠",
+                  senderRole: "Chief Compliance Orchestrator",
+                  content: `I analyzed the targeted Action Center item(s) but couldn't construct an automated patch (they may need manual review).\n\n🔗 [Open Action Center to review & resolve manually](/action-center?clientId=${targetClientId})`,
+                  timestamp: "Just now",
+                };
+                messagesStore.push(hermesMsg);
+              } else {
+                const lines = staged.map(s => `- **#${s.actionId}** ${s.title}`).join('\n');
+                const hermesMsg: ChatMessage = {
+                  id: `msg_hermes_${Date.now() + 1}`,
+                  channelId: "war_room",
+                  senderId: "hermes_orchestrator",
+                  senderName: "Hermes",
+                  senderAvatar: "🧠",
+                  senderRole: "Chief Compliance Orchestrator",
+                  content: `✅ I've drafted fix proposal(s) for the requested Action Center item(s) and staged them as pending actions for your approval:\n\n${lines}\n\nEach proposal contains an exact patch (policy content change, control status update, etc.). Review and approve in the Action Center — once approved, I'll apply the change to the live database.\n\n🔗 [Review & Approve in Action Center](/action-center?clientId=${targetClientId})`,
+                  timestamp: "Just now",
+                };
+                messagesStore.push(hermesMsg);
+              }
+            }
+
+          // B. Policy Drafting in War Room (Hermes + Tara)
+          } else if (isPolicyDraftIntent || mentionTara) {
             const policyData = generateComprehensivePolicy(input.content, stats.clientName, targetClientId);
             saveClientPolicyToDatabase(targetClientId, policyData.title, policyData.content, "approved").catch(() => {});
             vfsMemoryEngine.writeNode(targetClientId, {
@@ -2405,7 +2582,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
             };
             messagesStore.push(taraMsg);
 
-          // B. Risk Modeling & FAIR Assessment in War Room (Hermes + Marcus)
+          // C. Risk Modeling & FAIR Assessment in War Room (Hermes + Marcus)
           } else if (isRiskAssessIntent || mentionMarcus) {
             const toolResult = await toolDispatcher.execute({
               toolName: "risk_calculate_fair_ale",
@@ -2474,7 +2651,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
             };
             messagesStore.push(marcusMsg);
 
-          // C. Cloud Infrastructure Drift / Terraform Remediation (Hermes + Morgan)
+          // D. Cloud Infrastructure Drift / Terraform Remediation (Hermes + Morgan)
           } else if (isCloudFixIntent || mentionMorgan) {
             const toolResult = await toolDispatcher.execute({
               toolName: "cloud_posture_scan",
@@ -2560,7 +2737,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
             };
             messagesStore.push(morganMsg);
 
-          // D. Vendor Audit / TPRM in War Room (Hermes + Alex)
+          // E. Vendor Audit / TPRM in War Room (Hermes + Alex)
           } else if (isVendorAuditIntent || mentionAlex) {
             // Real vendor register analysis (no simulated trust-center scraping)
             const dbForAlex = await getDb();
@@ -2627,7 +2804,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
             };
             messagesStore.push(alexMsg);
 
-          // E. Audit Room Compilation / Mock Audit (Hermes + Sam)
+          // F. Audit Room Compilation / Mock Audit (Hermes + Sam)
           } else if (isAuditRoomIntent || mentionSam) {
             const toolResult = await toolDispatcher.execute({
               toolName: "audit_room_compile",
@@ -2693,7 +2870,7 @@ export function createTeammatesRouter(t: any, procedure: any) {
             };
             messagesStore.push(samMsg);
 
-          // F. General Fleet Orchestration & Live Compliance Telemetry
+          // G. General Fleet Orchestration & Live Compliance Telemetry
           } else {
             let hermesReplyContent = "";
             let providerNotice = "";
@@ -2733,14 +2910,16 @@ ${stats.risksList.map((r, i) => `    ${i + 1}. [Risk #${r.id}] ${r.title} (Inher
 * Documented Master Policies (${stats.totalPolicies}): ${stats.policyNames.join(", ") || "None"}
 * Harvested Evidence Records: ${stats.totalEvidence} records
 ========================================================================
+${acSummary.text}
 ${cortexSnapshot ? `\n${cortexSnapshot}\n` : ""}
 
 CRITICAL OPERATIONAL RULES:
-1. You HAVE real-time, live connection to the database state above.
+1. You HAVE real-time, live connection to the database state above AND the Action Center state. When the user asks "what's in the Action Center?", "any issues?", "open findings?", or asks about a specific action by #id or name, use the ACTION CENTER STATE section above — quote the exact item titles and priorities.
 2. When the user asks factual questions like "how many risks do we have?", "what risks are registered?", "list our vendors", or asks for a count/summary, use the exact numbers and details from the LIVE CLIENT DATABASE STATE above.
 3. Provide direct, highly accurate, and in-depth compliance and technical guidance. Use clear Markdown headings and bullet points.
-4. Do NOT output generic boilerplate. Formulate your own intelligent synthesis tailored to the prompt.
-5. VERY IMPORTANT: You have the full conversation history above. When the user says "this risk", "that one", "it", "them", or any pronoun or reference to something mentioned in a prior message, resolve it from the conversation history. NEVER ask the user to re-specify something already established in the conversation.`,
+4. Do NOT output generic boilerplate or claim you lack access to the Action Center — the data is provided above. Formulate your own intelligent synthesis tailored to the prompt.
+5. VERY IMPORTANT: You have the full conversation history above. When the user says "this risk", "that one", "it", "them", or any pronoun or reference to something mentioned in a prior message, resolve it from the conversation history. NEVER ask the user to re-specify something already established in the conversation.
+6. When the user asks you to FIX / RESOLVE / REMEDIATE an Action Center item, respond conversationally in this chat (the fix is handled by a separate command-detect path — just acknowledge and direct them, e.g. "Say 'fix #123' and I'll draft a patch for your approval.").`,
                 messages: recentHistory,
                 userPrompt: input.content,
                 temperature: 0.3,
@@ -2784,10 +2963,12 @@ CRITICAL OPERATIONAL RULES:
           const botRole = currentBot?.role || "Chief Compliance Orchestrator";
           const targetClientId = (ctx as any)?.user?.clientId || 7;
 
-          // Fetch Live Database Compliance State
-          const [stats, cortexSnapshot] = await Promise.all([
+          // Fetch Live Database Compliance State + Action Center findings
+          const userId = (ctx as any)?.user?.id || 0;
+          const [stats, cortexSnapshot, acSummary] = await Promise.all([
             getClientComplianceStats(targetClientId),
-            vfsMemoryEngine.getClientCortexSnapshot(targetClientId)
+            vfsMemoryEngine.getClientCortexSnapshot(targetClientId),
+            getActionCenterSummary(targetClientId, userId),
           ]);
 
           // 1. Guardrails: Pre-Prompt DLP Sanitization
@@ -2835,12 +3016,12 @@ ${stats.risksList.map((r, i) => `    ${i + 1}. [Risk #${r.id}] ${r.title} (Inher
 * Documented Master Policies (${stats.totalPolicies}): ${stats.policyNames.join(", ") || "None"}
 * Harvested Evidence Records: ${stats.totalEvidence} records
 ========================================================================
-
+${acSummary.text}
 ${cortexSnapshot ? `\n${cortexSnapshot}\n` : ""}
 ${ragContext ? `\n${ragContext}\n` : ""}
 
 CRITICAL OPERATIONAL RULES:
-1. You HAVE real-time, live connection to the database state above.
+1. You HAVE real-time, live connection to the database state above AND the Action Center state. When the user asks "what's in the Action Center?", "any issues?", "open findings?", or references an action by #id or name, use the ACTION CENTER STATE section above.
 2. When the user asks factual questions like "how many risks do we have?", "what risks are registered?", "list our vendors", or asks for a count/summary, use the exact numbers and details from the LIVE CLIENT DATABASE STATE above. Never say you do not have live access or tell the user to check the UI manually when you already have the live data above.
 3. Provide direct, highly accurate, and in-depth compliance and technical guidance. Use clear Markdown headings and bullet points.
 4. VERY IMPORTANT: You have the full conversation history above. When the user says "this risk", "that one", "it", "them", or any pronoun or reference to something mentioned in a prior message, resolve it from the conversation history. NEVER ask the user to re-specify something already established in the conversation.`,

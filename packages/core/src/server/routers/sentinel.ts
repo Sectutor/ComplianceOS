@@ -7,6 +7,7 @@ import { z } from "zod";
 import { sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
+import { applyApprovedFix, getProposedFix } from "../../lib/action-center-agent";
 
 const log = (...a: any[]) => console.log("[sentinel-api]", ...a);
 
@@ -284,6 +285,44 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         // approved → execute the proposed task creation with delegation
         const meta = actionRow?.metadata ? (typeof actionRow.metadata === "string" ? JSON.parse(actionRow.metadata) : actionRow.metadata) : {};
         const pa = meta.proposedAction || {};
+        const proposedFix = meta.proposedFix || null;
+
+        // Agent-fix path: a drafted patch (policy content, control status, …)
+        // staged by the War Room agent. Apply it directly to the live entity.
+        if (proposedFix && typeof proposedFix === "object" && Object.keys(proposedFix).length > 0) {
+          const fix = proposedFix as Record<string, unknown>;
+          // Ensure entity context: prefer the fix's own, fall back to targetEntity.
+          if (!fix.entityType && meta.targetEntity) fix.entityType = (meta.targetEntity as any)?.entityType;
+          if (!fix.entityId && meta.targetEntity) fix.entityId = (meta.targetEntity as any)?.entityId;
+
+          const fixClientId = Number(meta.clientId ?? input.clientId);
+          if (!Number.isInteger(fixClientId) || fixClientId <= 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Cannot apply agent fix for action ${input.actionId}: no resolvable clientId.`,
+            });
+          }
+
+          const result = await applyApprovedFix(fixClientId, input.actionId, fix);
+          log(`[reviewSentinelAction] action ${input.actionId} agent-fix applied: ${result.applied} (ok=${result.success})`);
+
+          await db.execute(sql`
+            UPDATE autopilot_actions
+            SET status = ${result.success ? 'executed' : 'failed'},
+                reviewed_by = ${reviewerId},
+                reviewed_at = now(),
+                metadata = jsonb_set(coalesce(metadata,'{}'::jsonb), '{fixResult}', ${JSON.stringify(result)}::jsonb)
+            WHERE id = ${input.actionId}`);
+
+          return {
+            success: result.success,
+            executed: result.success,
+            applied: result.applied,
+            detail: result.success
+              ? `Fix applied to ${result.applied}.`
+              : `Fix failed: ${result.error}`,
+          };
+        }
 
         const validTypes = new Set([
           "review", "approval", "evidence_collection", "raci_assignment", "risk_treatment",
