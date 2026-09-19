@@ -441,6 +441,7 @@ export class LLMService {
 
         const startTime = Date.now();
         let lastError: Error | undefined;
+        let firstRealError: Error | undefined;
         let placeholderCount = 0;
 
         for (const provider of providers) {
@@ -449,9 +450,14 @@ export class LLMService {
                 if (this.isPlaceholderKey(decrypt(provider.apiKey))) {
                     placeholderCount++;
                     console.warn(`[LLMService] Provider ${provider.name} uses a demo placeholder API key - skipping`);
-                    lastError = new Error(
-                        `Provider "${provider.name}" has a demo placeholder API key. Add a real API key in Settings > AI Providers.`
-                    );
+                    // Only record a placeholder error if we haven't seen a real
+                    // provider failure — otherwise the misleading placeholder message
+                    // masks the real problem (e.g. an upstream 429 rate-limit).
+                    if (!firstRealError) {
+                        lastError = new Error(
+                            `Provider "${provider.name}" has a demo placeholder API key. Add a real API key in Settings > AI Providers.`
+                        );
+                    }
                     continue;
                 }
 
@@ -510,13 +516,21 @@ export class LLMService {
                     message: error.message,
                     stack: error.stack?.split('\n').slice(0, 3).join('\n')
                 });
+                // Remember the FIRST real (non-placeholder) provider failure so the
+                // user sees the actual root cause (e.g. a 429 rate-limit) rather than
+                // the generic placeholder-key message from the trailing providers.
+                if (!firstRealError) firstRealError = error;
                 lastError = error;
                 // Continue to next provider
             }
         }
 
-        // If we get here, all providers failed
-        logger.error({ message: "All LLM providers failed", error: lastError?.message });
+        // If we get here, all providers failed. Prefer the FIRST real provider
+        // failure (e.g. an OpenRouter 429 rate-limit) over the generic
+        // placeholder-key message from the trailing providers — the real error is
+        // what the user actually needs to see and act on.
+        const reportError = firstRealError || lastError;
+        logger.error({ message: "All LLM providers failed", error: reportError?.message });
         const overallLatency = Date.now() - overallStart;
         console.log(`[LLMService] All providers failed after ${overallLatency}ms`);
         if (placeholderCount > 0 && placeholderCount === providers.length) {
@@ -525,7 +539,7 @@ export class LLMService {
                 'Add a real API key (OpenAI, Anthropic, or Gemini) under Settings > AI Providers, then try again.'
             );
         }
-        throw new Error(`All LLM providers failed. Last error: ${lastError?.message}`);
+        throw new Error(`All LLM providers failed. ${reportError?.message || 'No provider responded.'}`);
     }
 
     /**

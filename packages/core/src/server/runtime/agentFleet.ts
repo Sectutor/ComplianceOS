@@ -379,6 +379,10 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
 function postAgentFailure(agent: AgentDefinition, channelId: string, taskTitle: string, errMsg: string): void {
   const friendly = errMsg.includes("placeholder")
     ? "No live AI provider is configured. Add an API key under **Settings > AI Providers** (OpenAI, Anthropic, DeepSeek, or OpenRouter) to enable agent work."
+    : errMsg.includes("429") || errMsg.includes("Rate limit")
+    ? "Your AI provider's free tier is rate-limited. Add credits to OpenRouter/DeepSeek, or add another provider key under **Settings > AI Providers**."
+    : errMsg.includes("402") || errMsg.includes("Insufficient Balance")
+    ? "Your AI provider account has insufficient balance. Top up DeepSeek/OpenRouter credits, or add another provider key under **Settings > AI Providers**."
     : errMsg.includes("All LLM providers failed")
     ? "All AI providers are currently unavailable (rate-limited or unreachable). Add more provider keys under **Settings > AI Providers** for redundancy."
     : `Task failed: ${errMsg.slice(0, 200)}`;
