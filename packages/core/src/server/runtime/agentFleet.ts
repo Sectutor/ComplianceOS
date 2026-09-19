@@ -150,6 +150,9 @@ export async function dispatchTask(input: {
     return null;
   }
 
+  // Show the "working" indicator immediately (synchronous, before any async work).
+  markAgentWorking(input.agentId, input.title.slice(0, 80));
+
   const db = await getDb();
   const taskKey = `task_${input.agentId}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
