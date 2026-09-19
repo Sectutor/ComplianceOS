@@ -2447,6 +2447,33 @@ export function createTeammatesRouter(t: any, procedure: any) {
             }).catch((e) => console.warn("[dispatch]", aname, "failed:", e?.message));
           };
 
+          // Derive a policy title from the user's prompt (e.g. "draft an access
+          // control policy" → "Access Control Policy"). Used to set context for
+          // Tara; she may refine it.
+          const policyTitleFromPrompt = (text: string): string => {
+            const lower = text.toLowerCase();
+            // Common policy keywords.
+            const keywords = [
+              "access control", "password", "iam", "identity", "incident response",
+              "business continuity", "bcp", "disaster recovery", "vendor", "tprm",
+              "acceptable use", "aup", "encryption", "data classification", "privacy",
+              "remote work", "clear desk", "sdlc", "change management", "risk acceptance",
+              "ai governance", "byod", "network security", "information security",
+            ];
+            const found = keywords.filter((k) => lower.includes(k));
+            if (found.length) {
+              // Build a title from the matched keywords (title-cased).
+              return found
+                .map((k) => k.replace(/\b\w/g, (c) => c.toUpperCase()))
+                .join(", ") + " Policy";
+            }
+            // Fallback: strip command verbs and title-case the remainder.
+            const cleaned = text
+              .replace(/^(draft|write|create|generate|make|author|build|a|an|the|new|please|policy|for)\b\s*/gi, "")
+              .trim();
+            return cleaned ? cleaned.replace(/\b\w/g, (c) => c.toUpperCase()) : "Information Security Policy";
+          };
+
           // Parse a Hermes reply for an explicit dispatch announcement so we can
           // honor it with a real fleet task. Matches "@Tara", "@Marcus", etc.
           const parseDispatchMention = (text: string): { agentId: string; context: string } | null => {
@@ -2554,52 +2581,53 @@ export function createTeammatesRouter(t: any, procedure: any) {
             }
 
           // B. Policy Drafting in War Room (Hermes + Tara)
+          // Tara is the AUTHOR. Hermes dispatches a real task; Tara drafts the
+          // full policy via LLM and the fleet publishes it to the DB. The
+          // deterministic generator is only a fallback if the LLM fails.
           } else if (isPolicyDraftIntent || mentionTara) {
-            const policyData = generateComprehensivePolicy(input.content, stats.clientName, targetClientId);
-            saveClientPolicyToDatabase(targetClientId, policyData.title, policyData.content, "approved").catch(() => {});
-            vfsMemoryEngine.writeNode(targetClientId, {
-              path: policyData.vfsPath,
-              title: policyData.title,
-              summaryL0: `Master governance policy for ${policyData.title}.`,
-              contentL2: policyData.content,
-              nodeType: "document",
-              metadata: { owner: "Tara", frameworks: policyData.frameworks }
-            }).catch(() => {});
+            const hintedTitle = policyTitleFromPrompt(input.content);
 
-            const newTaskId = `task_tara_${Date.now()}`;
-            tasksStore.unshift({
-              id: newTaskId,
-              teammateId: "tara_governance",
-              type: "policy_gap",
-              title: `Governance Policy Commitment: ${policyData.title}`,
-              status: "completed",
-              summary: `Committed ${policyData.title} directly into PostgreSQL database and Company Memory Cortex.`,
-              logs: [
-                { timestamp: new Date().toISOString(), level: "info", message: `Drafting policy clauses aligned with ${policyData.frameworks.join(", ")}.` },
-                { timestamp: new Date().toISOString(), level: "action", message: `Executing PostgreSQL transaction in client_policies table for Client #${targetClientId}.` },
-                { timestamp: new Date().toISOString(), level: "info", message: "Policy active and synchronized in Policy Center." }
-              ],
-              createdAt: new Date().toISOString(),
-              completedAt: new Date().toISOString()
+            // Dispatch Tara to author the policy from scratch.
+            void dispatchTask({
+              clientId: targetClientId,
+              channelId: "war_room",
+              agentId: "tara_governance",
+              type: "policy_draft",
+              title: `to draft the policy "${hintedTitle}"`,
+              description: input.content,
+              prompt: `You are Tara, Policy Lifecycle Lead. The user asked: "${input.content}"
+
+Write a COMPLETE, publication-ready information security policy for Client #${targetClientId} (${stats.clientName}).
+${hintedTitle ? `Suggested title: "${hintedTitle}".` : "Choose an appropriate title."}
+
+Produce the FULL policy in Markdown. Include ALL of these sections:
+1. Document Control (title, document ID, version, owner, effective date, classification)
+2. Purpose
+3. Scope
+4. Roles & Responsibilities
+5. Policy Statements (numbered, concrete, actionable)
+6. Compliance & Enforcement
+7. Related Documents & References
+8. Framework Mapping table (map each major section to specific controls: SOC 2 CCx.x, ISO 27001 A.x.x, NIST CSF, NIS2, GDPR as applicable)
+9. Revision History / Approval block
+
+Be specific and practical — real control requirements, real procedures. No placeholders or "TBD". This policy will be saved directly to the compliance database and published to the organization.`,
+              priority: "medium",
+              context: { clientName: stats.clientName, clientId: targetClientId },
+            }).catch((e) => console.warn("[dispatch] tara policy failed:", e?.message));
+
+            // Hermes acknowledges immediately; Tara posts her own work moments later.
+            postAgentMessage({
+              id: `msg_hermes_policy_${Date.now()}`,
+              channelId: "war_room",
+              senderId: "hermes_orchestrator",
+              senderName: "Hermes",
+              senderAvatar: "🧠",
+              senderRole: "Chief Compliance Orchestrator",
+              content: `I've asked **@Tara** to author **${hintedTitle ? `"${hintedTitle}"` : "a policy"}** for ${stats.clientName}. She'll draft the full document and publish it to the database — look for her reply shortly.`,
+              timestamp: "Just now",
+              delegatedTo: "tara_governance",
             });
-
-            // Hermes does NOT fabricate Tara's reply. It dispatches a REAL task
-            // to Tara, who runs as an independent LLM call with her own expert
-            // prompt + token budget and posts her genuine analysis.
-            const policySummary = policyData.content.slice(0, 800);
-            requestAgent(
-              "tara_governance",
-              `to finalize and publish the policy "${policyData.title}"`,
-              `A policy "${policyData.title}" has been drafted and committed to the database for Client #${targetClientId} (${stats.clientName}). Frameworks: ${policyData.frameworks.join(", ")}.
-
-Your task: review the committed policy below and post your expert analysis to the War Room. Include: (1) a brief gap check against the stated frameworks, (2) the next lifecycle step (review/acknowledge schedule), (3) any missing sections you recommend adding. Do NOT re-output the full policy — summarize your review in a few concise paragraphs.
-
-Draft content (truncated):
-${policySummary}`,
-              `* **Database Status:** Committed to PostgreSQL \`client_policies\` table for Client #${targetClientId}
-* **Memory Cortex Path:** \`memory://${policyData.vfsPath}\`
-* **Direct Link:** [Open in Policy Center](/clients/${targetClientId}/policies)`
-            );
 
           // C. Risk Modeling & FAIR Assessment in War Room (Hermes + Marcus)
           } else if (isRiskAssessIntent || mentionMarcus) {

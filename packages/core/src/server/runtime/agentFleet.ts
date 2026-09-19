@@ -293,6 +293,8 @@ async function executePersistedTask(row: RawTask, db: any): Promise<void> {
       content: reply,
       timestamp: "Just now",
     });
+    // If Tara authored a policy, publish it to the live DB + memory cortex.
+    await publishTaraPolicy(agent, row.client_id, row.channel_id, reply, row.input || {});
     log(`task ${row.id} done in ${Date.now() - t0}ms (${agent.name})`);
   } catch (err: any) {
     log(`task ${row.id} failed:`, err?.message);
@@ -324,6 +326,8 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
       content: reply,
       timestamp: "Just now",
     });
+    // If Tara authored a policy, publish it to the live DB + memory cortex.
+    await publishTaraPolicy(agent, rec.clientId, rec.channelId, reply, (rec as any).input || {});
     log(`memory task done (${agent.name})`);
   } catch (err: any) {
     rec.status = "failed";
@@ -331,6 +335,60 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
     rec.completedAt = Date.now();
     log(`memory task failed (${rec.agentId}):`, err?.message);
   }
+}
+
+/**
+ * After a Tara policy-draft task completes, publish her generated policy to
+ * the live database + memory cortex and post a confirmation. This is what makes
+ * Tara's work VISIBLE — she is the author, not a reviewer of Hermes' output.
+ */
+async function publishTaraPolicy(agent: AgentDefinition, clientId: number, channelId: string, reply: string, rawInput: Record<string, unknown>): Promise<void> {
+  if (!agent.id.startsWith("tara")) return;
+  const db = await getDb();
+  if (!db) return;
+
+  // Determine the title: prefer the one Hermes put in the task title, else derive.
+  const taskTitle = (rawInput as any).title || "";
+  const mentioned = taskTitle.replace(/^.*?"(.+?)"/, "$1").trim();
+  const title = mentioned || `Generated Compliance Policy — ${new Date().toLocaleDateString()}`;
+
+  // Extract a framework list for metadata.
+  const fwMatch = reply.match(/(ISO|SOC 2|NIST|GDPR|NIS2|DORA|HIPAA|PCI)[^,\n]*/g);
+  const frameworks = fwMatch ? Array.from(new Set(fwMatch)).slice(0, 8) : ["General"];
+
+  try {
+    await db.execute(sql`
+      INSERT INTO client_policies (client_id, name, content, status, approval_status, created_at, updated_at)
+      VALUES (${clientId}, ${title.slice(0, 255)}, ${reply.slice(0, 50000)}, 'draft', 'pending', now(), now())
+    `);
+  } catch (err: any) {
+    log("publishTaraPolicy DB save failed:", err?.message);
+  }
+
+  // Write to the memory cortex too.
+  const vfsPath = `/policies/${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}`;
+  try {
+    const { vfsMemoryEngine: vfs } = await import("../../lib/memory/vfsMemoryEngine");
+    await vfs.writeNode(clientId, {
+      path: vfsPath,
+      title,
+      summaryL0: `Master governance policy authored by Tara.`,
+      contentL2: reply.slice(0, 4000),
+      nodeType: "document",
+      metadata: { owner: "Tara", frameworks },
+    });
+  } catch { /* best-effort */ }
+
+  postAgentMessage({
+    id: `msg_${agent.id}_pub_${Date.now()}`,
+    channelId,
+    senderId: agent.id,
+    senderName: agent.name,
+    senderAvatar: agent.avatar,
+    senderRole: agent.role,
+    content: `📜 **Policy published.** I've authored and saved **"${title}"** to the database and Company Memory Cortex.\n\n* **Frameworks:** ${frameworks.join(", ")}\n* **Direct Link:** [Open in Policy Center](/clients/${clientId}/policies)\n* **Memory Cortex:** \`memory://${vfsPath}\``,
+    timestamp: "Just now",
+  });
 }
 
 async function executeRoutine(routine: AgentRoutine): Promise<void> {
