@@ -2343,6 +2343,23 @@ export function createTeammatesRouter(t: any, procedure: any) {
         }
       }),
 
+    /** Reset a channel's conversation thread (used by "New Thread" button). */
+    clearMessages: procedure
+      .input(z.object({ channelId: z.string().min(1).max(64).default("war_room") }))
+      .mutation(async ({ input }: { input: { channelId: string } }) => {
+        try {
+          // Remove all messages for the channel from the shared store.
+          for (let i = agentMessages.length - 1; i >= 0; i--) {
+            if (agentMessages[i].channelId === input.channelId) {
+              agentMessages.splice(i, 1);
+            }
+          }
+          return { success: true, channelId: input.channelId };
+        } catch (err) {
+          throw asInternalError("clearing messages", err);
+        }
+      }),
+
     sendMessage: procedure
       .input(messageSendInputSchema)
       .mutation(async ({ ctx, input }: { ctx: any; input: z.infer<typeof messageSendInputSchema> }) => {
