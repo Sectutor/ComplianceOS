@@ -324,7 +324,7 @@ export function ActionCenterPage({ clientId }: ActionCenterPageProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <h3 className="text-base font-semibold">{item.title}</h3>
+                        <h3 className="text-sm font-medium text-slate-800 dark:text-slate-200">{item.title}</h3>
                         <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">

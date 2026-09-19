@@ -581,7 +581,7 @@ export default function ActionCenterPage() {
                       >
                         {action.priority || "MEDIUM"}
                       </Badge>
-                      <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-semibold">
+                      <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
                         Detected: {action.createdAt ? new Date(action.createdAt).toLocaleDateString() : "Recently"}
                       </span>
                     </div>
@@ -625,7 +625,7 @@ export default function ActionCenterPage() {
 
                   <CardTitle 
                     onClick={() => setInspectingActionId(action.id)}
-                    className="text-lg sm:text-xl font-black text-slate-950 dark:text-white mt-2.5 leading-snug cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors flex items-center gap-2.5 group"
+                    className="text-sm sm:text-base font-medium text-slate-800 dark:text-slate-200 mt-2.5 leading-snug cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors flex items-center gap-2.5 group"
                   >
                     <span>{action.title}</span>
                     <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-600 dark:text-blue-400 transition-opacity shrink-0" />
@@ -635,7 +635,7 @@ export default function ActionCenterPage() {
                 <CardContent className="space-y-3.5 pt-0">
                   {/* AI Rationale Box - High Contrast Accessible Insight Alert */}
                   <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-l-blue-600 border border-blue-200/80 dark:border-blue-900/60 leading-relaxed">
-                    <div className="flex items-center gap-2 font-black text-blue-950 dark:text-blue-200 mb-2 text-sm sm:text-base">
+                    <div className="flex items-center gap-2 font-medium text-blue-950 dark:text-blue-200 mb-2 text-xs sm:text-sm">
                       <Sparkles className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
                       Sentinel Analysis & Findings:
                     </div>
