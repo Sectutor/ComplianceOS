@@ -323,9 +323,9 @@ async function executePersistedTask(row: RawTask, db: any): Promise<void> {
         UPDATE agent_tasks SET status = 'failed', completed_at = now(), error = ${err?.message || "failed"} WHERE id = ${row.id}
       `);
     } catch { /* best-effort */ }
-    postAgentFailure(agent, row.channel_id, row.title, err?.message || "unknown error");
+    if (agent) postAgentFailure(agent, row.channel_id, row.title, err?.message || "unknown error");
   } finally {
-    markAgentIdle(agent.id);
+    if (agent) markAgentIdle(agent.id);
   }
 }
 
@@ -366,9 +366,9 @@ async function executeMemoryTask(rec: AgentTaskRecord): Promise<void> {
     rec.error = err?.message;
     rec.completedAt = Date.now();
     log(`memory task failed (${rec.agentId}):`, err?.message);
-    postAgentFailure(agent, rec.channelId, rec.title, err?.message || "unknown error");
+    if (agent) postAgentFailure(agent, rec.channelId, rec.title, err?.message || "unknown error");
   } finally {
-    markAgentIdle(agent.id);
+    if (agent) markAgentIdle(agent.id);
   }
 }
 
