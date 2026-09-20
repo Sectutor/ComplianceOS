@@ -173,7 +173,7 @@ const FRAMEWORKS = {
                 subtitle: 'Fix & Track',
                 description: 'Develop a Plan of Action and Milestones (POA&M) for any remaining gaps. Implement continuous monitoring for ongoing compliance.',
                 icon: ActivitySquare,
-                color: 'text-emerald-600',
+                color: 'text-slate-900',
                 bgColor: 'bg-emerald-50',
                 accent: 'from-emerald-500 to-teal-500',
                 link: 'federal/poam',
@@ -374,7 +374,7 @@ const FRAMEWORKS = {
                 subtitle: 'Ongoing Compliance',
                 description: 'CMMC certification requires annual affirmations and recertification every 3 years. Maintain continuous monitoring and update your SSP as the system evolves.',
                 icon: ActivitySquare,
-                color: 'text-emerald-600',
+                color: 'text-slate-900',
                 bgColor: 'bg-emerald-50',
                 accent: 'from-emerald-500 to-teal-500',
                 link: 'federal/dfars',
@@ -415,7 +415,7 @@ const FRAMEWORKS = {
                 subtitle: 'Low, Moderate, or High',
                 description: 'Classify your cloud service based on the sensitivity of federal data it processes. Use FIPS 199 to determine impact. Moderate is the most common and aligns with NIST 800-171.',
                 icon: Target,
-                color: 'text-emerald-600',
+                color: 'text-slate-900',
                 bgColor: 'bg-emerald-50',
                 accent: 'from-emerald-600 to-teal-600',
                 link: 'federal/fips-199',
@@ -584,7 +584,7 @@ const OVERLAP_NOTES = [
         icon: GitMerge,
         title: 'NIST 800-171 → FedRAMP Moderate',
         desc: 'FedRAMP Moderate aligns closely with NIST 800-171. Reuse your SSP and control implementations.',
-        color: 'text-emerald-600',
+        color: 'text-slate-900',
         bg: 'bg-emerald-50 border-emerald-200',
     },
     {
@@ -777,10 +777,10 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                 {returnToStartHere && (
                     <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-700 dark:text-emerald-300">
                         <div className="flex items-center gap-3">
-                            <Compass className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <Compass className="w-5 h-5 text-slate-900 shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold">Active Program Implementation</p>
-                                <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">
+                                <p className="text-xs text-slate-900/80 dark:text-emerald-400/80">
                                     You navigated here from Start Here. Click the button anytime to return to your program roadmap.
                                 </p>
                             </div>
@@ -981,7 +981,7 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                                                             Phase {step.step}: {step.subtitle}
                                                         </Badge>
                                                         <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                                            <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-emerald-600' : fw.color}`} />
+                                                            <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-slate-900' : fw.color}`} />
                                                             {step.title}
                                                         </CardTitle>
                                                     </div>

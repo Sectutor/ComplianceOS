@@ -224,7 +224,7 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
             subtitle: 'Crisis Communications',
             description: 'Establish clear communication protocols to notify employees, management, customers, and regulators during an incident.',
             icon: PhoneCall,
-            color: 'text-emerald-600',
+            color: 'text-slate-900',
             bgColor: 'bg-emerald-50',
             accent: 'from-emerald-500 to-teal-500',
             bestPractices: [
@@ -273,7 +273,7 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
                             className={cn(
                                 "h-8 gap-1.5 font-bold text-xs transition-colors",
                                 returnToStartHere
-                                    ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
+                                    ? "border-emerald-500/40 text-slate-900 hover:bg-emerald-500/10 shadow-xs"
                                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                             )}
                         >
@@ -289,7 +289,7 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
                     <div className="flex items-center gap-2">
                         <Link href={`/clients/${clientId}/business-continuity`}>
                             <Button variant="outline" size="sm" className="gap-2 text-xs font-bold">
-                                <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                                <Activity className="w-3.5 h-3.5 text-slate-900" />
                                 Continuity Dashboard
                             </Button>
                         </Link>
@@ -305,15 +305,15 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
                                         Strategic Roadmap Workflow Active
                                     </span>
                                     <Badge className="bg-emerald-600 text-white text-[10px] font-medium">
                                         Origin Saved
                                     </Badge>
                                 </div>
-                                <p className="text-xs text-foreground mt-0.5 font-medium">
-                                    You navigated to this guide from the <strong>Start Here Command Center</strong>.
+                                <p className="text-xs text-slate-700 mt-0.5">
+                                    You navigated to this guide from the <span class="font-semibold text-slate-900">Start Here Command Center</span>.
                                 </p>
                             </div>
                         </div>
@@ -484,7 +484,7 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
                                                                 Phase {step.step}: {step.subtitle}
                                                             </Badge>
                                                             <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                                                <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-emerald-600' : step.color}`} />
+                                                                <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-slate-900' : step.color}`} />
                                                                 {step.title}
                                                             </CardTitle>
                                                         </div>
@@ -577,14 +577,14 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
                         {returnToStartHere && (
                             <div className="flex items-center justify-between bg-card border border-border p-3.5 rounded-2xl shadow-xs">
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Target className="w-4 h-4 text-emerald-600" />
+                                    <Target className="w-4 h-4 text-slate-900" />
                                     <span>Active 90-Day Roadmap Execution Mode</span>
                                 </div>
                                 <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={handleReturnToStartHere}
-                                    className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold text-xs h-8 gap-1.5"
+                                    className="border-emerald-500/40 text-slate-900 hover:bg-emerald-500/10 font-bold text-xs h-8 gap-1.5"
                                 >
                                     <ArrowLeft className="w-3.5 h-3.5" />
                                     Back to Start Here
@@ -661,7 +661,7 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
                             <div className="flex items-center justify-between flex-wrap gap-2">
                                 <div>
                                     <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                                        <PhoneCall className="w-4 h-4 text-emerald-600" />
+                                        <PhoneCall className="w-4 h-4 text-slate-900" />
                                         Crisis Communications & Incident Escalation Hierarchy
                                     </h4>
                                     <p className="text-xs text-slate-500">Established incident command system (ICS) and emergency notification roster during catastrophic system outages.</p>

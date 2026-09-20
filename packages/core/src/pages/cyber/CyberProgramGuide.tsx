@@ -399,16 +399,16 @@ export default function CyberProgramGuide(props?: { id?: string | number; client
             {returnToStartHere && (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border border-border p-4 rounded-2xl shadow-xs animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-slate-900 border border-emerald-500/30 flex items-center justify-center shrink-0">
                             <Target className="w-4 h-4" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Launchpad Origin</span>
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-900">Launchpad Origin</span>
                                 <span className="text-[11px] text-muted-foreground">• Strategic Roadmaps</span>
                             </div>
-                            <p className="text-xs text-foreground mt-0.5 font-medium">
-                                You navigated to this guide from the <strong>Start Here Command Center</strong>.
+                            <p className="text-xs text-slate-700 mt-0.5">
+                                You navigated to this guide from the <span class="font-semibold text-slate-900">Start Here Command Center</span>.
                             </p>
                         </div>
                     </div>
@@ -629,7 +629,7 @@ export default function CyberProgramGuide(props?: { id?: string | number; client
                                                 <span className="truncate">{p.title}</span>
                                             </div>
                                             {p.isCompleted ? (
-                                                <CheckCircle2 className={cn("w-4 h-4 shrink-0", isCurrent ? "text-emerald-300" : "text-emerald-600")} />
+                                                <CheckCircle2 className={cn("w-4 h-4 shrink-0", isCurrent ? "text-emerald-300" : "text-slate-900")} />
                                             ) : (
                                                 <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0", isCurrent ? "bg-white/10 text-white" : "bg-muted text-muted-foreground")}>
                                                     Pending
@@ -813,13 +813,13 @@ export default function CyberProgramGuide(props?: { id?: string | number; client
                     {returnToStartHere && (
                         <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs animate-in fade-in duration-300">
                             <div className="flex items-start sm:items-center gap-3.5">
-                                <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400 shrink-0 shadow-xs">
+                                <div className="p-2.5 bg-emerald-500/20 rounded-xl text-slate-900 shrink-0 shadow-xs">
                                     <Target className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                                         Active 90-Day Roadmap Execution
-                                        <Badge variant="outline" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] py-0 px-2 font-bold">
+                                        <Badge variant="outline" className="bg-emerald-500/15 text-slate-900 border-emerald-500/30 text-[10px] py-0 px-2 font-bold">
                                             Start Here Linked
                                         </Badge>
                                     </h4>

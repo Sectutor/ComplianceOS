@@ -175,7 +175,7 @@ const FRAMEWORKS = {
                 subtitle: 'IR-1, IR-6: Incident Response',
                 description: 'Manage incident responses, define secure offboarding processes, and mature the program over time.',
                 icon: AlertTriangle,
-                color: 'text-emerald-600',
+                color: 'text-slate-900',
                 bgColor: 'bg-emerald-50',
                 accent: 'from-emerald-500 to-teal-500',
                 link: 'vendors',
@@ -385,7 +385,7 @@ const FRAMEWORKS = {
                 subtitle: 'SR-2 + 27036-1/2',
                 description: 'Define TPRM scope with dual alignment to NIST C-SCRM and ISO 27001/27036 requirements. Set up cross-functional governance.',
                 icon: Building,
-                color: 'text-emerald-600',
+                color: 'text-slate-900',
                 bgColor: 'bg-emerald-50',
                 accent: 'from-emerald-600 to-teal-600',
                 link: 'vendors/discovery',
@@ -548,7 +548,7 @@ const OVERLAP_NOTES = [
         icon: Shield,
         title: 'NIST CSF 2.0 Integration',
         desc: 'NIST SP 800-161 aligns with NIST CSF 2.0 Supply Chain Risk Management (GV.SC). Combine for enterprise-wide C-SCRM.',
-        color: 'text-emerald-600',
+        color: 'text-slate-900',
         bg: 'bg-emerald-50 border-emerald-200',
     },
 ];
@@ -737,10 +737,10 @@ export default function VendorProgramGuide(props?: { id?: string | number; clien
                 {returnToStartHere && (
                     <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-700 dark:text-emerald-300">
                         <div className="flex items-center gap-3">
-                            <Compass className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <Compass className="w-5 h-5 text-slate-900 shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold">Active Program Implementation</p>
-                                <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">
+                                <p className="text-xs text-slate-900/80 dark:text-emerald-400/80">
                                     You navigated here from Start Here. Click the button anytime to return to your program roadmap.
                                 </p>
                             </div>
@@ -932,7 +932,7 @@ export default function VendorProgramGuide(props?: { id?: string | number; clien
                                                             Phase {step.step}: {step.subtitle}
                                                         </Badge>
                                                         <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                                            <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-emerald-600' : fw.color}`} />
+                                                            <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-slate-900' : fw.color}`} />
                                                             {step.title}
                                                         </CardTitle>
                                                     </div>

@@ -181,7 +181,7 @@ export default function SOC2ProgramGuide(props?: SOC2ProgramGuideProps) {
             status: activeControls >= 5 ? 'active' : 'pending',
             countLabel: 'SSO & MFA Enforced',
             icon: Lock,
-            color: 'text-emerald-600',
+            color: 'text-slate-900',
             bgLight: 'bg-emerald-50/70',
             borderColor: 'border-emerald-200',
             gradient: 'from-emerald-600 to-teal-600',
@@ -257,7 +257,7 @@ export default function SOC2ProgramGuide(props?: SOC2ProgramGuideProps) {
                             className={cn(
                                 "h-8 gap-1.5 font-bold text-xs transition-colors",
                                 returnToStartHere
-                                    ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
+                                    ? "border-emerald-500/40 text-slate-900 hover:bg-emerald-500/10 shadow-xs"
                                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                             )}
                         >
@@ -289,15 +289,15 @@ export default function SOC2ProgramGuide(props?: SOC2ProgramGuideProps) {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
                                         Strategic Roadmap Workflow Active
                                     </span>
                                     <Badge className="bg-emerald-600 text-white text-[10px] font-medium">
                                         Origin Saved
                                     </Badge>
                                 </div>
-                                <p className="text-xs text-foreground mt-0.5 font-medium">
-                                    You navigated to this guide from the <strong>Start Here Command Center</strong>.
+                                <p className="text-xs text-slate-700 mt-0.5">
+                                    You navigated to this guide from the <span class="font-semibold text-slate-900">Start Here Command Center</span>.
                                 </p>
                             </div>
                         </div>
@@ -475,14 +475,14 @@ export default function SOC2ProgramGuide(props?: SOC2ProgramGuideProps) {
                         {returnToStartHere && (
                             <div className="flex items-center justify-between bg-card border border-border p-3.5 rounded-2xl shadow-xs">
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Target className="w-4 h-4 text-emerald-600" />
+                                    <Target className="w-4 h-4 text-slate-900" />
                                     <span>Active 90-Day Roadmap Execution Mode</span>
                                 </div>
                                 <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={handleReturnToStartHere}
-                                    className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold text-xs h-8 gap-1.5"
+                                    className="border-emerald-500/40 text-slate-900 hover:bg-emerald-500/10 font-bold text-xs h-8 gap-1.5"
                                 >
                                     <ArrowLeft className="w-3.5 h-3.5" />
                                     Back to Start Here

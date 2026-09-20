@@ -117,7 +117,7 @@ const FRAMEWORKS = {
                 subtitle: 'Address Unacceptable Risks',
                 description: 'Select and implement options to address risks. Choose strategies: avoid, mitigate (via controls), transfer (e.g., insurance), accept. Develop treatment plans with owners, timelines, residual risk assessment.',
                 icon: ShieldCheck,
-                color: 'text-emerald-600',
+                color: 'text-slate-900',
                 bgColor: 'bg-emerald-50',
                 accent: 'from-emerald-500 to-teal-500',
                 bestPractices: [
@@ -252,7 +252,7 @@ const FRAMEWORKS = {
                 subtitle: 'Formal Risk Acceptance',
                 description: 'Obtain formal risk acceptance from the Authorizing Official (AO). Compile an authorization package (SSP, SAR, POA&M) for AO review to issue an Authority to Operate (ATO).',
                 icon: CheckSquare,
-                color: 'text-emerald-600',
+                color: 'text-slate-900',
                 bgColor: 'bg-emerald-50',
                 accent: 'from-emerald-600 to-green-600',
                 bestPractices: [
@@ -490,10 +490,10 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                 {returnToStartHere && (
                     <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-700 dark:text-emerald-300">
                         <div className="flex items-center gap-3">
-                            <Compass className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <Compass className="w-5 h-5 text-slate-900 shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold">Active Program Implementation</p>
-                                <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">
+                                <p className="text-xs text-slate-900/80 dark:text-emerald-400/80">
                                     You navigated here from Start Here. Click the button anytime to return to your program roadmap.
                                 </p>
                             </div>
@@ -685,7 +685,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                                             Phase {step.step}: {step.subtitle}
                                                         </Badge>
                                                         <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                                            <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-emerald-600' : fw.color}`} />
+                                                            <step.icon className={`w-5 h-5 ${status === 'completed' ? 'text-slate-900' : fw.color}`} />
                                                             {step.title}
                                                         </CardTitle>
                                                     </div>
@@ -893,7 +893,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                 </div>
                                 <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                                     <span className="text-slate-500 block text-[11px] font-medium">Residual Target Boundary</span>
-                                    <strong className="text-emerald-600 dark:text-emerald-400 text-sm">Low/Tolerable (Appetite Aligned)</strong>
+                                    <strong className="text-slate-900 text-sm">Low/Tolerable (Appetite Aligned)</strong>
                                 </div>
                             </div>
                         </div>
