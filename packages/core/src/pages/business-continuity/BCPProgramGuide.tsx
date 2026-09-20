@@ -505,15 +505,15 @@ export default function BCPProgramGuide(props?: BCPProgramGuideProps) {
                                                     </p>
 
                                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                                        <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                                                            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
-                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                        <div className="bg-blue-600 p-5 rounded-xl">
+                                                            <h4 className="font-medium text-white mb-3 flex items-center gap-2 text-sm">
+                                                                <CheckCircle2 className="w-4 h-4 text-white" />
                                                                 Best Practices
                                                             </h4>
                                                             <ul className="space-y-2 text-sm">
                                                                 {step.bestPractices.map((practice, i) => (
-                                                                    <li key={i} className="flex items-start gap-3 text-slate-600">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
+                                                                    <li key={i} className="flex items-start gap-3 text-white">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-white mt-2 flex-shrink-0"></div>
                                                                         <span className="leading-relaxed">{practice}</span>
                                                                     </li>
                                                                 ))}

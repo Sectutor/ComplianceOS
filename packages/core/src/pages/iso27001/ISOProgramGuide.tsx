@@ -592,12 +592,12 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                                             </div>
                                         </CardHeader>
                                         <CardContent className="p-6 grid md:grid-cols-2 gap-6">
-                                            <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
-                                                <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                                    <Info className="w-3.5 h-3.5 text-primary" />
+                                            <div className="space-y-3 bg-blue-600 p-4 rounded-xl">
+                                                <h4 className="text-xs font-medium uppercase tracking-wider text-white flex items-center gap-1.5">
+                                                    <Info className="w-3.5 h-3.5 text-white" />
                                                     Why This Step Is Mandatory for Certification
                                                 </h4>
-                                                <p className="text-sm text-foreground/80 leading-relaxed">
+                                                <p className="text-sm text-white leading-relaxed">
                                                     {pillar.whyItMatters}
                                                 </p>
                                             </div>
