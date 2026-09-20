@@ -424,22 +424,22 @@ export default function CyberProgramGuide(props?: { id?: string | number; client
             )}
 
             {/* Hero Header */}
-            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+            <div className="bg-gradient-to-br from-[#1C4D8D] to-[#0F2C59] rounded-3xl p-8 lg:p-12 text-white shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                 <div className="relative z-10 space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-sky-400">
-                                <Shield className="w-8 h-8 text-sky-400" />
+                            <div className="bg-white/15 p-4 rounded-2xl border border-white/20 text-white">
+                                <Shield className="w-8 h-8 text-white" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Cyber Resilience & NIS2 Program Guide</h1>
-                                    <Badge className="bg-sky-500/20 text-sky-300 border-sky-400/30 text-xs font-bold">
+                                    <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">Cyber Resilience & NIS2 Program Guide</h1>
+                                    <Badge className="bg-white/20 text-white border-white/30 text-xs font-medium">
                                         EU NIS2 • NIST CSF 2.0 • DORA
                                     </Badge>
                                 </div>
-                                <p className="text-white/70 text-base mt-1">
+                                <p className="text-blue-100 text-base mt-1">
                                     Systemic cyber resilience strategy, Article 21 technical measures, 24h CSIRT notification workflow, and board governance.
                                 </p>
                             </div>
@@ -449,7 +449,7 @@ export default function CyberProgramGuide(props?: { id?: string | number; client
                             <Button
                                 onClick={copyMasterManual}
                                 variant="outline"
-                                className="bg-white/10 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl h-11"
+                                className="bg-white/15 border-white/20 text-white hover:bg-white/25 font-medium rounded-xl h-11"
                             >
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copy Cyber Operations Manual
@@ -458,29 +458,29 @@ export default function CyberProgramGuide(props?: { id?: string | number; client
                     </div>
 
                     {/* Progress Bar & Telemetry */}
-                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
+                    <div className="bg-white/15 rounded-2xl p-6 border border-white/20 space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-white/80 flex items-center gap-2">
+                            <span className="text-sm font-medium text-blue-100 flex items-center gap-2">
                                 <Activity className="w-4 h-4 text-emerald-400" />
                                 Cyber Resilience & NIS2 Maturity
                             </span>
-                            <span className="text-sm font-black text-sky-400 bg-sky-950/60 px-3 py-1 rounded-full border border-sky-800/50">
+                            <span className="text-sm font-medium text-blue-100 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-400/30">
                                 {progressPercentage}% Implemented
                             </span>
                         </div>
-                        <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
+                        <Progress value={progressPercentage} className="h-2.5 bg-white/20 rounded-full" />
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{implementedControls} / {totalControls}</span> Safeguards Active
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{implementedControls} / {totalControls}</span> Safeguards Active
                             </div>
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{totalRisks}</span> Cyber Risks Tracked
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{totalRisks}</span> Cyber Risks Tracked
                             </div>
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{treatedRisks}</span> Mitigations Deployed
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{treatedRisks}</span> Mitigations Deployed
                             </div>
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{scenarioCount}</span> Threat Scenarios Tested
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{scenarioCount}</span> Threat Scenarios Tested
                             </div>
                         </div>
                     </div>

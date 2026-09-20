@@ -336,7 +336,7 @@ export default function GovernanceProgramGuide() {
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Governance Operating Guide & Manual</h1>
+                                        <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">Governance Operating Guide & Manual</h1>
                                         <Badge className="bg-primary/20 text-primary border-primary text-xs font-bold">
                                             NIST CSF • ISO 27001 • SOC 2
                                         </Badge>
@@ -366,7 +366,7 @@ export default function GovernanceProgramGuide() {
                                     <Activity className="w-4 h-4 text-emerald-400" />
                                     GRC Program Maturity & Implementation
                                 </span>
-                                <span className="text-sm font-black text-primary bg-primary/60 px-3 py-1 rounded-full border border-primary">
+                                <span className="text-sm font-semibold text-primary bg-primary/60 px-3 py-1 rounded-full border border-primary">
                                     {progressPercentage}% Mature
                                 </span>
                             </div>
@@ -426,12 +426,12 @@ export default function GovernanceProgramGuide() {
                                 return (
                                     <Card
                                         key={pillar.id}
-                                        className="border-border shadow-xl shadow-primary/6 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card"
+                                        className="border-border shadow-lg shadow-primary/6 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card"
                                     >
                                         <CardHeader className={`${pillar.bgLight} border-b border-border p-6`}>
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg text-primary-foreground shadow-md bg-gradient-to-br", pillar.gradient)}>
+                                                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-semibold text-lg text-primary-foreground shadow-md bg-gradient-to-br", pillar.gradient)}>
                                                         {pillar.number}
                                                     </div>
                                                     <div>
@@ -511,7 +511,7 @@ export default function GovernanceProgramGuide() {
                 {/* TAB 2: GRC Architecture & Lifecycle */}
                 {activeTab === 'architecture' && (
                     <div className="space-y-6">
-                        <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
+                        <Card className="border-border shadow-lg rounded-2xl p-8 bg-card space-y-6">
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-bold text-foreground">The Connected GRC Operating Model</h3>
                                 <p className="text-muted-foreground">
@@ -557,7 +557,7 @@ export default function GovernanceProgramGuide() {
                 {/* TAB 3: Auditor Clean Room */}
                 {activeTab === 'auditor' && (
                     <div className="space-y-6">
-                        <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
+                        <Card className="border-border shadow-lg rounded-2xl p-8 bg-card space-y-6">
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-bold text-foreground">Auditor & Board Executive Clean Room</h3>
                                 <p className="text-muted-foreground">

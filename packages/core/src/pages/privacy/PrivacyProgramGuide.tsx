@@ -239,22 +239,22 @@ export default function PrivacyProgramGuide() {
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-2 md:p-6">
             {/* Hero Header */}
-            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
+            <div className="bg-gradient-to-br from-[#1C4D8D] to-[#0F2C59] rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                 <div className="relative z-10 space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-sky-400">
+                            <div className="bg-white/15 p-4 rounded-2xl border border-white/20 text-sky-400">
                                 <BookOpen className="w-8 h-8 text-sky-400" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight">Privacy Program Guide & Operations Manual</h1>
+                                    <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">Privacy Program Guide & Operations Manual</h1>
                                     <Badge className="bg-sky-500/20 text-sky-300 border-sky-400/30 text-xs font-bold">
                                         GDPR • CCPA • ISO 27701
                                     </Badge>
                                 </div>
-                                <p className="text-white/70 text-base mt-1">
+                                <p className="text-blue-100 text-base mt-1">
                                     Complete operational playbook, step-by-step tutorials, and cross-module workflow engine.
                                 </p>
                             </div>
@@ -273,32 +273,32 @@ export default function PrivacyProgramGuide() {
                     </div>
 
                     {/* Progress Bar & Telemetry */}
-                    <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
+                    <div className="bg-white/15 rounded-2xl p-6 border border-white/20 space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-white/80 flex items-center gap-2">
+                            <span className="text-sm font-medium text-blue-100 flex items-center gap-2">
                                 <Shield className="w-4 h-4 text-emerald-400" />
                                 Privacy Program Maturity & Implementation
                             </span>
-                            <span className="text-sm font-black text-sky-400 bg-sky-950/60 px-3 py-1 rounded-full border border-sky-800/50">
+                            <span className="text-sm font-semibold text-sky-400 bg-sky-950/60 px-3 py-1 rounded-full border border-sky-800/50">
                                 {progressPercentage}% Complete
                             </span>
                         </div>
                         <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 text-xs">
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{inventoryCount}</span> PII Assets
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{inventoryCount}</span> PII Assets
                             </div>
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{ropaCount}</span> ROPA Processes
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{ropaCount}</span> ROPA Processes
                             </div>
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{dpiaCount}</span> DPIAs Conducted
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{dpiaCount}</span> DPIAs Conducted
                             </div>
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{tiaCount}</span> Schrems II TIAs
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{tiaCount}</span> Schrems II TIAs
                             </div>
-                            <div className="text-white/70">
-                                <span className="font-bold text-white">{dsarCount}</span> DSARs Processed
+                            <div className="text-blue-100">
+                                <span className="font-medium text-white">{dsarCount}</span> DSARs Processed
                             </div>
                         </div>
                     </div>
@@ -544,12 +544,12 @@ export default function PrivacyProgramGuide() {
                                 <Card
                                     key={pillar.id}
                                     id={`pillar-${pillar.id}`}
-                                    className="border-border shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card scroll-mt-24"
+                                    className="border-border shadow-lg shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card scroll-mt-24"
                                 >
                                     <CardHeader className={`${pillar.bgLight} border-b border-border p-5 sm:p-6`}>
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
-                                                <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg text-white shadow-md bg-gradient-to-br shrink-0", pillar.gradient)}>
+                                                <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-semibold text-base sm:text-lg text-white shadow-md bg-gradient-to-br shrink-0", pillar.gradient)}>
                                                     {pillar.number}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
@@ -626,7 +626,7 @@ export default function PrivacyProgramGuide() {
             {/* TAB 2: Architecture & Data Flow */}
             {activeTab === 'architecture' && (
                 <div className="space-y-6">
-                    <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
+                    <Card className="border-border shadow-lg rounded-2xl p-8 bg-card space-y-6">
                         <div className="space-y-2">
                             <h3 className="text-2xl font-bold text-foreground">The Connected Privacy Ecosystem</h3>
                             <p className="text-foreground/80">
@@ -672,7 +672,7 @@ export default function PrivacyProgramGuide() {
             {/* TAB 3: Auditor Clean Room */}
             {activeTab === 'auditor' && (
                 <div className="space-y-6">
-                    <Card className="border-border shadow-xl rounded-2xl p-8 bg-card space-y-6">
+                    <Card className="border-border shadow-lg rounded-2xl p-8 bg-card space-y-6">
                         <div className="space-y-2">
                             <h3 className="text-2xl font-bold text-foreground">Auditor & Board Executive Summary</h3>
                             <p className="text-foreground/80">

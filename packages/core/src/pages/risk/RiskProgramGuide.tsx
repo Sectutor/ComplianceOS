@@ -510,7 +510,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                 )}
 
                 {/* Hero Banner */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-6 md:p-8 text-white shadow-xl">
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1C4D8D] to-[#0F2C59] p-6 md:p-8 text-white shadow-lg">
                     <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         <div className="space-y-3 max-w-3xl">
                             <div className="flex flex-wrap items-center gap-2">
@@ -521,7 +521,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                     FAIR Quantitative Analysis Ready
                                 </Badge>
                             </div>
-                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
                                 Enterprise Risk Management (ERM) Program Guide
                             </h1>
                             <p className="text-slate-300 text-sm md:text-base leading-relaxed">
@@ -542,7 +542,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                                 "px-3 py-1 rounded-lg text-xs font-bold transition-all duration-150 border",
                                                 isActive 
                                                     ? "bg-indigo-500/20 text-indigo-300 border-indigo-400/40 shadow-sm" 
-                                                    : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                                                    : "bg-white/5 text-slate-400 border-white/20 hover:bg-white/10 hover:text-white"
                                             )}
                                         >
                                             {f.label}
@@ -553,10 +553,10 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                         </div>
 
                         {/* Readiness Metric Card */}
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 shrink-0 w-full lg:w-80 space-y-3">
+                        <div className="bg-white/15 rounded-xl p-4 border border-white/20 shrink-0 w-full lg:w-80 space-y-3">
                             <div className="flex justify-between items-center text-xs font-bold text-slate-300">
                                 <span>Risk Program Maturity Score</span>
-                                <span className="text-white text-base font-black">{progressPercentage}%</span>
+                                <span className="text-white text-base font-semibold">{progressPercentage}%</span>
                             </div>
                             <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
                             <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
@@ -673,7 +673,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                     <div key={step.step} className="relative z-10 flex flex-col sm:flex-row gap-6 lg:gap-8 group">
                                         <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-md border-2 border-white ring-1 ring-slate-100 group-hover:ring-slate-300 transition-all duration-300">
                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${status === 'completed' ? 'from-emerald-500 to-green-600' : step.accent} text-white shadow-inner`}>
-                                                {status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-black text-xl">{step.step}</span>}
+                                                {status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-semibold text-xl">{step.step}</span>}
                                             </div>
                                         </div>
 
