@@ -451,9 +451,9 @@ export default function SOC2ProgramGuide(props?: SOC2ProgramGuideProps) {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-4 pt-0">
-                                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 text-xs space-y-1.5 border border-slate-100 dark:border-slate-800">
-                                                <div className="font-medium text-slate-700 dark:text-slate-300">Why Auditors Care:</div>
-                                                <p className="text-slate-600 dark:text-slate-400 text-[11px]">{p.whyItMatters}</p>
+                                            <div className="bg-blue-600 rounded-xl p-3 text-xs space-y-1.5">
+                                                <div className="font-medium text-white">Why Auditors Care:</div>
+                                                <p className="text-white text-[11px]">{p.whyItMatters}</p>
                                             </div>
                                             <Link href={p.link}>
                                                 <Button className="w-full text-xs font-medium gap-2 rounded-xl" variant="outline">
