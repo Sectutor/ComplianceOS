@@ -1030,3 +1030,51 @@
   background-color: #1C4D8D !important;
   color: #ffffff !important;
 }
+
+/* Action Center dialog/popup */
+div[role="dialog"][data-state="open"] {
+  background-color: #0F2C59 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
+  border-radius: 1.5rem !important;
+}
+
+div[role="dialog"] * {
+  color: #FFFFFF !important;
+  font-weight: 400 !important;
+}
+
+div[role="dialog"] h2 {
+  font-weight: 500 !important;
+}
+
+/* Dialog inner cards */
+div[role="dialog"] [class*="bg-white"],
+div[role="dialog"] [class*="bg-slate-50"],
+div[role="dialog"] [class*="bg-blue-50"],
+div[role="dialog"] [class*="bg-slate-800"] {
+  background-color: rgba(241, 245, 249, 0.92) !important;
+  border-color: rgba(203, 213, 225, 0.5) !important;
+  color: #334155 !important;
+}
+
+div[role="dialog"] [class*="bg-white"] *,
+div[role="dialog"] [class*="bg-slate-50"] *,
+div[role="dialog"] [class*="bg-blue-50"] * {
+  color: #334155 !important;
+}
+
+/* Dialog buttons */
+div[role="dialog"] button {
+  background-color: #0a1f3d !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.75rem !important;
+  font-weight: 400 !important;
+  transition: all 0.2s ease !important;
+}
+
+div[role="dialog"] button:hover {
+  background-color: #061225 !important;
+  color: #ffffff !important;
+}
