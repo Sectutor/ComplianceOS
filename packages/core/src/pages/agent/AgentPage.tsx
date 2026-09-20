@@ -576,22 +576,22 @@ export function AgentPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] bg-background">
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] bg-slate-50">
       {/* ── Top Level Agent Navigation Tabs ──────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-2 border-b bg-card shrink-0">
+      <div className="flex items-center justify-between px-6 py-2 border-b bg-white shrink-0">
         <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
           <button
             onClick={() => setActiveMainTab('cockpit')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeMainTab === 'cockpit'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                ? 'tab-active'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <Sparkles size={14} className={activeMainTab === 'cockpit' ? "text-primary-foreground" : "text-primary"} />
+            <Sparkles size={14} className={activeMainTab === 'cockpit' ? "text-white" : "text-blue-600"} />
             Multi-Agent Cockpit
             <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
-              activeMainTab === 'cockpit' ? "border-primary-foreground/40 text-primary-foreground" : "border-primary/40 text-primary bg-primary/10"
+              activeMainTab === 'cockpit' ? "border-white/40 text-white" : "border-blue-300 text-blue-600 bg-blue-50"
             }`}>
               Hermes 3-Col
             </Badge>
@@ -599,21 +599,21 @@ export function AgentPage() {
 
           <button
             onClick={() => setActiveMainTab('sentinel')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeMainTab === 'sentinel'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                ? 'tab-active'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Shield size={14} className={activeMainTab === 'sentinel' ? "text-white" : "text-indigo-600"} />
             Sentinel & Action Inbox
             {pendingSentinelCount > 0 ? (
-              <Badge className="bg-amber-500 text-white text-[10px] py-0 px-1.5 font-bold">
+              <Badge className="bg-amber-500 text-white text-[10px] py-0 px-1.5 font-medium">
                 {pendingSentinelCount}
               </Badge>
             ) : (
               <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
-                activeMainTab === 'sentinel' ? "border-white/40 text-white" : "border-indigo-500/40 text-indigo-600 bg-indigo-500/10"
+                activeMainTab === 'sentinel' ? "border-white/40 text-white" : "border-indigo-300 text-indigo-600 bg-indigo-50"
               }`}>
                 7 Bots
               </Badge>
@@ -622,10 +622,10 @@ export function AgentPage() {
 
           <button
             onClick={() => setActiveMainTab('memory')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeMainTab === 'memory'
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Brain size={14} />
@@ -639,10 +639,10 @@ export function AgentPage() {
 
           <button
             onClick={() => setActiveMainTab('teammates')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeMainTab === 'teammates'
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Bot size={14} />
@@ -652,10 +652,10 @@ export function AgentPage() {
 
           <button
             onClick={() => setActiveMainTab('approvals')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeMainTab === 'approvals'
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Inbox size={14} />
@@ -665,10 +665,10 @@ export function AgentPage() {
 
           <button
             onClick={() => setActiveMainTab('routines')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeMainTab === 'routines'
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Calendar size={14} />
@@ -677,10 +677,10 @@ export function AgentPage() {
 
           <button
             onClick={() => setActiveMainTab('chat')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeMainTab === 'chat'
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <MessageSquare size={14} />
@@ -688,7 +688,7 @@ export function AgentPage() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+        <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             Sandboxes Connected
@@ -697,62 +697,62 @@ export function AgentPage() {
       </div>
 
       {activeMainTab === 'cockpit' && (
-        <div className="flex-1 overflow-y-auto p-4 bg-background">
+        <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
           <MultiAgentChatCockpit />
         </div>
       )}
 
       {activeMainTab === 'sentinel' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-background">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <SentinelAutomationView clientId={activeClientId} />
         </div>
       )}
 
       {activeMainTab === 'memory' && (
-        <div className="flex-1 overflow-hidden bg-background">
+        <div className="flex-1 overflow-hidden bg-slate-50">
           <CompanyMemoryCenter />
         </div>
       )}
 
       {activeMainTab === 'teammates' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-background">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <TeammatesFleetView />
         </div>
       )}
 
       {activeMainTab === 'approvals' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-background">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <ApprovalInboxView />
         </div>
       )}
 
       {activeMainTab === 'routines' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-background">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <ScheduledRoutinesView />
         </div>
       )}
 
       {activeMainTab === 'chat' && (
-        <div className="flex flex-1 min-h-0 bg-background">
+        <div className="flex flex-1 min-h-0 bg-slate-50">
           {/* ── Sidebar ──────────────────────────────────────────────────────── */}
           <div className={`${sidebarOpen ? 'w-72 border-r' : 'w-0'} transition-all duration-200 bg-muted/20 flex flex-col overflow-hidden shrink-0`}>
             <div className="flex flex-col h-full">
               {/* Search */}
               <div className="p-3 border-b">
                 <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500/50" />
                   <input
                 value={searchQ}
                 onChange={e => setSearchQ(e.target.value)}
                 placeholder="Search sessions…"
-                className="w-full h-9 rounded-lg border bg-background pl-9 pr-3 text-xs placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                className="w-full h-9 rounded-lg border bg-slate-50 pl-9 pr-3 text-xs placeholder:text-slate-500/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
           </div>
 
           {/* New chat button */}
           <div className="px-3 pt-3 pb-2">
-            <button onClick={handleNew} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-accent/50 text-xs font-semibold text-muted-foreground hover:text-primary transition-all">
+            <button onClick={handleNew} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-accent/50 text-xs font-semibold text-slate-500 hover:text-primary transition-all">
               <Plus size={14} /> New Chat
             </button>
           </div>
@@ -767,10 +767,10 @@ export function AgentPage() {
                   onClick={() => setPinnedExpanded(!pinnedExpanded)}
                   className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/40 rounded transition-colors text-left"
                 >
-                  {pinnedExpanded ? <ChevronDown size={11} className="text-muted-foreground/50" /> : <ChevronRight size={11} className="text-muted-foreground/50" />}
+                  {pinnedExpanded ? <ChevronDown size={11} className="text-slate-500/50" /> : <ChevronRight size={11} className="text-slate-500/50" />}
                   <Pin size={11} className="text-amber-500 fill-current" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Pinned Sessions</span>
-                  <span className="text-[10px] text-muted-foreground/30 ml-auto">{filteredPinned.length}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500/60">Pinned Sessions</span>
+                  <span className="text-[10px] text-slate-500/30 ml-auto">{filteredPinned.length}</span>
                 </button>
 
                 {pinnedExpanded && (
@@ -789,32 +789,32 @@ export function AgentPage() {
                               onChange={e => setEditTitle(e.target.value)}
                               onKeyDown={e => handleEditKeyDown(e, conv.id)}
                               onBlur={() => handleSaveTitle(conv.id)}
-                              className="w-full text-xs bg-background border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="w-full text-xs bg-slate-50 border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
                               autoFocus
                               onClick={e => e.stopPropagation()}
                             />
                           ) : (
                             <>
                               <p 
-                                className="text-xs font-medium truncate text-foreground/80" 
+                                className="text-xs font-medium truncate text-slate-900/80" 
                                 onDoubleClick={(e) => handleStartEdit(e, conv)}
                               >
                                 {conv.title}
                               </p>
-                              <p className="text-[9px] text-muted-foreground/40">
+                              <p className="text-[9px] text-slate-500/40">
                                 {conv.message_count} msgs
                               </p>
                             </>
                           )}
                         </div>
                         <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={e => handleStartEdit(e, conv)} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-foreground" title="Rename">
+                          <button onClick={e => handleStartEdit(e, conv)} className="p-0.5 rounded hover:bg-slate-50 text-slate-500/50 hover:text-slate-900" title="Rename">
                             <Pencil size={11} />
                           </button>
-                          <button onClick={e => { e.stopPropagation(); handlePin(conv.id); }} className="p-0.5 rounded hover:bg-background text-amber-500" title="Unpin">
+                          <button onClick={e => { e.stopPropagation(); handlePin(conv.id); }} className="p-0.5 rounded hover:bg-slate-50 text-amber-500" title="Unpin">
                             <PinOff size={11} />
                           </button>
-                          <button onClick={e => { e.stopPropagation(); handleDelete(conv.id); }} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-destructive" title="Delete">
+                          <button onClick={e => { e.stopPropagation(); handleDelete(conv.id); }} className="p-0.5 rounded hover:bg-slate-50 text-slate-500/50 hover:text-destructive" title="Delete">
                             <Trash2 size={11} />
                           </button>
                         </div>
@@ -832,10 +832,10 @@ export function AgentPage() {
                   onClick={() => setCronExpanded(!cronExpanded)}
                   className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/40 rounded transition-colors text-left"
                 >
-                  {cronExpanded ? <ChevronDown size={11} className="text-muted-foreground/50" /> : <ChevronRight size={11} className="text-muted-foreground/50" />}
+                  {cronExpanded ? <ChevronDown size={11} className="text-slate-500/50" /> : <ChevronRight size={11} className="text-slate-500/50" />}
                   <Cpu size={11} className="text-primary" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Cron Jobs & Autopilot</span>
-                  <span className="text-[10px] text-muted-foreground/30 ml-auto">{filteredCronJobs.length}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500/60">Cron Jobs & Autopilot</span>
+                  <span className="text-[10px] text-slate-500/30 ml-auto">{filteredCronJobs.length}</span>
                 </button>
 
                 {cronExpanded && (
@@ -861,7 +861,7 @@ export function AgentPage() {
                             {cron.id === 'cron_soc2' && <Cpu size={13} className="text-violet-500 shrink-0" />}
                             
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-semibold truncate text-foreground/80">{cron.name}</p>
+                              <p className="text-xs font-semibold truncate text-slate-900/80">{cron.name}</p>
                             </div>
 
                             {/* Ping Indicator */}
@@ -882,20 +882,20 @@ export function AgentPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between text-[9px] text-muted-foreground/50">
+                          <div className="flex items-center justify-between text-[9px] text-slate-500/50">
                             <span className="font-mono bg-muted/60 px-1 py-0.5 rounded text-[8px]">{cron.schedule}</span>
                             <span>{cron.lastRun === 'Just now' ? 'Just now' : `${cron.lastRun}`}</span>
                           </div>
 
                           {/* Collapsible Action Footer */}
                           <div className="max-h-0 opacity-0 overflow-hidden group-hover:max-h-16 group-hover:opacity-100 transition-all duration-300 ease-out border-t border-muted-foreground/5 mt-1.5 pt-1.5 flex items-center justify-between">
-                            <span className="text-[9px] text-muted-foreground/40 italic truncate max-w-[100px]">
+                            <span className="text-[9px] text-slate-500/40 italic truncate max-w-[100px]">
                               {isPaused ? 'Schedule paused' : 'Schedule active'}
                             </span>
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 onClick={(e) => handleToggleCronStatus(e, cron.id)}
-                                className="p-0.5 px-1.5 rounded bg-background border hover:bg-accent text-muted-foreground hover:text-foreground text-[8px] font-semibold transition-all flex items-center gap-0.5"
+                                className="p-0.5 px-1.5 rounded bg-slate-50 border hover:bg-accent text-slate-500 hover:text-slate-900 text-[8px] font-semibold transition-all flex items-center gap-0.5"
                                 title={isPaused ? 'Resume job' : 'Pause job'}
                               >
                                 {isPaused ? <Play size={7} className="fill-current text-emerald-500" /> : <Pause size={7} className="fill-current text-amber-500" />}
@@ -930,10 +930,10 @@ export function AgentPage() {
                 onClick={() => setConvosExpanded(!convosExpanded)}
                 className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/40 rounded transition-colors text-left"
               >
-                {convosExpanded ? <ChevronDown size={11} className="text-muted-foreground/50" /> : <ChevronRight size={11} className="text-muted-foreground/50" />}
-                <MessageSquare size={11} className="text-muted-foreground/60" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Conversations</span>
-                <span className="text-[10px] text-muted-foreground/30 ml-auto">
+                {convosExpanded ? <ChevronDown size={11} className="text-slate-500/50" /> : <ChevronRight size={11} className="text-slate-500/50" />}
+                <MessageSquare size={11} className="text-slate-500/60" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500/60">Conversations</span>
+                <span className="text-[10px] text-slate-500/30 ml-auto">
                   {searchQ ? filteredGroups.reduce((acc, g) => acc + g.items.length, 0) : recentConvos.length}
                 </span>
               </button>
@@ -941,13 +941,13 @@ export function AgentPage() {
               {convosExpanded && (
                 <div className="space-y-3 pl-1.5 pt-0.5">
                   {filteredGroups.length === 0 ? (
-                    <p className="text-[10px] text-center text-muted-foreground/40 py-8">
+                    <p className="text-[10px] text-center text-slate-500/40 py-8">
                       {searchQ ? 'No matching chats' : 'No saved conversations'}
                     </p>
                   ) : filteredGroups.map(group => (
                     <div key={group.label} className="space-y-0.5">
                       <div className="px-2 py-0.5 flex items-center justify-between">
-                        <span className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground/40">{group.label}</span>
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500/40">{group.label}</span>
                       </div>
                       
                       {group.items.map(conv => (
@@ -956,7 +956,7 @@ export function AgentPage() {
                           onClick={() => handleLoad(conv)}
                           className={`group relative flex items-start gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all hover:bg-accent/60 ${conv.id === currentConvId ? 'bg-accent border border-primary/20 shadow-sm' : 'border border-transparent'}`}
                         >
-                          <MessageSquare size={13} className="mt-0.5 text-muted-foreground/40 shrink-0" />
+                          <MessageSquare size={13} className="mt-0.5 text-slate-500/40 shrink-0" />
                           <div className="min-w-0 flex-1">
                             {editingId === conv.id ? (
                               <input
@@ -964,32 +964,32 @@ export function AgentPage() {
                                 onChange={e => setEditTitle(e.target.value)}
                                 onKeyDown={e => handleEditKeyDown(e, conv.id)}
                                 onBlur={() => handleSaveTitle(conv.id)}
-                                className="w-full text-xs bg-background border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="w-full text-xs bg-slate-50 border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
                                 autoFocus
                                 onClick={e => e.stopPropagation()}
                               />
                             ) : (
                               <>
                                 <p 
-                                  className="text-xs font-medium truncate text-foreground/80" 
+                                  className="text-xs font-medium truncate text-slate-900/80" 
                                   onDoubleClick={(e) => handleStartEdit(e, conv)}
                                 >
                                   {conv.title}
                                 </p>
-                                <p className="text-[9px] text-muted-foreground/40">
+                                <p className="text-[9px] text-slate-500/40">
                                   {conv.message_count} msgs
                                 </p>
                               </>
                             )}
                           </div>
                           <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={e => handleStartEdit(e, conv)} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-foreground" title="Rename">
+                            <button onClick={e => handleStartEdit(e, conv)} className="p-0.5 rounded hover:bg-slate-50 text-slate-500/50 hover:text-slate-900" title="Rename">
                               <Pencil size={11} />
                             </button>
-                            <button onClick={e => { e.stopPropagation(); handlePin(conv.id); }} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-amber-500" title="Pin">
+                            <button onClick={e => { e.stopPropagation(); handlePin(conv.id); }} className="p-0.5 rounded hover:bg-slate-50 text-slate-500/50 hover:text-amber-500" title="Pin">
                               <Pin size={11} />
                             </button>
-                            <button onClick={e => { e.stopPropagation(); handleDelete(conv.id); }} className="p-0.5 rounded hover:bg-background text-muted-foreground/50 hover:text-destructive" title="Delete">
+                            <button onClick={e => { e.stopPropagation(); handleDelete(conv.id); }} className="p-0.5 rounded hover:bg-slate-50 text-slate-500/50 hover:text-destructive" title="Delete">
                               <Trash2 size={11} />
                             </button>
                           </div>
@@ -1008,9 +1008,9 @@ export function AgentPage() {
       {/* ── Main Chat Area ─────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+        <div className="flex items-center justify-between px-6 py-3 border-b bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60 sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground" title="Toggle sidebar">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-md hover:bg-accent text-slate-500" title="Toggle sidebar">
               {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
             </button>
             <div>
@@ -1018,7 +1018,7 @@ export function AgentPage() {
                 <Bot size={18} className="text-primary" />
                 Compliance Agent
               </h2>
-              <p className="text-[11px] text-muted-foreground/60 flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500/60 flex items-center gap-1.5">
                 <span>
                   Hermes-native · {
                     currentConvId?.startsWith('cron_') 
@@ -1027,7 +1027,7 @@ export function AgentPage() {
                   }
                 </span>
                 {saveStatus === 'saving' && (
-                  <span className="inline-flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium bg-muted px-1.5 py-0.5 rounded animate-pulse">
+                  <span className="inline-flex items-center gap-1 text-[9px] text-slate-500/40 font-medium bg-muted px-1.5 py-0.5 rounded animate-pulse">
                     <Loader size={8} className="animate-spin text-primary" /> Saving...
                   </span>
                 )}
@@ -1040,7 +1040,7 @@ export function AgentPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleNew} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border hover:bg-accent transition-colors bg-background">
+            <button onClick={handleNew} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border hover:bg-accent transition-colors bg-slate-50">
               <Plus size={13} /> New Chat
             </button>
           </div>
@@ -1050,9 +1050,9 @@ export function AgentPage() {
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {messages.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-20">
-              <Bot size={48} className="text-muted-foreground/30 mb-4 animate-bounce duration-1000" />
-              <h3 className="text-lg font-semibold text-muted-foreground mb-2">Ask me anything</h3>
-              <p className="text-sm text-muted-foreground/60 max-w-md">I can help with compliance gaps, evidence status, risk summaries, framework readiness, and more.</p>
+              <Bot size={48} className="text-slate-500/30 mb-4 animate-bounce duration-1000" />
+              <h3 className="text-lg font-semibold text-slate-500 mb-2">Ask me anything</h3>
+              <p className="text-sm text-slate-500/60 max-w-md">I can help with compliance gaps, evidence status, risk summaries, framework readiness, and more.</p>
               <div className="flex flex-wrap gap-2 mt-8 justify-center max-w-lg">
                 {(suggestedQuestions.length > 0 ? suggestedQuestions : ['How many risks?', 'List my clients', 'Show vendors', 'What are the top risks?']).map((q, i) => (
                   <button key={i} onClick={() => { setInput(''); sendMessage(typeof q === 'string' ? q : ''); }} className="px-3 py-1.5 text-xs rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors">{q}</button>
@@ -1079,11 +1079,11 @@ export function AgentPage() {
         {/* Compliance copilot quick actions */}
         <ComplianceCopilotSection />
         {/* Input */}
-        <div className="border-t px-6 py-4 bg-background">
+        <div className="border-t px-6 py-4 bg-slate-50">
           <div className="flex items-end gap-3 max-w-4xl mx-auto">
             <textarea
               ref={inputRef}
-              className="flex-1 min-h-[44px] max-h-[160px] rounded-xl border bg-muted/50 px-4 py-3 text-sm placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="flex-1 min-h-[44px] max-h-[160px] rounded-xl border bg-muted/50 px-4 py-3 text-sm placeholder:text-slate-500/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               placeholder={currentConvId?.startsWith('cron_') ? "Ask a question about this cron job run..." : "Ask a compliance question..."}
               value={input}
               onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`; }}
@@ -1111,9 +1111,9 @@ function MessageBubble({ message, isLoading }: { message: ChatMessage; isLoading
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[80%] lg:max-w-[65%]`}>
         <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted border rounded-bl-sm'} ${isLoading && !isUser ? 'animate-pulse' : ''}`}>
-          {message.content ? <FormattedText text={message.content} /> : isLoading ? <span className="text-muted-foreground/60 italic">Thinking…</span> : <span className="text-muted-foreground/60 italic">Empty response</span>}
+          {message.content ? <FormattedText text={message.content} /> : isLoading ? <span className="text-slate-500/60 italic">Thinking…</span> : <span className="text-slate-500/60 italic">Empty response</span>}
         </div>
-        <p className={`text-[10px] text-muted-foreground/50 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>{new Date(message.timestamp).toLocaleTimeString()}</p>
+        <p className={`text-[10px] text-slate-500/50 mt-1 ${isUser ? 'text-right' : 'text-left'}`}>{new Date(message.timestamp).toLocaleTimeString()}</p>
       </div>
     </div>
   );
@@ -1173,14 +1173,14 @@ function ComplianceCopilotSection() {
   const live = status.data?.available === true;
 
   return (
-    <div className="border-t px-6 py-3 bg-background">
+    <div className="border-t px-6 py-3 bg-slate-50">
       <div className="flex items-center gap-2 max-w-4xl mx-auto">
         <button
           onClick={() => setOpen(!open)}
           className="flex items-center gap-2 text-left"
         >
           <Sparkles size={14} className="text-primary" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Compliance copilot
           </span>
           {live ? (
@@ -1190,9 +1190,9 @@ function ComplianceCopilotSection() {
           ) : (
             <Badge variant="outline">awaiting API</Badge>
           )}
-          {open ? <ChevronDown size={13} className="text-muted-foreground/60" /> : <ChevronRight size={13} className="text-muted-foreground/60" />}
+          {open ? <ChevronDown size={13} className="text-slate-500/60" /> : <ChevronRight size={13} className="text-slate-500/60" />}
         </button>
-        <span className="text-[10px] text-muted-foreground/60">
+        <span className="text-[10px] text-slate-500/60">
           Auto-map, evidence suggestions &amp; policy drafts - generated in-app (builtin)
         </span>
       </div>
@@ -1224,19 +1224,19 @@ function CopilotCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3.5 flex flex-col gap-2.5">
+    <div className="rounded-xl border border-border bg-white p-3.5 flex flex-col gap-2.5">
       <button onClick={onToggle} className="flex items-start gap-2.5 text-left group">
-        <span className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-muted text-muted-foreground">
+        <span className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-muted text-slate-500">
           <Icon size={15} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-xs font-semibold text-foreground">{title}</span>
-          <span className="block text-[10px] text-muted-foreground leading-snug">{description}</span>
+          <span className="block text-xs font-semibold text-slate-900">{title}</span>
+          <span className="block text-[10px] text-slate-500 leading-snug">{description}</span>
         </span>
         {expanded ? (
-          <ChevronDown size={13} className="shrink-0 mt-0.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+          <ChevronDown size={13} className="shrink-0 mt-0.5 text-slate-500/60 group-hover:text-slate-900 transition-colors" />
         ) : (
-          <ChevronRight size={13} className="shrink-0 mt-0.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+          <ChevronRight size={13} className="shrink-0 mt-0.5 text-slate-500/60 group-hover:text-slate-900 transition-colors" />
         )}
       </button>
       {expanded && <div className="space-y-2.5">{children}</div>}
@@ -1274,18 +1274,18 @@ function DraftPolicyCard() {
         <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2.5">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground leading-snug">{result.title}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Review cadence: {result.reviewCadence || '-'}</p>
+              <p className="text-xs font-semibold text-slate-900 leading-snug">{result.title}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Review cadence: {result.reviewCadence || '-'}</p>
             </div>
-            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="shrink-0 text-muted-foreground/60 hover:text-foreground transition-colors">
+            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="shrink-0 text-slate-500/60 hover:text-slate-900 transition-colors">
               <X size={13} />
             </button>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">{result.purpose}</p>
+          <p className="text-[11px] text-slate-500 leading-relaxed">{result.purpose}</p>
           {(result.sections ?? []).slice(0, 3).map((s, i) => (
             <div key={i} className="space-y-0.5">
-              <p className="text-[11px] font-semibold text-foreground">{s.heading}</p>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">{s.body}</p>
+              <p className="text-[11px] font-semibold text-slate-900">{s.heading}</p>
+              <p className="text-[10px] text-slate-500 leading-relaxed">{s.body}</p>
             </div>
           ))}
           {(result.controls ?? []).length > 0 && (
@@ -1294,11 +1294,11 @@ function DraftPolicyCard() {
                 <Badge key={c.code} variant="outline" className="text-[9px] px-1.5 py-0">{c.code}</Badge>
               ))}
               {(result.controls ?? []).length > 6 && (
-                <span className="text-[9px] text-muted-foreground/70 self-center">+{(result.controls ?? []).length - 6} more</span>
+                <span className="text-[9px] text-slate-500/70 self-center">+{(result.controls ?? []).length - 6} more</span>
               )}
             </div>
           )}
-          {result.disclaimer && <p className="text-[9px] text-muted-foreground/70 italic">{result.disclaimer}</p>}
+          {result.disclaimer && <p className="text-[9px] text-slate-500/70 italic">{result.disclaimer}</p>}
         </div>
       ) : notLive ? (
         <EmptyState
@@ -1316,11 +1316,11 @@ function DraftPolicyCard() {
       ) : (
         <div className="space-y-2">
           <div className="space-y-1">
-            <Label htmlFor="copilot-draft-topic" className="text-[10px] font-medium text-muted-foreground">Topic</Label>
+            <Label htmlFor="copilot-draft-topic" className="text-[10px] font-medium text-slate-500">Topic</Label>
             <Input id="copilot-draft-topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Access control" className="h-8 text-xs" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="copilot-draft-framework" className="text-[10px] font-medium text-muted-foreground">Framework (optional)</Label>
+            <Label htmlFor="copilot-draft-framework" className="text-[10px] font-medium text-slate-500">Framework (optional)</Label>
             <Input id="copilot-draft-framework" value={framework} onChange={(e) => setFramework(e.target.value)} placeholder="e.g. SOC 2, ISO 27001" className="h-8 text-xs" />
           </div>
           <Button variant="default" size="sm" onClick={submit} disabled={!topic.trim() || mutation.isPending} className="w-full">
@@ -1362,21 +1362,21 @@ function SuggestEvidenceCard() {
       {result ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               {(result.source ?? 'builtin')} suggestions
             </p>
-            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="text-muted-foreground/60 hover:text-foreground transition-colors">
+            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="text-slate-500/60 hover:text-slate-900 transition-colors">
               <X size={13} />
             </button>
           </div>
           {(result.evidence ?? []).slice(0, 4).map((item) => (
             <div key={item.title} className="rounded-lg border border-border bg-muted/40 p-2.5 space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold text-foreground leading-snug">{item.title}</p>
+                <p className="text-[11px] font-semibold text-slate-900 leading-snug">{item.title}</p>
                 <Badge variant="info" className="shrink-0 text-[9px] px-1.5 py-0">{item.type || 'evidence'}</Badge>
               </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">{item.description}</p>
-              <p className="text-[9px] text-muted-foreground/70">Freshness: {item.freshness || '-'}</p>
+              <p className="text-[10px] text-slate-500 leading-relaxed">{item.description}</p>
+              <p className="text-[9px] text-slate-500/70">Freshness: {item.freshness || '-'}</p>
             </div>
           ))}
         </div>
@@ -1396,11 +1396,11 @@ function SuggestEvidenceCard() {
       ) : (
         <div className="space-y-2">
           <div className="space-y-1">
-            <Label htmlFor="copilot-evidence-control" className="text-[10px] font-medium text-muted-foreground">Control title</Label>
+            <Label htmlFor="copilot-evidence-control" className="text-[10px] font-medium text-slate-500">Control title</Label>
             <Input id="copilot-evidence-control" value={controlTitle} onChange={(e) => setControlTitle(e.target.value)} placeholder="e.g. CC6.1 Logical access" className="h-8 text-xs" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="copilot-evidence-framework" className="text-[10px] font-medium text-muted-foreground">Framework (optional)</Label>
+            <Label htmlFor="copilot-evidence-framework" className="text-[10px] font-medium text-slate-500">Framework (optional)</Label>
             <Input id="copilot-evidence-framework" value={framework} onChange={(e) => setFramework(e.target.value)} placeholder="e.g. SOC 2" className="h-8 text-xs" />
           </div>
           <Button variant="default" size="sm" onClick={submit} disabled={!controlTitle.trim() || mutation.isPending} className="w-full">
@@ -1444,26 +1444,26 @@ function AutoMapCard() {
       {result ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               {matches.length} match{matches.length === 1 ? '' : 'es'}
             </p>
-            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="text-muted-foreground/60 hover:text-foreground transition-colors">
+            <button onClick={() => setResult(null)} title="Clear result" aria-label="Clear result" className="text-slate-500/60 hover:text-slate-900 transition-colors">
               <X size={13} />
             </button>
           </div>
           {result.bestMatch && (
             <div className="rounded-lg border border-border bg-muted/40 p-2.5 space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold text-foreground leading-snug">{result.bestMatch.framework} | {result.bestMatch.controlId}</p>
+                <p className="text-[11px] font-semibold text-slate-900 leading-snug">{result.bestMatch.framework} | {result.bestMatch.controlId}</p>
                 <Badge variant="success" className="shrink-0 text-[9px] px-1.5 py-0">{formatCopilotScore(result.bestMatch.score)}</Badge>
               </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">{result.bestMatch.controlTitle}</p>
-              <p className="text-[9px] text-muted-foreground/70">{result.bestMatch.rationale}</p>
+              <p className="text-[10px] text-slate-500 leading-relaxed">{result.bestMatch.controlTitle}</p>
+              <p className="text-[9px] text-slate-500/70">{result.bestMatch.rationale}</p>
             </div>
           )}
           {matches.slice(0, 3).map((m) => (
-            <div key={`${m.framework}-${m.controlId}`} className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-2.5 py-1.5">
-              <p className="text-[10px] text-foreground truncate">{m.framework} | {m.controlId} | {m.controlTitle}</p>
+            <div key={`${m.framework}-${m.controlId}`} className="flex items-center justify-between gap-2 rounded-md border border-border bg-white px-2.5 py-1.5">
+              <p className="text-[10px] text-slate-900 truncate">{m.framework} | {m.controlId} | {m.controlTitle}</p>
               <Badge variant="outline" className="shrink-0 text-[9px] px-1.5 py-0">{formatCopilotScore(m.score)}</Badge>
             </div>
           ))}
@@ -1484,11 +1484,11 @@ function AutoMapCard() {
       ) : (
         <div className="space-y-2">
           <div className="space-y-1">
-            <Label htmlFor="copilot-map-requirement" className="text-[10px] font-medium text-muted-foreground">Requirement</Label>
+            <Label htmlFor="copilot-map-requirement" className="text-[10px] font-medium text-slate-500">Requirement</Label>
             <Input id="copilot-map-requirement" value={requirement} onChange={(e) => setRequirement(e.target.value)} placeholder="e.g. Encrypt data at rest" className="h-8 text-xs" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="copilot-map-frameworks" className="text-[10px] font-medium text-muted-foreground">Frameworks (optional, comma-separated)</Label>
+            <Label htmlFor="copilot-map-frameworks" className="text-[10px] font-medium text-slate-500">Frameworks (optional, comma-separated)</Label>
             <Input id="copilot-map-frameworks" value={frameworks} onChange={(e) => setFrameworks(e.target.value)} placeholder="e.g. SOC 2, ISO 27001" className="h-8 text-xs" />
           </div>
           <Button variant="default" size="sm" onClick={submit} disabled={!requirement.trim() || mutation.isPending} className="w-full">
@@ -1535,30 +1535,30 @@ export function AgentReportsPage() {
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
           <FileText className="h-6 w-6 text-primary" />
           Agent Reports
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-slate-500 mt-1">
           Fleet activity, routine coverage and provenance posture across the multi-agent workforce.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <div key={label} className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
               <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
               {label}
             </div>
-            <p className="text-2xl font-bold text-foreground mt-2 tabular-nums">{value}</p>
+            <p className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">{value}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/20">
-          <h2 className="text-sm font-semibold text-foreground">Fleet roster</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Fleet roster</h2>
         </div>
         {loadingTeammates ? (
           <div className="p-4 space-y-2">
@@ -1578,7 +1578,7 @@ export function AgentReportsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                <tr className="text-left text-xs text-slate-500 border-b border-border">
                   <th className="px-4 py-2 font-medium">Teammate</th>
                   <th className="px-4 py-2 font-medium">Role</th>
                   <th className="px-4 py-2 font-medium">Status</th>
@@ -1591,10 +1591,10 @@ export function AgentReportsPage() {
                   <tr key={tm.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="truncate font-medium text-foreground">{tm.name}</span>
+                        <span className="truncate font-medium text-slate-900">{tm.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-muted-foreground truncate max-w-[220px]">{tm.role}</td>
+                    <td className="px-4 py-2.5 text-slate-500 truncate max-w-[220px]">{tm.role}</td>
                     <td className="px-4 py-2.5">
                       <Badge
                         variant="outline"
@@ -1603,14 +1603,14 @@ export function AgentReportsPage() {
                             ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                             : tm.status === "waiting_approval"
                               ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "border-border bg-muted/30 text-muted-foreground"
+                              : "border-border bg-muted/30 text-slate-500"
                         }
                       >
                         {tm.status.replace(/_/g, " ")}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{tm.tasksCompleted}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{tm.lastActive}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-900">{tm.tasksCompleted}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{tm.lastActive}</td>
                   </tr>
                 ))}
               </tbody>
