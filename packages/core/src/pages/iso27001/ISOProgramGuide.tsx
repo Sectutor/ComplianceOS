@@ -391,29 +391,29 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
             <div className="space-y-8 animate-in fade-in duration-500 pb-20 p-4 md:p-8">
                 {/* Start Here Return Banner */}
                 {returnToStartHere && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                                 <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                    <span className="text-xs font-medium uppercase tracking-wider text-emerald-600">
                                         Strategic Roadmap Workflow Active
                                     </span>
-                                    <Badge className="bg-emerald-600/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] font-medium">
                                         Origin Saved
                                     </Badge>
                                 </div>
-                                <p className="text-xs text-foreground mt-0.5 font-medium">
-                                    You navigated to this guide from the <strong>Start Here Command Center</strong>.
+                                <p className="text-xs text-slate-600 mt-0.5">
+                                    You navigated to this guide from the Start Here Command Center.
                                 </p>
                             </div>
                         </div>
                         <Button
                             size="sm"
                             onClick={handleReturnToStartHere}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs gap-2 shrink-0 self-start sm:self-auto transition-all"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-9 px-4 rounded-xl gap-2 shrink-0 self-start sm:self-auto transition-all"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Back to Start Here
@@ -422,22 +422,22 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                 )}
 
                 {/* Hero Header */}
-                <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                <div className="bg-gradient-to-br from-[#1C4D8D] to-[#0F2C59] rounded-3xl p-8 lg:p-12 text-white shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                     <div className="relative z-10 space-y-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-blue-400">
-                                    <BookOpen className="w-8 h-8 text-blue-400" />
+                                <div className="bg-white/15 p-4 rounded-2xl border border-white/20 text-white">
+                                    <BookOpen className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <h1 className="text-3xl lg:text-4xl font-black tracking-tight">ISO 27001 Operating Guide & Manual</h1>
-                                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-400/30 text-xs font-bold">
+                                        <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">ISO 27001 Operating Guide & Manual</h1>
+                                        <Badge className="bg-white/20 text-white border-white/30 text-xs font-medium">
                                             ISO/IEC 27001:2022 ISMS
                                         </Badge>
                                     </div>
-                                    <p className="text-white/70 text-base mt-1">
+                                    <p className="text-blue-100 text-base mt-1">
                                         Complete implementation roadmap, Clauses 4–10 operational manual, and Annex A controls registry.
                                     </p>
                                 </div>
@@ -446,7 +446,7 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                             <div className="flex items-center gap-3">
                                 <Button
                                     onClick={() => handleTabChange('roadmap')}
-                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-11 px-5 shadow-lg flex items-center gap-2"
+                                    className="bg-white hover:bg-blue-50 text-[#0F2C59] font-medium rounded-xl h-11 px-5 flex items-center gap-2"
                                 >
                                     <CalendarClock className="w-4 h-4" />
                                     Continue 90-Day Roadmap
@@ -456,29 +456,29 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                         </div>
 
                         {/* Progress Bar & Telemetry */}
-                        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 space-y-3">
+                        <div className="bg-white/15 rounded-2xl p-6 border border-white/20 space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-white/80 flex items-center gap-2">
+                                <span className="text-sm font-medium text-white/90 flex items-center gap-2">
                                     <Shield className="w-4 h-4 text-emerald-400" />
                                     ISO 27001:2022 Implementation & Certification Maturity
                                 </span>
-                                <span className="text-sm font-black text-blue-300 bg-blue-950/60 px-3 py-1 rounded-full border border-blue-800/50">
+                                <span className="text-sm font-medium text-blue-100 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-400/30">
                                     {progressPercentage}% Ready
                                 </span>
                             </div>
-                            <Progress value={progressPercentage} className="h-2.5 bg-white/10 rounded-full" />
+                            <Progress value={progressPercentage} className="h-2.5 bg-white/20 rounded-full" />
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
-                                <div className="text-white/70">
-                                    <span className="font-bold text-white">{implementedSoaControls} / 93</span> Annex A Controls
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">{implementedSoaControls} / 93</span> Annex A Controls
                                 </div>
-                                <div className="text-white/70">
-                                    <span className="font-bold text-white">{totalRisks}</span> Assessed Risks
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">{totalRisks}</span> Assessed Risks
                                 </div>
-                                <div className="text-white/70">
-                                    <span className="font-bold text-white">{totalPolicies}</span> Documented Policies
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">{totalPolicies}</span> Documented Policies
                                 </div>
-                                <div className="text-white/70">
-                                    <span className="font-bold text-white">{approvedPolicies}</span> Approved Policies
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">{approvedPolicies}</span> Approved Policies
                                 </div>
                             </div>
                         </div>
@@ -487,13 +487,13 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
 
                 {/* Conditional Initial Setup Banner for Brand New / 0% Clients */}
                 {totalRisks === 0 && implementedSoaControls === 0 && (
-                    <div className="bg-gradient-to-r from-blue-950/60 via-indigo-950/40 to-slate-900/60 border border-blue-500/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
+                    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-amber-400" />
-                                <h4 className="font-bold text-sm text-foreground">New ISMS Setup: Seed Cloud Baseline</h4>
+                                <Sparkles className="w-4 h-4 text-amber-500" />
+                                <h4 className="font-medium text-sm text-slate-900">New ISMS Setup: Seed Cloud Baseline</h4>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-slate-500">
                                 Starting from scratch? Automatically pre-populate standard cloud assets (AWS, GitHub, Google Workspace, Laptops, DB) and initial ISO 27005 threat scenarios.
                             </p>
                         </div>
@@ -501,7 +501,7 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                             size="sm"
                             onClick={() => seedStarterKit.mutate({ clientId })}
                             disabled={seedStarterKit.isPending}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shrink-0 rounded-xl h-9 shadow"
+                            className="bg-[#1C4D8D] hover:bg-[#0F2C59] text-white font-medium text-xs shrink-0 rounded-xl h-9"
                         >
                             <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                             {seedStarterKit.isPending ? "Setting up..." : "Initialize Baseline Data"}
@@ -514,7 +514,7 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                     <Button
                         variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                         onClick={() => handleTabChange('tutorials')}
-                        className={cn("font-bold rounded-xl", activeTab === 'tutorials' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                        className={cn("font-medium rounded-xl", activeTab === 'tutorials' ? "bg-[#1C4D8D] text-white" : "text-muted-foreground")}
                     >
                         <BookOpen className="w-4 h-4 mr-2" />
                         7-Pillar Operating Manual
@@ -522,7 +522,7 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                     <Button
                         variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
                         onClick={() => handleTabChange('roadmap')}
-                        className={cn("font-bold rounded-xl", activeTab === 'roadmap' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                        className={cn("font-medium rounded-xl", activeTab === 'roadmap' ? "bg-[#1C4D8D] text-white" : "text-muted-foreground")}
                     >
                         <CalendarClock className="w-4 h-4 mr-2" />
                         90-Day Implementation Roadmap
@@ -530,7 +530,7 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                     <Button
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         onClick={() => handleTabChange('architecture')}
-                        className={cn("font-bold rounded-xl", activeTab === 'architecture' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                        className={cn("font-medium rounded-xl", activeTab === 'architecture' ? "bg-[#1C4D8D] text-white" : "text-muted-foreground")}
                     >
                         <Layers className="w-4 h-4 mr-2" />
                         ISMS PDCA Architecture
@@ -538,7 +538,7 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                     <Button
                         variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                         onClick={() => handleTabChange('auditor')}
-                        className={cn("font-bold rounded-xl", activeTab === 'auditor' ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+                        className={cn("font-medium rounded-xl", activeTab === 'auditor' ? "bg-[#1C4D8D] text-white" : "text-muted-foreground")}
                     >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
                         Auditor Clean Room
@@ -554,20 +554,20 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                                 return (
                                     <Card
                                         key={pillar.id}
-                                        className="border-border shadow-xl shadow-slate-200/40 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group bg-card"
+                                        className="border-border shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-all group bg-card"
                                     >
                                         <CardHeader className={`${pillar.bgLight} border-b border-border p-4 sm:p-6`}>
                                             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                                                 <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 flex-1 min-w-0">
-                                                    <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg text-white shadow-md shrink-0 bg-gradient-to-br", pillar.gradient)}>
+                                                    <div className={cn("h-11 w-11 sm:h-12 sm:w-12 rounded-2xl flex items-center justify-center font-semibold text-base sm:text-lg text-white shadow-md shrink-0 bg-gradient-to-br", pillar.gradient)}>
                                                         {pillar.number}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <CardTitle className="text-lg sm:text-xl font-bold text-foreground">
+                                                            <CardTitle className="text-lg sm:text-xl font-semibold text-foreground">
                                                                 {pillar.title}
                                                             </CardTitle>
-                                                            <Badge className="bg-card border-border text-foreground/80 text-[10px] font-bold shrink-0">
+                                                            <Badge className="bg-card border-border text-foreground/80 text-[10px] font-medium shrink-0">
                                                                 {pillar.clauseRef}
                                                             </Badge>
                                                         </div>
@@ -578,12 +578,12 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                                                 </div>
 
                                                 <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 self-start xl:self-center flex-wrap sm:flex-nowrap">
-                                                    <Badge className={cn("font-bold text-xs px-3 py-1 border-none shrink-0", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-foreground/80")}>
+                                                    <Badge className={cn("font-medium text-xs px-3 py-1 border-none shrink-0", pillar.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-muted text-foreground/80")}>
                                                         {pillar.countLabel}
                                                     </Badge>
                                                     <Button
                                                         onClick={() => setLocation(pillar.link)}
-                                                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 shadow-sm"
+                                                        className="bg-[#1C4D8D] hover:bg-[#0F2C59] text-white font-medium rounded-xl h-9 sm:h-10 px-3.5 sm:px-4 text-xs sm:text-sm transition-all whitespace-nowrap shrink-0"
                                                     >
                                                         {pillar.cta}
                                                         <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 shrink-0" />
@@ -593,17 +593,17 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                                         </CardHeader>
                                         <CardContent className="p-6 grid md:grid-cols-2 gap-6">
                                             <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
-                                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                     <Info className="w-3.5 h-3.5 text-primary" />
                                                     Why This Step Is Mandatory for Certification
                                                 </h4>
-                                                <p className="text-sm text-foreground/80 leading-relaxed font-medium">
+                                                <p className="text-sm text-foreground/80 leading-relaxed">
                                                     {pillar.whyItMatters}
                                                 </p>
                                             </div>
 
                                             <div className="space-y-3 bg-muted/70 p-4 rounded-xl border border-border">
-                                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                                                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                                     How to Execute in ComplianceOS
                                                 </h4>
