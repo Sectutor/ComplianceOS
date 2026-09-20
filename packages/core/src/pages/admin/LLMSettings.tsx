@@ -28,6 +28,10 @@ import {
     ShieldCheck, Zap, Copy, Check, RefreshCw, HardDrive, Sparkles, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
+import AiPrivacyPanel from "../../components/admin/AiPrivacyPanel";
+import AiFeatureToggles from "../../components/admin/AiFeatureToggles";
+import AiAuditLogViewer from "../../components/admin/AiAuditLogViewer";
+import AiSettingsGuide from "../../components/admin/AiSettingsGuide";
 
 const FEATURES = [
     { id: 'general_advisor', name: 'General AI Advisor', description: 'Chat and general Q&A', icon: Monitor },
@@ -144,6 +148,7 @@ export default function LLMSettings() {
     };
 
     const [lastIndexStats, setLastIndexStats] = useState<any>(null);
+    const [aiPrivacyClientId, setAiPrivacyClientId] = useState<number>(1);
     const reindexMutation = trpc.advisor.reindexContent.useMutation({
         onSuccess: (res) => {
             toast.success("Indexing completed successfully");
@@ -341,6 +346,8 @@ export default function LLMSettings() {
                     Add Provider
                 </Button>
             </div>
+
+            <AiSettingsGuide />
 
             <EnhancedDialog
                 open={isAddOpen}
@@ -686,6 +693,12 @@ export default function LLMSettings() {
                         className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
                     >
                         Data & Indexing
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="ai_privacy"
+                        className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-4 py-2.5 rounded-lg"
+                    >
+                        AI Privacy & Features
                     </TabsTrigger>
                 </TabsList>
 
@@ -1042,6 +1055,24 @@ export default function LLMSettings() {
                             )}
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="ai_privacy" className="space-y-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <Label className="text-sm text-muted-foreground">Client Workspace</Label>
+                            <Input
+                                type="number"
+                                value={aiPrivacyClientId}
+                                onChange={(e) => setAiPrivacyClientId(parseInt(e.target.value) || 1)}
+                                className="w-32 mt-1"
+                                min={1}
+                            />
+                        </div>
+                    </div>
+                    <AiPrivacyPanel clientId={aiPrivacyClientId} />
+                    <AiFeatureToggles clientId={aiPrivacyClientId} />
+                    <AiAuditLogViewer clientId={aiPrivacyClientId} />
                 </TabsContent>
             </Tabs>
 

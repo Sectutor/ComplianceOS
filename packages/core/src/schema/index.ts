@@ -15,3 +15,4 @@ export * from './agent';
 export * from './personnel';
 export * from './enterprise';
 export * from './licenses';
+export * from './ai-features';

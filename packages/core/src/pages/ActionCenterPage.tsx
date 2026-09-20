@@ -339,22 +339,22 @@ export default function ActionCenterPage() {
     </div>
    </div>
 
-   {/* Metrics Row */}
+    {/* Metrics Row */}
    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
     {/* Pending Approvals */}
     <div className="content-card border-l-4 border-l-blue-600">
      <div className="pb-2">
-      <div className="text-xs font-medium uppercase tracking-wider text-slate-500">
+      <div className="text-xs font-medium uppercase tracking-wider text-blue-600">
        Pending Approvals
       </div>
-      <div className="text-3xl font-semibold text-slate-900 flex items-center justify-between mt-1">
+      <div className="text-3xl font-semibold text-blue-900 flex items-center justify-between mt-1">
        {stats?.totalPending ?? 0}
        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
         <Inbox className="w-5 h-5" />
        </div>
       </div>
      </div>
-     <div className="text-xs text-slate-500 pt-0">
+     <div className="text-xs text-blue-600/80 pt-0">
       Awaiting executive or compliance review
      </div>
     </div>
@@ -571,12 +571,16 @@ export default function ActionCenterPage() {
             {botBadge.name}
            </span>
            <Badge
-                        className={`text-xs uppercase font-medium px-3 py-1 tracking-wider ${
-                          isCritical
-                            ? "bg-rose-600 text-white"
+                        className={`text-xs uppercase font-medium px-3 py-1 tracking-wider font-bold ${
+                          isCritical || action.priority === "critical"
+                            ? "bg-red-600 text-white"
                             : action.priority === "high"
-                            ? "bg-amber-600 text-white"
-                            : "bg-slate-600 text-white"
+                            ? "bg-orange-500 text-white"
+                            : action.priority === "medium"
+                            ? "bg-yellow-400 text-yellow-900"
+                            : action.priority === "low"
+                            ? "bg-green-500 text-white"
+                            : "bg-yellow-400 text-yellow-900"
                         }`}
            >
             {action.priority || "MEDIUM"}
@@ -632,11 +636,11 @@ export default function ActionCenterPage() {
         <div className="space-y-3.5 pt-0">
          {/* AI Rationale Box */}
          <div className="highlight-section">
-          <div className="flex items-center gap-2 font-medium text-white mb-2 text-xs sm:text-sm">
-           <Sparkles className="w-4.5 h-4.5 text-white shrink-0" />
+          <div className="flex items-center gap-2 font-medium text-black mb-2 text-xs sm:text-sm">
+           <Sparkles className="w-4.5 h-4.5 text-blue-600 shrink-0" />
            Sentinel Analysis & Findings:
           </div>
-          <div className="text-white text-sm sm:text-base font-medium leading-relaxed">
+          <div className="text-black text-sm sm:text-base font-medium leading-relaxed">
            {action.aiRationale ||action.description}
           </div>
          </div>

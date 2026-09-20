@@ -135,6 +135,21 @@ export class AutopilotEngine {
         results.notificationsSent = await this.sendSummary(clientId, results);
       }
 
+      // Module 7: AI-powered analysis (JevAI features)
+      // Only runs if external AI is enabled and not in dry-run mode
+      try {
+        const { runAiAutopilot } = await import('../ai/ai-autopilot');
+        const aiResult = await runAiAutopilot(clientId);
+        executed.push('aiAnalysis');
+        (results as any).aiFeaturesRun = aiResult.featuresRun.length;
+        (results as any).aiFeaturesSkipped = aiResult.featuresSkipped.length;
+        (results as any).aiFeaturesFailed = aiResult.featuresFailed.length;
+      } catch (aiErr: any) {
+        // AI module failure should not fail the entire autopilot run
+        console.warn(`[Autopilot] AI module skipped for client ${clientId}: ${aiErr.message}`);
+        executed.push('aiAnalysis_skipped');
+      }
+
       // Update run record
       const duration = Math.round((Date.now() - startTime) / 1000);
       await db.update(autopilotRuns)

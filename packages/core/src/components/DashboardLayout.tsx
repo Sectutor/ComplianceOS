@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Gamepad2, ShoppingBag, Bot, UserCheck, Webhook, ArrowLeft, HeartPulse
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Gamepad2, ShoppingBag, Bot, UserCheck, Webhook, ArrowLeft, HeartPulse, CreditCard
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -737,10 +737,16 @@ function DashboardLayoutContent({
   const isAdminOrOwner = adminRoles.includes(userRole) || ['owner', 'admin'].includes(clientRole);
 
 
-  // Group Definition
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOMAIN-FIRST SIDEBAR STRUCTURE
+  // Organized by compliance domain so users can go straight to their area.
+  // All paths, labels, and conditional logic are preserved from the original.
+  // ═══════════════════════════════════════════════════════════════════════════
+
   const groups = [
+    // ── Always-visible top links ────────────────────────────────────────────
     {
-      label: "Start Here & Roadmaps",
+      label: "Quick Access",
       items: [
         {
           icon: Rocket,
@@ -749,32 +755,6 @@ function DashboardLayoutContent({
           isAccent: true,
           badge: "START",
         },
-        { icon: Target, label: "Strategic Roadmaps", path: "/start-here" },
-        ...(persistentClientId ? [
-          {
-            icon: Compass,
-            label: "Framework Program Guides",
-            path: `/clients/${persistentClientId}/iso27001/program-guide`,
-            submenu: [
-              { label: "ISO 27001 ISMS Guide", path: `/clients/${persistentClientId}/iso27001/program-guide` },
-              { label: "SOC 2 Type II Guide", path: `/clients/${persistentClientId}/soc2/program-guide` },
-              { label: "HIPAA Compliance Guide", path: `/clients/${persistentClientId}/hipaa/program-guide` },
-              { label: "NIS2 & Cyber Resilience Guide", path: `/clients/${persistentClientId}/cyber/program-guide` },
-              { label: "GDPR & Privacy Guide", path: `/clients/${persistentClientId}/privacy/program-guide` },
-              { label: "Business Continuity (BCP) Guide", path: `/clients/${persistentClientId}/business-continuity/program-guide` },
-              { label: "Vendor Risk (TPRM) Guide", path: `/clients/${persistentClientId}/vendors/program-guide` },
-              { label: "Enterprise Risk (ERM) Guide", path: `/clients/${persistentClientId}/risks/program-guide` },
-              { label: "Federal & CMMC Guide", path: `/clients/${persistentClientId}/federal/program-guide` },
-            ]
-          }
-        ] : []),
-        { icon: Calendar, label: "Implementation Plans", path: "/implementation/dashboard" },
-        { icon: BookOpen, label: "Roadmap Templates", path: "/roadmap/templates" },
-      ]
-    },
-    {
-      label: "Platform & Overview",
-      items: [
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         {
           icon: Inbox,
@@ -782,105 +762,93 @@ function DashboardLayoutContent({
           path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
           badge: pendingSentinelCount > 0 ? `${pendingSentinelCount}` : undefined,
         },
-        { icon: Bot, label: "Agent", path: "/agent" },
         { icon: Users, label: "Clients", path: "/clients" },
-        { icon: Settings, label: "Settings", path: "/settings" },
-        { icon: Sparkles, label: "License & Plans", path: "/settings/license" },
-        ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
-        { icon: GraduationCap, label: "User Onboarding", path: "/onboarding" },
       ]
     },
-    {
-      label: "Libraries & Knowledge",
-      items: [
-        { icon: Shield, label: "Global Control Library", path: "/controls" },
-        { icon: GitBranch, label: "Harmonization", path: "/harmonization" },
-        ...(persistentClientId ? [
-          { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
-        ] : []),
-        { icon: BookOpen, label: "Compliance Guides", path: "/guides" },
-      ]
-    },
+
+    // ── Compliance Domains ──────────────────────────────────────────────────
+    // These groups appear when a client is selected (persistentClientId set)
   ];
 
   // In Client Mode: Inject client-scoped framework sections
   if (persistentClientId) {
-    const platformGroup = groups.find((g) => g.label === "Platform & Overview");
-    if (platformGroup) {
-      platformGroup.items.push({ icon: Zap, label: "Workflows", path: "/workflows" });
+    // Add Workflows to Quick Access when in client mode
+    const quickAccessGroup = groups.find((g) => g.label === "Quick Access");
+    if (quickAccessGroup) {
+      quickAccessGroup.items.push({ icon: Zap, label: "Workflows", path: "/workflows" });
     }
 
     groups.push(
-      {
-        label: "Compliance Journey",
-        items: [
-          { icon: Compass, label: "Overview", path: `/clients/${persistentClientId}/compliance-journey` },
-          { icon: BookOpen, label: "SOC 2 Program Guide & Roadmap", path: `/clients/${persistentClientId}/soc2/program-guide` },
-          { icon: HeartPulse, label: "HIPAA Program Guide & Roadmap", path: `/clients/${persistentClientId}/hipaa/program-guide` },
-          {
-            icon: Star,
-            label: "Discovery & Scoping",
-            path: `/clients/${persistentClientId}/readiness/wizard`,
-            submenu: [
-              { label: "ISO 27001", path: `/clients/${persistentClientId}/readiness/wizard/ISO27001` },
-              { label: "SOC 2", path: `/clients/${persistentClientId}/readiness/wizard/SOC2` },
-              { label: "NIST CSF", path: `/clients/${persistentClientId}/readiness/wizard/NISTCSF` },
-              { label: "HIPAA", path: `/clients/${persistentClientId}/readiness/wizard/HIPAA` },
-              { label: "GDPR", path: `/clients/${persistentClientId}/readiness/wizard/GDPR` },
-            ]
-          },
-          { icon: ClipboardCheck, label: "Evidence Collection", path: "/evidence" },
-          { icon: Briefcase, label: "Audit Preparation", path: "/audit-hub" },
-        ]
-      },
+      // ── ISO 27001 ────────────────────────────────────────────────────────
       {
         label: "ISO 27001 ISMS",
         items: [
-          { icon: LayoutDashboard, label: "Dashboard", path: "/iso27001" },
           { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/iso27001/program-guide` },
           { icon: ShieldCheck, label: "Organization Context", path: "/iso27001/governance" },
           { icon: ClipboardList, label: "Statement of Applicability", path: "/iso27001/soa" },
           { icon: AlertTriangle, label: "Risk Management", path: "/iso27001/risks" },
           { icon: Database, label: "Asset Register", path: "/iso27001/assets" },
+          { icon: LayoutDashboard, label: "ISO 27001 Dashboard", path: "/iso27001" },
         ]
       },
 
+      // ── SOC 2 ───────────────────────────────────────────────────────────
       {
-        label: "Governance",
+        label: "SOC 2",
         items: [
-          { icon: LayoutDashboard, label: "Dashboard", path: "/governance", isPremium: true } as any,
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/soc2/program-guide` },
           { icon: Shield, label: "Controls", path: "/client-controls" },
-          { icon: UserCheck, label: "Access Reviews", path: "/access-reviews" },
-          { icon: Webhook, label: "Webhooks", path: "/webhooks" },
-          { icon: ListTodo, label: "Workbench", path: "/governance/workbench", isPremium: true } as any,
-          {
-            icon: Target,
-            label: "Strategic Roadmaps",
-            path: "/start-here",
-            submenu: [
-              { label: "Command Center", path: "/start-here" },
-              { label: "Implementation Plans", path: "/implementation/dashboard" },
-              { label: "Roadmap Templates", path: "/roadmap/templates" }
-            ]
-          },
-          {
-            icon: FileText,
-            label: "Policies",
-            path: "/client-policies",
-            submenu: [
-              { label: "View All Policies", path: "/client-policies" },
-              { label: "Policy Templates", path: "/policy-templates" },
-            ]
-          },
-          { icon: Users, label: "People & Org", path: "/people" },
-          { icon: FileBarChart, label: "RACI Matrix", path: "/raci-matrix" },
-          { icon: Palette, label: "Client Branding", path: "/settings?tab=branding" },
+          { icon: ClipboardCheck, label: "Evidence Collection", path: "/evidence" },
+          { icon: Briefcase, label: "Audit Preparation", path: "/audit-hub" },
         ]
       },
+
+      // ── NIS2 & Cyber Resilience ──────────────────────────────────────────
+      {
+        label: "NIS2 & Cyber Resilience",
+        items: [
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/cyber/program-guide` },
+          { icon: Building2, label: "Cyber Resilience Hub", path: `/clients/${persistentClientId}/nis2` },
+          { icon: Shield, label: "Security Measures", path: `/clients/${persistentClientId}/nis2/security-measures` },
+          { icon: AlertTriangle, label: "Incident Reporting", path: `/clients/${persistentClientId}/nis2/incident-reporting` },
+          { icon: Zap, label: "Supply Chain", path: `/clients/${persistentClientId}/nis2/supply-chain` },
+          { icon: Users, label: "Management Oversight", path: `/clients/${persistentClientId}/nis2/management-liability` },
+          { icon: FileText, label: "Audit Bundle", path: `/clients/${persistentClientId}/nis2/audit-bundle` },
+          { icon: Activity, label: "Incidents", path: "/cyber/incidents" },
+          { icon: FileText, label: "Documents", path: "/cyber/documents" },
+        ]
+      },
+
+      // ── HIPAA ───────────────────────────────────────────────────────────
+      {
+        label: "HIPAA",
+        items: [
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/hipaa/program-guide` },
+          { icon: Shield, label: "Privacy Rule Controls", path: "/client-controls?framework=hipaa" },
+          { icon: ShieldCheck, label: "Security Rule Controls", path: "/client-controls?framework=hipaa" },
+          { icon: ShieldAlert, label: "Breach Notification", path: "/privacy/breaches" },
+          { icon: FileText, label: "Business Associate Agreements", path: "/vendors/dpa-templates" },
+        ]
+      },
+
+      // ── GDPR & Privacy ──────────────────────────────────────────────────
+      {
+        label: "GDPR & Privacy",
+        items: [
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/privacy/program-guide` },
+          { icon: Database, label: "Data Inventory", path: "/privacy/inventory" },
+          { icon: FileText, label: "ROPA", path: "/privacy/ropa" },
+          { icon: Users, label: "DSAR Manager", path: "/privacy/dsar" },
+          { icon: ShieldAlert, label: "Data Breaches", path: "/privacy/breaches" },
+          { icon: Globe, label: "International Transfers", path: "/privacy/transfers" },
+          { icon: FileText, label: "DPA Templates", path: "/vendors/dpa-templates" },
+        ]
+      },
+
+      // ── Risk Management ──────────────────────────────────────────────────
       {
         label: "Risk Management",
         items: [
-          { icon: LayoutDashboard, label: "Dashboard", path: "/risks" },
           { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/risks/program-guide` },
           { icon: LayoutGrid, label: "Risk Framework", path: "/risks/framework" },
           { icon: ClipboardCheck, label: "Risk Assessments", path: "/risks/assessments" },
@@ -892,12 +860,58 @@ function DashboardLayoutContent({
           { icon: ShieldCheck, label: "Treatment Plan", path: "/risks/treatment-plan" },
           { icon: BookOpen, label: "Alignment Guide", path: "/risks/alignment-guide" },
           { icon: FileText, label: "Risk Reports", path: "/risks/report" },
-          // Premium: Adversary Intelligence (conditionally added below)
+        ]
+      },
+
+      // ── Vendors & Third Parties ──────────────────────────────────────────
+      {
+        label: "Vendors & Third Parties",
+        items: [
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/vendors/program-guide` },
+          { icon: Building2, label: "All Vendors", path: "/vendors/all" },
+          { icon: Search, label: "Discovery", path: "/vendors/discovery" },
+          { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
+          { icon: ClipboardList, label: "Questionnaires", path: "/questionnaires" },
+          { icon: Target, label: "Assessment Templates", path: "/vendors/templates" },
+        ]
+      },
+
+      // ── Policies & Governance ────────────────────────────────────────────
+      {
+        label: "Policies & Governance",
+        items: [
+          {
+            icon: FileText,
+            label: "Policies",
+            path: "/client-policies",
+            submenu: [
+              { label: "View All Policies", path: "/client-policies" },
+              { label: "Policy Templates", path: "/policy-templates" },
+            ]
+          },
+          { icon: Users, label: "People & Org", path: "/people" },
+          { icon: FileBarChart, label: "RACI Matrix", path: "/raci-matrix" },
+          { icon: UserCheck, label: "Access Reviews", path: "/access-reviews" },
+          { icon: Palette, label: "Client Branding", path: "/settings?tab=branding" },
+        ]
+      },
+
+      // ── Business Continuity ──────────────────────────────────────────────
+      {
+        label: "Business Continuity",
+        items: [
+          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/business-continuity/program-guide` },
+          { icon: Database, label: "Business Processes", path: "/business-continuity/processes" },
+          { icon: Shield, label: "Strategies", path: "/business-continuity/strategies" },
+          { icon: ClipboardList, label: "Plans", path: "/business-continuity/plans" },
+          { icon: AlertTriangle, label: "Scenarios", path: "/business-continuity/scenarios" },
+          { icon: Users, label: "Call Tree", path: "/business-continuity/call-tree" },
+          { icon: ListTodo, label: "Tasks", path: "/business-continuity/tasks" },
         ]
       }
     );
 
-    // Premium Feature: Threat Intelligence
+    // Premium: Threat Intelligence
     const isPremiumClient = (clientInfo?.planTier === 'pro' || clientInfo?.planTier === 'enterprise') && import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
     if (isPremiumClient) {
       groups.push({
@@ -909,70 +923,15 @@ function DashboardLayoutContent({
       });
     }
 
-    // Premium Feature: Vendor Management
-    // Show when a client is selected (premium check happens at route level)
+    // Premium: Federal Compliance
     const enabledInBuild = import.meta.env.VITE_ENABLE_PREMIUM !== 'false';
     const { isPremiumStatus } = useClientContext();
     const isPremium = isPremiumStatus && enabledInBuild;
 
-
-
-    groups.push({
-      label: "Autonomous AI Agents",
-      items: [
-        {
-          icon: Bot,
-          label: "Agent Command Center",
-          path: "/agent",
-          submenu: [
-            { label: "Multi-Agent Cockpit", path: "/agent" },
-            { label: "Sentinel & Action Inbox", path: "/agent?tab=sentinel" },
-            { label: "Fleet Directory", path: "/agent?tab=teammates" },
-            { label: "Approval Inbox", path: "/agent?tab=approvals" },
-            { label: "Scheduled Routines", path: "/agent?tab=routines" },
-            { label: "Memory Cortex (VFS)", path: "/agent?tab=memory" },
-          ]
-        },
-        { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
-        { icon: Shield, label: "Security Projects", path: "/projects" },
-        { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
-      ]
-    });
-
-
-    // Always show Vendor Management when a client is selected
-    if (persistentClientId) {
-      groups.push({
-        label: "Vendor Management",
-        items: [
-          { icon: LayoutDashboard, label: "Dashboard", path: "/vendors/overview" },
-          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/vendors/program-guide` },
-          { icon: Building2, label: "All Vendors", path: "/vendors/all" },
-          { icon: Search, label: "Discovery", path: "/vendors/discovery" },
-          { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
-          { icon: ClipboardList, label: "Questionnaires", path: "/questionnaires" },
-          { icon: Target, label: "Assessment Templates", path: "/vendors/templates" },
-        ]
-      });
-    }
-
-    groups.push(
-      {
-        label: "Control Frameworks",
-        items: [
-          { icon: LayoutDashboard, label: "Dashboard", path: "/compliance" },
-          { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
-          { icon: GraduationCap, label: "Guides", path: "/guides" },
-          { icon: Link, label: "Mappings", path: "/mappings" },
-        ]
-      }
-    );
-
     if (isPremium) {
       groups.push({
-        label: "Federal Compliance",
+        label: "US Federal Compliance",
         items: [
-          { icon: Building2, label: "Overview", path: "/federal" },
           { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/federal/program-guide` },
           { icon: FileText, label: "Contract Tracker", path: "/federal/contracts" },
           { icon: Cloud, label: "FedRAMP Packages", path: "/federal/fedramp" },
@@ -993,147 +952,134 @@ function DashboardLayoutContent({
     }
 
     groups.push(
+      // ── AI & Automation ──────────────────────────────────────────────────
       {
-        label: "Business Continuity",
+        label: "AI & Automation",
         items: [
-          { icon: Activity, label: "Overview", path: "/business-continuity" },
-          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/business-continuity/program-guide` },
-          { icon: Database, label: "Business Processes", path: "/business-continuity/processes" },
-          { icon: Shield, label: "Strategies", path: "/business-continuity/strategies" },
-          { icon: ClipboardList, label: "Plans", path: "/business-continuity/plans" },
-          { icon: AlertTriangle, label: "Scenarios", path: "/business-continuity/scenarios" },
-          { icon: Users, label: "Call Tree", path: "/business-continuity/call-tree" },
-          { icon: ListTodo, label: "Tasks", path: "/business-continuity/tasks" },
+          {
+            icon: Bot,
+            label: "Agent Command Center",
+            path: "/agent",
+            submenu: [
+              { label: "Multi-Agent Cockpit", path: "/agent" },
+              { label: "Sentinel & Action Inbox", path: "/agent?tab=sentinel" },
+              { label: "Fleet Directory", path: "/agent?tab=teammates" },
+              { label: "Approval Inbox", path: "/agent?tab=approvals" },
+              { label: "Scheduled Routines", path: "/agent?tab=routines" },
+              { label: "Memory Cortex (VFS)", path: "/agent?tab=memory" },
+            ]
+          },
+          { icon: Sparkles, label: "AI Features & Privacy", path: "/admin/llm?tab=ai_privacy", isPremium: true } as any,
+          { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
+          { icon: Shield, label: "Security Projects", path: "/projects" },
+          { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
         ]
       },
+
+      // ── Reports & Audit ──────────────────────────────────────────────────
       {
-        label: "Privacy",
+        label: "Reports & Audit",
         items: [
-          { icon: Lock, label: "Overview", path: "/privacy" },
-          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/privacy/program-guide` },
-          { icon: Database, label: "Data Inventory", path: "/privacy/inventory" },
-          { icon: FileText, label: "ROPA", path: "/privacy/ropa" },
-          { icon: ShieldAlert, label: "Data Breaches", path: "/privacy/breaches" },
-          { icon: Globe, label: "International Transfers", path: "/privacy/transfers" },
-          { icon: Users, label: "DSAR Manager", path: "/privacy/dsar" },
-          { icon: FileText, label: "DPA Templates", path: "/vendors/dpa-templates" },
-        ]
-      },
-      {
-        label: "NIS2 & Cyber Resilience",
-        items: [
-          { icon: ShieldCheck, label: "Overview", path: "/cyber" },
-          { icon: Compass, label: "Program Guide & Roadmap", path: `/clients/${persistentClientId}/cyber/program-guide` },
-          { icon: Building2, label: "Cyber Resilience Hub", path: `/clients/${persistentClientId}/nis2` },
-          { icon: Shield, label: "Security Measures", path: `/clients/${persistentClientId}/nis2/security-measures` },
-          { icon: AlertTriangle, label: "Incident Reporting", path: `/clients/${persistentClientId}/nis2/incident-reporting` },
-          { icon: Building2, label: "Entity Registry", path: `/clients/${persistentClientId}/nis2/entity-registry` },
-          { icon: Zap, label: "Supply Chain", path: `/clients/${persistentClientId}/nis2/supply-chain` },
-          { icon: Globe, label: "Cross-Border", path: `/clients/${persistentClientId}/nis2/cross-border` },
-          { icon: Users, label: "Management Oversight", path: `/clients/${persistentClientId}/nis2/management-liability` },
-          { icon: FileText, label: "Audit Bundle", path: `/clients/${persistentClientId}/nis2/audit-bundle` },
-          { icon: Activity, label: "Incidents", path: "/cyber/incidents" },
-          { icon: FileText, label: "Documents", path: "/cyber/documents" },
-        ]
-      },
-      {
-        label: "Reporting & Assurance",
-        items: [
+          { icon: ShieldCheck, label: "Audit Manager", path: `/clients/${persistentClientId}/audit-manager` },
+          { icon: Briefcase, label: "Audit Preparation", path: `/clients/${persistentClientId}/audit-hub` },
           ...(clientInfo?.serviceModel === 'managed' && enabledInBuild ? [{ icon: Inbox, label: "Evidence Intake Box", path: "/intake" }] : []),
           { icon: LayoutDashboard, label: "Board Summary", path: "/board-summary" },
-          { icon: ClipboardCheck, label: "Evidence Collection", path: "/evidence" },
+          { icon: FileBarChart, label: "Reports", path: "/reports" },
+          { icon: FileBarChart, label: "Metrics", path: "/metrics" },
           { icon: Zap, label: "Supply Chain (SCVS)", path: "/assurance/scvs" },
           { icon: ShieldCheck, label: "OpenSSF Hygiene", path: "/assurance/openssf" },
           { icon: Radar, label: "Mobile App Sec", path: "/assurance/masvs" },
         ]
       },
+
+      // ── Libraries & Reference ────────────────────────────────────────────
       {
-        label: "Audit Hub",
+        label: "Libraries & Reference",
         items: [
-          { icon: ShieldCheck, label: "Audit Manager", path: `/clients/${persistentClientId}/audit-manager` },
-          { icon: Briefcase, label: "Audit Preparation", path: `/clients/${persistentClientId}/audit-hub` },
+          { icon: Shield, label: "Global Control Library", path: "/controls" },
+          { icon: GitBranch, label: "Harmonization", path: "/harmonization" },
+          { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
+          { icon: BookOpen, label: "Knowledge Base", path: "/knowledge-base" },
+          { icon: Link, label: "Mappings", path: "/mappings" },
+          { icon: GraduationCap, label: "Guides", path: "/guides" },
         ]
       },
+
+      // ── Discovery & Scoping ──────────────────────────────────────────────
       {
-        label: "Management",
+        label: "Discovery & Scoping",
         items: [
-          { icon: FileBarChart, label: "Metrics", path: "/metrics" },
-          { icon: FileBarChart, label: "Reports", path: "/reports" },
-          { icon: Calendar, label: "Calendar", path: "/calendar" },
-          { icon: ListTodo, label: "Tasks", path: "/tasks" },
-          { icon: MessageSquare, label: "Communication", path: "/communication" },
           {
-            icon: Settings, label: "Client Settings", submenu: [
-              { label: "Security", path: "/settings/security" },
-              // Plugins hidden from navigation (page still reachable by URL)
-              { label: "User Onboarding", path: "/settings/onboarding" },
-              { label: "Users", path: "/settings/users" },
-              { label: "Organization", path: "/settings/organization" },
-              { label: "Branding", path: "/settings?tab=branding" },
-              { label: "Invitations", path: "/settings/invitations" },
-              { label: "Integrations", path: "/settings/integrations" },
-              { label: "Backup / Restore", path: "/settings?tab=backup-restore" },
+            icon: Star,
+            label: "Readiness Wizard",
+            path: `/clients/${persistentClientId}/readiness/wizard`,
+            submenu: [
+              { label: "ISO 27001", path: `/clients/${persistentClientId}/readiness/wizard/ISO27001` },
+              { label: "SOC 2", path: `/clients/${persistentClientId}/readiness/wizard/SOC2` },
+              { label: "NIST CSF", path: `/clients/${persistentClientId}/readiness/wizard/NISTCSF` },
+              { label: "HIPAA", path: `/clients/${persistentClientId}/readiness/wizard/HIPAA` },
+              { label: "GDPR", path: `/clients/${persistentClientId}/readiness/wizard/GDPR` },
             ]
           },
-          ...(isAdminOrOwner ? [{ icon: GraduationCap, label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
-        ]
-      },
-      {
-        label: "Marketing",
-        items: [
-          { icon: Megaphone, label: "CRM Dashboard", path: "/sales", isPremium: true } as any,
+          { icon: Target, label: "Strategic Roadmaps", path: "/start-here" },
+          { icon: Calendar, label: "Implementation Plans", path: "/implementation/dashboard" },
+          { icon: BookOpen, label: "Roadmap Templates", path: "/roadmap/templates" },
         ]
       }
     );
 
-    // Addon menu and sub menus hidden for now
-    // const activeAddons = (addonSubscriptions || []).filter(
-    //   (s: any) => s.status === 'active' || s.status === 'trial'
-    // );
-    // groups.push({
-    //   label: "Addons",
-    //   items: [
-    //     { icon: ShoppingBag, label: "Marketplace", path: "/addons" },
-    //     ...activeAddons.map((sub: any) => ({
-    //       icon: Cloud,
-    //       label: sub.manifest?.name || sub.addon_slug,
-    //       path: `/addons/${sub.addon_slug}`,
-    //     })),
-    //   ]
-    // });
-
     // Add dynamic plugin groups if any are enabled
     if (installedPlugins && installedPlugins.length > 0) {
       const enabledPlugins = installedPlugins.filter(p => p.enabled);
-
       if (enabledPlugins.length > 0) {
         groups.push({
           label: "App Extensions",
           items: enabledPlugins.map(plugin => {
-            // Mapping specific plugins to icons for demo
             let icon = ShoppingBag;
             if (plugin.id === 'cos-risk-game') icon = Gamepad2;
-
-            return {
-              icon,
-              label: plugin.name,
-              path: `/plugins/${plugin.slug}`,
-              // Manifests might define where they go, for now we map them here
-            };
+            return { icon, label: plugin.name, path: `/plugins/${plugin.slug}` };
           })
         });
       }
     }
   }
 
+  // ── Always-visible bottom groups ────────────────────────────────────────
+  groups.push({
+    label: "Settings & Administration",
+    items: [
+      { icon: Settings, label: "Settings", path: "/settings" },
+      { icon: Sparkles, label: "License & Plans", path: "/settings/license" },
+      { icon: GraduationCap, label: "User Onboarding", path: "/onboarding" },
+      ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
+      {
+        icon: Settings, label: "Client Settings", submenu: [
+          { label: "Security", path: "/settings/security" },
+          { label: "User Onboarding", path: "/settings/onboarding" },
+          { label: "Users", path: "/settings/users" },
+          { label: "Organization", path: "/settings/organization" },
+          { label: "Branding", path: "/settings?tab=branding" },
+          { label: "Invitations", path: "/settings/invitations" },
+          { label: "Integrations", path: "/settings/integrations" },
+          { label: "Backup / Restore", path: "/settings?tab=backup-restore" },
+        ]
+      },
+      { icon: Sparkles, label: "LLM Settings", path: "/admin/llm" },
+      { icon: History, label: "Activity Log", path: "/activity" },
+      { icon: Megaphone, label: "CRM Dashboard", path: "/sales", isPremium: true } as any,
+    ]
+  });
 
   if (isAdminOrOwner) {
     groups.push({
-      label: "Administration",
+      label: "Admin Console",
       items: [
         adminMenuItem,
         { icon: Sparkles, label: "Advisor Workbench", path: "/advisor/workbench", isPremium: true } as any,
-        { icon: History, label: "Activity Log", path: "/activity" },
+        { icon: Users, label: "Organizations", path: "/admin/organizations" },
+        { icon: FileText, label: "Invitations", path: "/admin/invitations" },
+        { icon: History, label: "Audit Logs", path: "/admin/audit" },
+        { icon: CreditCard, label: "Billing", path: "/admin/billing" },
       ]
     });
   }
@@ -1795,7 +1741,7 @@ function CollapsibleGroup({
   });
 
   // Initialize open state based on whether group contains active item or is a primary group
-  const isDefaultOpen = group.label === "Platform & Overview" || group.label === "Start Here & Roadmaps";
+  const isDefaultOpen = group.label === "Quick Access" || group.label === "ISO 27001 ISMS";
   const [isOpen, setIsOpen] = useState(forceOpen || containsActiveItem || isDefaultOpen);
 
   // Update open state when the active item changes (e.g., during navigation)

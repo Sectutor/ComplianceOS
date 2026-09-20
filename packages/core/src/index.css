@@ -1042,7 +1042,7 @@
 
 /* --- Content Cards --- */
 .content-card {
-  background: white;
+  background: #f1f5f9;
   border: 1px solid #e2e8f0;
   border-radius: 1rem;
   padding: 1.5rem;
@@ -1056,8 +1056,8 @@
 
 /* --- Highlight Section (Why Auditors Care, Best Practices, etc.) */
 .highlight-section {
-  background-color: #2563eb;
-  color: white;
+  background-color: #bfdbfe;
+  color: black;
   border-radius: 0.75rem;
   padding: 0.75rem;
 }

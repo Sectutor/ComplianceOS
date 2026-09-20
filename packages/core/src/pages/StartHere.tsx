@@ -641,38 +641,68 @@ export default function StartHere() {
                     </div>
                 </div>
 
-                {/* HERO BANNER */}
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-[#001e2b] to-slate-900 text-white shadow-2xl p-8 md:p-10 border border-slate-800">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+                {/* HERO BANNER — matches ISO 27001 Program Guide styling */}
+                <div className="bg-gradient-to-br from-[#1C4D8D] to-[#0F2C59] rounded-3xl p-8 lg:p-12 text-white shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
 
-                    <div className="relative z-10 max-w-3xl space-y-4">
-                        <div className="flex items-center gap-3">
-                            <Badge variant="outline" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 px-3 py-1 font-semibold text-xs">
-                                🚀 Strategic Launchpad
-                            </Badge>
-                            <span className="text-slate-400 text-sm flex items-center">
-                                <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                                Continuous Compliance Cycle 2026
-                            </span>
+                    <div className="relative z-10 space-y-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white/15 p-4 rounded-2xl border border-white/20 text-white">
+                                    <Rocket className="w-8 h-8 text-white" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight">Start Here & Command Center</h1>
+                                        <Badge className="bg-white/20 text-white border-white/30 text-xs font-medium">
+                                            Strategic Launchpad
+                                        </Badge>
+                                    </div>
+                                    <p className="text-blue-100 text-base mt-1">
+                                        Instantly instantiate tracked compliance roadmaps for <strong className="text-white font-semibold">{currentClient.name}</strong> with pre-populated milestones.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300">
-                            Start Here & Command Center
-                        </h1>
-                        <p className="text-base md:text-lg text-slate-300 leading-relaxed font-normal">
-                            Instantly instantiate tracked compliance roadmaps for <strong className="text-white font-semibold">{currentClient.name}</strong> with pre-populated milestones, or explore guided step-by-step methodologies.
-                        </p>
+
+                        {/* Progress Telemetry — matches ISO page */}
+                        <div className="bg-white/15 rounded-2xl p-6 border border-white/20 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-white/90 flex items-center gap-2">
+                                    <Target className="w-4 h-4 text-emerald-400" />
+                                    Compliance Program Maturity
+                                </span>
+                                <span className="text-sm font-medium text-blue-100 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-400/30">
+                                    Active Programs
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">{activeRoadmaps?.length || 0}</span> Active Roadmaps
+                                </div>
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">{templates.length}</span> Available Templates
+                                </div>
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">6</span> Framework Guides
+                                </div>
+                                <div className="text-blue-100">
+                                    <span className="font-medium text-white">4</span> GRC Programs
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* ACTIVE ROADMAPS BAR (IF CLIENT HAS RUNNING ROADMAPS) */}
+                {/* ACTIVE ROADMAPS BAR — blue accent matching ISO page */}
                 {activeRoadmaps && activeRoadmaps.length > 0 && (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <Activity className="w-5 h-5 text-emerald-500 animate-pulse" />
+                                <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-pulse" />
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Strategic Initiatives</h2>
-                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                                     {activeRoadmaps.length} Running
                                 </Badge>
                             </div>
@@ -684,7 +714,7 @@ export default function StartHere() {
                                 <Card
                                     key={r.id}
                                     onClick={() => setLocation(getDestinationForRoadmap(r))}
-                                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group"
+                                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group"
                                 >
                                     <CardHeader className="p-5 pb-3">
                                         <div className="flex items-center justify-between mb-2">
@@ -695,7 +725,7 @@ export default function StartHere() {
                                                 {r.status.replace('_', ' ')}
                                             </Badge>
                                         </div>
-                                        <CardTitle className="text-base font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1">
+                                        <CardTitle className="text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                                             {r.title}
                                         </CardTitle>
                                         <CardDescription className="text-xs text-slate-500 line-clamp-2 mt-1">
@@ -707,7 +737,7 @@ export default function StartHere() {
                                             <Target className="w-3.5 h-3.5 mr-1 text-slate-400" />
                                             Target: {r.targetDate ? new Date(r.targetDate).toLocaleDateString() : 'Continuous'}
                                         </div>
-                                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center group-hover:translate-x-1 transition-transform">
+                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center group-hover:translate-x-1 transition-transform">
                                             Resume Roadmap <ArrowRight className="w-3.5 h-3.5 ml-1" />
                                         </span>
                                     </CardFooter>
@@ -730,7 +760,7 @@ export default function StartHere() {
                         </div>
 
                         {/* CATEGORY TABS */}
-                        <div className="flex items-center gap-1.5 bg-slate-200/80 dark:bg-slate-900/90 p-1.5 rounded-xl border border-slate-300 dark:border-slate-700/80 self-start shadow-inner">
+                        <div className="flex items-center gap-1.5 bg-slate-200/80 dark:bg-slate-900/90 p-1.5 rounded-xl border border-slate-300 dark:border-slate-700/80 self-start shadow-inner" id="roadmap-grid">
                             <button
                                 onClick={() => setActiveTab('all')}
                                 className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'all'
@@ -790,7 +820,7 @@ export default function StartHere() {
                                 <Card
                                     key={template.id}
                                     className={`bg-white dark:bg-slate-900 border rounded-3xl transition-all duration-300 relative flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-lg ${activeRoadmap
-                                        ? 'border-emerald-500/40 hover:border-emerald-500 ring-1 ring-emerald-500/20'
+                                        ? 'border-blue-500/40 hover:border-blue-500 ring-1 ring-blue-500/20'
                                         : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                                         }`}
                                 >
@@ -828,7 +858,7 @@ export default function StartHere() {
                                             </span>
                                             {template.milestones.slice(0, 3).map((m, idx) => (
                                                 <div key={idx} className="flex items-center gap-2 text-xs truncate">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
                                                     <span className="truncate">{m.title}</span>
                                                 </div>
                                             ))}
@@ -844,7 +874,7 @@ export default function StartHere() {
                                         <div className="flex items-center gap-2 w-full">
                                             {activeRoadmap ? (
                                                 <Button
-                                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 shadow-sm"
+                                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 shadow-sm"
                                                     onClick={() => setLocation(getDestinationForTemplate(template, activeRoadmap))}
                                                 >
                                                     <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -887,8 +917,8 @@ export default function StartHere() {
                                         <div className="flex items-center justify-between w-full text-[11px] text-slate-500 px-1">
                                             <span>
                                                 {activeRoadmap ? (
-                                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center">
-                                                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-1.5 animate-pulse" />
+                                                    <span className="text-blue-600 dark:text-blue-400 font-semibold flex items-center">
+                                                        <span className="w-2 h-2 rounded-full bg-blue-500 inline-block mr-1.5 animate-pulse" />
                                                         Active in workspace
                                                     </span>
                                                 ) : (

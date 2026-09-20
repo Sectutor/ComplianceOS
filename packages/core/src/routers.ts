@@ -183,6 +183,7 @@ import { createRiskGameRouter } from "./server/routers/riskGame";
 import { pluginRouter } from "./server/routers/plugins";
 import { createLlmRouter } from "./server/routers/llm";
 import { createAiCopilotRouter } from "./server/routers/aiCopilot";
+import { createAiFeaturesRouter } from "./server/routers/ai-features";
 import { createIncidentClassifierRouter } from "./server/routers/incidentClassifier";
 import { createIncidentTimelineRouter } from "./server/routers/incidentTimeline";
 import { createSupplyChainRouter } from "./server/routers/supplyChain";
@@ -353,6 +354,7 @@ export const appRouter = router({
   trustCenter: createTrustCenterRouter(t, publicProcedure, protectedProcedure),
   llm: createLlmRouter(t, premiumClientProcedure, isAuthed, adminProcedure),
   aiCopilot: createAiCopilotRouter(t, protectedProcedure, publicProcedure, premiumClientProcedure),
+  aiFeatures: createAiFeaturesRouter(t, publicProcedure, isAuthed, adminProcedure),
   incidentClassifier: createIncidentClassifierRouter(t, protectedProcedure),
   incidentTimeline: createIncidentTimelineRouter(t, protectedProcedure),
   securityMetrics: createSecurityMetricsRouter(t, protectedProcedure),

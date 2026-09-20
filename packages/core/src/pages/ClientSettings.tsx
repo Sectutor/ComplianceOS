@@ -29,7 +29,8 @@ import {
     Briefcase,
     MapPin,
     Globe,
-    Bot
+    Bot,
+    Zap
 } from "lucide-react";
 
 
@@ -47,6 +48,9 @@ import { PersonalizationReference } from "@/components/settings/PersonalizationR
 import { ShoppingBag, History } from "lucide-react";
 import { BackupRestoreSettings } from "@/components/settings/BackupRestoreSettings";
 import { BillingTab } from "@/components/settings/BillingTab";
+import AiPrivacyPanel from "@/components/admin/AiPrivacyPanel";
+import AiFeatureToggles from "@/components/admin/AiFeatureToggles";
+import AiAuditLogViewer from "@/components/admin/AiAuditLogViewer";
 
 interface ClientSettingsProps {
     id?: string;
@@ -285,6 +289,13 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                         >
                             <Mail className="mr-2 h-3.5 w-3.5" />
                             Emails
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="ai-features"
+                            className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/60 text-muted-foreground hover:text-foreground font-semibold border border-transparent px-3.5 py-2 rounded-xl text-xs transition-all flex items-center"
+                        >
+                            <Zap className="mr-2 h-3.5 w-3.5 text-yellow-500" />
+                            AI Features
                         </TabsTrigger>
                     </TabsList>
 
@@ -532,6 +543,13 @@ export default function ClientSettings(props?: ClientSettingsProps) {
                             {/* Automation Tab — sentinel agent runtime */}
                             <TabsContent value="automation" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
                                 <AutomationSettingsTab clientId={clientId} />
+                            </TabsContent>
+
+                            {/* AI Features Tab */}
+                            <TabsContent value="ai-features" className="m-0 space-y-6 animate-in fade-in-50 duration-300">
+                                <AiPrivacyPanel clientId={clientId} />
+                                <AiFeatureToggles clientId={clientId} />
+                                <AiAuditLogViewer clientId={clientId} />
                             </TabsContent>
                         </div>
 
