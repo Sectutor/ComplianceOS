@@ -801,23 +801,23 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                     <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         <div className="space-y-3 max-w-3xl">
                             <div className="flex flex-wrap items-center gap-2">
-                                <Badge className="bg-teal-500/20 text-teal-300 border-teal-400/30 text-xs font-bold uppercase tracking-wider">
+                                <Badge className="bg-white/20 text-white border-white/30 text-xs font-bold uppercase tracking-wider">
                                     NIST SP 800-53 Rev 5 • DFARS 252.204-7012
                                 </Badge>
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-xs font-bold">
+                                <Badge className="bg-emerald-500/30 text-emerald-100 border-emerald-400/30 text-xs font-bold">
                                     DoD CMMC 2.0 & FedRAMP Ready
                                 </Badge>
                             </div>
                             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
                                 Federal Compliance, CMMC & FedRAMP Program Guide
                             </h1>
-                            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                            <p className="text-blue-100 text-sm md:text-base leading-relaxed">
                                 Comprehensive operational manual for defense industrial base contractors, DoD primes, and cloud service providers navigating CUI boundaries, NIST 800-171/800-53 controls, and 3PAO assessments.
                             </p>
 
                             {/* Embedded Multi-Standard Framework Switcher */}
                             <div className="pt-2 flex items-center gap-2 flex-wrap">
-                                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1">Active Standard:</span>
+                                <span className="text-xs text-blue-200 font-medium uppercase tracking-wider mr-1">Active Standard:</span>
                                 {(Object.keys(FRAMEWORKS) as Array<keyof typeof FRAMEWORKS>).map(key => {
                                     const f = FRAMEWORKS[key];
                                     const isActive = activeFw === key;
@@ -846,7 +846,7 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                                 <span className="text-white text-base font-semibold">{progressPercentage}%</span>
                             </div>
                             <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
-                            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
+                            <div className="grid grid-cols-2 gap-2 text-[11px] text-blue-100 pt-1">
                                 <div>DoD Contracts: <strong className="text-white">{safeContracts.length}</strong></div>
                                 <div>FedRAMP Pkgs: <strong className="text-white">{safePackages.length}</strong></div>
                                 <div>Safeguards: <strong className="text-white">{implementedControls}</strong></div>
@@ -871,7 +871,7 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                         variant={activeTab === 'playbook' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('playbook')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'playbook' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'playbook' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <BookOpen className="w-4 h-4 mr-1.5" />
                         Implementation Playbook ({fw.shortLabel})
@@ -880,7 +880,7 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                         variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('roadmap')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'roadmap' ? "bg-teal-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'roadmap' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <CalendarClock className="w-4 h-4 mr-1.5" />
                         90-Day Federal & CMMC Roadmap
@@ -889,7 +889,7 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                         variant={activeTab === 'documents' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('documents')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'documents' ? "bg-teal-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'documents' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <FileCheck className="w-4 h-4 mr-1.5" />
                         Mandatory Documents
@@ -898,7 +898,7 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('architecture')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'architecture' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <Layers className="w-4 h-4 mr-1.5" />
                         CUI Enclave & GovCloud Architecture
@@ -907,7 +907,7 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                         variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('auditor')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'auditor' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <ShieldCheck className="w-4 h-4 mr-1.5" />
                         DoD DIBCAC & 3PAO Clean Room
@@ -1002,15 +1002,15 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
                                                 </p>
 
                                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                                                        <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
-                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                    <div className="bg-blue-600 p-5 rounded-xl">
+                                                        <h4 className="font-medium text-white mb-3 flex items-center gap-2 text-sm">
+                                                            <CheckCircle2 className="w-4 h-4 text-white" />
                                                             Key Actions & Best Practices
                                                         </h4>
                                                         <ul className="space-y-2 text-sm">
                                                             {[...step.keyActions, ...step.bestPractices].map((practice, i) => (
                                                                 <li key={i} className="flex items-start gap-3 text-slate-600">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-white mt-2 flex-shrink-0"></div>
                                                                     <span className="leading-relaxed">{practice}</span>
                                                                 </li>
                                                             ))}

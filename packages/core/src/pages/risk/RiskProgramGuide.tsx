@@ -517,20 +517,20 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                 <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-xs font-bold uppercase tracking-wider">
                                     ISO/IEC 27005:2022 • NIST SP 800-30
                                 </Badge>
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-xs font-bold">
+                                <Badge className="bg-emerald-500/30 text-emerald-100 border-emerald-400/30 text-xs font-bold">
                                     FAIR Quantitative Analysis Ready
                                 </Badge>
                             </div>
                             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
                                 Enterprise Risk Management (ERM) Program Guide
                             </h1>
-                            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                            <p className="text-blue-100 text-sm md:text-base leading-relaxed">
                                 Comprehensive risk governance manual covering context establishment, asset criticality, asset-based threat modeling, inherent & residual scoring, treatment plans (RTP), and board oversight.
                             </p>
 
                             {/* Embedded Multi-Standard Framework Switcher */}
                             <div className="pt-2 flex items-center gap-2 flex-wrap">
-                                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1">Active Standard:</span>
+                                <span className="text-xs text-blue-200 font-medium uppercase tracking-wider mr-1">Active Standard:</span>
                                 {(Object.keys(FRAMEWORKS) as Array<keyof typeof FRAMEWORKS>).map(key => {
                                     const f = FRAMEWORKS[key];
                                     const isActive = activeFw === key;
@@ -559,7 +559,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                 <span className="text-white text-base font-semibold">{progressPercentage}%</span>
                             </div>
                             <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
-                            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
+                            <div className="grid grid-cols-2 gap-2 text-[11px] text-blue-100 pt-1">
                                 <div>Total Risks: <strong className="text-white">{safeRisks.length}</strong></div>
                                 <div>Treated Risks: <strong className="text-white">{treatedRisks}</strong></div>
                                 <div>Threat Scenarios: <strong className="text-white">{safeThreats.length}</strong></div>
@@ -584,7 +584,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                         variant={activeTab === 'playbook' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('playbook')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'playbook' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'playbook' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <BookOpen className="w-4 h-4 mr-1.5" />
                         Implementation Playbook ({fw.shortLabel})
@@ -593,7 +593,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                         variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('roadmap')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'roadmap' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'roadmap' ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
                     >
                         <CalendarClock className="w-4 h-4 mr-1.5" />
                         90-Day ERM Roadmap (ISO 27005 / FAIR)
@@ -602,7 +602,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('architecture')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'architecture' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <Layers className="w-4 h-4 mr-1.5" />
                         Risk Matrix & Governance Architecture
@@ -611,7 +611,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                         variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('auditor')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'auditor' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <ShieldCheck className="w-4 h-4 mr-1.5" />
                         Executive & Board Governance Binder
@@ -706,15 +706,15 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                                 </p>
 
                                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                                                        <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-sm">
-                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                    <div className="bg-blue-600 p-5 rounded-xl">
+                                                        <h4 className="font-medium text-white mb-3 flex items-center gap-2 text-sm">
+                                                            <CheckCircle2 className="w-4 h-4 text-white" />
                                                             Key Actions & Best Practices
                                                         </h4>
                                                         <ul className="space-y-2 text-sm">
                                                             {[...step.keyActions, ...step.bestPractices].map((practice, i) => (
                                                                 <li key={i} className="flex items-start gap-3 text-slate-600">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 flex-shrink-0"></div>
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-white mt-2 flex-shrink-0"></div>
                                                                     <span className="leading-relaxed">{practice}</span>
                                                                 </li>
                                                             ))}
