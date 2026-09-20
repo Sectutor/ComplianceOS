@@ -1050,18 +1050,9 @@ div[role="dialog"] h2 {
   line-height: 1.4 !important;
 }
 
-/* Restore X close button */
+/* Remove X close button */
 div[role="dialog"] > button.absolute {
-  display: flex !important;
-  background-color: transparent !important;
-  color: #ffffff !important;
-  border: none !important;
-  top: 1rem !important;
-  right: 1rem !important;
-}
-
-div[role="dialog"] > button.absolute:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  display: none !important;
 }
 
 /* Dialog inner cards */
