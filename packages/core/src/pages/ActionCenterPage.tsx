@@ -246,21 +246,21 @@ export default function ActionCenterPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
-      <div className="hero-banner">
+      <div className="content-card">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white">
+              <div className="w-11 h-11 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600">
                 <Bot className="w-6 h-6" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">
                 Proactive Action Center
               </h1>
               <span className="badge-active">
                 100% Human Sign-Off
               </span>
             </div>
-            <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">
+            <p className="text-slate-600 text-sm max-w-2xl leading-relaxed">
               Autonomous sentinels continuously patrol your policies, vendor risks, audit evidence, and appetite thresholds. Every proposed remediation requires explicit human review and approval.
             </p>
           </div>
@@ -269,9 +269,9 @@ export default function ActionCenterPage() {
           <div className="flex items-center gap-3 flex-wrap">
             {/* Organization Selector */}
             {Array.isArray(clientsList) && clientsList.length > 0 && (
-              <div className="flex items-center gap-2 bg-white/15 border border-white/20 rounded-2xl px-3 py-1.5">
-                <Building2 className="w-4 h-4 text-white shrink-0" />
-                <span className="text-xs text-blue-100 font-medium whitespace-nowrap">Org:</span>
+              <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-2xl px-3 py-1.5">
+                <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="text-xs text-slate-600 font-medium whitespace-nowrap">Org:</span>
                 <Select
                   value={String(clientId)}
                   onValueChange={(val) => {
@@ -280,7 +280,7 @@ export default function ActionCenterPage() {
                     setLocation(`/action-center?clientId=${id}`);
                   }}
                 >
-                  <SelectTrigger className="h-7 min-w-[130px] max-w-[190px] bg-transparent border-0 text-white text-xs font-medium focus:ring-0">
+                  <SelectTrigger className="h-7 min-w-[130px] max-w-[190px] bg-transparent border-0 text-slate-900 text-xs font-medium focus:ring-0">
                     <SelectValue placeholder="Select org..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800">
@@ -295,14 +295,14 @@ export default function ActionCenterPage() {
             )}
 
             {/* Cadence Selector */}
-            <div className="flex items-center gap-2 bg-white/15 border border-white/20 rounded-2xl px-3 py-1.5">
-              <Clock className="w-4 h-4 text-blue-200 shrink-0" />
-              <span className="text-xs text-blue-100 font-medium whitespace-nowrap">Cadence:</span>
+            <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-2xl px-3 py-1.5">
+              <Clock className="w-4 h-4 text-slate-500 shrink-0" />
+              <span className="text-xs text-slate-600 font-medium whitespace-nowrap">Cadence:</span>
               <Select
                 value={stats?.cadence || "daily"}
                 onValueChange={(val) => updateCadence.mutate({ clientId, schedule: val })}
               >
-                <SelectTrigger className="h-7 w-[120px] bg-transparent border-0 text-white text-xs font-medium focus:ring-0">
+                <SelectTrigger className="h-7 w-[120px] bg-transparent border-0 text-slate-900 text-xs font-medium focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800">
@@ -321,16 +321,16 @@ export default function ActionCenterPage() {
             <Button
               variant="outline"
               onClick={() => setShowGuideDialog(true)}
-              className="rounded-xl border-white/20 bg-white/15 text-white px-3.5 py-2 font-medium text-xs hover:bg-white/25 flex items-center gap-2 transition-all cursor-pointer"
+              className="btn-outline rounded-xl px-3.5 py-2 text-xs flex items-center gap-2 cursor-pointer"
             >
-              <BookOpen className="w-4 h-4" />
+              <BookOpen className="w-4 h-4 text-blue-600" />
               How It Works
             </Button>
 
             <Button
               onClick={() => runNow.mutate({ clientId })}
               disabled={runNow.isPending}
-              className="bg-white hover:bg-blue-50 text-[#0F2C59] rounded-xl px-4 py-2 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer"
+              className="btn-primary rounded-xl px-4 py-2 text-xs flex items-center gap-2 cursor-pointer"
             >
               {runNow.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {runNow.isPending ? "Patrolling..." : "Run Proactive Scan Now"}
