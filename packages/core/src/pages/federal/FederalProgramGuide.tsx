@@ -775,12 +775,12 @@ export default function FederalProgramGuide(props?: FederalProgramGuideProps) {
 
                 {/* Return to Start Here Banner */}
                 {returnToStartHere && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-700 dark:text-emerald-300">
+                    <div className="bg-emerald-100 border border-emerald-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                             <Compass className="w-5 h-5 text-slate-900 shrink-0" />
                             <div>
-                                <p className="text-sm font-semibold">Active Program Implementation</p>
-                                <p className="text-xs text-slate-900/80 dark:text-emerald-400/80">
+                                <p className="text-sm font-semibold text-slate-900">Active Program Implementation</p>
+                                <p className="text-xs text-slate-700">
                                     You navigated here from Start Here. Click the button anytime to return to your program roadmap.
                                 </p>
                             </div>
