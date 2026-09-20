@@ -623,10 +623,10 @@ export default function ActionCenterPage() {
           </div>
          </div>
 
-         <div className="text-sm sm:text-base font-medium text-slate-800 mt-2.5 leading-snug cursor-pointer hover:text-blue-600 hover:underline transition-colors flex items-center gap-2.5 group"
-          <span>{action.title}</span>
-          <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-600 dark:text-blue-400 transition-opacity shrink-0" />
-         </CardTitle>
+         <div className="text-sm sm:text-base font-medium text-slate-800 mt-2.5 leading-snug cursor-pointer hover:text-blue-600 hover:underline transition-colors flex items-center gap-2.5 group">
+           <span>{action.title}</span>
+           <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-600 transition-opacity shrink-0" />
+         </div>
         </div>
 
         <div className="space-y-3.5 pt-0">
