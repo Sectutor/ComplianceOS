@@ -755,6 +755,7 @@ function DashboardLayoutContent({
           isAccent: true,
           badge: "START",
         },
+        { icon: Users, label: "Clients", path: "/clients" },
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         {
           icon: Inbox,
@@ -762,7 +763,6 @@ function DashboardLayoutContent({
           path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
           badge: pendingSentinelCount > 0 ? `${pendingSentinelCount}` : undefined,
         },
-        { icon: Users, label: "Clients", path: "/clients" },
       ]
     },
 
