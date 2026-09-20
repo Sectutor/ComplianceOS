@@ -245,22 +245,22 @@ export default function ActionCenterPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Header Banner - Clean, High-Contrast Modern Enterprise Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+      {/* Header Banner */}
+      <div className="hero-banner">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white">
                 <Bot className="w-6 h-6" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
                 Proactive Action Center
               </h1>
-              <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-xs px-2.5 py-0.5 font-bold">
+              <span className="badge-active">
                 100% Human Sign-Off
-              </Badge>
+              </span>
             </div>
-            <p className="text-slate-600 dark:text-slate-400 text-sm max-w-2xl leading-relaxed">
+            <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">
               Autonomous sentinels continuously patrol your policies, vendor risks, audit evidence, and appetite thresholds. Every proposed remediation requires explicit human review and approval.
             </p>
           </div>
@@ -269,9 +269,9 @@ export default function ActionCenterPage() {
           <div className="flex items-center gap-3 flex-wrap">
             {/* Organization Selector */}
             {Array.isArray(clientsList) && clientsList.length > 0 && (
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-1.5 shadow-xs">
-                <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold whitespace-nowrap">Org:</span>
+              <div className="flex items-center gap-2 bg-white/15 border border-white/20 rounded-2xl px-3 py-1.5">
+                <Building2 className="w-4 h-4 text-white shrink-0" />
+                <span className="text-xs text-blue-100 font-medium whitespace-nowrap">Org:</span>
                 <Select
                   value={String(clientId)}
                   onValueChange={(val) => {
@@ -280,7 +280,7 @@ export default function ActionCenterPage() {
                     setLocation(`/action-center?clientId=${id}`);
                   }}
                 >
-                  <SelectTrigger className="h-7 min-w-[130px] max-w-[190px] bg-transparent border-0 text-slate-900 dark:text-white text-xs font-bold focus:ring-0">
+                  <SelectTrigger className="h-7 min-w-[130px] max-w-[190px] bg-transparent border-0 text-white text-xs font-medium focus:ring-0">
                     <SelectValue placeholder="Select org..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800">
@@ -295,14 +295,14 @@ export default function ActionCenterPage() {
             )}
 
             {/* Cadence Selector */}
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-1.5 shadow-xs">
-              <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold whitespace-nowrap">Cadence:</span>
+            <div className="flex items-center gap-2 bg-white/15 border border-white/20 rounded-2xl px-3 py-1.5">
+              <Clock className="w-4 h-4 text-blue-200 shrink-0" />
+              <span className="text-xs text-blue-100 font-medium whitespace-nowrap">Cadence:</span>
               <Select
                 value={stats?.cadence || "daily"}
                 onValueChange={(val) => updateCadence.mutate({ clientId, schedule: val })}
               >
-                <SelectTrigger className="h-7 w-[120px] bg-transparent border-0 text-slate-900 dark:text-white text-xs font-bold focus:ring-0">
+                <SelectTrigger className="h-7 w-[120px] bg-transparent border-0 text-white text-xs font-medium focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800">
@@ -321,16 +321,16 @@ export default function ActionCenterPage() {
             <Button
               variant="outline"
               onClick={() => setShowGuideDialog(true)}
-              className="rounded-2xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3.5 py-2 font-bold text-xs shadow-xs hover:bg-slate-50 dark:hover:bg-slate-700/80 flex items-center gap-2 transition-all cursor-pointer"
+              className="rounded-xl border-white/20 bg-white/15 text-white px-3.5 py-2 font-medium text-xs hover:bg-white/25 flex items-center gap-2 transition-all cursor-pointer"
             >
-              <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <BookOpen className="w-4 h-4" />
               How It Works
             </Button>
 
             <Button
               onClick={() => runNow.mutate({ clientId })}
               disabled={runNow.isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-4 py-2 font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+              className="bg-white hover:bg-blue-50 text-[#0F2C59] rounded-xl px-4 py-2 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer"
             >
               {runNow.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {runNow.isPending ? "Patrolling..." : "Run Proactive Scan Now"}
@@ -339,79 +339,79 @@ export default function ActionCenterPage() {
         </div>
       </div>
 
-      {/* Metrics Row - Crisp High-Contrast Cards with Colored Accent Stripes */}
+      {/* Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Pending Approvals */}
-        <Card className="rounded-2xl border-slate-200 dark:border-slate-800 border-l-4 border-l-blue-600 bg-white dark:bg-slate-900 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+        <div className="content-card border-l-4 border-l-blue-600">
+          <div className="pb-2">
+            <div className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Pending Approvals
-            </CardDescription>
-            <CardTitle className="text-3xl font-black text-slate-950 dark:text-white flex items-center justify-between mt-1">
+            </div>
+            <div className="text-3xl font-semibold text-slate-900 flex items-center justify-between mt-1">
               {stats?.totalPending ?? 0}
-              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
                 <Inbox className="w-5 h-5" />
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-slate-500 dark:text-slate-400 pt-0">
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 pt-0">
             Awaiting executive or compliance review
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Critical Gaps */}
-        <Card className="rounded-2xl border-slate-200 dark:border-slate-800 border-l-4 border-l-rose-600 bg-white dark:bg-slate-900 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+        <div className="content-card border-l-4 border-l-rose-600">
+          <div className="pb-2">
+            <div className="text-xs font-medium uppercase tracking-wider text-rose-600">
               Critical Gaps
-            </CardDescription>
-            <CardTitle className="text-3xl font-black text-rose-700 dark:text-rose-400 flex items-center justify-between mt-1">
+            </div>
+            <div className="text-3xl font-semibold text-rose-600 flex items-center justify-between mt-1">
               {stats?.criticalCount ?? 0}
-              <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-rose-700/80 dark:text-rose-400/80 pt-0 font-medium">
+            </div>
+          </div>
+          <div className="text-xs text-rose-600/80 pt-0">
             Immediate audit or risk exposure
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Warnings & SLAs */}
-        <Card className="rounded-2xl border-slate-200 dark:border-slate-800 border-l-4 border-l-amber-500 bg-white dark:bg-slate-900 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+        <div className="content-card border-l-4 border-l-amber-500">
+          <div className="pb-2">
+            <div className="text-xs font-medium uppercase tracking-wider text-amber-600">
               Warnings & SLAs
-            </CardDescription>
-            <CardTitle className="text-3xl font-black text-slate-950 dark:text-white flex items-center justify-between mt-1">
+            </div>
+            <div className="text-3xl font-semibold text-slate-900 flex items-center justify-between mt-1">
               {stats?.warningCount ?? 0}
-              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
                 <Clock className="w-5 h-5" />
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-slate-500 dark:text-slate-400 pt-0">
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 pt-0">
             Upcoming expiration & clause gaps
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Executed Remediations */}
-        <Card className="rounded-2xl border-slate-200 dark:border-slate-800 border-l-4 border-l-emerald-600 bg-white dark:bg-slate-900 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+        <div className="content-card border-l-4 border-l-emerald-600">
+          <div className="pb-2">
+            <div className="text-xs font-medium uppercase tracking-wider text-emerald-600">
               Executed Remediations
-            </CardDescription>
-            <CardTitle className="text-3xl font-black text-emerald-700 dark:text-emerald-400 flex items-center justify-between mt-1">
+            </div>
+            <div className="text-3xl font-semibold text-emerald-600 flex items-center justify-between mt-1">
               {stats?.executedCount ?? 0}
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
                 <CheckCheck className="w-5 h-5" />
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-slate-500 dark:text-slate-400 pt-0">
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 pt-0">
             Remediated with logged human sign-off
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Tabs & Batch Actions Bar */}
@@ -427,14 +427,14 @@ export default function ActionCenterPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
                 activeTab === tab.key
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
-                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60"
+                  ? "tab-active"
+                  : "tab-inactive"
               }`}
             >
               {tab.label}
-              <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                 activeTab === tab.key 
                   ? "bg-white/20 text-white dark:bg-black/20 dark:text-slate-900" 
                   : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
@@ -452,7 +452,7 @@ export default function ActionCenterPage() {
               variant="outline"
               size="sm"
               onClick={selectAllFiltered}
-              className="text-xs sm:text-sm rounded-xl h-9 px-3.5 font-bold text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 cursor-pointer"
+              className="btn-outline text-xs sm:text-sm rounded-xl h-9 px-3.5"
             >
               {selectedActionIds.length === filteredActions.length ? "Deselect All" : "Select All"}
             </Button>
@@ -462,7 +462,7 @@ export default function ActionCenterPage() {
                   size="sm"
                   onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "approved" })}
                   disabled={batchReview.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-xl h-9 px-4 font-bold flex items-center gap-2 shadow-xs cursor-pointer"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-xl h-9 px-4 font-medium flex items-center gap-2 cursor-pointer"
                 >
                   <Check className="w-4 h-4" /> Approve ({selectedActionIds.length})
                 </Button>
@@ -471,7 +471,7 @@ export default function ActionCenterPage() {
                   variant="outline"
                   onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "rejected" })}
                   disabled={batchReview.isPending}
-                  className="text-rose-700 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950 text-xs sm:text-sm rounded-xl h-9 px-4 font-bold flex items-center gap-2 cursor-pointer"
+                  className="text-rose-700 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950 text-xs sm:text-sm rounded-xl h-9 px-4 font-medium flex items-center gap-2 cursor-pointer"
                 >
                   <X className="w-4 h-4" /> Dismiss ({selectedActionIds.length})
                 </Button>
@@ -571,7 +571,7 @@ export default function ActionCenterPage() {
                         {botBadge.name}
                       </span>
                       <Badge
-                        className={`text-xs uppercase font-extrabold px-3 py-1 shadow-xs tracking-wider ${
+                        className={`text-xs uppercase font-medium px-3 py-1 tracking-wider ${
                           isCritical
                             ? "bg-rose-600 text-white"
                             : action.priority === "high"
@@ -590,10 +590,10 @@ export default function ActionCenterPage() {
                       <Button
                         size="sm"
                         onClick={() => setInspectingActionId(action.id)}
-                        className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-extrabold rounded-xl h-9 px-4 text-xs sm:text-sm flex items-center gap-2 cursor-pointer shadow-xs transition-all border border-slate-800 dark:border-slate-200"
+                        className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 font-medium rounded-xl h-9 px-4 text-xs sm:text-sm flex items-center gap-2 cursor-pointer shadow-xs transition-all border border-slate-800 dark:border-slate-200"
                       >
                         <Eye className="w-4 h-4 text-sky-400 dark:text-sky-600 shrink-0" />
-                        <span className="font-extrabold">View Details</span>
+                        <span className="font-medium">View Details</span>
                       </Button>
                       <Button
                         size="sm"
@@ -670,10 +670,10 @@ export default function ActionCenterPage() {
                   {meta.residualScore && meta.appetite && (
                     <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-3 text-sm mt-3">
                       <div className="text-slate-700 dark:text-slate-300 font-medium">
-                        Residual Risk: <span className="font-black text-rose-600 bg-rose-50 dark:bg-rose-950/80 px-2.5 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">{meta.residualScore}</span>
+                        Residual Risk: <span className="font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/80 px-2.5 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">{meta.residualScore}</span>
                       </div>
                       <div className="text-slate-700 dark:text-slate-300 font-medium">
-                        Appetite Limit: <span className="font-black text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 rounded-md">{meta.appetite}</span>
+                        Appetite Limit: <span className="font-semibold text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-2.5 py-0.5 rounded-md">{meta.appetite}</span>
                       </div>
                       <div className="text-rose-700 dark:text-rose-400 text-xs sm:text-sm font-semibold ml-auto flex items-center gap-1.5">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -690,9 +690,9 @@ export default function ActionCenterPage() {
 
       {/* Delegation Dialog */}
       <Dialog open={!!delegateDialogAction} onOpenChange={(open) => !open && setDelegateDialogAction(null)}>
-        <DialogContent className="max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-2xl">
+        <DialogContent className="max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
           <DialogHeader className="space-y-1.5 pb-2">
-            <DialogTitle className="flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               Delegate Sentinel Action
             </DialogTitle>
@@ -772,7 +772,7 @@ export default function ActionCenterPage() {
 
       {/* Full Document & Finding Inspector Dialog */}
       <Dialog open={inspectingActionId !== null} onOpenChange={(open) => !open && setInspectingActionId(null)}>
-        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-2xl">
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
           {actionDetailQuery.isLoading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -816,7 +816,7 @@ export default function ActionCenterPage() {
                       )}
                     </div>
 
-                    <DialogTitle className="text-xl sm:text-2xl font-black text-slate-950 dark:text-white leading-tight mt-1">
+                    <DialogTitle className="text-xl sm:text-2xl font-semibold text-slate-950 dark:text-white leading-tight mt-1">
                       {act.title}
                     </DialogTitle>
                     <DialogDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
@@ -853,7 +853,7 @@ export default function ActionCenterPage() {
                         </div>
                         <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                           <span className="text-xs uppercase font-bold text-slate-400 block mb-0.5">Next Test Due</span>
-                          <span className="font-black text-rose-600 dark:text-rose-400">
+                          <span className="font-semibold text-rose-600 dark:text-rose-400">
                             {ent.nextTestDate ? new Date(ent.nextTestDate).toLocaleDateString() : "Unscheduled"}
                           </span>
                         </div>
@@ -977,7 +977,7 @@ export default function ActionCenterPage() {
                 <Bot className="w-5 h-5" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-black text-slate-900 dark:text-white">
+                <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-white">
                   Action Center — How It Works
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
