@@ -292,7 +292,7 @@ export default function SOC2ProgramGuide(props?: SOC2ProgramGuideProps) {
                                     <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                                         Strategic Roadmap Workflow Active
                                     </span>
-                                    <Badge className="bg-emerald-600/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                                    <Badge className="bg-emerald-600 text-white text-[10px] font-medium">
                                         Origin Saved
                                     </Badge>
                                 </div>

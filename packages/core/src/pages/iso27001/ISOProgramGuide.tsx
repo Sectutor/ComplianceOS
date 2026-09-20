@@ -401,7 +401,7 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                                     <span className="text-xs font-medium uppercase tracking-wider text-emerald-600">
                                         Strategic Roadmap Workflow Active
                                     </span>
-                                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] font-medium">
+                                    <Badge className="bg-emerald-600 text-white text-[10px] font-medium">
                                         Origin Saved
                                     </Badge>
                                 </div>
