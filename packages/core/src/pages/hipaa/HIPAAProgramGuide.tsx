@@ -250,9 +250,9 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                             size="sm"
                             onClick={handleReturnToStartHere}
                             className={cn(
-                                "h-8 gap-1.5 font-bold text-xs transition-colors",
+                                "h-8 gap-1.5 font-medium text-xs transition-colors",
                                 returnToStartHere
-                                    ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
+                                    ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                             )}
                         >
@@ -260,14 +260,14 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                             Back to Start Here
                         </Button>
                         <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                             HIPAA Security & Privacy Rule Program Guide
                         </span>
                     </div>
 
                     <div className="flex items-center gap-2">
                         <Link href={`/clients/${clientId}/readiness/wizard/HIPAA`}>
-                            <Button variant="outline" size="sm" className="gap-2 text-xs font-bold">
+                            <Button variant="outline" size="sm" className="gap-2 text-xs font-medium rounded-xl">
                                 <HeartPulse className="w-3.5 h-3.5 text-cyan-600" />
                                 Scoping Wizard
                             </Button>
@@ -277,29 +277,29 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
 
                 {/* Start Here Return Banner */}
                 {returnToStartHere && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                                 <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                    <span className="text-xs font-medium uppercase tracking-wider text-emerald-600">
                                         Strategic Roadmap Workflow Active
                                     </span>
-                                    <Badge className="bg-emerald-600/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                                    <Badge className="bg-emerald-600 text-white text-[10px] font-medium">
                                         Origin Saved
                                     </Badge>
                                 </div>
-                                <p className="text-xs text-foreground mt-0.5 font-medium">
-                                    You navigated to this guide from the <strong>Start Here Command Center</strong>.
+                                <p className="text-xs text-slate-600 mt-0.5">
+                                    You navigated to this guide from the Start Here Command Center.
                                 </p>
                             </div>
                         </div>
                         <Button
                             size="sm"
                             onClick={handleReturnToStartHere}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs gap-2 shrink-0 self-start sm:self-auto transition-all"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-9 px-4 rounded-xl gap-2 shrink-0 self-start sm:self-auto transition-all"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Back to Start Here
@@ -308,42 +308,42 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                 )}
 
                 {/* Hero Banner */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 p-6 md:p-8 text-white shadow-xl">
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1C4D8D] to-[#0F2C59] p-6 md:p-8 text-white shadow-lg">
                     <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         <div className="space-y-3 max-w-3xl">
                             <div className="flex flex-wrap items-center gap-2">
-                                <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/30 text-xs font-bold uppercase tracking-wider">
+                                <Badge className="bg-white/20 text-white border-white/30 text-xs font-medium">
                                     45 CFR Parts 160 & 164
                                 </Badge>
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-xs font-bold">
+                                <Badge className="bg-emerald-500/30 text-emerald-100 border-emerald-400/30 text-xs font-medium">
                                     HHS OCR Audit Ready
                                 </Badge>
                             </div>
-                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
                                 HIPAA Compliance Program Guide & 90-Day Roadmap
                             </h1>
-                            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                            <p className="text-blue-100 text-sm md:text-base leading-relaxed">
                                 Complete operational guide covering the HIPAA Security Rule (Administrative, Physical & Technical Safeguards), Privacy Rule, Business Associate Agreements (BAA), and OCR audit binder.
                             </p>
                         </div>
 
                         {/* Readiness Metric Card */}
-                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 shrink-0 w-full lg:w-72 space-y-3">
-                            <div className="flex justify-between items-center text-xs font-bold text-slate-300">
+                        <div className="bg-white/15 rounded-2xl p-4 shrink-0 w-full lg:w-72 space-y-3 border border-white/20">
+                            <div className="flex justify-between items-center text-xs text-blue-100">
                                 <span>HIPAA Safeguards Score</span>
-                                <span className="text-white text-base">{progressPercentage}%</span>
+                                <span className="text-white text-base font-semibold">{progressPercentage}%</span>
                             </div>
-                            <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
-                            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
-                                <div>Policies: <strong className="text-white">{approvedPolicies}</strong></div>
-                                <div>Safeguards: <strong className="text-white">{activeControls}</strong></div>
-                                <div>Workforce: <strong className="text-white">{safeEmployees.length}</strong></div>
-                                <div>BAA Vendors: <strong className="text-white">{safeVendors.length}</strong></div>
+                            <Progress value={progressPercentage} className="h-2.5 bg-white/20" />
+                            <div className="grid grid-cols-2 gap-2 text-[11px] text-blue-100 pt-1">
+                                <div>Policies: <span className="text-white font-medium">{approvedPolicies}</span></div>
+                                <div>Safeguards: <span className="text-white font-medium">{activeControls}</span></div>
+                                <div>Workforce: <span className="text-white font-medium">{safeEmployees.length}</span></div>
+                                <div>BAA Vendors: <span className="text-white font-medium">{safeVendors.length}</span></div>
                             </div>
                             <Button
                                 size="sm"
                                 onClick={() => handleTabChange('roadmap')}
-                                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs mt-2 rounded-lg h-8 gap-1.5 shadow"
+                                className="w-full bg-white hover:bg-blue-50 text-[#0F2C59] font-medium text-xs mt-2 rounded-xl h-8 gap-1.5"
                             >
                                 <CalendarClock className="w-3.5 h-3.5" />
                                 Continue 90-Day Roadmap
@@ -359,7 +359,7 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                         variant={activeTab === 'tutorials' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('tutorials')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'tutorials' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'tutorials' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <BookOpen className="w-4 h-4 mr-1.5" />
                         Implementation Safeguards
@@ -368,7 +368,7 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                         variant={activeTab === 'roadmap' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => handleTabChange('roadmap')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'roadmap' ? "bg-cyan-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'roadmap' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <CalendarClock className="w-4 h-4 mr-1.5" />
                         90-Day Implementation Roadmap
@@ -377,7 +377,7 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                         variant={activeTab === 'documents' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveTab('documents')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'documents' ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'documents' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <FileCheck className="w-4 h-4 mr-1.5" />
                         Mandatory Documents
@@ -386,7 +386,7 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                         variant={activeTab === 'architecture' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveTab('architecture')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'architecture' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'architecture' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <Layers className="w-4 h-4 mr-1.5" />
                         ePHI Data Flow Boundary
@@ -395,7 +395,7 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                         variant={activeTab === 'auditor' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setActiveTab('auditor')}
-                        className={cn("font-bold text-xs rounded-xl", activeTab === 'auditor' ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900")}
+                        className={cn("font-medium text-xs rounded-xl", activeTab === 'auditor' ? "bg-[#1C4D8D] text-white" : "text-slate-600 hover:text-slate-900")}
                     >
                         <ShieldCheck className="w-4 h-4 mr-1.5" />
                         OCR Audit Clean Room
@@ -416,17 +416,17 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                             {pillars.map((p) => {
                                 const IconComponent = p.icon;
                                 return (
-                                    <Card key={p.id} className="border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+                                    <Card key={p.id} className="border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between rounded-2xl">
                                         <CardHeader className="pb-3">
                                             <div className="flex items-center justify-between mb-2">
-                                                <Badge variant="outline" className="text-[11px] font-bold">
+                                                <Badge variant="outline" className="text-[11px] font-medium">
                                                     {p.ruleRef}
                                                 </Badge>
-                                                <Badge className={cn("text-[10px] font-semibold", p.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
+                                                <Badge className={cn("text-[10px] font-medium", p.status === 'active' ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>
                                                     {p.countLabel}
                                                 </Badge>
                                             </div>
-                                            <CardTitle className="text-base font-bold flex items-center gap-2">
+                                            <CardTitle className="text-base font-semibold flex items-center gap-2">
                                                 <div className={cn("p-1.5 rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-900/30")}>
                                                     <IconComponent className="w-4 h-4" />
                                                 </div>
@@ -437,12 +437,12 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-4 pt-0">
-                                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1.5 border border-slate-100 dark:border-slate-800">
-                                                <div className="font-bold text-slate-700 dark:text-slate-300">Why Regulators Care:</div>
-                                                <p className="text-slate-600 dark:text-slate-400 text-[11px]">{p.whyItMatters}</p>
+                                            <div className="bg-blue-600 rounded-xl p-3 text-xs space-y-1.5">
+                                                <div className="font-medium text-white">Why Regulators Care:</div>
+                                                <p className="text-white text-[11px]">{p.whyItMatters}</p>
                                             </div>
                                             <Link href={p.link}>
-                                                <Button className="w-full text-xs font-bold gap-2" variant="outline">
+                                                <Button className="w-full text-xs font-medium gap-2 rounded-xl" variant="outline">
                                                     {p.cta}
                                                     <ArrowRight className="w-3.5 h-3.5" />
                                                 </Button>
