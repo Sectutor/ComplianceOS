@@ -277,9 +277,9 @@ export default function HIPAAProgramGuide(props?: HIPAAProgramGuideProps) {
 
                 {/* Start Here Return Banner */}
                 {returnToStartHere && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="bg-emerald-100 border border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
                                 <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
