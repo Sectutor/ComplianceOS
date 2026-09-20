@@ -282,9 +282,9 @@ export default function SOC2ProgramGuide(props?: SOC2ProgramGuideProps) {
 
                 {/* Start Here Return Banner */}
                 {returnToStartHere && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="bg-emerald-100 border border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-200 text-emerald-700 flex items-center justify-center font-bold shrink-0">
                                 <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
