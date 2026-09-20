@@ -960,7 +960,7 @@ export default function VendorProgramGuide(props?: { id?: string | number; clien
                                                         </h4>
                                                         <ul className="space-y-2 text-sm">
                                                             {[...step.keyActions, ...step.bestPractices].map((practice, i) => (
-                                                                <li key={i} className="flex items-start gap-3 text-slate-600">
+                                                                <li key={i} className="flex items-start gap-3 text-white">
                                                                     <div className="w-1.5 h-1.5 rounded-full bg-white mt-2 flex-shrink-0"></div>
                                                                     <span className="leading-relaxed">{practice}</span>
                                                                 </li>
