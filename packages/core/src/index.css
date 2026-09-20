@@ -978,6 +978,213 @@
 }
 
 /* ========================================
+   APP-WIDE DESIGN SYSTEM
+   Use these classes on every page
+   ======================================== */
+
+/* --- Hero Banner --- */
+.hero-banner {
+  background: linear-gradient(135deg, #1C4D8D 0%, #0F2C59 100%);
+  color: white;
+  border-radius: 1.5rem;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 10px 25px -5px rgba(15, 44, 89, 0.3);
+}
+
+.hero-banner-lg {
+  padding: 2rem 3rem;
+}
+
+/* --- Metric Card (inside hero) --- */
+.metric-card {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.metric-card-title {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.metric-card-value {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* --- Navigation Tabs --- */
+.tab-active {
+  background-color: #1C4D8D;
+  color: white;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.tab-inactive {
+  color: #64748b;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.tab-inactive:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+/* --- Content Cards --- */
+.content-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.content-card:hover {
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* --- Highlight Section (Why Auditors Care, Best Practices, etc.) */
+.highlight-section {
+  background-color: #2563eb;
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+}
+
+.highlight-section-title {
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.highlight-section-text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* --- Status Badges --- */
+.badge-success {
+  background-color: #059669;
+  color: white;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.badge-warning {
+  background-color: #d97706;
+  color: white;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.badge-active {
+  background-color: #1C4D8D;
+  color: white;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.badge-pending {
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+/* --- Action Buttons --- */
+.btn-primary {
+  background-color: #0a1f3d;
+  color: white;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #061225;
+}
+
+.btn-outline {
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+/* --- Info Banner (Start Here Return) --- */
+.info-banner {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.info-banner-title {
+  color: #166534;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-banner-text {
+  color: #334155;
+  font-size: 0.875rem;
+}
+
+.info-banner-badge {
+  background-color: #059669;
+  color: white;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+/* --- Progress Bar --- */
+.progress-bar {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: #e2e8f0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #1C4D8D 0%, #3B82F6 100%);
+}
+
+/* ========================================
    ACTION CENTER — Scoped Styles Only
    ======================================== */
 
