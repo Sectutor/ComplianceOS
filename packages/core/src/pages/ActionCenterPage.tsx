@@ -434,11 +434,11 @@ export default function ActionCenterPage() {
        }`}
       >
        {tab.label}
-       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-        activeTab === tab.key 
-         ? "bg-white/20 text-white dark:bg-black/20 dark:text-slate-900" 
-         : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-       }`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === tab.key 
+                  ? "bg-white/20 text-white" 
+                  : "bg-slate-200 text-slate-800"
+              }`}>
         {tab.count}
        </span>
       </button>
@@ -571,13 +571,13 @@ export default function ActionCenterPage() {
             {botBadge.name}
            </span>
            <Badge
-            className={`text-xs uppercase font-medium px-3 py-1 tracking-wider ${
-             isCritical
-              ? "bg-rose-600 text-white"
-              : action.priority === "high"
-              ? "bg-amber-600 text-white"
-              : "bg-slate-600 text-white"
-            }`}
+                        className={`text-xs uppercase font-medium px-3 py-1 tracking-wider ${
+                          isCritical
+                            ? "bg-rose-600 text-white"
+                            : action.priority === "high"
+                            ? "bg-amber-600 text-white"
+                            : "bg-slate-600 text-white"
+                        }`}
            >
             {action.priority || "MEDIUM"}
            </Badge>
