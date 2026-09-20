@@ -587,14 +587,14 @@ export default function ActionCenterPage() {
           </div>
 
           <div className="flex items-center gap-2">
-           <Button
-            size="sm"
-            onClick={() => setInspectingActionId(action.id)}
-            className="btn-outline rounded-xl h-9 px-4 text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
-           >
-            <Eye className="w-4 h-4 text-blue-600 shrink-0" />
-            <span className="font-medium">View Details</span>
-           </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setInspectingActionId(action.id)}
+                        className="bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-xl h-9 px-4 text-xs sm:text-sm font-medium flex items-center gap-2 cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>View Details</span>
+                      </Button>
            <Button
             size="sm"
             onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
