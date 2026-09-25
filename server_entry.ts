@@ -359,6 +359,11 @@ app.post('/api/auth/local-login', async (req: any, res) => {
 
 // Local registration endpoint
 app.post('/api/auth/local-register', (req: any, res) => {
+  // Production self-host deployments run invite-only: open registration would
+  // let anyone create an account on an internet-exposed server.
+  if (process.env.AUTH_DISABLE_REGISTRATION === 'true') {
+    return res.status(403).json({ error: 'Registration is disabled on this server. Please contact your administrator.' });
+  }
   const { email, password, name } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
