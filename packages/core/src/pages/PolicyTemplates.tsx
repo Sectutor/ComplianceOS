@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import DOMPurify from 'dompurify';
 import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
@@ -953,7 +954,7 @@ export default function PolicyTemplates() {
             {viewedTemplate?.content && (
               <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200">
                 <h4 className="font-medium mb-4 text-sm text-slate-500 uppercase tracking-wider">Preview</h4>
-                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: renderContent(viewedTemplate.content) }} />
+                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderContent(viewedTemplate.content)) }} />
               </div>
             )}
           </div>

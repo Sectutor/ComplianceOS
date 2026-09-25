@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import DOMPurify from 'dompurify';
 import { useParams, Redirect, Link } from "wouter";
 import { Button } from "@complianceos/ui/ui/button";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -125,7 +126,7 @@ function EditableSection({ section, onUpdate }: EditableSectionProps) {
             ) : (
                 <div
                     className="p-6 prose prose-neutral max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: section.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
                 />
             )}
         </div>

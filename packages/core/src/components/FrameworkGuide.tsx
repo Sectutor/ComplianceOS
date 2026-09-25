@@ -1,5 +1,6 @@
 
 import { cn } from "@/lib/utils";
+import DOMPurify from 'dompurify';
 import { FrameworkLearning } from "@/data/learningContent";
 import { Button } from "@complianceos/ui/ui/button";
 import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
@@ -85,7 +86,7 @@ export default function FrameworkGuide({ framework }: FrameworkGuideProps) {
                                         {/* Render HTML Content safely */}
                                         <div
                                             className="prose prose-slate max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-primary hover:prose-a:underline prose-img:rounded-xl"
-                                            dangerouslySetInnerHTML={{ __html: section.content }}
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
                                         />
                                     </CardContent>
                                 </Card>

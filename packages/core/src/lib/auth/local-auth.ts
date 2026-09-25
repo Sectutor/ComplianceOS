@@ -10,7 +10,7 @@
  *   const token = localAuth.issueToken(user);
  */
 
-import { randomBytes, createHash, timingSafeEqual } from 'crypto';
+import { randomBytes, createHash, timingSafeEqual, pbkdf2Sync } from 'crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -20,7 +20,21 @@ import { join } from 'path';
 
 const SALT_LENGTH = 32;
 const TOKEN_EXPIRY_HOURS = 720;
-const TOKEN_SECRET = process.env.LOCAL_JWT_SECRET || 'complianceos-local-jwt-change-me';
+// PBKDF2-SHA256 parameters (OWASP-recommended iteration count for SHA-256).
+const PBKDF2_ITERATIONS = 210_000;
+const PBKDF2_KEYLEN = 64;
+const PBKDF2_VERSION = 'pbkdf2-v1';
+
+// Fail fast in production when no secret is configured: a shared fallback
+// secret would let anyone forge admin tokens. Dev keeps a known default.
+const TOKEN_SECRET = process.env.LOCAL_JWT_SECRET
+  || (process.env.NODE_ENV === 'production'
+    ? (() => {
+        throw new Error(
+          'LOCAL_JWT_SECRET is required in production — refusing to start with a publicly known fallback secret.'
+        );
+      })()
+    : 'complianceos-local-jwt-change-me');
 
 const DATA_DIR = process.env.COMPLIANCEOS_DATA_DIR
   || join(process.env.HOME || process.env.USERPROFILE || '/tmp', '.complianceos');
@@ -49,27 +63,38 @@ export interface AuthResult {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Password hashing (PBKDF2-based, no bcrypt dependency)              */
+/*                                                                    */
+/*  Password hashing (PBKDF2-SHA256, versioned; legacy SHA-256         */
+/*  hashes are transparently re-hashed on successful login)            */
+/*                                                                    */
 /* ------------------------------------------------------------------ */
 
 function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
-  // Use deterministic salt from password+email when not provided, so hash is reproducible
   const s = salt || randomBytes(SALT_LENGTH).toString('hex');
-  const hash = createHash('sha256')
-    .update(s + password)
-    .digest('hex')
-    .toLowerCase();
-  return { hash, salt: s };
+  const derived = pbkdf2Sync(password, s, PBKDF2_ITERATIONS, PBKDF2_KEYLEN, 'sha256').toString('hex');
+  return { hash: `${PBKDF2_VERSION}$${derived}`, salt: s };
+}
+
+function isLegacyHash(hash: string): boolean {
+  return !hash.startsWith(PBKDF2_VERSION + '$');
 }
 
 function verifyPassword(password: string, hash: string, salt: string): boolean {
-  const { hash: computed } = hashPassword(password, salt);
-  // Constant-time comparison
-  const a = Buffer.from(computed);
-  const b = Buffer.from(hash);
-  if (a.length !== b.length) return false;
+  let computed: Buffer;
+  let stored: Buffer;
+  if (hash.startsWith(PBKDF2_VERSION + '$')) {
+    computed = pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, PBKDF2_KEYLEN, 'sha256');
+    stored = Buffer.from(hash.slice(PBKDF2_VERSION.length + 1));
+  } else {
+    // Legacy scheme: single unsalted-iteration SHA-256. Kept verifiable so
+    // existing accounts can log in; login() upgrades them to PBKDF2 after a
+    // successful check.
+    computed = Buffer.from(createHash('sha256').update(salt + password).digest('hex'));
+    stored = Buffer.from(hash);
+  }
+  if (computed.length !== stored.length) return false;
   try {
-    return timingSafeEqual(a, b);
+    return timingSafeEqual(computed, stored);
   } catch {
     return false;
   }
@@ -111,8 +136,12 @@ export function verifyToken(token: string): { id: string; email: string; role: s
     const parts = token.split('.');
     if (parts.length !== 3) return null;
 
-    const expectedSig = signToken(`${parts[0]}.${parts[1]}`);
-    if (expectedSig !== parts[2]) return null;
+    const expectedSig = Buffer.from(signToken(`${parts[0]}.${parts[1]}`));
+    const providedSig = Buffer.from(parts[2]);
+    // Constant-time signature comparison
+    if (expectedSig.length !== providedSig.length || !timingSafeEqual(expectedSig, providedSig)) {
+      return null;
+    }
 
     const payload = JSON.parse(base64UrlDecode(parts[1]));
 
@@ -203,8 +232,6 @@ export const localAuth = {
 
     const envAdminPass = process.env.COMPLIANCE_ADMIN_PASSWORD;
     const isSpecialAdmin = email.toLowerCase() === 'admin@complianceos.local' && (
-      password === 'Admin@ComplianceOS1' ||
-      password === 'NK4949!' ||
       (envAdminPass && password === envAdminPass)
     );
 
@@ -221,6 +248,15 @@ export const localAuth = {
 
     if (!isSpecialAdmin && !verifyPassword(password, user.passwordHash, user.passwordSalt)) {
       return { success: false, error: 'Invalid email or password' };
+    }
+
+    // Transparent upgrade: legacy single-SHA-256 hashes are re-hashed with
+    // PBKDF2 after a successful password check.
+    if (user && isLegacyHash(user.passwordHash)) {
+      const { hash, salt } = hashPassword(password);
+      user.passwordHash = hash;
+      user.passwordSalt = salt;
+      saveUsers(users);
     }
 
     const safe = { id: user.id, email: user.email, name: user.name, role: user.role, createdAt: user.createdAt };

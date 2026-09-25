@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import DOMPurify from 'dompurify';
 import { useParams } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Input } from "@complianceos/ui/ui/input";
@@ -147,7 +148,7 @@ export default function HandbookPage() {
                   <button key={`${r.partIdx}-${r.chIdx}`} onClick={() => navigateTo(r.partIdx, r.chIdx)}
                     className="w-full text-left p-2 rounded hover:bg-slate-50 text-sm">
                     <span className="font-medium text-blue-600">Ch {r.num}: {r.title}</span>
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2" dangerouslySetInnerHTML={{ __html: r.snippet }} />
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(r.snippet) }} />
                   </button>
                 ))}
                 {searchResults.length === 0 && <p className="text-sm text-slate-400 p-2">No matches found</p>}
@@ -200,7 +201,7 @@ export default function HandbookPage() {
               <h1 className="text-2xl font-bold text-slate-900 mb-6">{activeChapter.title}</h1>
               <div
                 className="prose prose-slate max-w-none"
-                dangerouslySetInnerHTML={{ __html: renderContent(activeChapter.content) }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderContent(activeChapter.content)) }}
               />
 
               {/* Chapter navigation */}

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomBytes } from 'crypto';
 import { storagePut } from '../../storage';
 import { logger } from '../../lib/logger';
 
@@ -66,7 +67,8 @@ uploadRouter.post('/', async (req: any, res) => {
             .replace(/[/\\:*?"<>|]/g, '_')
             .replace(/\.\./g, '')
             .substring(0, 255); // Limit filename length
-        const key = `${folder}/${Date.now()}-${safeFilename}`;
+        // Random suffix keeps evidence URLs unguessable across tenants (IDOR hardening)
+        const key = `${folder}/${Date.now()}-${randomBytes(12).toString('hex')}-${safeFilename}`;
 
         // Upload
         const result = await storagePut(key, buffer, detectedType);
