@@ -60,6 +60,17 @@ export default function WorkflowPlayer() {
     const totalSteps = workflow.steps.length;
     const progress = ((currentStepIdx + 1) / totalSteps) * 100;
 
+    // Return context: thread "Return to <origin>" through step links so the
+    // DashboardLayout banner survives navigation into modules. If the player
+    // itself was opened without one, the banner points back at this workflow.
+    const returnQuery = (() => {
+        const search = new URLSearchParams(window.location.search);
+        const returnTo = search.get("returnTo") || `/clients/${clientId}/workflows/${workflowId}`;
+        const returnLabel = search.get("returnLabel") || workflow.title;
+        const qs = new URLSearchParams({ returnTo, returnLabel });
+        return `?${qs.toString()}`;
+    })();
+
     const handleNext = () => {
         if (currentStepIdx < totalSteps - 1) {
             setCurrentStepIdx(curr => curr + 1);
@@ -229,7 +240,7 @@ export default function WorkflowPlayer() {
                                         </div>
 
                                         {currentStep.link && (
-                                            <Card className="border-blue-100 bg-blue-50/30 overflow-hidden group/card hover:border-blue-300 transition-all cursor-pointer" onClick={() => navigate(`/clients/${clientId}${currentStep.link}`)}>
+                                            <Card className="border-blue-100 bg-blue-50/30 overflow-hidden group/card hover:border-blue-300 transition-all cursor-pointer" onClick={() => navigate(`/clients/${clientId}${currentStep.link}${returnQuery}`)}>
                                                 <CardHeader className="pb-2">
                                                     <div className="h-10 w-10 text-blue-600 mb-2">
                                                         <ExternalLink size={24} />

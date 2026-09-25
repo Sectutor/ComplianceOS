@@ -132,6 +132,20 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
         setLocation(target);
     };
 
+    // Link into the Workflow Player (step-by-step walkthrough), threading the
+    // return context so the "Return to Start Here" banner survives the hop.
+    const workflowGuideHref = (() => {
+        try {
+            const search = new URLSearchParams(window.location.search);
+            const returnTo = search.get('returnTo') || `/clients/${clientId}/iso27001/program-guide?tab=roadmap`;
+            const returnLabel = search.get('returnLabel') || 'ISO 27001 Program Guide';
+            const qs = new URLSearchParams({ returnTo, returnLabel });
+            return `/clients/${clientId}/workflows/iso-27001?${qs.toString()}`;
+        } catch {
+            return `/clients/${clientId}/workflows/iso-27001`;
+        }
+    })();
+
     const utils = trpc.useUtils();
     const seedStarterKit = trpc.iso27001.seedStarterKit.useMutation({
         onSuccess: (res) => {
@@ -444,6 +458,15 @@ export default function ISOProgramGuide(props?: ISOProgramGuideProps) {
                             </div>
 
                             <div className="flex items-center gap-3">
+                                <Link href={workflowGuideHref}>
+                                    <Button
+                                        variant="outline"
+                                        className="bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl h-11 px-5 flex items-center gap-2 border border-white/30"
+                                    >
+                                        <ListTodo className="w-4 h-4" />
+                                        Step-by-Step Guide
+                                    </Button>
+                                </Link>
                                 <Button
                                     onClick={() => handleTabChange('roadmap')}
                                     className="bg-white hover:bg-blue-50 text-[#0F2C59] font-medium rounded-xl h-11 px-5 flex items-center gap-2"
