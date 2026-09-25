@@ -49,6 +49,12 @@ COPY --from=builder /app/addon-init.ts ./
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/tsconfig.json ./
 
+# Database bootstrap + capabilities demo seeding (run by docker-entrypoint.sh)
+COPY --from=builder /app/scripts/bootstrap-db.ts ./scripts/
+COPY --from=builder /app/scripts/schema-init.sql ./scripts/
+COPY --from=builder /app/scripts/seed-client7-massive-100each.mjs ./scripts/
+COPY --from=builder /app/scripts/seed-client7-action-items.mjs ./scripts/
+
 # Sample env for reference
 COPY --from=builder /app/.env.example ./.env.example
 

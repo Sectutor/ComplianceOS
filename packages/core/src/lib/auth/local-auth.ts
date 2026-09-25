@@ -25,19 +25,59 @@ const PBKDF2_ITERATIONS = 210_000;
 const PBKDF2_KEYLEN = 64;
 const PBKDF2_VERSION = 'pbkdf2-v1';
 
-// Fail fast in production when no secret is configured: a shared fallback
-// secret would let anyone forge admin tokens. Dev keeps a known default.
-const TOKEN_SECRET = process.env.LOCAL_JWT_SECRET
-  || (process.env.NODE_ENV === 'production'
-    ? (() => {
-        throw new Error(
-          'LOCAL_JWT_SECRET is required in production — refusing to start with a publicly known fallback secret.'
-        );
-      })()
-    : 'complianceos-local-jwt-change-me');
-
 const DATA_DIR = process.env.COMPLIANCEOS_DATA_DIR
   || join(process.env.HOME || process.env.USERPROFILE || '/tmp', '.complianceos');
+
+// Compose files have shipped these as defaults — they are public knowledge and
+// must never be used as the actual signing secret.
+const WEAK_JWT_DEFAULTS = new Set([
+  'complianceos-local-jwt-change-me',
+  'change-this-to-a-random-secret',
+  'change-me-to-a-secure-secret',
+  'change-me-to-a-random-32-char-key',
+]);
+
+/**
+ * Resolve the JWT signing secret:
+ *   1. LOCAL_JWT_SECRET env — unless it is a known weak compose default
+ *   2. previously generated secret persisted in $COMPLIANCEOS_DATA_DIR/.jwt-secret
+ *   3. freshly generated strong secret (persisted when the data dir is writable)
+ * Production refuses to run without one of the above; dev keeps a known default.
+ */
+function resolveJwtSecret(): string {
+  const fromEnv = process.env.LOCAL_JWT_SECRET;
+  const envIsUsable = !!fromEnv && !WEAK_JWT_DEFAULTS.has(fromEnv);
+  if (envIsUsable) return fromEnv as string;
+
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const secretPath = join(DATA_DIR, '.jwt-secret');
+      if (existsSync(secretPath)) {
+        const persisted = readFileSync(secretPath, 'utf-8').trim();
+        if (persisted) return persisted;
+      }
+      const generated = randomBytes(48).toString('hex');
+      if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+      writeFileSync(secretPath, generated, { mode: 0o600 });
+      console.warn(
+        '[LocalAuth] LOCAL_JWT_SECRET was unset or a known weak default — generated a strong secret and persisted it to ' +
+          secretPath
+      );
+      return generated;
+    } catch (e) {
+      console.warn(
+        '[LocalAuth] Could not persist a generated JWT secret (' +
+          (e instanceof Error ? e.message : String(e)) +
+          ') — using an in-memory secret; sessions will reset on restart.'
+      );
+      return randomBytes(48).toString('hex');
+    }
+  }
+
+  return fromEnv || 'complianceos-local-jwt-change-me';
+}
+
+const TOKEN_SECRET = resolveJwtSecret();
 
 const USER_DB_PATH = join(DATA_DIR, 'local-users.json');
 

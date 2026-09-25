@@ -46,7 +46,7 @@ services:
       - SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
 
       # License
-      - VITE_ENABLE_PREMIUM=${VITE_ENABLE_PREMIUM:-true}
+      - VITE_ENABLE_PREMIUM=${VITE_ENABLE_PREMIUM:-false}
       - VITE_LICENSE_KEY=${VITE_LICENSE_KEY:-community}
       - VITE_LICENSE_SERVER=${VITE_LICENSE_SERVER:-https://license.complianceos.com}
       - BUILD_TYPE=${BUILD_TYPE:-AGPLv3}
@@ -54,6 +54,10 @@ services:
       # Telemetry & AI
       - NO_TELEMETRY=${NO_TELEMETRY:-true}
       - ENABLE_AI=${ENABLE_AI:-false}
+
+      # Redis (optional, for rate limiting & caching)
+      # Persistent app data (JWT secret, local users)
+      - COMPLIANCEOS_DATA_DIR=/data
 
       # Redis (optional, for rate limiting & caching)
       - REDIS_HOST=${REDIS_HOST:-redis}
@@ -70,6 +74,7 @@ services:
       - TOOL_HMAC_SECRET=${TOOL_HMAC_SECRET:-}
     volumes:
       - complianceos_uploads:/app/uploads
+      - complianceos_app_data:/data
     depends_on:
       db:
         condition: service_healthy
@@ -148,6 +153,7 @@ networks:
     driver: bridge
 
 volumes:
+  complianceos_app_data:
   complianceos_db:
   complianceos_redis:
   complianceos_uploads:
