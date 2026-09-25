@@ -110,6 +110,8 @@ const EXPECTED_PROCEDURES = [
   'triggerRoutineNow',
   'listMessages',
   'sendMessage',
+  'clearMessages',
+  'getAgentStatus',
   'takeControlSandbox',
   'getGuardrailsStatus',
   'listProvenanceLedger',
@@ -170,7 +172,7 @@ afterEach(() => {
 // ── Route shape ──────────────────────────────────────────────────────────────
 
 describe('teammates router — route shape', () => {
-  it('exposes exactly the 15 documented procedures, each with a callable handler', () => {
+  it('exposes exactly the documented procedures, each with a callable handler', () => {
     const router = buildRouter();
     expect(Object.keys(router).sort()).toEqual([...EXPECTED_PROCEDURES].sort());
     for (const name of EXPECTED_PROCEDURES) {

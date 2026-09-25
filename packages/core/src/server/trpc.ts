@@ -35,8 +35,10 @@ export const isAuthed = middleware(async ({ ctx, next, path }) => {
     debugLog(`[isAuthed Debug] Checking auth for path: ${path}, user present: ${!!ctx.user}`);
 
     if (!ctx.user) {
-        // In local dev mode with local auth, auto-create a dev user
-        if (process.env.AUTH_MODE === 'local') {
+        // Local dev convenience: auto-create a dev user. Must never apply in production —
+        // docker-compose defaults AUTH_MODE=local even with NODE_ENV=production, and without
+        // the NODE_ENV guard any anonymous request would be auto-authenticated as admin/owner.
+        if (process.env.AUTH_MODE === 'local' && process.env.NODE_ENV !== 'production') {
             ctx.user = {
                 id: 1,
                 email: 'admin@complianceos.local',

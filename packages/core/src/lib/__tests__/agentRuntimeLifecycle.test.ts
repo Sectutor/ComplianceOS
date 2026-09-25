@@ -141,16 +141,19 @@ describe("agent runtime — public lifecycle flag", () => {
 // ── Tick scheduling ──────────────────────────────────────────────────────────
 
 describe("agent runtime — tick scheduling", () => {
+  // Each tick issues TWO statements: the client auto-enroll INSERT ... SELECT
+  // (ensures every workspace is monitored) followed by the autopilot_configs
+  // SELECT. Query counts below assert TICKS × 2.
   it("fires exactly one boot tick after ~15s, then one tick per minute", async () => {
     rt.startAgentRuntime();
     await vi.advanceTimersByTimeAsync(BOOT_DELAY_MS);
-    expect(h.execute).toHaveBeenCalledTimes(1); // boot tick only
+    expect(h.execute).toHaveBeenCalledTimes(2); // boot tick only (2 statements)
 
     await vi.advanceTimersByTimeAsync(TICK_INTERVAL_MS);
-    expect(h.execute).toHaveBeenCalledTimes(2);
+    expect(h.execute).toHaveBeenCalledTimes(4);
 
     await vi.advanceTimersByTimeAsync(TICK_INTERVAL_MS);
-    expect(h.execute).toHaveBeenCalledTimes(3);
+    expect(h.execute).toHaveBeenCalledTimes(6);
   });
 
   it("double-start is idempotent — one boot timeout and one interval, not two", async () => {
@@ -158,9 +161,10 @@ describe("agent runtime — tick scheduling", () => {
     rt.startAgentRuntime();
     expect(rt.isRuntimeRunning()).toBe(true);
 
-    // boot tick (1) + first interval tick (1) = 2 total, never 3+
+    // boot tick (2 statements) + first interval tick (2 statements) = 4 total;
+    // a leaked second interval would push this to 6+.
     await vi.advanceTimersByTimeAsync(BOOT_DELAY_MS + TICK_INTERVAL_MS);
-    expect(h.execute).toHaveBeenCalledTimes(2);
+    expect(h.execute).toHaveBeenCalledTimes(4);
     expect(rt.isRuntimeRunning()).toBe(true);
   });
 
@@ -182,7 +186,7 @@ describe("agent runtime — tick scheduling", () => {
     expect(rt.isRuntimeRunning()).toBe(false);
 
     await vi.advanceTimersByTimeAsync(5 * TICK_INTERVAL_MS);
-    expect(h.execute).toHaveBeenCalledTimes(1); // only the boot tick ever ran
+    expect(h.execute).toHaveBeenCalledTimes(2); // only the boot tick ever ran (2 statements)
   });
 });
 

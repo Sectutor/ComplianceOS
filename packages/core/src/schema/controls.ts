@@ -49,6 +49,7 @@ import {
   accessReviewTaskStatusEnum
 } from "./common";
 export * from "./common";
+import { commonControls } from "./core";
 
 
 // Tables

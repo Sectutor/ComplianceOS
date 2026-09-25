@@ -44,9 +44,9 @@ export default function AIGovernanceProgramGuide() {
             icon: ShieldCheck,
             why: 'Mapping turns high-level governance intent into a structured checklist of what applies to this AI system, and proves coverage to auditors.',
             how: [
-                'Use “All Controls” to decide scope: map what applies to the system.',
-                'Use “Mapped Controls” as your work queue: move items from Mapped → Implemented → Verified.',
-                'Use “Create Work Items” to generate assignable tasks with suggested actions, evidence, and measurement ideas.',
+                'Use "All Controls" to decide scope: map what applies to the system.',
+                'Use "Mapped Controls" as your work queue: move items from Mapped → Implemented → Verified.',
+                'Use "Create Work Items" to generate assignable tasks with suggested actions, evidence, and measurement ideas.',
                 'Aim for no unknowns: everything should end up either mapped (then implemented/verified) or explicitly not applicable.'
             ],
             ctaLabel: 'Map RMF Core',
@@ -81,79 +81,79 @@ export default function AIGovernanceProgramGuide() {
 
     return (
         <DashboardLayout fullWidth={true}>
-            <div className=”w-full space-y-8 pb-20 pt-6 px-4 md:px-8”>
-                <div className=”flex justify-between items-center”>
+            <div className="w-full space-y-8 pb-20 pt-6 px-4 md:px-8">
+                <div className="flex justify-between items-center">
                     <Link href={`${base}/ai-governance`}>
-                        <Button variant=”ghost” className=”text-slate-500 hover:text-slate-900 font-medium”>
-                            <ArrowLeft className=”w-4 h-4 mr-2” />
+                        <Button variant="ghost" className="text-slate-500 hover:text-slate-900 font-medium">
+                            <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to AI Governance
                         </Button>
                     </Link>
-                    <span className=”badge-active”>
-                        <BookOpen className=”w-3 h-3 mr-1” />
+                    <span className="badge-active">
+                        <BookOpen className="w-3 h-3 mr-1" />
                         Program Guide
                     </span>
                 </div>
 
-                <div className=”text-center space-y-5”>
-                    <div className=”inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-700 border border-blue-200”>
-                        <Layers className=”w-8 h-8” />
+                <div className="text-center space-y-5">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                        <Layers className="w-8 h-8" />
                     </div>
-                    <h1 className=”text-4xl font-semibold tracking-tight text-slate-900”>AI Governance Program Guide</h1>
-                    <p className=”text-xl text-slate-600 leading-relaxed max-w-3xl mx-auto”>
+                    <h1 className="text-4xl font-semibold tracking-tight text-slate-900">AI Governance Program Guide</h1>
+                    <p className="text-xl text-slate-600 leading-relaxed max-w-3xl mx-auto">
                         A practical workflow to inventory AI systems, assess risk, map NIST AI RMF controls, and produce audit-ready evidence.
                     </p>
-                    <p className=”text-sm text-slate-500 max-w-3xl mx-auto”>
+                    <p className="text-sm text-slate-500 max-w-3xl mx-auto">
                         This content is operational guidance and not legal advice.
                     </p>
                 </div>
 
-                <div className=”content-card”>
+                <div className="content-card">
                     <CardHeader>
-                        <CardTitle className=”flex items-center gap-2 font-semibold”>
-                            <Target className=”w-5 h-5 text-blue-700” />
+                        <CardTitle className="flex items-center gap-2 font-semibold">
+                            <Target className="w-5 h-5 text-blue-700" />
                             Recommended Workflow
                         </CardTitle>
                         <CardDescription>
-                            Use this sequence to go from “no program” to “auditor-ready program” with clear accountability.
+                            Use this sequence to go from "no program" to "auditor-ready program" with clear accountability.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className=”space-y-6”>
+                    <CardContent className="space-y-6">
                         {steps.map((s, idx) => {
                             const Icon = s.icon;
                             return (
-                                <div key={s.id} className=”flex flex-col md:flex-row gap-4 md:items-start p-5 rounded-2xl border border-slate-200 bg-slate-50/40”>
-                                    <div className=”flex items-start gap-3”>
-                                        <div className=”w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center”>
-                                            <Icon className=”w-5 h-5 text-blue-700” />
+                                <div key={s.id} className="flex flex-col md:flex-row gap-4 md:items-start p-5 rounded-2xl border border-slate-200 bg-slate-50/40">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
+                                            <Icon className="w-5 h-5 text-blue-700" />
                                         </div>
-                                        <div className=”pt-1”>
-                                            <div className=”text-xs font-medium tracking-widest text-slate-500”>STEP {idx + 1}</div>
-                                            <div className=”text-lg font-semibold text-slate-900”>{s.title}</div>
+                                        <div className="pt-1">
+                                            <div className="text-xs font-medium tracking-widest text-slate-500">STEP {idx + 1}</div>
+                                            <div className="text-lg font-semibold text-slate-900">{s.title}</div>
                                         </div>
                                     </div>
 
-                                    <div className=”flex-1 space-y-3”>
+                                    <div className="flex-1 space-y-3">
                                         <div>
-                                            <div className=”text-sm font-medium text-slate-800 flex items-center gap-2”>
-                                                <CheckCircle2 className=”w-4 h-4 text-emerald-600” />
+                                            <div className="text-sm font-medium text-slate-800 flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                                                 Why this matters
                                             </div>
-                                            <div className=”text-sm text-slate-600 leading-relaxed”>{s.why}</div>
+                                            <div className="text-sm text-slate-600 leading-relaxed">{s.why}</div>
                                         </div>
                                         <div>
-                                            <div className=”text-sm font-medium text-slate-800”>How to do it</div>
-                                            <ul className=”list-disc pl-5 text-sm text-slate-600 space-y-1”>
+                                            <div className="text-sm font-medium text-slate-800">How to do it</div>
+                                            <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1">
                                                 {s.how.map((h) => <li key={h}>{h}</li>)}
                                             </ul>
                                         </div>
                                     </div>
 
-                                    <div className=”md:self-center”>
+                                    <div className="md:self-center">
                                         <Link href={s.href}>
-                                            <Button className=”btn-outline gap-2”>
+                                            <Button className="btn-outline gap-2">
                                                 {s.ctaLabel}
-                                                <ArrowRight className=”w-4 h-4” />
+                                                <ArrowRight className="w-4 h-4" />
                                             </Button>
                                         </Link>
                                     </div>

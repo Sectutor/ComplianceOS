@@ -5,5 +5,8 @@
     "description": "Static marketing landing page for ComplianceOS",
     "scripts": {
         "build": "echo 'Static site - no build step required'"
+    },
+    "devDependencies": {
+        "tsx": "^4.23.15"
     }
 }

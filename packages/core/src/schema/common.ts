@@ -3,7 +3,9 @@ import { customType, pgEnum } from "drizzle-orm/pg-core";
 // Custom type for pgvector - used for vector embeddings
 export const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
-    return 'vector(1536)';
+    // Unparameterized so drizzle-kit can emit it as a bare type name; pgvector
+    // casts text -> vector on write either way, dimensions enforced by indexes.
+    return 'vector';
   },
   toDriver(value: number[]): string {
     return JSON.stringify(value);

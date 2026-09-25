@@ -1246,12 +1246,14 @@ div[role="dialog"][data-state="open"] {
   border-radius: 1.5rem !important;
 }
 
-div[role="dialog"] * {
+/* :not(.driver-popover) — the welcome-tour popover (driver.js) has role="dialog"
+   but must keep its own light theme from driver.css */
+div[role="dialog"]:not(.driver-popover) * {
   color: #FFFFFF !important;
   font-weight: 400 !important;
 }
 
-div[role="dialog"] h2 {
+div[role="dialog"]:not(.driver-popover) h2 {
   font-weight: 600 !important;
   font-size: 1.125rem !important;
   line-height: 1.4 !important;
@@ -1279,7 +1281,7 @@ div[role="dialog"] [class*="bg-blue-50"] * {
 }
 
 /* Dialog buttons */
-div[role="dialog"] button {
+div[role="dialog"]:not(.driver-popover) button {
   background-color: #0a1f3d !important;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -1288,7 +1290,7 @@ div[role="dialog"] button {
   transition: all 0.2s ease !important;
 }
 
-div[role="dialog"] button:hover {
+div[role="dialog"]:not(.driver-popover) button:hover {
   background-color: #061225 !important;
   color: #ffffff !important;
 }

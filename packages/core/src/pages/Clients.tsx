@@ -273,7 +273,7 @@ export default function Clients() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button id="msp-onboarding-btn" variant="outline" className="gap-2 shadow-sm" onClick={() => setLocation('/clients/new/msp')}>
+            <Button id="msp-onboarding-btn" className="gap-2 border-transparent bg-[#0F2C59] text-white shadow-sm hover:bg-[#1C4D8D]" onClick={() => setLocation('/clients/new/msp')}>
               <Plus className="h-4 w-4" />
               MSP Onboarding
             </Button>

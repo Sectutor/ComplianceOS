@@ -26,12 +26,13 @@
   "dependencies": {
     "@complianceos/core": "*",
     "@trpc/server": "^10.45.0",
-    "zod": "^3.22.4",
-    "drizzle-orm": "^0.30.0"
+    "drizzle-orm": "^0.30.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "typescript": "^5.4.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.4.3"
   }
 }

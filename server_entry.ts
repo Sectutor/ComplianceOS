@@ -395,7 +395,7 @@ app.use(session({
 if (process.env.RATE_LIMITING_ENABLED !== 'false') {
     const limiter = rateLimit({
         windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
-        max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+        max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 300,
         standardHeaders: true,
         legacyHeaders: false,
         message: { status: 429, message: 'Too many requests, please try again later.' }

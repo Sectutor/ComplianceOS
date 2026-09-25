@@ -28,7 +28,7 @@ COPY . .
 WORKDIR /app/packages/core
 # Skip type checking (tsc) to allow build to proceed despite existing type errors
 # Increase memory limit to 8GB to avoid Heap Out of Memory error during heavy Vite bundle compilation
-RUN node --max-old-space-size=8192 ../../node_modules/.bin/vite build
+RUN node --max-old-space-size=12288 ../../node_modules/.bin/vite build
 
 # Stage 2: Production Runtime
 FROM node:20-alpine AS runner

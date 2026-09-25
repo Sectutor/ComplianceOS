@@ -5,6 +5,9 @@
  *      fail with "already exists" style errors are skipped so this is safe to
  *      re-run on every boot).
  *   2. Seeds the LaTorre LTD demo source dataset (clientId = 7).
+ *   3. Runs the capabilities volume seeders (seed-client7-massive-100each.mjs +
+ *      seed-client7-action-items.mjs) so a fresh install opens with a realistic
+ *      Action Center workload. Opt out with DEMO_DISABLE_CAPABILITY_SEED=true.
  *
  * provisionLaTorreDemo() (packages/core/src/lib/demo-provisioning.ts) copies the
  * dataset from clientId = 7 into every newly created client workspace.
@@ -17,6 +20,7 @@
  */
 import "../env-loader";
 import { readFileSync } from "fs";
+import { spawnSync } from "child_process";
 import path from "path";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -1475,6 +1479,26 @@ async function main() {
     ]);
 
     console.log("[BootstrapDB] ✅ LaTorre LTD enriched demo dataset seeded (clientId 7).");
+
+    // 17. Capabilities showcase: volume-seed the Action Center so a fresh install opens
+    // with a realistic workload (2,000+ actionable items across all issue categories).
+    // Opt out with DEMO_DISABLE_CAPABILITY_SEED=true. Skipped on re-boots (see completeness
+    // check above) so restarts never churn existing demo data.
+    if (process.env.DEMO_DISABLE_CAPABILITY_SEED !== "true") {
+        const capabilitySeeders = ["seed-client7-massive-100each.mjs", "seed-client7-action-items.mjs"];
+        for (const script of capabilitySeeders) {
+            console.log(`[BootstrapDB] Running capabilities seeder: ${script} ...`);
+            const res = spawnSync(process.execPath, [path.join(process.cwd(), "scripts", script), String(LATORRE_CLIENT_ID)], {
+                stdio: "inherit",
+                env: process.env,
+                cwd: process.cwd(),
+            });
+            if (res.status !== 0) {
+                console.warn(`[BootstrapDB] Capabilities seeder ${script} failed (continuing):`, res.error?.message || `exit code ${res.status}`);
+            }
+        }
+    }
+
     await sql.end();
     process.exit(0);
 }

@@ -89,3 +89,11 @@ server-local.log
 vite-dev.log
 supabase-start*.log
 
+
+# Runtime data & binaries
+uploads/
+storage/
+data/
+*.node
+target/
+netlify-update.json

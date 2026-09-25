@@ -4,15 +4,14 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@complianceos/ui/ui/button";
+import DashboardLayout from "@/components/DashboardLayout";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import {
-    Building2, Shield, FileText, CheckCircle2,
+    Building2, Shield, FileText, CheckCircle2, Check,
     Loader2, Rocket, ArrowLeft, ArrowRight,
-    Users, Sparkles, Lock, BarChart3,
-    ChevronRight, Info, HelpCircle
+    Users, Sparkles, Lock, BarChart3, Info
 } from "lucide-react";
 
 const FRAMEWORKS = [
@@ -130,624 +129,574 @@ export default function MSPOnboarding() {
         .map(id => FRAMEWORKS.find(f => f.id === id)?.controls || 0)
         .reduce((a, b) => a + b, 0);
 
+    const inputCls = "mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-[15px] text-slate-900 placeholder:text-slate-400 transition-shadow focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-900/5";
+    const textareaCls = "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 transition-shadow focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-900/5";
+    const labelCls = "text-sm font-medium text-slate-900";
+    const cardCls = "rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-6";
+
+    const chipCls = (selected: boolean) =>
+        cn(
+            "text-left px-4 py-2.5 rounded-xl text-[15px] border transition-all duration-200",
+            selected
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
+        );
+
     return (
-        <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #020617 0%, #312e81 50%, #020617 100%)' }}>
-            {/* Header */}
-            <header className="flex items-center justify-between px-8 py-5 border-b border-sidebar-border">
-                <div className="flex items-center gap-4">
+        <DashboardLayout>
+            <div className="mx-auto max-w-2xl px-6 py-10">
+                {/* Masthead */}
+                <div className="flex items-center justify-between">
                     <button
                         onClick={() => navigate("/clients")}
-                        className="text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors flex items-center gap-2 text-sm"
+                        className="flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-slate-900"
                     >
                         <ArrowLeft className="h-4 w-4" />
-                        Back to clients
+                        Clients
                     </button>
-                    <div className="h-4 w-px bg-sidebar-border" />
-                    <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-lg bg-sidebar-accent flex items-center justify-center">
-                            <Shield className="h-4 w-4 text-sidebar-foreground" />
-                        </div>
-                        <span className="text-sm font-semibold text-sidebar-foreground">New Client Workspace</span>
-                    </div>
+                    <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400">
+                        New Client Workspace
+                    </span>
                 </div>
 
-                {/* Step progress pills */}
-                <div className="hidden md:flex items-center gap-2">
-                    {STEPS.map((s, i) => (
-                        <div key={s.id} className="flex items-center gap-2">
-                            <div className={cn(
-                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all",
-                                step === s.id
-                                    ? "bg-sidebar-accent text-sidebar-foreground shadow-lg shadow-primary/8"
-                                    : step > s.id
-                                        ? "bg-emerald-500/20 text-emerald-300"
-                                        : "bg-sidebar-muted/10 text-sidebar-foreground/60"
-                            )}>
-                                {step > s.id
-                                    ? <CheckCircle2 className="h-3 w-3" />
-                                    : <span>{s.id}</span>}
-                                <span className="hidden lg:inline">{s.title}</span>
-                            </div>
-                            {i < STEPS.length - 1 && (
-                                <ChevronRight className="h-3 w-3 text-sidebar-foreground/50" />
+                {/* Segmented progress */}
+                <div className="mt-8 flex items-center gap-2" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={step}>
+                    {STEPS.map(s => (
+                        <div
+                            key={s.id}
+                            className={cn(
+                                "h-1 flex-1 rounded-full transition-colors duration-500",
+                                step >= s.id ? "bg-slate-900" : "bg-slate-200"
                             )}
-                        </div>
+                        />
                     ))}
                 </div>
-
-                <div className="text-xs text-sidebar-foreground/60">Step {step} of {STEPS.length}</div>
-            </header>
-
-            {/* Progress bar */}
-            <div className="px-8 py-3 border-b border-sidebar-border">
-                <div className="max-w-2xl mx-auto">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-sidebar-foreground/60">Progress</span>
-                        <span className="text-xs text-sidebar-foreground/60">{Math.round((step / STEPS.length) * 100)}%</span>
-                    </div>
-                    <div className="h-2 bg-sidebar-muted/10 rounded-full overflow-hidden">
-                        <div 
-                            className="h-full bg-gradient-to-r from-sidebar-accent to-cyan-500 transition-all duration-500 ease-out rounded-full"
-                            style={{ width: `${(step / STEPS.length) * 100}%` }}
-                        />
-                    </div>
+                <div className="mt-2.5 flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-medium text-slate-600">{STEPS[step - 1].title}</span>
+                    <span>Step {step} of {STEPS.length}</span>
                 </div>
-            </div>
 
-            {/* Main content */}
-            <div className="flex-1 flex items-center justify-center p-6">
-                <div className="w-full max-w-2xl">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={step}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                        >
-                            {/* Step 1: Company Info */}
-                            {step === 1 && (
-                                <div className="space-y-6">
-                                    <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-sidebar-accent/3 border border-sidebar-accent mb-4">
-                                            <Building2 className="h-7 w-7 text-sidebar-accent/80" />
-                                        </div>
-                                        <h1 className="text-3xl font-bold text-sidebar-foreground mb-2">Who's your client?</h1>
-                                        <p className="text-sidebar-foreground/70">Basic details to set up their workspace</p>
+                {/* Step content */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={step}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -16 }}
+                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                        className="mt-10"
+                    >
+                        {/* Step 1: Company Info */}
+                        {step === 1 && (
+                            <div>
+                                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Who's your client?</h1>
+                                <p className="mt-2 text-lg text-slate-500">Basic details to set up their workspace.</p>
+                                <div className={cn("mt-8", cardCls)}>
+                                    <div>
+                                        <Label className={labelCls}>Company Name</Label>
+                                        <Input
+                                            className={inputCls}
+                                            placeholder="e.g. Acme Corp"
+                                            value={company.name}
+                                            onChange={e => setCompany({ ...company, name: e.target.value })}
+                                            autoFocus
+                                        />
                                     </div>
-                                    <div className="bg-sidebar-muted/5 border border-sidebar-border rounded-2xl p-6 space-y-4 backdrop-blur-sm">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="col-span-2">
-                                                <Label className="text-sidebar-foreground/80 text-sm font-medium">Company Name *</Label>
-                                                <Input
-                                                    className="mt-1.5 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus:border-sidebar-accent focus:ring-sidebar-ring/20"
-                                                    placeholder="e.g. Acme Corp"
-                                                    value={company.name}
-                                                    onChange={e => setCompany({ ...company, name: e.target.value })}
-                                                    autoFocus
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label className="text-sidebar-foreground/80 text-sm font-medium">Industry *</Label>
-                                                <div className="mt-1.5 grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-1">
-                                                    {INDUSTRIES.map(ind => (
-                                                        <button
-                                                            key={ind}
-                                                            onClick={() => setCompany({ ...company, industry: ind })}
-                                                            className={cn(
-                                                                "text-left px-3 py-2 rounded-lg text-sm border transition-all",
-                                                                company.industry === ind
-                                                                    ? "bg-sidebar-accent border-sidebar-accent text-sidebar-foreground font-medium"
-                                                                    : "bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground/70 hover:border-sidebar-border hover:text-sidebar-foreground"
-                                                            )}
-                                                        >
-                                                            {ind}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <Label className="text-sidebar-foreground/80 text-sm font-medium">Website</Label>
-                                                    <Input
-                                                        className="mt-1.5 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
-                                                        placeholder="https://acme.com"
-                                                        value={company.website}
-                                                        onChange={e => setCompany({ ...company, website: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label className="text-sidebar-foreground/80 text-sm font-medium">Employees</Label>
-                                                    <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-                                                        {["1–10", "11–50", "51–200", "201–500", "500+"].map(size => (
-                                                            <button
-                                                                key={size}
-                                                                onClick={() => setCompany({ ...company, employees: size })}
-                                                                className={cn(
-                                                                    "px-2 py-1.5 rounded-lg text-xs border transition-all",
-                                                                    company.employees === size
-                                                                        ? "bg-sidebar-accent border-sidebar-accent text-sidebar-foreground"
-                                                                        : "bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground/70 hover:border-sidebar-border"
-                                                                )}
-                                                            >
-                                                                {size}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <div>
+                                        <Label className={labelCls}>Industry</Label>
+                                        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                            {INDUSTRIES.map(ind => (
+                                                <button key={ind} onClick={() => setCompany({ ...company, industry: ind })} className={chipCls(company.industry === ind)}>
+                                                    {ind}
+                                                </button>
+                                            ))}
                                         </div>
+                                    </div>
+                                    <div className="grid gap-6 sm:grid-cols-2">
                                         <div>
-                                            <Label className="text-sidebar-foreground/80 text-sm font-medium">Description (optional)</Label>
-                                            <Textarea
-                                                className="mt-1.5 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50 resize-none"
-                                                placeholder="Brief description for AI context..."
-                                                rows={2}
-                                                value={company.description}
-                                                onChange={e => setCompany({ ...company, description: e.target.value })}
+                                            <Label className={labelCls}>Website</Label>
+                                            <Input
+                                                className={cn(inputCls, "mt-2")}
+                                                placeholder="https://acme.com"
+                                                value={company.website}
+                                                onChange={e => setCompany({ ...company, website: e.target.value })}
                                             />
                                         </div>
+                                        <div>
+                                            <Label className={labelCls}>Employees</Label>
+                                            <div className="mt-3 grid grid-cols-3 gap-2">
+                                                {["1–10", "11–50", "51–200", "201–500", "500+"].map(size => (
+                                                    <button
+                                                        key={size}
+                                                        onClick={() => setCompany({ ...company, employees: size })}
+                                                        className={cn(chipCls(company.employees === size), "px-2 py-2 text-center text-sm")}
+                                                    >
+                                                        {size}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label className={labelCls}>Description <span className="font-normal text-slate-400">(optional)</span></Label>
+                                        <Textarea
+                                            className={textareaCls}
+                                            placeholder="Brief description for AI context…"
+                                            rows={2}
+                                            value={company.description}
+                                            onChange={e => setCompany({ ...company, description: e.target.value })}
+                                        />
                                     </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {/* Step 2: Frameworks */}
-                            {step === 2 && (
-                                <div className="space-y-6">
-                                    <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/20 border border-cyan-400/30 mb-4">
-                                            <Shield className="h-7 w-7 text-cyan-300" />
-                                        </div>
-                                        <h1 className="text-3xl font-bold text-sidebar-foreground mb-2">Compliance frameworks</h1>
-                                        <p className="text-sidebar-foreground/70">Which standards does {company.name || "your client"} need to meet?</p>
+                        {/* Step 2: Frameworks */}
+                        {step === 2 && (
+                            <div>
+                                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Compliance frameworks</h1>
+                                <p className="mt-2 text-lg text-slate-500">
+                                    Which standards does {company.name || "your client"} need to meet?
+                                </p>
+                                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                                    {FRAMEWORKS.map(fw => {
+                                        const selected = selectedFrameworks.includes(fw.id);
+                                        return (
+                                            <button
+                                                key={fw.id}
+                                                onClick={() => toggleFramework(fw.id)}
+                                                className={cn(
+                                                    "relative flex flex-col rounded-2xl border p-5 text-left transition-all duration-200",
+                                                    selected
+                                                        ? "border-slate-900 bg-slate-50 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                                                        : "border-slate-200 bg-white hover:border-slate-300"
+                                                )}
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="text-[15px] font-semibold text-slate-900">{fw.name}</div>
+                                                    <div className={cn(
+                                                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all",
+                                                        selected ? "border-slate-900 bg-slate-900" : "border-slate-300 bg-white"
+                                                    )}>
+                                                        {selected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-1 text-sm leading-snug text-slate-500">{fw.desc}</div>
+                                                <div className="mt-4 text-xs text-slate-400">
+                                                    {fw.controls} controls · {fw.badge}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {selectedFrameworks.length > 0 && (
+                                    <div className="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-1 rounded-2xl bg-slate-50 px-6 py-4 text-sm text-slate-500">
+                                        <span>
+                                            <strong className="font-semibold text-slate-900">{selectedFrameworks.length}</strong> framework{selectedFrameworks.length !== 1 ? "s" : ""} selected
+                                        </span>
+                                        <span className="hidden h-4 w-px bg-slate-200 sm:block" />
+                                        <span>
+                                            <strong className="font-semibold text-slate-900">~{totalControls}</strong> controls to implement
+                                        </span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {FRAMEWORKS.map(fw => {
-                                            const selected = selectedFrameworks.includes(fw.id);
+                                )}
+                            </div>
+                        )}
+
+                        {/* Step 3: Risk Profile */}
+                        {step === 3 && (
+                            <div>
+                                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Risk context</h1>
+                                <p className="mt-2 text-lg text-slate-500">
+                                    Helps us prioritise controls for {company.name || "your client"}.
+                                </p>
+                                <div className={cn("mt-8", cardCls)}>
+                                    <div className="space-y-3">
+                                        {[
+                                            { key: "cloudOnly", label: "Cloud-first infrastructure", desc: "Systems run primarily in the cloud (AWS, Azure, GCP)" },
+                                            { key: "hasPersonalData", label: "Processes personal data", desc: "Stores or processes customer PII or employee data" },
+                                            { key: "regulated", label: "Operates in a regulated industry", desc: "Finance, health, government, or critical infrastructure" },
+                                        ].map(item => {
+                                            const on = riskProfile[item.key as keyof typeof riskProfile];
                                             return (
                                                 <button
-                                                    key={fw.id}
-                                                    onClick={() => toggleFramework(fw.id)}
+                                                    key={item.key}
+                                                    onClick={() => setRiskProfile(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
                                                     className={cn(
-                                                        "relative flex flex-col text-left p-4 rounded-xl border-2 transition-all duration-200",
-                                                        selected
-                                                            ? "border-sidebar-accent bg-sidebar-accent/3"
-                                                            : "border-sidebar-border bg-sidebar-muted/5 hover:border-sidebar-border"
+                                                        "flex w-full items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200",
+                                                        on ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"
                                                     )}
                                                 >
-                                                    {selected && (
-                                                        <div className="absolute top-3 right-3">
-                                                            <CheckCircle2 className="h-5 w-5 text-sidebar-accent/80" />
-                                                        </div>
-                                                    )}
-                                                    <span className="text-2xl mb-2">{fw.icon}</span>
-                                                    <div className="font-semibold text-sm text-sidebar-foreground mb-0.5">{fw.name}</div>
-                                                    <div className="text-xs text-sidebar-foreground/60 mb-2 line-clamp-2">{fw.desc}</div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] bg-sidebar-muted/10 text-sidebar-foreground/70 px-2 py-0.5 rounded-full">
-                                                            {fw.controls} controls
-                                                        </span>
-                                                        <span className="text-[10px] bg-sidebar-accent/3 text-sidebar-accent/80 px-2 py-0.5 rounded-full">
-                                                            {fw.badge}
-                                                        </span>
+                                                    <div className={cn(
+                                                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all",
+                                                        on ? "border-slate-900 bg-slate-900" : "border-slate-300 bg-white"
+                                                    )}>
+                                                        {on && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[15px] font-medium text-slate-900">{item.label}</div>
+                                                        <div className="mt-0.5 text-sm text-slate-500">{item.desc}</div>
                                                     </div>
                                                 </button>
                                             );
                                         })}
                                     </div>
-                                    {selectedFrameworks.length > 0 && (
-                                        <div className="flex items-center justify-center gap-6 text-sm text-sidebar-foreground/70 bg-sidebar-muted/5 border border-sidebar-border rounded-xl py-3">
-                                            <span><strong className="text-sidebar-foreground">{selectedFrameworks.length}</strong> frameworks selected</span>
-                                            <span className="text-sidebar-foreground/20">|</span>
-                                            <span><strong className="text-sidebar-foreground">~{totalControls}</strong> controls to implement</span>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Step 3: Risk Profile */}
-                            {step === 3 && (
-                                <div className="space-y-6">
-                                    <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-400/30 mb-4">
-                                            <BarChart3 className="h-7 w-7 text-amber-300" />
-                                        </div>
-                                        <h1 className="text-3xl font-bold text-sidebar-foreground mb-2">Risk context</h1>
-                                        <p className="text-sidebar-foreground/70">Helps us prioritise controls for {company.name || "your client"}</p>
+                                    <div>
+                                        <Label className={labelCls}>Additional context <span className="font-normal text-slate-400">(optional)</span></Label>
+                                        <Textarea
+                                            className={textareaCls}
+                                            placeholder="Any specific compliance requirements, industry regulations, or security concerns…"
+                                            rows={3}
+                                            value={riskProfile.notes}
+                                            onChange={e => setRiskProfile({ ...riskProfile, notes: e.target.value })}
+                                        />
                                     </div>
-                                    <div className="bg-sidebar-muted/5 border border-sidebar-border rounded-2xl p-6 space-y-4">
-                                        {[
-                                            { key: "cloudOnly", label: "Cloud-first infrastructure", desc: "Systems run primarily in the cloud (AWS, Azure, GCP)" },
-                                            { key: "hasPersonalData", label: "Processes personal data", desc: "Stores or processes customer PII or employee data" },
-                                            { key: "regulated", label: "Operates in a regulated industry", desc: "Finance, health, government, or critical infrastructure" },
-                                        ].map(item => (
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 4: Branding */}
+                        {step === 4 && (
+                            <div>
+                                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">White-label branding</h1>
+                                <p className="mt-2 text-lg text-slate-500">
+                                    Customise how the workspace appears to {company.name || "your client"}.
+                                </p>
+                                <div className={cn("mt-8", cardCls)}>
+                                    <div>
+                                        <Label className={labelCls}>Workspace name</Label>
+                                        <Input
+                                            className={inputCls}
+                                            placeholder={`${company.name || "Acme"} Compliance Portal`}
+                                            value={branding.customName}
+                                            onChange={e => setBranding({ ...branding, customName: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className={labelCls}>Tagline <span className="font-normal text-slate-400">(optional)</span></Label>
+                                        <Input
+                                            className={inputCls}
+                                            placeholder="Secure by design. Compliant by default."
+                                            value={branding.motto}
+                                            onChange={e => setBranding({ ...branding, motto: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="msp-accent-color-picker" className={labelCls}>Accent colour</Label>
+                                        <div className="mt-3 flex items-center gap-4">
+                                            <input
+                                                id="msp-accent-color-picker"
+                                                type="color"
+                                                aria-label="Brand accent color picker"
+                                                value={branding.accentColor}
+                                                onChange={e => setBranding({ ...branding, accentColor: e.target.value })}
+                                                className="h-9 w-9 cursor-pointer rounded-full border border-slate-200 bg-white p-0.5"
+                                            />
+                                            <div className="flex gap-2.5">
+                                                {["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#0284c7"].map(color => (
+                                                    <button
+                                                        key={color}
+                                                        aria-label={`Accent colour ${color}`}
+                                                        onClick={() => setBranding({ ...branding, accentColor: color })}
+                                                        className={cn(
+                                                            "h-7 w-7 rounded-full transition-all",
+                                                            branding.accentColor === color
+                                                                ? "ring-2 ring-slate-900 ring-offset-2"
+                                                                : "ring-1 ring-slate-200"
+                                                        )}
+                                                        style={{ backgroundColor: color }}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="font-mono text-sm text-slate-400">{branding.accentColor}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Preview */}
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400">Preview</div>
+                                        <div className="mt-4 flex items-center gap-3">
                                             <div
-                                                key={item.key}
-                                                onClick={() => setRiskProfile(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
-                                                className={cn(
-                                                    "flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                                                    riskProfile[item.key as keyof typeof riskProfile]
-                                                        ? "border-amber-400/50 bg-amber-500/10"
-                                                        : "border-sidebar-border bg-sidebar-muted/5 hover:border-sidebar-border"
-                                                )}
+                                                className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold text-white"
+                                                style={{ backgroundColor: branding.accentColor }}
                                             >
-                                                <div className={cn(
-                                                    "h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
-                                                    riskProfile[item.key as keyof typeof riskProfile]
-                                                        ? "border-amber-400 bg-amber-500"
-                                                        : "border-sidebar-border bg-transparent"
-                                                )}>
-                                                    {riskProfile[item.key as keyof typeof riskProfile] &&
-                                                        <CheckCircle2 className="h-3 w-3 text-sidebar-foreground" />}
+                                                {(company.name || "A")[0].toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="text-[15px] font-semibold text-slate-900">
+                                                    {branding.customName || `${company.name || "Acme"} Compliance Portal`}
                                                 </div>
-                                                <div>
-                                                    <div className="text-sm font-semibold text-sidebar-foreground">{item.label}</div>
-                                                    <div className="text-xs text-sidebar-foreground/60 mt-0.5">{item.desc}</div>
+                                                <div className="text-sm text-slate-500">
+                                                    {branding.motto || "Powered by ComplianceOS"}
                                                 </div>
                                             </div>
-                                        ))}
-                                        <div>
-                                            <Label className="text-sidebar-foreground/80 text-sm font-medium">Additional context (optional)</Label>
-                                            <Textarea
-                                                className="mt-2 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50 resize-none"
-                                                placeholder="Any specific compliance requirements, industry regulations, or security concerns..."
-                                                rows={3}
-                                                value={riskProfile.notes}
-                                                onChange={e => setRiskProfile({ ...riskProfile, notes: e.target.value })}
-                                            />
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {/* Step 4: Branding */}
-                            {step === 4 && (
-                                <div className="space-y-6">
-                                    <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/20 border border-pink-400/30 mb-4">
-                                            <Sparkles className="h-7 w-7 text-pink-300" />
-                                        </div>
-                                        <h1 className="text-3xl font-bold text-sidebar-foreground mb-2">White-label branding</h1>
-                                        <p className="text-sidebar-foreground/70">Customise how the workspace appears to {company.name || "your client"}</p>
-                                    </div>
-                                    <div className="bg-sidebar-muted/5 border border-sidebar-border rounded-2xl p-6 space-y-5">
+                        {/* Step 5: Invite client */}
+                        {step === 5 && (
+                            <div>
+                                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Invite your client contact</h1>
+                                <p className="mt-2 text-lg text-slate-500">
+                                    They'll get access to fill in questionnaires and sign off on policies.
+                                </p>
+                                <div className={cn("mt-8", cardCls)}>
+                                    <div className="grid gap-6 sm:grid-cols-2">
                                         <div>
-                                            <Label className="text-sidebar-foreground/80 text-sm font-medium">Workspace name</Label>
+                                            <Label className={labelCls}>Contact Name</Label>
                                             <Input
-                                                className="mt-1.5 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
-                                                placeholder={`${company.name || "Acme"} Compliance Portal`}
-                                                value={branding.customName}
-                                                onChange={e => setBranding({ ...branding, customName: e.target.value })}
+                                                className={inputCls}
+                                                placeholder="Jane Smith"
+                                                value={invite.contactName}
+                                                onChange={e => setInvite({ ...invite, contactName: e.target.value })}
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sidebar-foreground/80 text-sm font-medium">Tagline (optional)</Label>
+                                            <Label className={labelCls}>Contact Email</Label>
                                             <Input
-                                                className="mt-1.5 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
-                                                placeholder="Secure by design. Compliant by default."
-                                                value={branding.motto}
-                                                onChange={e => setBranding({ ...branding, motto: e.target.value })}
+                                                className={inputCls}
+                                                placeholder="jane@acme.com"
+                                                type="email"
+                                                value={invite.contactEmail}
+                                                onChange={e => setInvite({ ...invite, contactEmail: e.target.value })}
                                             />
                                         </div>
-                                        <div>
-                                            <Label htmlFor="msp-accent-color-picker" className="text-sidebar-foreground/80 text-sm font-medium">Accent colour</Label>
-                                            <div className="flex items-center gap-3 mt-2">
-                                                <input
-                                                    id="msp-accent-color-picker"
-                                                    type="color"
-                                                    aria-label="Brand accent color picker"
-                                                    value={branding.accentColor}
-                                                    onChange={e => setBranding({ ...branding, accentColor: e.target.value })}
-                                                    className="h-10 w-10 rounded-lg border border-sidebar-border bg-transparent cursor-pointer"
-                                                />
-                                                <div className="flex gap-2">
-                                                    {["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#0284c7"].map(color => (
-                                                        <button
-                                                            key={color}
-                                                            onClick={() => setBranding({ ...branding, accentColor: color })}
-                                                            className={cn(
-                                                                "h-7 w-7 rounded-full border-2 transition-all",
-                                                                branding.accentColor === color ? "border-sidebar-border scale-110" : "border-transparent"
-                                                            )}
-                                                            style={{ backgroundColor: color }}
-                                                        />
-                                                    ))}
-                                                </div>
-                                                <span className="text-sidebar-foreground/70 text-sm font-mono">{branding.accentColor}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Preview card */}
-                                        <div className="mt-4 rounded-xl p-4 border border-sidebar-border bg-sidebar-muted/5">
-                                            <div className="text-xs text-sidebar-foreground/50 uppercase tracking-wider mb-3">Preview</div>
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className="h-9 w-9 rounded-lg flex items-center justify-center font-bold text-sidebar-foreground text-sm"
-                                                    style={{ backgroundColor: branding.accentColor }}
-                                                >
-                                                    {(company.name || "A")[0].toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-sidebar-foreground">
-                                                        {branding.customName || `${company.name || "Acme"} Compliance Portal`}
-                                                    </div>
-                                                    <div className="text-xs text-sidebar-foreground/60">
-                                                        {branding.motto || "Powered by ComplianceOS"}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
-                                </div>
-                            )}
 
-                            {/* Step 5: Invite client */}
-                            {step === 5 && (
-                                <div className="space-y-6">
-                                    <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-400/30 mb-4">
-                                            <Users className="h-7 w-7 text-emerald-300" />
-                                        </div>
-                                        <h1 className="text-3xl font-bold text-sidebar-foreground mb-2">Invite your client contact</h1>
-                                        <p className="text-sidebar-foreground/70">They'll get access to fill in questionnaires and sign off on policies</p>
-                                    </div>
-                                    <div className="bg-sidebar-muted/5 border border-sidebar-border rounded-2xl p-6 space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <Label className="text-sidebar-foreground/80 text-sm font-medium">Contact Name</Label>
-                                                <Input
-                                                    className="mt-1.5 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
-                                                    placeholder="Jane Smith"
-                                                    value={invite.contactName}
-                                                    onChange={e => setInvite({ ...invite, contactName: e.target.value })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label className="text-sidebar-foreground/80 text-sm font-medium">Contact Email</Label>
-                                                <Input
-                                                    className="mt-1.5 bg-sidebar-muted/5 border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
-                                                    placeholder="jane@acme.com"
-                                                    type="email"
-                                                    value={invite.contactEmail}
-                                                    onChange={e => setInvite({ ...invite, contactEmail: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            onClick={() => setInvite({ ...invite, sendInvite: !invite.sendInvite })}
-                                            className={cn(
-                                                "flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                                                invite.sendInvite
-                                                    ? "border-emerald-400/50 bg-emerald-500/10"
-                                                    : "border-sidebar-border bg-sidebar-muted/5"
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                "h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all",
-                                                invite.sendInvite ? "border-emerald-400 bg-emerald-500" : "border-sidebar-border"
-                                            )}>
-                                                {invite.sendInvite && <CheckCircle2 className="h-3 w-3 text-sidebar-foreground" />}
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-semibold text-sidebar-foreground">Send invitation email immediately</div>
-                                                <div className="text-xs text-sidebar-foreground/60 mt-0.5">
-                                                    They'll receive a secure link to access their compliance workspace
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50 pt-1">
-                                            <Lock className="h-3.5 w-3.5 text-sidebar-foreground/50" />
-                                            <span>Client can only see their own data — your MSP account stays private</span>
-                                        </div>
-
-                                        <button
-                                            onClick={() => setStep(6)}
-                                            className="w-full text-center text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground/80 py-2 transition-colors"
-                                        >
-                                            Skip for now → set up later
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 6: Review & Confirm */}
-                            {step === 6 && (
-                                <div className="space-y-6">
-                                    <div className="text-center mb-8">
-                                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-sidebar-accent/3 border border-sidebar-accent mb-4">
-                                            <FileText className="h-7 w-7 text-sidebar-accent/80" />
-                                        </div>
-                                        <h1 className="text-3xl font-bold text-sidebar-foreground mb-2">Review & confirm</h1>
-                                        <p className="text-sidebar-foreground/70">Double-check everything before launching</p>
-                                    </div>
-                                    <div className="bg-sidebar-muted/5 border border-sidebar-border rounded-2xl p-6 space-y-4">
-                                        {/* Company summary */}
-                                        <div className="flex items-start gap-4 pb-4 border-b border-sidebar-border">
-                                            <Building2 className="h-5 w-5 text-sidebar-accent/80 mt-0.5" />
-                                            <div>
-                                                <div className="text-sm font-semibold text-sidebar-foreground">{company.name}</div>
-                                                <div className="text-xs text-sidebar-foreground/60">{company.industry} • {company.employees || 'N/A'} employees</div>
-                                                {company.website && <div className="text-xs text-sidebar-foreground/50">{company.website}</div>}
-                                            </div>
-                                        </div>
-                                        {/* Frameworks summary */}
-                                        <div className="flex items-start gap-4 pb-4 border-b border-sidebar-border">
-                                            <Shield className="h-5 w-5 text-cyan-300 mt-0.5" />
-                                            <div>
-                                                <div className="text-sm font-semibold text-sidebar-foreground">{selectedFrameworks.length} Frameworks</div>
-                                                <div className="text-xs text-sidebar-foreground/60">{selectedFrameworks.map(id => FRAMEWORKS.find(f => f.id === id)?.name).join(', ')}</div>
-                                                <div className="text-xs text-sidebar-accent/80 mt-1">~{totalControls} controls will be generated</div>
-                                            </div>
-                                        </div>
-                                        {/* Risk summary */}
-                                        <div className="flex items-start gap-4 pb-4 border-b border-sidebar-border">
-                                            <BarChart3 className="h-5 w-5 text-amber-300 mt-0.5" />
-                                            <div>
-                                                <div className="text-sm font-semibold text-sidebar-foreground">Risk Profile</div>
-                                                <div className="flex flex-wrap gap-2 mt-1">
-                                                    {riskProfile.cloudOnly && <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Cloud-first</span>}
-                                                    {riskProfile.hasPersonalData && <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Personal data</span>}
-                                                    {riskProfile.regulated && <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Regulated</span>}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* Branding summary */}
-                                        <div className="flex items-start gap-4 pb-4 border-b border-sidebar-border">
-                                            <Sparkles className="h-5 w-5 text-pink-300 mt-0.5" />
-                                            <div>
-                                                <div className="text-sm font-semibold text-sidebar-foreground">
-                                                    {branding.customName || `${company.name} Compliance Portal`}
-                                                </div>
-                                                <div className="text-xs text-sidebar-foreground/60">{branding.motto || 'Default tagline'}</div>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <div className="h-4 w-4 rounded-full border border-sidebar-border" style={{ backgroundColor: branding.accentColor }} />
-                                                    <span className="text-xs text-sidebar-foreground/50">{branding.accentColor}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* Contact summary */}
-                                        <div className="flex items-start gap-4">
-                                            <Users className="h-5 w-5 text-emerald-300 mt-0.5" />
-                                            <div>
-                                                {invite.contactName ? (
-                                                    <>
-                                                        <div className="text-sm font-semibold text-sidebar-foreground">{invite.contactName}</div>
-                                                        <div className="text-xs text-sidebar-foreground/60">{invite.contactEmail}</div>
-                                                        <div className="text-xs text-emerald-300 mt-1">
-                                                            {invite.sendInvite ? '✓ Invitation will be sent' : 'Invitation skipped'}
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="text-sm text-sidebar-foreground/60">No contact invited yet</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50 pt-2">
-                                        <Info className="h-3.5 w-3.5 text-sidebar-foreground/50" />
-                                        <span>You can always update these settings after launch</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 7: Done */}
-                            {step === 7 && createdClientId && (
-                                <div className="text-center space-y-6">
-                                    <motion.div
-                                        initial={{ scale: 0, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                        className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-400/30 mx-auto mb-2"
+                                    <button
+                                        onClick={() => setInvite({ ...invite, sendInvite: !invite.sendInvite })}
+                                        className={cn(
+                                            "flex w-full items-start gap-4 rounded-2xl border p-5 text-left transition-all duration-200",
+                                            invite.sendInvite ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"
+                                        )}
                                     >
-                                        <CheckCircle2 className="h-12 w-12 text-emerald-300" />
-                                    </motion.div>
-                                    <h1 className="text-4xl font-bold text-sidebar-foreground">Workspace ready! 🎉</h1>
-                                    <p className="text-sidebar-foreground/80 text-lg">
-                                        <strong className="text-sidebar-foreground">{company.name}</strong>'s compliance workspace has been provisioned with {selectedFrameworks.length} framework{selectedFrameworks.length !== 1 ? "s" : ""} and ~{totalControls} controls.
-                                    </p>
-
-                                    <div className="grid grid-cols-3 gap-4 my-8">
-                                        {[
-                                            { label: "Frameworks", value: selectedFrameworks.length, icon: Shield },
-                                            { label: "Controls", value: `~${totalControls}`, icon: CheckCircle2 },
-                                            { label: "AI Policies", value: "Auto-generated", icon: Sparkles },
-                                        ].map(stat => (
-                                            <div key={stat.label} className="bg-sidebar-muted/5 border border-sidebar-border rounded-xl p-4">
-                                                <stat.icon className="h-5 w-5 text-sidebar-accent/80 mb-2 mx-auto" />
-                                                <div className="text-xl font-bold text-sidebar-foreground">{stat.value}</div>
-                                                <div className="text-xs text-sidebar-foreground/60">{stat.label}</div>
+                                        <div className={cn(
+                                            "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all",
+                                            invite.sendInvite ? "border-slate-900 bg-slate-900" : "border-slate-300 bg-white"
+                                        )}>
+                                            {invite.sendInvite && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                                        </div>
+                                        <div>
+                                            <div className="text-[15px] font-medium text-slate-900">Send invitation email immediately</div>
+                                            <div className="mt-0.5 text-sm text-slate-500">
+                                                They'll receive a secure link to access their compliance workspace
                                             </div>
-                                        ))}
+                                        </div>
+                                    </button>
+
+                                    <div className="flex items-center gap-2.5 text-sm text-slate-400">
+                                        <Lock className="h-4 w-4" />
+                                        <span>Client can only see their own data — your MSP account stays private</span>
                                     </div>
 
-                                    <div className="flex gap-3 justify-center">
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => navigate("/clients")}
-                                            className="border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-muted/10"
-                                        >
-                                            Back to clients
-                                        </Button>
-                                        <Button
-                                            onClick={() => navigate(`/clients/${createdClientId}/settings?tab=onboarding`)}
-                                            className="border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-muted/10 gap-2"
-                                        >
-                                            <Users className="h-4 w-4" />
-                                            Setup employee onboarding
-                                        </Button>
-                                        <Button
-                                            onClick={() => navigate(`/clients/${createdClientId}`)}
-                                            className="bg-sidebar-accent hover:bg-sidebar-accent/85 text-sidebar-foreground gap-2 shadow-lg shadow-primary/5"
-                                        >
-                                            <Rocket className="h-4 w-4" />
-                                            Enter workspace
-                                        </Button>
+                                    <button
+                                        onClick={() => setStep(6)}
+                                        className="w-full text-center text-[15px] text-slate-400 transition-colors hover:text-slate-900"
+                                    >
+                                        Skip for now — set up later
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 6: Review & Confirm */}
+                        {step === 6 && (
+                            <div>
+                                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Review &amp; confirm</h1>
+                                <p className="mt-2 text-lg text-slate-500">Double-check everything before launching.</p>
+                                <div className={cn("mt-8", cardCls, "space-y-0 p-0")}>
+                                    <div className="flex items-start gap-4 border-b border-slate-100 p-6">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                                            <Building2 className="h-5 w-5 text-slate-700" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[15px] font-medium text-slate-900">{company.name}</div>
+                                            <div className="mt-0.5 text-sm text-slate-500">{company.industry} • {company.employees || 'N/A'} employees</div>
+                                            {company.website && <div className="mt-0.5 text-sm text-slate-400">{company.website}</div>}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4 border-b border-slate-100 p-6">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                                            <Shield className="h-5 w-5 text-slate-700" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[15px] font-medium text-slate-900">
+                                                {selectedFrameworks.length} Framework{selectedFrameworks.length !== 1 ? "s" : ""}
+                                            </div>
+                                            <div className="mt-0.5 text-sm text-slate-500">
+                                                {selectedFrameworks.map(id => FRAMEWORKS.find(f => f.id === id)?.name).join(', ')}
+                                            </div>
+                                            <div className="mt-1 text-sm font-medium text-slate-700">~{totalControls} controls will be generated</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4 border-b border-slate-100 p-6">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                                            <BarChart3 className="h-5 w-5 text-slate-700" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[15px] font-medium text-slate-900">Risk Profile</div>
+                                            <div className="mt-1.5 flex flex-wrap gap-2">
+                                                {riskProfile.cloudOnly && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Cloud-first</span>}
+                                                {riskProfile.hasPersonalData && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Personal data</span>}
+                                                {riskProfile.regulated && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Regulated</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4 border-b border-slate-100 p-6">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                                            <Sparkles className="h-5 w-5 text-slate-700" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[15px] font-medium text-slate-900">
+                                                {branding.customName || `${company.name} Compliance Portal`}
+                                            </div>
+                                            <div className="mt-0.5 text-sm text-slate-500">{branding.motto || 'Default tagline'}</div>
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <div className="h-4 w-4 rounded-full ring-1 ring-slate-200" style={{ backgroundColor: branding.accentColor }} />
+                                                <span className="font-mono text-xs text-slate-400">{branding.accentColor}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4 p-6">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                                            <Users className="h-5 w-5 text-slate-700" />
+                                        </div>
+                                        <div>
+                                            {invite.contactName ? (
+                                                <>
+                                                    <div className="text-[15px] font-medium text-slate-900">{invite.contactName}</div>
+                                                    <div className="mt-0.5 text-sm text-slate-500">{invite.contactEmail}</div>
+                                                    <div className="mt-1 flex items-center gap-1.5 text-sm text-emerald-600">
+                                                        {invite.sendInvite ? <Check className="h-3.5 w-3.5" /> : null}
+                                                        {invite.sendInvite ? 'Invitation will be sent' : 'Invitation skipped'}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-sm text-slate-500">No contact invited yet</div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
+                                <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
+                                    <Info className="h-4 w-4" />
+                                    <span>You can always update these settings after launch</span>
+                                </div>
+                            </div>
+                        )}
 
-                    {/* Navigation footer (hidden on step 7 - success) */}
-                    {step < 7 && (
-                        <div className="flex items-center justify-between mt-8">
-                            <Button
-                                variant="ghost"
-                                onClick={() => setStep(prev => Math.max(1, prev - 1))}
-                                disabled={step === 1}
-                                className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted/10 gap-2"
+                        {/* Step 7: Done */}
+                        {step === 7 && createdClientId && (
+                            <div className="py-8 text-center">
+                                <motion.div
+                                    initial={{ scale: 0.6, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                                    className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500"
+                                >
+                                    <CheckCircle2 className="h-10 w-10 text-white" />
+                                </motion.div>
+                                <h1 className="mt-8 text-4xl font-semibold tracking-tight text-slate-900">Workspace ready.</h1>
+                                <p className="mx-auto mt-3 max-w-md text-lg text-slate-500">
+                                    <strong className="font-semibold text-slate-900">{company.name}</strong>'s compliance workspace has been provisioned with {selectedFrameworks.length} framework{selectedFrameworks.length !== 1 ? "s" : ""} and ~{totalControls} controls.
+                                </p>
+
+                                <div className="mx-auto mt-10 grid max-w-md grid-cols-3 gap-3">
+                                    {[
+                                        { label: "Frameworks", value: selectedFrameworks.length },
+                                        { label: "Controls", value: `~${totalControls}` },
+                                        { label: "AI Policies", value: "Auto" },
+                                    ].map(stat => (
+                                        <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5">
+                                            <div className="text-2xl font-semibold tracking-tight text-slate-900">{stat.value}</div>
+                                            <div className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-400">{stat.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+                                    <button
+                                        onClick={() => navigate("/clients")}
+                                        className="h-11 rounded-full border border-slate-300 px-6 text-[15px] font-medium text-slate-900 transition-colors hover:bg-slate-50"
+                                    >
+                                        Back to clients
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/clients/${createdClientId}/settings?tab=onboarding`)}
+                                        className="h-11 rounded-full border border-slate-300 px-6 text-[15px] font-medium text-slate-900 transition-colors hover:bg-slate-50"
+                                    >
+                                        Setup employee onboarding
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/clients/${createdClientId}`)}
+                                        className="h-11 rounded-full bg-slate-900 px-6 text-[15px] font-medium text-white transition-colors hover:bg-slate-700"
+                                    >
+                                        Enter workspace
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+
+                {/* Footer navigation (hidden on the success step) */}
+                {step < 7 && (
+                    <div className="mt-10 flex items-center justify-between border-t border-slate-100 pt-6">
+                        <button
+                            onClick={() => setStep(prev => Math.max(1, prev - 1))}
+                            disabled={step === 1}
+                            className="flex items-center gap-1.5 text-[15px] text-slate-500 transition-colors hover:text-slate-900 disabled:pointer-events-none disabled:opacity-30"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Back
+                        </button>
+
+                        {step < 5 ? (
+                            <button
+                                onClick={() => {
+                                    if (!canNext()) {
+                                        toast.error(step === 1 ? "Please enter a company name and select an industry" : "Please select at least one framework");
+                                        return;
+                                    }
+                                    setStep(prev => prev + 1);
+                                }}
+                                className="flex h-11 items-center gap-2 rounded-full bg-slate-900 px-7 text-[15px] font-medium text-white transition-colors hover:bg-slate-700"
                             >
-                                <ArrowLeft className="h-4 w-4" />
-                                Back
-                            </Button>
-
-                            {step < 5 ? (
-                                <Button
-                                    onClick={() => {
-                                        if (!canNext()) {
-                                            toast.error(step === 1 ? "Please enter a company name and select an industry" : "Please select at least one framework");
-                                            return;
-                                        }
-                                        setStep(prev => prev + 1);
-                                    }}
-                                    className="bg-sidebar-accent hover:bg-sidebar-accent/85 text-sidebar-foreground gap-2 shadow-lg shadow-primary/5"
-                                >
-                                    Continue
-                                    <ArrowRight className="h-4 w-4" />
-                                </Button>
-                            ) : step === 5 ? (
-                                <Button
-                                    onClick={() => setStep(6)}
-                                    className="bg-sidebar-accent hover:bg-sidebar-accent/85 text-sidebar-foreground gap-2 shadow-lg shadow-primary/5"
-                                >
-                                    Continue to review
-                                    <ArrowRight className="h-4 w-4" />
-                                </Button>
-                            ) : (
-                                <Button
-                                    onClick={handleLaunch}
-                                    disabled={isProcessing}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-sidebar-foreground gap-2 shadow-lg shadow-emerald-500/20 min-w-[160px]"
-                                >
-                                    {isProcessing ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            Launching...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Rocket className="h-4 w-4" />
-                                            Launch workspace
-                                        </>
-                                    )}
-                                </Button>
-                            )}
-                        </div>
-                    )}
-                </div>
+                                Continue
+                                <ArrowRight className="h-4 w-4" />
+                            </button>
+                        ) : step === 5 ? (
+                            <button
+                                onClick={() => setStep(6)}
+                                className="flex h-11 items-center gap-2 rounded-full bg-slate-900 px-7 text-[15px] font-medium text-white transition-colors hover:bg-slate-700"
+                            >
+                                Continue to review
+                                <ArrowRight className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleLaunch}
+                                disabled={isProcessing}
+                                className="flex h-11 min-w-[170px] items-center justify-center gap-2 rounded-full bg-slate-900 px-7 text-[15px] font-medium text-white transition-colors hover:bg-slate-700 disabled:opacity-60"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Launching…
+                                    </>
+                                ) : (
+                                    <>
+                                        <Rocket className="h-4 w-4" />
+                                        Launch workspace
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
-        </div>
+        </DashboardLayout>
     );
 }

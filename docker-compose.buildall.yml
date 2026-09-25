@@ -1,0 +1,57 @@
+# ComplianceOS Self-Hosted Distribution
+# Uses pre-built image with embedded database
+# Usage: docker compose -f docker-compose.buildall.yml up -d
+
+services:
+  app:
+    image: complianceos:latest
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/complianceos?sslmode=disable
+      - AUTH_MODE=local
+      - VITE_ENABLE_PREMIUM=true
+      - APP_ENCRYPTION_KEY=change-me-to-a-random-32-char-key-1234567890ab
+      - ENCRYPTION_KEY=change-me-to-a-random-32-char-key-1234567890ab
+      - SUPABASE_URL=https://placeholder.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=placeholder
+      - VITE_SUPABASE_URL=https://placeholder.supabase.co
+      - VITE_SUPABASE_ANON_KEY=placeholder
+      - COMPLIANCE_ADMIN_EMAIL=admin@complianceos.local
+      - COMPLIANCE_ADMIN_PASSWORD=Admin@ComplianceOS1
+      - NO_TELEMETRY=true
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - complianceos-net
+    command: npx tsx server_entry.ts
+
+  db:
+    image: pgvector/pgvector:pg15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=complianceos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d complianceos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - complianceos-net
+
+networks:
+  complianceos-net:
+    name: complianceos-net
+
+volumes:
+  db_data:

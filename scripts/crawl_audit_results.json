@@ -1,0 +1,1049 @@
+{
+  "passed": [
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/dashboard",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/action-center",
+      "matchedPattern": "/action-center"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/agent",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/onboarding",
+      "matchedPattern": "/onboarding"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/controls",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/policy-templates",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/compliance-obligations",
+      "matchedPattern": "/clients/:id/compliance-obligations"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/start-here",
+      "matchedPattern": "/clients/:id/start-here"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/implementation",
+      "matchedPattern": "/clients/:id/implementation"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning",
+      "matchedPattern": "/learning"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning/iso-27001",
+      "matchedPattern": "/learning/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning/soc-2",
+      "matchedPattern": "/learning/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning/gdpr",
+      "matchedPattern": "/learning/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning/hipaa",
+      "matchedPattern": "/learning/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning/cmmc",
+      "matchedPattern": "/learning/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning/pci-dss",
+      "matchedPattern": "/learning/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/learning/nist-csf",
+      "matchedPattern": "/learning/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/organizations",
+      "matchedPattern": "/admin/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/user-management",
+      "matchedPattern": "/admin/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/invitations",
+      "matchedPattern": "/admin/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/audit",
+      "matchedPattern": "/admin/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/llm",
+      "matchedPattern": "/admin/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/billing",
+      "matchedPattern": "/admin/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/sales/waitlist",
+      "matchedPattern": "/sales/waitlist"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/crm",
+      "matchedPattern": "/admin/crm"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/system-feedback",
+      "matchedPattern": "/admin/system-feedback"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin",
+      "matchedPattern": "/admin"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/workflows",
+      "matchedPattern": "/clients/:id/workflows"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/iso27001/governance",
+      "matchedPattern": "/clients/:id/iso27001/governance"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/iso27001/soa",
+      "matchedPattern": "/clients/:id/iso27001/soa"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/iso27001/risks",
+      "matchedPattern": "/clients/:id/iso27001/risks"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/iso27001/assets",
+      "matchedPattern": "/clients/:id/iso27001/assets"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/iso27001",
+      "matchedPattern": "/clients/:id/iso27001"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/controls",
+      "matchedPattern": "/clients/:id/controls"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/evidence",
+      "matchedPattern": "/clients/:id/evidence"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/audit-hub",
+      "matchedPattern": "/clients/:id/audit-hub"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/cyber/incidents",
+      "matchedPattern": "/clients/:id/cyber/incidents"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/cyber/documents",
+      "matchedPattern": "/clients/:id/cyber/documents"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/controls?framework=hipaa",
+      "matchedPattern": "/clients/:id/controls"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/privacy/breaches",
+      "matchedPattern": "/clients/:id/privacy/breaches"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/vendors/dpa-templates",
+      "matchedPattern": "/clients/:id/vendors/dpa-templates"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/privacy/inventory",
+      "matchedPattern": "/clients/:id/privacy/inventory"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/privacy/ropa",
+      "matchedPattern": "/clients/:id/privacy/ropa"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/privacy/dsar",
+      "matchedPattern": "/clients/:id/privacy/dsar"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/privacy/transfers",
+      "matchedPattern": "/clients/:id/privacy/transfers"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/framework",
+      "matchedPattern": "/clients/:id/risks/framework"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/assessments",
+      "matchedPattern": "/clients/:id/risks/assessments"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/guided",
+      "matchedPattern": "/clients/:clientId/risks/guided"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/register",
+      "matchedPattern": "/clients/:id/risks/register"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/assets",
+      "matchedPattern": "/clients/:id/risks/assets"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/threats",
+      "matchedPattern": "/clients/:id/risks/threats"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/vulnerabilities",
+      "matchedPattern": "/clients/:id/risks/vulnerabilities"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/treatment-plan",
+      "matchedPattern": "/clients/:id/risks/treatment-plan"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/alignment-guide",
+      "matchedPattern": "/clients/:id/risks/alignment-guide"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/risks/report",
+      "matchedPattern": "/clients/:id/risks/report"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/vendors/all",
+      "matchedPattern": "/clients/:id/vendors/all"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/vendors/discovery",
+      "matchedPattern": "/clients/:id/vendors/discovery"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/vendors/contracts",
+      "matchedPattern": "/clients/:id/vendors/contracts"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/questionnaires",
+      "matchedPattern": "/clients/:id/questionnaires"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/vendors/templates",
+      "matchedPattern": "/clients/:id/vendors/templates"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/policies",
+      "matchedPattern": "/clients/:id/policies"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/people",
+      "matchedPattern": "/clients/:id/people"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/raci-matrix",
+      "matchedPattern": "/clients/:id/raci-matrix"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/access-reviews",
+      "matchedPattern": "/access-reviews"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/settings?tab=branding",
+      "matchedPattern": "/clients/:id/settings"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/business-continuity/processes",
+      "matchedPattern": "/clients/:id/business-continuity/processes"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/business-continuity/strategies",
+      "matchedPattern": "/clients/:id/business-continuity/strategies"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/business-continuity/plans",
+      "matchedPattern": "/clients/:id/business-continuity/plans"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/business-continuity/scenarios",
+      "matchedPattern": "/clients/:id/business-continuity/scenarios"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/business-continuity/call-tree",
+      "matchedPattern": "/clients/:id/business-continuity/call-tree"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/business-continuity/tasks",
+      "matchedPattern": "/clients/:id/business-continuity/tasks"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/contracts",
+      "matchedPattern": "/clients/:id/federal/contracts"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/fedramp",
+      "matchedPattern": "/clients/:id/federal/fedramp"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/800-53",
+      "matchedPattern": "/clients/:id/federal/800-53"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/fisma",
+      "matchedPattern": "/clients/:id/federal/fisma"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/gap-report",
+      "matchedPattern": "/clients/:id/federal/gap-report"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/rmf",
+      "matchedPattern": "/clients/:id/federal/rmf"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/dfars",
+      "matchedPattern": "/clients/:id/federal/dfars"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/stigs",
+      "matchedPattern": "/clients/:id/federal/stigs"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/fips-140",
+      "matchedPattern": "/clients/:id/federal/fips-140"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/fips-199",
+      "matchedPattern": "/clients/:id/federal/fips-199"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/ssp-171",
+      "matchedPattern": "/clients/:id/federal/ssp-171"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/ssp-172",
+      "matchedPattern": "/clients/:id/federal/ssp-172"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/sar",
+      "matchedPattern": "/clients/:id/federal/sar"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/federal/poam",
+      "matchedPattern": "/clients/:id/federal/poam"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/agent?tab=sentinel",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/agent?tab=teammates",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/agent?tab=approvals",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/agent?tab=routines",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/agent?tab=memory",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/admin/llm?tab=ai_privacy",
+      "matchedPattern": "/admin/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/ai-governance",
+      "matchedPattern": "/clients/:id/ai-governance"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/projects",
+      "matchedPattern": "/clients/:id/projects"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/dev/projects",
+      "matchedPattern": "/clients/:clientId/dev/projects"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/intake",
+      "matchedPattern": "/clients/:id/intake"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/board-summary",
+      "matchedPattern": "/clients/:id/board-summary"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/reports",
+      "matchedPattern": "/clients/:id/reports"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/metrics",
+      "matchedPattern": "/clients/:id/metrics"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/assurance/scvs",
+      "matchedPattern": "/clients/:id/assurance/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/assurance/openssf",
+      "matchedPattern": "/clients/:id/assurance/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/assurance/masvs",
+      "matchedPattern": "/clients/:id/assurance/:frameworkId"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/harmonization",
+      "matchedPattern": "/harmonization"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/knowledge-base",
+      "matchedPattern": "/clients/:id/knowledge-base"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/mappings",
+      "matchedPattern": "/clients/:id/mappings"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/guides",
+      "matchedPattern": "/clients/:id/guides"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/roadmap/templates",
+      "matchedPattern": "/clients/:id/roadmap/templates"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/settings",
+      "matchedPattern": "/clients/:id/settings"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/settings/license",
+      "matchedPattern": "/settings/license"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/settings/security",
+      "matchedPattern": "/settings/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/settings/onboarding",
+      "matchedPattern": "/settings/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/settings/users",
+      "matchedPattern": "/settings/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/settings/organization",
+      "matchedPattern": "/settings/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/settings/invitations",
+      "matchedPattern": "/settings/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/settings/integrations",
+      "matchedPattern": "/settings/:rest*"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/settings?tab=backup-restore",
+      "matchedPattern": "/clients/:id/settings"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/clients/18/activity",
+      "matchedPattern": "/clients/:id/activity"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/sales",
+      "matchedPattern": "/sales"
+    },
+    {
+      "source": "Sidebar Navigation",
+      "label": "Menu Item",
+      "url": "/advisor/workbench",
+      "matchedPattern": "/advisor/workbench"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/iso27001/governance?tab=scope",
+      "matchedPattern": "/clients/:id/iso27001/governance"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/iso27001/governance?tab=objectives",
+      "matchedPattern": "/clients/:id/iso27001/governance"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/iso27001/documents",
+      "matchedPattern": "/clients/:id/iso27001/documents"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/training/management",
+      "matchedPattern": "/clients/:clientId/training/management"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/evidence",
+      "matchedPattern": "/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/iso27001/audit",
+      "matchedPattern": "/clients/:id/iso27001/audit"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/iso27001/management-review",
+      "matchedPattern": "/clients/:id/iso27001/management-review"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "#",
+      "matchedPattern": "external_or_anchor"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/vendors/overview",
+      "matchedPattern": "/clients/:id/vendors/overview"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/privacy/dpia",
+      "matchedPattern": "/clients/:id/privacy/dpia"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/privacy/program-guide",
+      "matchedPattern": "/clients/:id/privacy/program-guide"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/dora",
+      "matchedPattern": "/clients/:id/dora"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/business-continuity",
+      "matchedPattern": "/clients/:id/business-continuity"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/gap-analysis",
+      "matchedPattern": "/clients/:id/gap-analysis"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/entity-classification",
+      "matchedPattern": "/clients/:id/nis2/entity-classification"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/management-liability",
+      "matchedPattern": "/clients/:id/nis2/management-liability"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/entity-registry",
+      "matchedPattern": "/clients/:id/nis2/entity-registry"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/security-measures",
+      "matchedPattern": "/clients/:id/nis2/security-measures"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/supply-chain",
+      "matchedPattern": "/clients/:id/nis2/supply-chain"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/incident-reporting",
+      "matchedPattern": "/clients/:id/nis2/incident-reporting"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/cross-border",
+      "matchedPattern": "/clients/:id/nis2/cross-border"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/nis2/audit-bundle",
+      "matchedPattern": "/clients/:id/nis2/audit-bundle"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/federal/cui-quiz",
+      "matchedPattern": "/clients/:id/federal/cui-quiz"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/federal/assessment-171",
+      "matchedPattern": "/clients/:id/federal/assessment-171"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/federal/sprs",
+      "matchedPattern": "/clients/:id/federal/sprs"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/readiness/wizard/SOC2",
+      "matchedPattern": "/clients/:id/readiness/wizard/:standardId?"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/soc2/program-guide?tab=system-description",
+      "matchedPattern": "/clients/:id/soc2/program-guide"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/vendors",
+      "matchedPattern": "/clients/:id/vendors"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/compliance-journey",
+      "matchedPattern": "/clients/:id/compliance-journey"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/soc2/program-guide?tab=auditor",
+      "matchedPattern": "/clients/:id/soc2/program-guide"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/hipaa/program-guide?tab=auditor",
+      "matchedPattern": "/clients/:id/hipaa/program-guide"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/business-continuity/exercises",
+      "matchedPattern": "/clients/:id/business-continuity/exercises"
+    },
+    {
+      "source": "Framework Roadmap",
+      "label": "Task Link",
+      "url": "/clients/18/risks/heatmap",
+      "matchedPattern": "/clients/:id/risks/heatmap"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/iso27001/governance",
+      "matchedPattern": "/clients/:id/iso27001/governance"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/risks/register",
+      "matchedPattern": "/clients/:id/risks/register"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/iso27001/soa",
+      "matchedPattern": "/clients/:id/iso27001/soa"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/policies",
+      "matchedPattern": "/clients/:id/policies"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/audit-hub",
+      "matchedPattern": "/clients/:id/audit-hub"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/compliance-journey",
+      "matchedPattern": "/clients/:id/compliance-journey"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/readiness/wizard/SOC2",
+      "matchedPattern": "/clients/:id/readiness/wizard/:standardId?"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/controls",
+      "matchedPattern": "/clients/:id/controls"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/evidence",
+      "matchedPattern": "/clients/:id/evidence"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/vendors",
+      "matchedPattern": "/clients/:id/vendors"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/cyber/incidents",
+      "matchedPattern": "/clients/:id/cyber/incidents"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/risks/assets",
+      "matchedPattern": "/clients/:id/risks/assets"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/gap-analysis",
+      "matchedPattern": "/clients/:id/gap-analysis"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/privacy/ropa",
+      "matchedPattern": "/clients/:id/privacy/ropa"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/privacy/dpia",
+      "matchedPattern": "/clients/:id/privacy/dpia"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/privacy/dsar",
+      "matchedPattern": "/clients/:id/privacy/dsar"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/risks/vulnerabilities",
+      "matchedPattern": "/clients/:id/risks/vulnerabilities"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/risks/treatment-plan",
+      "matchedPattern": "/clients/:id/risks/treatment-plan"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/business-continuity/plans",
+      "matchedPattern": "/clients/:id/business-continuity/plans"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/business-continuity/bia",
+      "matchedPattern": "/clients/:id/business-continuity/bia"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select/business-continuity/exercises",
+      "matchedPattern": "/clients/:id/business-continuity/exercises"
+    },
+    {
+      "source": "StartHere.tsx",
+      "label": "Program Guide / Hub Link",
+      "url": "/clients/select",
+      "matchedPattern": "/clients/:id"
+    }
+  ],
+  "failed": []
+}

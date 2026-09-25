@@ -37,6 +37,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { useClientContext } from '@/contexts/ClientContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { OnboardingChecklist } from '@/components/onboarding/OnboardingChecklist';
 import { PageGuide } from '@/components/PageGuide';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import ReportGeneratorDialog from '@/components/roadmap/ReportGeneratorDialog';
@@ -409,6 +411,12 @@ export default function StartHere() {
 
     // Clients query for workspace switcher
     const { data: clientsList } = trpc.clients.list.useQuery();
+    const { user } = useAuth();
+    // Onboarding workflow (Quick Start Guide) — same stats source the Dashboard checklist uses
+    const { data: onboardingStats } = trpc.dashboard.enhanced.useQuery(
+        { framework: undefined, clientId },
+        { retry: false, staleTime: 60_000 }
+    );
     const currentClient = clientsList?.find((c: any) => c.id === clientId) || {
         id: clientId,
         name: clientId === 7 ? "LaTorre LTD" : `Client #${clientId}`,
@@ -694,6 +702,9 @@ export default function StartHere() {
                         </div>
                     </div>
                 </div>
+
+                {/* ONBOARDING WORKFLOW — Quick Start Guide so new users know what to do */}
+                <OnboardingChecklist stats={onboardingStats} role={user?.role} />
 
                 {/* ACTIVE ROADMAPS BAR — blue accent matching ISO page */}
                 {activeRoadmaps && activeRoadmaps.length > 0 && (

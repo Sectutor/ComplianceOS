@@ -49,6 +49,9 @@ import {
   accessReviewTaskStatusEnum
 } from "./common";
 export * from "./common";
+import { complianceFrameworks } from "./controls";
+import { assets } from "./risks";
+import { vendors } from "./vendors";
 
 
 // Tables
@@ -6039,7 +6042,3 @@ export type InsertProcessingActivity = typeof processingActivities.$inferInsert;
 
 // Link processing activities to vendors (subprocessors)
 
-// Other Definitions
-import { customType, pgEnum } from "drizzle-orm/pg-core";
-
-// Custom type for pgvector - used for vector embeddings

@@ -281,16 +281,20 @@ export async function getActionItems(clientId: number, userId: number): Promise<
 
   // 7. Exceptions expiring — policyExceptions with expirationDate within 30 days (Scenario 2)
   try {
-    const expiringExceptions = await db.select()
+    // policy_exceptions has no client_id column — scope through the owning client policy
+    // so a client's query can never surface another tenant's exceptions.
+    const expiringExceptions = await db.select({ exception: schema.policyExceptions })
       .from(schema.policyExceptions)
+      .innerJoin(schema.clientPolicies, eq(schema.policyExceptions.policyId, schema.clientPolicies.id))
       .where(
         and(
+          eq(schema.clientPolicies.clientId, clientId),
           gte(schema.policyExceptions.expirationDate, now),
           lt(schema.policyExceptions.expirationDate, in30Days)
         )
       );
 
-    for (const ex of expiringExceptions) {
+    for (const { exception: ex } of expiringExceptions) {
       const due = ex.expirationDate!;
       const d = daysUntil(due);
 
