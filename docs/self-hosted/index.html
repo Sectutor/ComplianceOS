@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComplianceOS — Deploy in one command</title>
+<style>
+  :root { --navy:#0F2C59; --navy2:#1C4D8D; --ink:#0F172A; --muted:#64748B; --line:#E2E8F0; --ok:#10B981; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; color: var(--ink); background: #fff; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 64px 24px 96px; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 44px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; margin: 14px 0 12px; }
+  .sub { font-size: 19px; color: var(--muted); line-height: 1.55; max-width: 620px; }
+  .steps { margin-top: 44px; display: flex; flex-direction: column; gap: 40px; }
+  .step h2 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 6px; }
+  .step p { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 14px; }
+  .term { background: #0B1220; color: #E6EDF3; border-radius: 12px; padding: 16px 18px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; overflow-x: auto; }
+  .term code { white-space: nowrap; }
+  .term code .p { color: #7EE787; }
+  .copy { background: #1C2433; color: #E6EDF3; border: 1px solid #2A3446; border-radius: 8px; padding: 7px 14px; font-size: 12.5px; cursor: pointer; flex-shrink: 0; font-family: inherit; transition: background .15s; }
+  .copy:hover { background: #273247; }
+  .note { margin-top: 12px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+  .note b { color: var(--ink); font-weight: 600; }
+  .card { border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; margin-top: 14px; }
+  .card h3 { font-size: 14.5px; font-weight: 650; margin-bottom: 4px; }
+  .card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--navy2); background: #EEF4FB; border: 1px solid #D6E4F5; border-radius: 999px; padding: 4px 10px; margin-bottom: 10px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+  .foot { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .foot a { color: var(--navy2); }
+  code.inline { background: #F1F5F9; border-radius: 6px; padding: 2px 6px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">ComplianceOS · Self-Hosted · Community Edition (AGPL)</div>
+  <h1>Run your compliance OS locally in one command.</h1>
+  <p class="sub">A single command downloads the stack, generates all security secrets, provisions the database, and seeds a fully populated demo workspace — so you can explore every capability immediately.</p>
+
+  <div class="steps">
+    <div class="step">
+      <h2>1. Prerequisites</h2>
+      <p>One thing: <b>Docker</b> (with Docker Compose), running on your machine.
+         Get it from <b>docker.com</b> — Docker Desktop for Windows and macOS, or the Docker Engine for Linux servers.</p>
+    </div>
+
+    <div class="step">
+      <h2>2. Run the single command</h2>
+
+      <p><b>Linux &amp; macOS</b> — paste this into your terminal:</p>
+      <div class="term">
+        <code>curl -fsSL <span class="p">https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh</span> | bash</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+      <p style="margin-top:14px"><b>Windows</b> — paste into PowerShell:</p>
+      <div class="term">
+        <code>irm <span class="p">https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.ps1</span> | iex</code>
+        <button class="copy" onclick="cp(this)">Copy</button>
+      </div>
+      <p class="note">The installer creates a <code class="inline">complianceos/</code> folder, writes the compose file,
+      pulls the prebuilt image from GHCR, and starts the stack. First boot takes a minute: the database schema is provisioned,
+      security secrets are generated automatically, and the demo workspace is seeded.</p>
+    </div>
+
+    <div class="step">
+      <h2>3. Sign in</h2>
+      <p>Open <b>http://localhost:3002</b>. On first boot the server <b>generates a strong admin password</b> for you —
+      it is printed once in the install log and saved to the <code class="inline">complianceos_app_data</code> volume:</p>
+      <div class="card">
+        <h3>Show the generated password</h3>
+        <p><code class="inline">docker compose -f docker-compose.selfhost.yml logs complianceos | grep "Generated admin password"</code><br><br>
+        No default passwords ship with the image — not for the admin account, not for the JWT signer, not for the encryption key, and the database port is not exposed to your network.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <h2>What you get</h2>
+      <div class="card">
+        <span class="badge">Community Edition · AGPL</span>
+        <h3>A fully populated compliance workspace</h3>
+        <p>LaTorre LTD, a demo enterprise with ISO 27001 / SOC 2 / GDPR / NIS2 frameworks, 1,200 tracked roadmap tasks,
+        a live Action Center with 2,000+ real findings across nine categories, evidence, vendors, risks, policies and a
+        step-by-step certification workflow — so every capability is explorable from minute one.</p>
+      </div>
+      <div class="card">
+        <h3>Stop and start again</h3>
+        <p>Stop: <code class="inline">docker compose -f docker-compose.selfhost.yml down</code> — your data and secrets persist in volumes. Start again anytime; nothing is re-generated.</p>
+      </div>
+    </div>
+
+    <hr>
+    <p class="foot">
+      Want a clean production deployment instead of the demo workspace? Set <code class="inline">DEMO_DISABLE_CAPABILITY_SEED=true</code> before running the installer.<br>
+      Upgrading to the Enterprise edition (commercial license, premium modules) — see <a href="https://github.com/Sectutor/ComplianceOS">the repository</a> or contact us.
+      Source code: <a href="https://github.com/Sectutor/ComplianceOS">github.com/Sectutor/ComplianceOS</a> · License: AGPL-3.0 (community) / commercial (enterprise).
+    </p>
+  </div>
+</div>
+<script>
+function cp(btn) {
+  const code = btn.parentElement.querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copied ✓';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script>
+</body>
+</html>
