@@ -313,31 +313,44 @@ app.post('/api/auth/local-login', async (req: any, res) => {
     return res.status(401).json({ error: result.error || 'Invalid credentials' });
   }
 
-  // Sync user to database
+  // Sync user to database — best-effort only: the login response must never
+  // wait on a slow or wedged DB, so the sync is raced against a hard timeout.
   try {
-    const { getDb } = await import('./packages/core/src/db');
-    const { users } = await import('./packages/core/src/schema');
-    const { eq } = await import('drizzle-orm');
-    const dbConn = await getDb();
-    
-    // Check if user exists in database
-    let dbUser = await dbConn.query.users.findFirst({
-      where: eq(users.email, email)
-    });
-    
-    if (!dbUser) {
-      // Create user in database
-      const [newUser] = await dbConn.insert(users).values({
-        email,
-        name: result.user?.name || email.split('@')[0],
-        role: result.user?.role === 'admin' ? 'owner' : 'editor',
-        openId: `local-${result.user?.id || Date.now()}`,
-        loginMethod: 'local',
-        lastSignedIn: new Date(),
-      }).returning();
-      dbUser = newUser;
-    }
-    
+    const DB_SYNC_TIMEOUT_MS = 3000;
+    const dbSync = (async () => {
+      const { getDb } = await import('./packages/core/src/db');
+      const { users } = await import('./packages/core/src/schema');
+      const { eq } = await import('drizzle-orm');
+      const dbConn = await getDb();
+
+      // Check if user exists in database
+      let dbUser = await dbConn.query.users.findFirst({
+        where: eq(users.email, email)
+      });
+
+      if (!dbUser) {
+        // Create user in database
+        const [newUser] = await dbConn.insert(users).values({
+          email,
+          name: result.user?.name || email.split('@')[0],
+          role: result.user?.role === 'admin' ? 'owner' : 'editor',
+          openId: `local-${result.user?.id || Date.now()}`,
+          loginMethod: 'local',
+          lastSignedIn: new Date(),
+        }).returning();
+        dbUser = newUser;
+      }
+
+      return dbUser;
+    })();
+
+    const dbUser = await Promise.race([
+      dbSync,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`DB sync timed out after ${DB_SYNC_TIMEOUT_MS}ms`)), DB_SYNC_TIMEOUT_MS)
+      ),
+    ]);
+
     // Return user with database ID
     res.json({
       user: {

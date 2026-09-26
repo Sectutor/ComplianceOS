@@ -185,6 +185,11 @@ let _sql: postgres.Sql | null = null;
 
 let _db: any | null = null;
 
+// Memoized init: concurrent getDb() callers (boot schedulers, routers, addons)
+// must share ONE initialization sequence, otherwise a second caller can publish
+// a drizzle instance over a pool whose connection test has not passed yet.
+let _dbInitPromise: Promise<NonNullable<typeof _db>> | null = null;
+
 
 
 export class DatabaseConnectionError extends Error {
@@ -379,6 +384,12 @@ function createFallbackDrizzleDb() {
 
   const fallbackDb: any = new Proxy({}, {
     get(target, prop) {
+      // The db object itself must not be a thenable: `await getDb()` would adopt
+      // the proxy's `then`, which returns a chainable without ever invoking the
+      // resolvers — hanging every caller of getDb() while the fallback is active.
+      if (prop === 'then' || prop === 'catch' || prop === 'finally') {
+        return undefined;
+      }
       if (prop === 'select' || prop === 'selectDistinct' || prop === 'insert' || prop === 'update' || prop === 'delete') {
         return (..._args: any[]) => createChainable(DEFAULT_DEMO_CLIENTS);
       }
@@ -406,14 +417,7 @@ function createFallbackDrizzleDb() {
   return fallbackDb;
 }
 
-export async function getDb(): Promise<NonNullable<typeof _db>> {
-  if (_db) return _db;
-
-  if (_isFallbackActive) {
-    _db = createFallbackDrizzleDb();
-    return _db;
-  }
-
+async function initDb(): Promise<NonNullable<typeof _db>> {
   const databaseUrl = getSecret('DATABASE_URL');
   if (!databaseUrl) {
     _isFallbackActive = true;
@@ -456,21 +460,65 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
       _isFallbackActive = false;
     }
 
-    _db = drizzle(_sql, { schema });
+    // Capture locally: closeDb()/resetDb() may null _sql while init is in flight.
+    const sqlInstance = _sql;
+    if (!sqlInstance) throw new Error('DB pool was reset during initialization');
+    const db = drizzle(sqlInstance, { schema });
+    _db = db;
     logger.info("[DB] Database connection initialized successfully");
-
+    return db;
   } catch (error) {
     logger.warn({ message: "[DB] Remote Postgres database unavailable. Activating resilient local DB fallback.", error: (error as Error).message });
     _dbConnectionFailed = true;
     _isFallbackActive = true;
-    if (_sql) {
-      try { await _sql.end({ timeout: 1 }); } catch {}
-      _sql = null;
+    // Assign the fallback BEFORE tearing down the dead pool: postgres.js end()
+    // can hang indefinitely with connections in flight, and the fallback must
+    // never wait behind it. The teardown runs fire-and-forget.
+    // On repeated failures (background recheck) keep the existing instance.
+    const fallbackDb = (_isFallbackActive && _db) ? _db : createFallbackDrizzleDb();
+    _db = fallbackDb;
+    const deadPool = _sql;
+    _sql = null;
+    if (deadPool) {
+      Promise.resolve()
+        .then(() => deadPool.end({ timeout: 1 }))
+        .catch(() => { });
     }
-    _db = createFallbackDrizzleDb();
+    return fallbackDb;
+  }
+}
+
+// While the fallback is active, retry the real connection in the background at
+// most once per minute, so the app self-heals when Postgres comes back (e.g.
+// local Postgres started after the server) without needing a restart.
+const FALLBACK_RECHECK_MS = 60_000;
+let _lastFallbackRecheck = 0;
+
+function scheduleFallbackRecheck(): void {
+  if (_dbInitPromise) return;
+  const now = Date.now();
+  if (now - _lastFallbackRecheck < FALLBACK_RECHECK_MS) return;
+  _lastFallbackRecheck = now;
+  _dbInitPromise = initDb()
+    .catch(() => { })
+    .finally(() => { _dbInitPromise = null; });
+}
+
+export async function getDb(): Promise<NonNullable<typeof _db>> {
+  if (_db) {
+    if (_isFallbackActive) scheduleFallbackRecheck();
+    return _db;
   }
 
-  return _db || createFallbackDrizzleDb();
+  if (_isFallbackActive) {
+    _db = createFallbackDrizzleDb();
+    return _db;
+  }
+
+  if (!_dbInitPromise) {
+    _dbInitPromise = initDb();
+  }
+  return _dbInitPromise;
 }
 
 
@@ -486,6 +534,10 @@ export async function closeDb() {
   _sql = null;
 
   _db = null;
+
+  // Drop the memoized init so the next getDb() creates a fresh pool instead of
+  // returning the resolved init promise with the just-closed one.
+  _dbInitPromise = null;
 
 }
 
