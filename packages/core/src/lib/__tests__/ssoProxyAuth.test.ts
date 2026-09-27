@@ -44,6 +44,9 @@ const SSO_ENV_KEYS = [
   'SSO_PROXY_ENABLED',
   'SSO_PROXY_AUTH_HEADER',
   'SSO_PROXY_EMAIL_HEADER',
+  'SSO_PROXY_SECRET',
+  'SSO_PROXY_SECRET_HEADER',
+  'SSO_PROXY_TRUSTED_IPS',
   'SSO_OIDC_ENABLED',
   'SSO_OIDC_ISSUER',
   'SSO_OIDC_CLIENT_ID',
@@ -68,6 +71,12 @@ afterEach(() => {
   }
 });
 
+/** Headers that satisfy the default trust evidence (SSO_PROXY_SECRET). */
+const trusted = (headers: Record<string, unknown>): Record<string, unknown> => ({
+  ...headers,
+  'x-proxy-secret': 'test-secret',
+});
+
 /* ------------------------------------------------------------------ */
 /*  Tests                                                              */
 /* ------------------------------------------------------------------ */
@@ -81,21 +90,23 @@ describe.skipIf(!proxyAvailable)('sso/proxy-auth', () => {
 
   it('isProxySsoEnabled() is true when SSO_PROXY_ENABLED=true', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
     expect(lib.isProxySsoEnabled()).toBe(true);
   });
 
   it('resolveProxyUser returns null when proxy SSO is disabled, even with headers present', () => {
     process.env.SSO_PROXY_ENABLED = 'false';
-    expect(lib.resolveProxyUser({ 'x-forwarded-user': 'alice@corp.com' })).toBeNull();
+    expect(lib.resolveProxyUser(trusted({ 'x-forwarded-user': 'alice@corp.com' }))).toBeNull();
 
     delete process.env.SSO_PROXY_ENABLED;
-    expect(lib.resolveProxyUser({ 'x-forwarded-user': 'alice@corp.com' })).toBeNull();
+    expect(lib.resolveProxyUser(trusted({ 'x-forwarded-user': 'alice@corp.com' }))).toBeNull();
   });
 
   it('resolves the principal from x-forwarded-user with a namespaced openId', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
 
-    const user = lib.resolveProxyUser({ 'x-forwarded-user': 'alice@corp.com' });
+    const user = lib.resolveProxyUser(trusted({ 'x-forwarded-user': 'alice@corp.com' }));
 
     expect(user).not.toBeNull();
     expect(user!.email).toBe('alice@corp.com');
@@ -104,11 +115,12 @@ describe.skipIf(!proxyAvailable)('sso/proxy-auth', () => {
 
   it('prefers a dedicated email header when present', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
 
-    const user = lib.resolveProxyUser({
+    const user = lib.resolveProxyUser(trusted({
       'x-forwarded-user': 'alice',
       'x-forwarded-email': 'alice@corp.com',
-    });
+    }));
 
     expect(user!.email).toBe('alice@corp.com');
     expect(user!.openId).toBe('sso_proxy:alice@corp.com');
@@ -116,8 +128,9 @@ describe.skipIf(!proxyAvailable)('sso/proxy-auth', () => {
 
   it('is case-insensitive about header names (e.g. X-Forwarded-User)', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
 
-    const user = lib.resolveProxyUser({ 'X-Forwarded-User': 'alice@corp.com' });
+    const user = lib.resolveProxyUser(trusted({ 'X-Forwarded-User': 'alice@corp.com' }));
 
     expect(user).not.toBeNull();
     expect(user!.email).toBe('alice@corp.com');
@@ -126,10 +139,11 @@ describe.skipIf(!proxyAvailable)('sso/proxy-auth', () => {
 
   it('takes the first value when a header is an array', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
 
-    const user = lib.resolveProxyUser({
+    const user = lib.resolveProxyUser(trusted({
       'x-forwarded-user': ['alice@corp.com', 'bob@corp.com'],
-    });
+    }));
 
     expect(user!.email).toBe('alice@corp.com');
     expect(user!.openId).toBe('sso_proxy:alice@corp.com');
@@ -137,6 +151,7 @@ describe.skipIf(!proxyAvailable)('sso/proxy-auth', () => {
 
   it('returns null when the principal header is missing', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
 
     expect(lib.resolveProxyUser({})).toBeNull();
     expect(lib.resolveProxyUser({ 'x-something-else': 'alice@corp.com' })).toBeNull();
@@ -144,13 +159,14 @@ describe.skipIf(!proxyAvailable)('sso/proxy-auth', () => {
 
   it('supports custom header names via SSO_PROXY_AUTH_HEADER and SSO_PROXY_EMAIL_HEADER', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
     process.env.SSO_PROXY_AUTH_HEADER = 'x-sso-user';
     process.env.SSO_PROXY_EMAIL_HEADER = 'x-sso-email';
 
-    const user = lib.resolveProxyUser({
+    const user = lib.resolveProxyUser(trusted({
       'x-sso-user': 'carol',
       'x-sso-email': 'carol@corp.com',
-    });
+    }));
 
     expect(user!.email).toBe('carol@corp.com');
     expect(user!.openId).toBe('sso_proxy:carol@corp.com');
@@ -158,11 +174,61 @@ describe.skipIf(!proxyAvailable)('sso/proxy-auth', () => {
 
   it('uses the auth header value as the email when only a custom auth header is set', () => {
     process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
     process.env.SSO_PROXY_AUTH_HEADER = 'x-sso-user';
 
-    const user = lib.resolveProxyUser({ 'x-sso-user': 'dave@corp.com' });
+    const user = lib.resolveProxyUser(trusted({ 'x-sso-user': 'dave@corp.com' }));
 
     expect(user!.email).toBe('dave@corp.com');
     expect(user!.openId).toBe('sso_proxy:dave@corp.com');
+  });
+
+  it('returns null when SSO is enabled but no trust evidence is configured (fail closed)', () => {
+    process.env.SSO_PROXY_ENABLED = 'true';
+    // No SSO_PROXY_SECRET, no SSO_PROXY_TRUSTED_IPS.
+
+    expect(lib.resolveProxyUser({ 'x-forwarded-user': 'mallory@corp.com' })).toBeNull();
+  });
+
+  it('returns null when the secret header value does not match', () => {
+    process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_SECRET = 'test-secret';
+
+    expect(lib.resolveProxyUser({
+      'x-forwarded-user': 'mallory@corp.com',
+      'x-proxy-secret': 'wrong-secret',
+    })).toBeNull();
+    expect(lib.resolveProxyUser({
+      'x-forwarded-user': 'mallory@corp.com',
+    })).toBeNull();
+  });
+
+  it('honors forwarded identity from an IP in SSO_PROXY_TRUSTED_IPS without the secret header', () => {
+    process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_TRUSTED_IPS = '10.0.0.0/8,192.168.1.1';
+
+    const user = lib.resolveProxyUser(
+      { 'x-forwarded-user': 'alice@corp.com' },
+      '10.42.7.9'
+    );
+    expect(user).not.toBeNull();
+    expect(user!.email).toBe('alice@corp.com');
+
+    // Exact-address entries work too.
+    const user2 = lib.resolveProxyUser(
+      { 'x-forwarded-user': 'bob@corp.com' },
+      '192.168.1.1'
+    );
+    expect(user2).not.toBeNull();
+  });
+
+  it('rejects forwarded identity from an address outside SSO_PROXY_TRUSTED_IPS', () => {
+    process.env.SSO_PROXY_ENABLED = 'true';
+    process.env.SSO_PROXY_TRUSTED_IPS = '10.0.0.0/8';
+
+    expect(lib.resolveProxyUser(
+      { 'x-forwarded-user': 'mallory@corp.com' },
+      '203.0.113.5'
+    )).toBeNull();
   });
 });

@@ -40,7 +40,8 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         const authHeader = req.headers.authorization;
         if (!authHeader) {
             // Enterprise SSO (cycle 9, scorecard #13): reverse-proxy header auth.
-            const proxyUser = resolveProxyUser(req.headers as any);
+            // The socket address lets the resolver apply SSO_PROXY_TRUSTED_IPS.
+            const proxyUser = resolveProxyUser(req.headers as any, req.socket?.remoteAddress);
             if (proxyUser) {
                 try {
                     const cached = authUserCache.get(`sso:${proxyUser.openId}`);

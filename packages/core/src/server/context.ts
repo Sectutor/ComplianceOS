@@ -24,7 +24,10 @@ export const createContext = ({ req, res }: CreateExpressContextOptions) => {
         user,
         clientId,
         aal,
-        ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        // req.ip respects the trust proxy setting — the raw X-Forwarded-For
+        // header is client-spoofable on direct connections and would let an
+        // attacker reset their rate-limit bucket per request.
+        ip: req.ip || req.socket.remoteAddress,
         userAgent: req.headers['user-agent'],
         // Auth debugging info for better error messages
         authInfo: {

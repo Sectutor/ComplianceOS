@@ -88,6 +88,22 @@ import compression from 'compression';
 
 export const app = express();
 
+// Proxy trust for req.ip / rate-limit identity. Default 'loopback' trusts a
+// local reverse proxy (the standard self-host topology: Traefik/Nginx in
+// front on the same host) while ignoring client-supplied X-Forwarded-For on
+// direct connections — so rate-limit buckets cannot be reset by spoofing the
+// header. Override with TRUST_PROXY=<comma-separated IPs|loopback|number|false>
+// when the proxy is not on loopback.
+const trustProxy = process.env.TRUST_PROXY || 'loopback';
+if (trustProxy === 'false') {
+    app.set('trust proxy', false);
+} else if (trustProxy === 'true' || /^-?\d+$/.test(trustProxy)) {
+    app.set('trust proxy', trustProxy === 'true' ? true : Number(trustProxy));
+} else {
+    app.set('trust proxy', trustProxy.split(',').map((s) => s.trim()).filter(Boolean));
+}
+console.log(`[Express] trust proxy: ${trustProxy}`);
+
 // High-Performance Gzip/Deflate compression for all API payloads and static transfers
 app.use(compression({
     level: 6,

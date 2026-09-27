@@ -150,7 +150,19 @@ export const magicLinksRouter = router({
                 throw new TRPCError({ code: "BAD_REQUEST", message: "This magic link has expired" });
             }
 
-            return link;
+            // Token-gated but public: return only the fields the invite
+            // acceptance UI needs, not the full row.
+            return {
+                id: link.id,
+                label: (link as any).label,
+                email: link.email,
+                role: (link as any).role,
+                planTier: (link as any).planTier,
+                maxClients: (link as any).maxClients,
+                status: link.status,
+                expiresAt: link.expiresAt,
+                clientId: (link as any).clientId,
+            };
         }),
 
     revoke: adminProcedure
