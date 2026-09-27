@@ -129,13 +129,6 @@ export default function WaitlistPage() {
                     onSubmit={handleSubmit}
                 />
 
-                <div className="mt-16 flex flex-col md:flex-row items-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-700">
-                    <div className="text-sm font-medium text-slate-500">TRUSTED BY LEADERS AT</div>
-                    <div className="text-lg font-bold text-slate-400">Acme Corp</div>
-                    <div className="text-lg font-bold text-slate-400">Stark Industries</div>
-                    <div className="text-lg font-bold text-slate-400">Wayne Ent.</div>
-                </div>
-
             </main>
 
             <footer className="relative z-10 border-t border-white/5 bg-[#002a40]/50 backdrop-blur-md py-8">
