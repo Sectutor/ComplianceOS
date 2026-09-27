@@ -10,11 +10,14 @@ import path from 'node:path';
  * 1. Static source scans prove the SOURCE SHAPE (mirrors
  *    evidenceFilesContractGate.test.ts):
  *      - connectors.ts exports a createConnectorsRouter FACTORY receiving
- *        (t, adminProcedure, publicProcedure) instead of a bare router;
+ *        (t, adminProcedure, publicProcedure, clientProcedure) instead of a
+ *        bare router;
  *      - the five mutating routes (runAll, runProvider, install, uninstall,
- *        run) are built from adminProcedure while the five read routes
- *        (listTypes, listInstalled, getLogs, getStats, getRunHistory) stay
- *        publicProcedure and carry an explicit result bound (.limit( or SQL LIMIT);
+ *        run) are built from adminProcedure; listTypes stays publicProcedure
+ *        (connector catalogue, non-sensitive); the four client-scoped read
+ *        routes (listInstalled, getLogs, getStats, getRunHistory) are built
+ *        from clientProcedure and carry an explicit result bound (.limit( or
+ *        SQL LIMIT);
  *      - no bare `throw new Error(` leaks raw DB errors, nothing is
  *        console.logged, and at least one exported *Schema zod artifact
  *        backs the UI contract layer;
@@ -45,7 +48,8 @@ const ROUTER_PATH = path.resolve('packages/core/src/server/routers/connectors.ts
 
 /** The contracted route surface, split by procedure kind. */
 const MUTATIONS = ['runAll', 'runProvider', 'install', 'uninstall', 'run'] as const;
-const READS = ['listTypes', 'listInstalled', 'getLogs', 'getStats', 'getRunHistory'] as const;
+const PUBLIC_READS = ['listTypes'] as const;
+const CLIENT_READS = ['listInstalled', 'getLogs', 'getStats', 'getRunHistory'] as const;
 
 const readSrc = (p: string): string => {
   try {
@@ -90,7 +94,7 @@ describe('connectors auth gate — static source scan (cycle 36)', () => {
     expect(routerRaw.length).toBeGreaterThan(1000);
   });
 
-  it('connectors.ts declares the createConnectorsRouter factory receiving (t, adminProcedure, publicProcedure)', () => {
+  it('connectors.ts declares the createConnectorsRouter factory receiving (t, adminProcedure, publicProcedure, clientProcedure)', () => {
     expect(factoryStart).toBeGreaterThanOrEqual(0);
     const decl = factoryBody.match(
       /export\s+const\s+createConnectorsRouter\s*=\s*\(([^)]*)\)\s*(?::\s*[^=]+)?=>/
@@ -100,10 +104,11 @@ describe('connectors auth gate — static source scan (cycle 36)', () => {
     expect(params).toMatch(/\bt\b/);
     expect(params).toMatch(/\badminProcedure\b/);
     expect(params).toMatch(/\bpublicProcedure\b/);
+    expect(params).toMatch(/\bclientProcedure\b/);
   });
 
   it('factory exposes exactly the contracted ten routes', () => {
-    const expected = [...MUTATIONS, ...READS].sort();
+    const expected = [...MUTATIONS, ...PUBLIC_READS, ...CLIENT_READS].sort();
     expect(Object.keys(chunks).sort()).toEqual(expected);
   });
 
@@ -120,7 +125,19 @@ describe('connectors auth gate — static source scan (cycle 36)', () => {
     expect(adminCount).toBe(MUTATIONS.length);
   });
 
-  it('the five read chunks are built from publicProcedure and carry an explicit result bound', () => {
+  it('the catalogue read stays publicProcedure and carries an explicit result bound', () => {
+    for (const name of PUBLIC_READS) {
+      const chunk = chunks[name];
+      expect(chunk, `route ${name} must exist`).toBeTruthy();
+      expect(chunk, `route ${name} must use publicProcedure`).toMatch(/\bpublicProcedure\b/);
+      expect(chunk, `route ${name} must be a .query(`).toMatch(/\.query\s*\(/);
+      expect(chunk, `route ${name} must carry a result bound`).toMatch(/\.limit\s*\(/);
+    }
+    const publicCount = Object.values(chunks).filter((c) => /\bpublicProcedure\b/.test(c)).length;
+    expect(publicCount).toBe(PUBLIC_READS.length);
+  });
+
+  it('the four client-scoped read chunks are built from clientProcedure and carry an explicit result bound', () => {
     // Accumulate every violation so one run names ALL offending routes
     // instead of stopping at the first one (strictness unchanged).
     const missingBound: string[] = [];
@@ -130,10 +147,10 @@ describe('connectors auth gate — static source scan (cycle 36)', () => {
     // cannot chain .limit(); conductor-amended contract, cycle 36b).
     const bounded = (chunk: string): boolean =>
       /\.limit\s*\(/.test(chunk) || /\bLIMIT\s+(?:\d|\$\{|@)/.test(chunk);
-    for (const name of READS) {
+    for (const name of CLIENT_READS) {
       const chunk = chunks[name];
       expect(chunk, `route ${name} must exist`).toBeTruthy();
-      expect(chunk, `route ${name} must use publicProcedure`).toMatch(/\bpublicProcedure\b/);
+      expect(chunk, `route ${name} must use clientProcedure`).toMatch(/\bclientProcedure\b/);
       expect(chunk, `route ${name} must be a .query(`).toMatch(/\.query\s*\(/);
       if (!bounded(chunk ?? '')) {
         // Single-row aggregates (COUNT/SUM/MAX/...) return one row by shape
@@ -148,14 +165,14 @@ describe('connectors auth gate — static source scan (cycle 36)', () => {
     expect(missingBound, `read routes without an explicit bound: ${missingBound.join(', ') || 'none'}`).toEqual(
       []
     );
-    const publicCount = Object.values(chunks).filter((c) => /\bpublicProcedure\b/.test(c)).length;
-    expect(publicCount).toBe(READS.length);
+    const clientCount = Object.values(chunks).filter((c) => /\bclientProcedure\b/.test(c)).length;
+    expect(clientCount).toBe(CLIENT_READS.length);
   });
 
   it('tripwire: routers.ts imports AND mounts createConnectorsRouter with the injected procedures', () => {
     const imported = /import\s*\{[^}]*createConnectorsRouter[^}]*\}\s*from/.test(routers);
     const mounted =
-      /connectors\s*:\s*createConnectorsRouter\s*\(\s*t\s*,\s*adminProcedure\s*,\s*publicProcedure\s*\)/.test(
+      /connectors\s*:\s*createConnectorsRouter\s*\(\s*t\s*,\s*adminProcedure\s*,\s*publicProcedure\s*,\s*clientProcedure\s*\)/.test(
         routers
       );
     expect(imported).toBe(true);
@@ -211,19 +228,19 @@ vi.mock('../../connectors/automatedEvidenceCollectors', () => ({
 import * as connectorsModule from '../../server/routers/connectors';
 
 /** Minimal fake tRPC builder that tags each route with the procedure KIND
- *  (admin/public) that built it and records its input schema. Each .input()
- *  call spawns a FRESH chain so concurrently-built routes never overwrite
- *  each other's captured schema. */
+ *  (admin/public/client) that built it and records its input schema. Each
+ *  .input() call spawns a FRESH chain so concurrently-built routes never
+ *  overwrite each other's captured schema. */
 function buildRouter(): Record<string, { _kind?: string; _schema?: any }> {
   const factory = (connectorsModule as any).createConnectorsRouter;
   if (typeof factory !== 'function') {
     // Fails loudly with a message mapping to the unfinished backend item
     // instead of an opaque module-link error.
     throw new Error(
-      'connectors.ts does not export createConnectorsRouter(t, adminProcedure, publicProcedure) yet (contract end-state)'
+      'connectors.ts does not export createConnectorsRouter(t, adminProcedure, publicProcedure, clientProcedure) yet (contract end-state)'
     );
   }
-  const chain = (kind: 'admin' | 'public', schema?: unknown): any => {
+  const chain = (kind: 'admin' | 'public' | 'client', schema?: unknown): any => {
     const node: any = {
       _kind: kind,
       _schema: schema,
@@ -235,23 +252,24 @@ function buildRouter(): Record<string, { _kind?: string; _schema?: any }> {
   };
   const adminProcedure = chain('admin');
   const publicProcedure = chain('public');
+  const clientProcedure = chain('client');
   const t: any = { router: (routes: any) => routes };
-  const routes = factory(t, adminProcedure, publicProcedure);
+  const routes = factory(t, adminProcedure, publicProcedure, clientProcedure);
   return routes as Record<string, { _kind?: string; _schema?: any }>;
 }
 
 /** Contracted route -> procedure kind map (all ten routes). */
-const EXPECTED_KIND_MAP: Record<string, 'admin' | 'public'> = {
+const EXPECTED_KIND_MAP: Record<string, 'admin' | 'public' | 'client'> = {
   runAll: 'admin',
   runProvider: 'admin',
   install: 'admin',
   uninstall: 'admin',
   run: 'admin',
   listTypes: 'public',
-  listInstalled: 'public',
-  getLogs: 'public',
-  getStats: 'public',
-  getRunHistory: 'public',
+  listInstalled: 'client',
+  getLogs: 'client',
+  getStats: 'client',
+  getRunHistory: 'client',
 };
 
 const VALID_INSTALL = { clientId: 1, type: 'github', name: 'GH' };

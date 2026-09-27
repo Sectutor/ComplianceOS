@@ -30,9 +30,11 @@ export { BUILTIN_TEMPLATES } from "../../lib/questionnaire/templates";
 export function createQuestionnaireRouter(t: any, clientProcedure: any, publicProcedure: any) {
     return t.router({
         /**
-         * Auto-answer security questionnaire (SIG Lite / CAIQ / VSAQ)
+         * Auto-answer security questionnaire (SIG Lite / CAIQ / VSAQ).
+         * Tenant-scoped: this triggers billable LLM spend, so it must never
+         * be callable without authentication and client membership.
          */
-        autoAnswer: publicProcedure
+        autoAnswer: clientProcedure
             .input(
                 z.object({
                     clientId: z.number(),

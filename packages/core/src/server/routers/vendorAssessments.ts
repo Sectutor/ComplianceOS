@@ -465,11 +465,16 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return assessment;
             }),
 
-        listAssessments: publicProcedure
-            .input(z.object({ vendorId: z.number() }))
+        // Tenant-scoped: requires the caller's clientId so one workspace
+        // cannot enumerate another's vendor assessments.
+        listAssessments: clientProcedure
+            .input(z.object({ clientId: z.number(), vendorId: z.number() }))
             .query(async ({ input }: { input: any }) => {
                 const db = await getDb();
-                return db.select().from(vendorAssessments).where(eq(vendorAssessments.vendorId, input.vendorId));
+                return db.select().from(vendorAssessments).where(and(
+                    eq(vendorAssessments.vendorId, input.vendorId),
+                    eq(vendorAssessments.clientId, input.clientId)
+                ));
             }),
 
         createAssessment: clientProcedure

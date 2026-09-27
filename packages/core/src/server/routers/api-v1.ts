@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { getDb, onboardClient } from '../../db';
 import { sql, eq } from 'drizzle-orm';
@@ -36,11 +37,23 @@ import { and, desc, type SQL } from 'drizzle-orm';
 // ── API Key Auth Middleware ──────────────────────────────────────────────────
 
 const API_KEY = process.env.COMPLIANCE_API_KEY || '';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 const apiKeyMiddleware = (req: Request, res: Response, next: () => void) => {
-  if (!API_KEY) return next(); // dev mode — no key configured, open access
+  if (!API_KEY) {
+    // Fail closed in production: an unauthenticated REST surface over
+    // controls/evidence/users must never be exposed just because the
+    // operator forgot to set COMPLIANCE_API_KEY. Dev stays open.
+    if (IS_PRODUCTION) {
+      return res.status(503).json({
+        error: 'API disabled: COMPLIANCE_API_KEY is not configured',
+        code: 'API_KEY_REQUIRED',
+      });
+    }
+    return next(); // dev mode — no key configured, open access
+  }
   const key = req.headers['x-api-key'] as string | undefined;
-  if (!key || key !== API_KEY) {
+  if (!key || key.length !== API_KEY.length || !crypto.timingSafeEqual(Buffer.from(key), Buffer.from(API_KEY))) {
     return res.status(401).json({ error: 'Invalid API key', code: 'UNAUTHORIZED' });
   }
   next();

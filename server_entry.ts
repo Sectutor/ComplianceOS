@@ -33,7 +33,7 @@ import './env-loader';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
@@ -292,13 +292,63 @@ app.use((req, res, next) => {
 // Local auth fallback: init default admin + fast login endpoints (before sessions/rate limits)
 if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
   const adminEmail = process.env.COMPLIANCE_ADMIN_EMAIL || 'admin@complianceos.local';
-  const adminPassword = process.env.COMPLIANCE_ADMIN_PASSWORD || 'Admin@ComplianceOS1';
+  const dataDir = process.env.COMPLIANCEOS_DATA_DIR
+    || path.join(process.env.HOME || process.env.USERPROFILE || '/tmp', '.complianceos');
+  const passwordPath = path.join(dataDir, '.admin-password');
+  let adminPassword = process.env.COMPLIANCE_ADMIN_PASSWORD || '';
+  let generatedPassword = false;
+
+  if (!adminPassword) {
+    if (process.env.NODE_ENV === 'production') {
+      // Never fall back to a publicly-known default in production: generate a
+      // strong password, persist it 0600, and point the operator at the file.
+      // (docker-entrypoint.sh does the same for the container path.)
+      try {
+        if (existsSync(passwordPath)) {
+          adminPassword = readFileSync(passwordPath, 'utf-8').trim();
+        }
+        if (!adminPassword) {
+          adminPassword = randomBytes(12).toString('base64url');
+          mkdirSync(dataDir, { recursive: true });
+          writeFileSync(passwordPath, adminPassword, { mode: 0o600 });
+          generatedPassword = true;
+        }
+      } catch (e) {
+        console.error('[LocalAuth] Could not persist a generated admin password — refusing to start with a known default.', e);
+        process.exit(1);
+      }
+    } else {
+      // Dev convenience only.
+      adminPassword = 'Admin@ComplianceOS1';
+      generatedPassword = true;
+    }
+  }
   localAuth.initDefaultAdmin(adminEmail, adminPassword);
-  console.log(`[LocalAuth] Local authentication active — admin: ${adminEmail} / ${adminPassword}`);
-  console.log(`╔══════════════════════════════════════════════════════╗`);
-  console.log(`║  🔑 Admin login: ${adminEmail}                         ║`);
-  console.log(`║  🔑 Password:    ${adminPassword}                         ║`);
-  console.log(`╚══════════════════════════════════════════════════════╝`);
+  console.log(`[LocalAuth] Local authentication active — admin: ${adminEmail}`);
+  if (generatedPassword && !process.env.COMPLIANCE_ADMIN_PASSWORD) {
+    console.log(`╔══════════════════════════════════════════════════════╗`);
+    console.log(`║  🔑 Admin login: ${adminEmail}                         ║`);
+    console.log(`║  🔑 Password stored at: ${passwordPath}`);
+    console.log(`║     (retrieve it from the file — never logged here)    ║`);
+    console.log(`╚══════════════════════════════════════════════════════╝`);
+  }
+}
+
+// Strict per-IP limiter for credential endpoints. These routes deliberately
+// sit ahead of the general /api limiter, so brute-force protection must be
+// mounted here — only failed attempts count against the budget.
+if (process.env.RATE_LIMITING_ENABLED !== 'false') {
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { status: 429, error: 'Too many login attempts. Please try again in 15 minutes.' },
+  });
+  app.use('/api/auth/local-login', authLimiter);
+  app.use('/api/auth/local-register', authLimiter);
+  console.log('[RateLimit] Auth endpoints: 10 failed attempts / 15min per IP');
 }
 
 // Local login endpoint (fast-path: evaluated before session/rate-limits/auth-guards)
@@ -675,6 +725,10 @@ app.use('/uploads', (req: any, res, next) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Authentication required for media access' });
     }
+    // Sandbox everything served from /uploads: even if an HTML/SVG document
+    // somehow gets stored, the sandbox gives it an opaque origin and blocks
+    // script execution, so it cannot act as stored XSS on the app origin.
+    res.setHeader('Content-Security-Policy', 'sandbox');
     // Optional: Check client_id in path if we structure uploads by client
     next();
 }, express.static(path.join(process.cwd(), 'uploads')));

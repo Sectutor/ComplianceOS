@@ -3,6 +3,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, and, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { assertClientAccess } from "./clientAccess";
 
 /**
  * Evidence-files router - attach / list / link / remove file records that
@@ -108,14 +109,20 @@ const rethrowAsInternal = (message: string) => (err: unknown): never => {
 export const createEvidenceFilesRouter = (
     t: any,
     adminProcedure: any,
-    publicProcedure: any
+    clientProcedure: any,
+    protectedProcedure: any
 ) => {
     return t.router({
-        list: publicProcedure
+        list: protectedProcedure
             .input(evidenceFilesListInputSchema)
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
                 try {
                     const dbConn = await getDb();
+                    const [evidenceRow] = await dbConn.select({ clientId: schema.evidence.clientId })
+                        .from(schema.evidence)
+                        .where(eq(schema.evidence.id, input.evidenceId))
+                        .limit(1);
+                    await assertClientAccess(dbConn, ctx, evidenceRow?.clientId);
                     return await dbConn.select().from(schema.evidenceFiles)
                         .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId))
                         .orderBy(desc(schema.evidenceFiles.createdAt))
@@ -147,7 +154,7 @@ export const createEvidenceFilesRouter = (
 
         // List all files for a client (library picker). Joined with the
         // evidence table to filter by client; bounded read (.limit(50)).
-        listAll: publicProcedure
+        listAll: clientProcedure
             .input(evidenceFilesListAllInputSchema)
             .query(async ({ input }: any) => {
                 try {
@@ -228,11 +235,17 @@ export const createEvidenceFilesRouter = (
                 }
             }),
 
-        delete: publicProcedure
+        delete: protectedProcedure
             .input(z.object({ id: evidenceFileIdSchema }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 try {
                     const dbConn = await getDb();
+                    const [fileRow] = await dbConn.select({ clientId: schema.evidence.clientId })
+                        .from(schema.evidenceFiles)
+                        .innerJoin(schema.evidence, eq(schema.evidenceFiles.evidenceId, schema.evidence.id))
+                        .where(eq(schema.evidenceFiles.id, input.id))
+                        .limit(1);
+                    await assertClientAccess(dbConn, ctx, fileRow?.clientId);
                     await dbConn.delete(schema.evidenceFiles)
                         .where(eq(schema.evidenceFiles.id, input.id));
                     return { success: true };
@@ -241,7 +254,7 @@ export const createEvidenceFilesRouter = (
                 }
             }),
 
-        registerQuickUpload: publicProcedure
+        registerQuickUpload: clientProcedure
             .input(evidenceFilesQuickUploadInputSchema)
             .mutation(async ({ input, ctx }: any) => {
                 try {

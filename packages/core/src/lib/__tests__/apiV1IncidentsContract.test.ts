@@ -141,12 +141,14 @@ describe('incidents v1 gate -- static source scan (cycle 39)', () => {
     expect(detailChunk).not.toMatch(/process\s*\.\s*env/);
     // Whole-file tripwire: any newly introduced env var name fails here.
     // Allowlist = variables that pre-date cycle 39 (COMPLIANCE_API_KEY for
-    // the auth gate, npm_package_version for /health). Amend deliberately,
+    // the auth gate, npm_package_version for /health) plus NODE_ENV, added
+    // for the fail-closed production gate: /api/v1 refuses traffic in
+    // production when COMPLIANCE_API_KEY is unset. Amend deliberately,
     // never silently.
     const names = [...code.matchAll(/process\s*\.\s*env\s*\.\s*([A-Za-z_$][\w$]*)/g)].map(
       (m) => m[1]
     );
-    const ALLOWED = new Set(['COMPLIANCE_API_KEY', 'npm_package_version']);
+    const ALLOWED = new Set(['COMPLIANCE_API_KEY', 'npm_package_version', 'NODE_ENV']);
     const unexpected = [...new Set(names)].filter((n) => !ALLOWED.has(n));
     expect(unexpected, `unexpected process.env reads: ${unexpected.join(', ') || 'none'}`).toEqual([]);
   });

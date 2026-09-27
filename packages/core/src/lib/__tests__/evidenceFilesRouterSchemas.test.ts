@@ -43,10 +43,11 @@ function buildRouter() {
     return node;
   };
   const adminProcedure = chain();
-  const publicProcedure = chain();
+  const clientProcedure = chain();
+  const protectedProcedure = chain();
   const t: any = { router: (routes: any) => routes };
-  // Factory signature is (t, adminProcedure, publicProcedure).
-  const routes = createEvidenceFilesRouter(t, adminProcedure, publicProcedure);
+  // Factory signature is (t, adminProcedure, clientProcedure, protectedProcedure).
+  const routes = createEvidenceFilesRouter(t, adminProcedure, clientProcedure, protectedProcedure);
   return routes as Record<string, { _schema: any }>;
 }
 

@@ -735,7 +735,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     message: 'An owner already exists for this workspace. Only admins can add themselves.'
                 });
             }),
-        stats: publicProcedure
+        stats: clientProcedure
             .input(z.object({ clientId: z.number() }))
             .query(async ({ input }: any) => {
                 return await db.getClientStats(input.clientId);

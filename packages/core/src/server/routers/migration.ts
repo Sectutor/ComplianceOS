@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../../db";
+import { adminProcedure } from "../trpc";
 import { sql } from "drizzle-orm";
 
-export const createMigrationRouter = (t: any, publicProcedure: any, isAuthed: any) => {
+export const createMigrationRouter = (t: any, _publicProcedure: any, _isAuthed: any) => {
     return t.router({
-        migratePolicyTemplates: publicProcedure
-            .use(isAuthed)
+        // A data migration that writes policy templates must never be
+        // triggerable by ordinary users — admin only.
+        migratePolicyTemplates: adminProcedure
             .mutation(async ({ ctx }: any) => {
                 const db = await getDb();
 

@@ -84,7 +84,8 @@ export type ConnectorsGetRunHistoryInput = z.infer<typeof connectorsGetRunHistor
 export const createConnectorsRouter = (
   t: any,
   adminProcedure: any,
-  publicProcedure: any
+  publicProcedure: any,
+  clientProcedure: any
 ) => {
   return t.router({
     /**
@@ -129,7 +130,7 @@ export const createConnectorsRouter = (
     /**
      * Get collector execution logs history (READ - bounded by SQL LIMIT 50).
      */
-    getLogs: publicProcedure
+    getLogs: clientProcedure
       .input(z.object({ clientId: connectorsClientIdSchema }))
       .query(async ({ input }) => {
         await ensureCollectorLogsTableExists();
@@ -162,14 +163,24 @@ export const createConnectorsRouter = (
       return db.select().from(schema.integrationDefinitions).orderBy(schema.integrationDefinitions.name).limit(CONNECTORS_LIST_LIMIT);
     }),
 
-    /** Installed connectors for a client. (READ - bounded.) */
-    listInstalled: publicProcedure
+    /** Installed connectors for a client. (READ - bounded.) Tokens never leave the server. */
+    listInstalled: clientProcedure
       .input(z.object({ clientId: connectorsClientIdSchema }))
       .query(async ({ input }) => {
         const db = await getDb();
         return db
-          .select()
-          .from(schema.integrations)
+          .select({
+            id: schema.integrations.id,
+            clientId: schema.integrations.clientId,
+            provider: schema.integrations.provider,
+            expiresAt: schema.integrations.expiresAt,
+            externalAccountId: schema.integrations.externalAccountId,
+            scopes: schema.integrations.scopes,
+            metadata: schema.integrations.metadata,
+            createdBy: schema.integrations.createdBy,
+            createdAt: schema.integrations.createdAt,
+            updatedAt: schema.integrations.updatedAt,
+          })
           .where(eq(schema.integrations.clientId, input.clientId))
           .orderBy(desc(schema.integrations.createdAt))
           .limit(CONNECTORS_LIST_LIMIT);
@@ -249,7 +260,7 @@ export const createConnectorsRouter = (
       }),
 
     /** Aggregated run history stats for EvidenceCollectionDashboard. (READ.) */
-    getStats: publicProcedure
+    getStats: clientProcedure
       .input(z.object({ clientId: connectorsClientIdSchema }))
       .query(async ({ input }) => {
         await ensureCollectorLogsTableExists();
@@ -276,7 +287,7 @@ export const createConnectorsRouter = (
       }),
 
     /** Per-connector run history (newer wrapper over getLogs with a limit). (READ - bounded.) */
-    getRunHistory: publicProcedure
+    getRunHistory: clientProcedure
       .input(connectorsGetRunHistoryInputSchema)
       .query(async ({ input }) => {
         await ensureCollectorLogsTableExists();

@@ -19,7 +19,10 @@ import { join } from 'path';
 /* ------------------------------------------------------------------ */
 
 const SALT_LENGTH = 32;
-const TOKEN_EXPIRY_HOURS = 720;
+// Token lifetime is configurable via AUTH_TOKEN_EXPIRY_HOURS. Long-lived,
+// non-revocable JWTs amplify any leak (log exposure, XSS, shared machines),
+// so the default is 7 days rather than the previous 30.
+const TOKEN_EXPIRY_HOURS = Number(process.env.AUTH_TOKEN_EXPIRY_HOURS) || 168;
 // PBKDF2-SHA256 parameters (OWASP-recommended iteration count for SHA-256).
 const PBKDF2_ITERATIONS = 210_000;
 const PBKDF2_KEYLEN = 64;
@@ -124,7 +127,9 @@ function verifyPassword(password: string, hash: string, salt: string): boolean {
   let stored: Buffer;
   if (hash.startsWith(PBKDF2_VERSION + '$')) {
     computed = pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, PBKDF2_KEYLEN, 'sha256');
-    stored = Buffer.from(hash.slice(PBKDF2_VERSION.length + 1));
+    // The stored hash is a hex string — decode it as hex, not UTF-8, or the
+    // byte lengths never match and every PBKDF2 password fails to verify.
+    stored = Buffer.from(hash.slice(PBKDF2_VERSION.length + 1), 'hex');
   } else {
     // Legacy scheme: single unsalted-iteration SHA-256. Kept verifiable so
     // existing accounts can log in; login() upgrades them to PBKDF2 after a
@@ -230,19 +235,11 @@ export const localAuth = {
     const existingIndex = users.findIndex((u) => u.email.toLowerCase() === adminEmail.toLowerCase());
 
     if (existingIndex >= 0) {
-      // Admin already exists — verify password hash matches; only update if it doesn't
-      // NEVER overwrite with a random ephemeral password ending with '-change-me'
-      if (password && !password.endsWith('-change-me')) {
-        const existing = users[existingIndex];
-        const stillValid = verifyPassword(adminPassword, existing.passwordHash, existing.passwordSalt);
-        if (!stillValid) {
-          const { hash, salt } = hashPassword(adminPassword);
-          users[existingIndex].passwordHash = hash;
-          users[existingIndex].passwordSalt = salt;
-          saveUsers(users);
-          console.log(`[LocalAuth] Admin password updated: ${adminEmail}`);
-        }
-      }
+      // Admin already exists — never touch the stored hash. The env password
+      // is a FIRST-BOOT seeding value only: overwriting the hash here would
+      // (a) silently revert any password the operator changed in the UI and
+      // (b) turn COMPLIANCE_ADMIN_PASSWORD into a permanent backdoor that
+      // outlives password changes.
       return;
     }
 
@@ -260,33 +257,26 @@ export const localAuth = {
 
     users.push(user);
     saveUsers(users);
-    console.log(`[LocalAuth] Default admin created: ${adminEmail} / ${adminPassword}`);
+    // Never log the password value — container logs are widely readable.
+    console.log(`[LocalAuth] Default admin created: ${adminEmail}`);
   },
 
   /**
    * Authenticate a user by email and password.
    */
   login(email: string, password: string): AuthResult {
-    let users = loadUsers();
-    let user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-
-    const envAdminPass = process.env.COMPLIANCE_ADMIN_PASSWORD;
-    const isSpecialAdmin = email.toLowerCase() === 'admin@complianceos.local' && (
-      (envAdminPass && password === envAdminPass)
-    );
-
-    if (!user && isSpecialAdmin) {
-      // Self-heal: automatically provision default admin if record was purged
-      this.initDefaultAdmin('admin@complianceos.local', password);
-      users = loadUsers();
-      user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    }
+    // Authentication always verifies against the stored hash. COMPLIANCE_ADMIN_PASSWORD
+    // seeds the admin account on first boot (see initDefaultAdmin) but is never
+    // accepted as a live credential — otherwise anyone who reads the container
+    // env keeps permanent admin access even after the password is changed.
+    const users = loadUsers();
+    const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
     if (!user) {
       return { success: false, error: 'Invalid email or password' };
     }
 
-    if (!isSpecialAdmin && !verifyPassword(password, user.passwordHash, user.passwordSalt)) {
+    if (!verifyPassword(password, user.passwordHash, user.passwordSalt)) {
       return { success: false, error: 'Invalid email or password' };
     }
 

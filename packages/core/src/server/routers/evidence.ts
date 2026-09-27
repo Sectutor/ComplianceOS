@@ -2,6 +2,8 @@
 import archiver from 'archiver';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { adminProcedure as platformAdminProcedure } from "../trpc";
+import { assertClientAccess } from "./clientAccess";
 import * as db from "../../db";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
@@ -106,7 +108,7 @@ export const FRAMEWORK_SEEDS: Record<string, any[]> = {
 
 export const createEvidenceRouter = (
     t: any,
-    adminProcedure: any,
+    clientProcedure: any,
     publicProcedure: any,
     protectedProcedure: any
 ) => {
@@ -118,7 +120,7 @@ export const createEvidenceRouter = (
                     name: name
                 }));
             }),
-        list: publicProcedure
+        list: clientProcedure
             .input(z.object({ clientId: z.number(), systemId: z.string().optional() }))
             .query(async ({ input }: any) => {
                 const results = await db.getEvidence(input.clientId, input.systemId);
@@ -139,7 +141,7 @@ export const createEvidenceRouter = (
                 }));
             }),
 
-        listOpenRequests: publicProcedure
+        listOpenRequests: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 framework: z.string().optional()
@@ -184,16 +186,21 @@ export const createEvidenceRouter = (
                 }));
             }),
 
-        getByControl: publicProcedure
+        getByControl: protectedProcedure
             .input(z.object({ clientControlId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [clientControl] = await dbConn.select({ clientId: schema.clientControls.clientId })
+                    .from(schema.clientControls)
+                    .where(eq(schema.clientControls.id, input.clientControlId))
+                    .limit(1);
+                await assertClientAccess(dbConn, ctx, clientControl?.clientId);
                 return await dbConn.select().from(schema.evidence)
                     .where(eq(schema.evidence.clientControlId, input.clientControlId))
                     .orderBy(desc(schema.evidence.createdAt));
             }),
 
-        create: publicProcedure
+        create: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 clientControlId: z.number(),
@@ -216,16 +223,21 @@ export const createEvidenceRouter = (
                 return newEvidence;
             }),
 
-        delete: publicProcedure
+        delete: protectedProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [row] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.id))
+                    .limit(1);
+                await assertClientAccess(dbConn, ctx, row?.clientId);
                 await dbConn.delete(schema.evidence)
                     .where(eq(schema.evidence.id, input.id));
                 return { success: true };
             }),
 
-        update: publicProcedure
+        update: protectedProcedure
             .input(z.object({
                 id: z.number(),
                 evidenceId: z.string().optional(),
@@ -237,9 +249,15 @@ export const createEvidenceRouter = (
                 intervalDays: z.number().optional(),
                 expirationDate: z.date().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
                 const { id, ...data } = input;
+
+                const [row] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, id))
+                    .limit(1);
+                await assertClientAccess(dbConn, ctx, row?.clientId);
 
                 // Construct update object removing undefined
                 const updateData: any = { updatedAt: new Date() };
@@ -253,17 +271,18 @@ export const createEvidenceRouter = (
                 return { success: true };
             }),
 
-        updateStatus: publicProcedure
+        updateStatus: protectedProcedure
             .input(z.object({
                 evidenceId: z.number(),
                 status: z.enum(['verified', 'rejected', 'collected', 'pending', 'expired', 'not_applicable'])
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
 
                 // 1. Update Evidence Status
                 const now = new Date();
                 const [existingEvidence] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
+                await assertClientAccess(dbConn, ctx, existingEvidence?.clientId);
                 
                 let expirationDate: Date | null = null;
                 if (input.status === 'verified' && existingEvidence) {
@@ -361,25 +380,31 @@ export const createEvidenceRouter = (
                 return { success: true };
             }),
 
-        getFiles: publicProcedure
+        getFiles: protectedProcedure
             .input(z.object({ evidenceId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [evidenceRow] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.evidenceId))
+                    .limit(1);
+                await assertClientAccess(dbConn, ctx, evidenceRow?.clientId);
                 return dbConn.select().from(schema.evidenceFiles)
                     .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId));
             }),
 
-        analyze: publicProcedure
+        analyze: protectedProcedure
             .input(z.object({
                 evidenceId: z.number(),
                 controlName: z.string().optional(),
                 controlDescription: z.string().nullable().optional(), // Allow null
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
 
                 // Get the evidence item to check for existing content
                 const [evidenceItem] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
+                await assertClientAccess(dbConn, ctx, evidenceItem?.clientId);
 
                 if (!evidenceItem) throw new Error("Evidence not found");
 
@@ -565,7 +590,7 @@ Provide a structured JSON response:
 
         suggestions: t.router({
             // Get suggestions for a specific control
-            get: publicProcedure
+            get: protectedProcedure
                 .input(z.object({
                     controlId: z.string().optional(),
                     controlName: z.string().optional(),
@@ -606,13 +631,13 @@ Provide a structured JSON response:
                 }),
 
             // List all templates (admin)
-            list: publicProcedure.query(async () => {
+            list: protectedProcedure.query(async () => {
                 const dbConn = await getDb();
                 return dbConn.select().from(schema.evidenceTemplates);
             }),
 
             // Create template
-            create: adminProcedure
+            create: platformAdminProcedure
                 .input(z.object({
                     name: z.string(),
                     controlPattern: z.string(),
@@ -634,7 +659,7 @@ Provide a structured JSON response:
                 }),
 
             // Delete template
-            delete: adminProcedure
+            delete: platformAdminProcedure
                 .input(z.object({ id: z.number() }))
                 .mutation(async ({ input }: any) => {
                     const dbConn = await getDb();
@@ -646,7 +671,7 @@ Provide a structured JSON response:
                 }),
 
             // Seed common templates
-            seed: adminProcedure.mutation(async () => {
+            seed: platformAdminProcedure.mutation(async () => {
                 const dbConn = await getDb();
 
                 const commonTemplates = [
@@ -970,12 +995,12 @@ Provide a structured JSON response:
             }),
 
         // Workflow Automation Endpoints
-        sendEvidenceNotification: publicProcedure
+        sendEvidenceNotification: protectedProcedure
             .input(z.object({
                 evidenceId: z.number(),
                 channel: z.enum(['slack', 'email', 'both']).default('both')
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
                 const evidence = await dbConn.select()
                     .from(schema.evidence)
@@ -987,6 +1012,7 @@ Provide a structured JSON response:
                         message: 'Evidence not found'
                     });
                 }
+                await assertClientAccess(dbConn, ctx, evidence[0]?.clientId);
 
                 const request = await (workflowAutomation as any).buildEvidenceRequest(evidence[0]);
                 
@@ -1001,7 +1027,7 @@ Provide a structured JSON response:
                 return { success: results.every(r => r), sentTo: input.channel };
             }),
 
-        autoCreateEvidenceRequests: publicProcedure
+        autoCreateEvidenceRequests: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 framework: z.string()
@@ -1011,13 +1037,17 @@ Provide a structured JSON response:
                 return { success: true, framework: input.framework };
             }),
 
-        checkOverdueEvidence: publicProcedure
+        checkOverdueEvidence: platformAdminProcedure
             .mutation(async () => {
                 await workflowAutomation.checkOverdueEvidence();
                 return { success: true };
             }),
 
-        processSlackInteraction: publicProcedure
+        // Slack posts interactions to a plain HTTPS endpoint with a signed
+        // payload — a tRPC mutation cannot receive them. If this is ever wired
+        // to a real Slack URL, verify the x-slack-signature HMAC before
+        // trusting the payload; until then this stays admin-only.
+        processSlackInteraction: platformAdminProcedure
             .input(z.object({
                 payload: z.any()
             }))

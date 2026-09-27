@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc";
+import { router, adminProcedure } from "../trpc";
 import {
   createMsspPartner,
   assignClientToPartner,
@@ -10,7 +10,7 @@ export const msspRouter = router({
   /**
    * Create MSSP Partner Account
    */
-  createPartner: publicProcedure
+  createPartner: adminProcedure
     .input(
       z.object({
         name: z.string(),
@@ -25,7 +25,7 @@ export const msspRouter = router({
   /**
    * Assign Client Organization to Partner
    */
-  assignClient: publicProcedure
+  assignClient: adminProcedure
     .input(
       z.object({
         partnerId: z.number(),
@@ -40,7 +40,7 @@ export const msspRouter = router({
   /**
    * Fetch Multi-Tenant Portfolio Risk & Compliance Rollup
    */
-  getPortfolioRollup: publicProcedure
+  getPortfolioRollup: adminProcedure
     .input(z.object({ partnerId: z.number().default(1) }))
     .query(async ({ input }) => {
       const rollup = await getMsspPortfolioRollup(input.partnerId);

@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextFunction, Request, Response } from 'express';
+import crypto from 'crypto';
 import { getDb, upsertUser, getUserByOpenId } from './db';
 import { users, personalAccessTokens } from './schema';
 import { eq } from 'drizzle-orm';
@@ -83,15 +84,34 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             }
 
             const dbConn = await getDb();
-            const [pat] = await dbConn.select()
+            // Tokens are stored hashed (SHA-256); the raw value is shown once
+            // at creation and never stored. Legacy rows that predate hashing
+            // are upgraded in place on first successful lookup.
+            const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+            let [pat] = await dbConn.select()
                 .from(personalAccessTokens)
-                .where(eq(personalAccessTokens.token, token))
+                .where(eq(personalAccessTokens.token, tokenHash))
                 .limit(1);
+            if (!pat) {
+                const [legacyPat] = await dbConn.select()
+                    .from(personalAccessTokens)
+                    .where(eq(personalAccessTokens.token, token))
+                    .limit(1);
+                if (legacyPat) {
+                    pat = legacyPat;
+                    await dbConn.update(personalAccessTokens)
+                        .set({ token: tokenHash })
+                        .where(eq(personalAccessTokens.id, legacyPat.id))
+                        .execute().catch(() => {});
+                }
+            }
             if (!pat) return next();
+            // An expired token authenticates nothing, even if the row lingers.
+            if (pat.expiresAt && new Date(pat.expiresAt) < new Date()) return next();
             const dbUser = await dbConn.query.users.findFirst({
                 where: eq(users.id, pat.userId)
             });
-            if (!dbUser) return next();
+            if (!dbUser || dbUser.deletedAt) return next();
             dbConn.update(personalAccessTokens)
                 .set({ lastUsedAt: new Date() })
                 .where(eq(personalAccessTokens.id, pat.id))
@@ -126,6 +146,10 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
                 const dbUser = await dbConn.query.users.findFirst({
                     where: eq(users.email, decoded.email)
                 });
+                // Soft-deleted users must not be resurrected by an old token.
+                if (dbUser && dbUser.deletedAt) {
+                    return next();
+                }
                 if (dbUser) {
                     userId = dbUser.id;
                 } else {
@@ -178,7 +202,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         const dbUser = await dbConn.query.users.findFirst({
             where: eq(users.openId, user.id)
         });
-        if (!dbUser) {
+        if (!dbUser || dbUser.deletedAt) {
             return next();
         }
         authInfo.dbUser = true;

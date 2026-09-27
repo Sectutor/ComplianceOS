@@ -35,10 +35,14 @@ export const createTokensRouter = (t: any, protectedProcedure: any) => t.router(
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + input.expiresInDays);
 
+            // Store only the SHA-256 hash — a DB read or backup leak must not
+            // yield live credentials. The raw token is returned exactly once.
+            const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
             const [newPat] = await db.insert(personalAccessTokens).values({
                 userId: ctx.user.id,
                 name: input.name,
-                token: rawToken, // Simple storage for now
+                token: tokenHash,
                 prefix,
                 expiresAt,
             }).returning();
