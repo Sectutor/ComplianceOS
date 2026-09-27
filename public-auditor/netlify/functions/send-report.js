@@ -1,7 +1,8 @@
 const https = require('https');
 
-// SMTP2GO_API_KEY must be set in Netlify environment variables — no fallback.
-const SMTP2GO_API_KEY = process.env.SMTP2GO_API_KEY || '';
+// RESEND_API_KEY must be set in Netlify environment variables — no fallback.
+// The sending address's domain must be verified in the Resend account.
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'ComplianceOS <reports@grcompliance.com>';
 const SITE_URL = process.env.URL || 'https://assess.grcompliance.com';
 
@@ -166,25 +167,25 @@ ComplianceOS Advisory &mdash; AI Agent &amp; LLM Compliance Assessments<br>
 
 function sendEmail(toEmail, subject, textBody, htmlBody) {
   return new Promise((resolve, reject) => {
-    if (!SMTP2GO_API_KEY) {
-      reject(new Error('SMTP2GO_API_KEY is not configured'));
+    if (!RESEND_API_KEY) {
+      reject(new Error('RESEND_API_KEY is not configured'));
       return;
     }
     const payload = JSON.stringify({
-      api_key: SMTP2GO_API_KEY,
+      from: FROM_EMAIL,
       to: [toEmail],
-      sender: FROM_EMAIL,
       subject: subject,
-      text_body: textBody,
-      html_body: htmlBody,
+      text: textBody,
+      html: htmlBody,
     });
 
     const req = https.request({
-      hostname: 'api.smtp2go.com',
+      hostname: 'api.resend.com',
       port: 443,
-      path: '/v3/email/send',
+      path: '/emails',
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
       },
@@ -193,14 +194,14 @@ function sendEmail(toEmail, subject, textBody, htmlBody) {
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
-          const result = JSON.parse(data);
-          if (result?.data?.succeeded > 0) {
-            resolve(result);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(JSON.parse(data));
           } else {
-            reject(new Error(JSON.stringify(result)));
+            const result = JSON.parse(data);
+            reject(new Error(result?.message || `Resend error (HTTP ${res.statusCode})`));
           }
         } catch (e) {
-          reject(new Error('Invalid response from SMTP2GO'));
+          reject(new Error(`Invalid response from Resend (HTTP ${res.statusCode})`));
         }
       });
     });
@@ -295,7 +296,7 @@ AI Agent & LLM Compliance Assessments`;
       body: JSON.stringify({ ok: true, message: `Report sent to ${email}` }),
     };
   } catch (err) {
-    console.error('SMTP2GO error:', err.message);
+    console.error('Resend error:', err.message);
     return {
       statusCode: 500,
       headers: {
