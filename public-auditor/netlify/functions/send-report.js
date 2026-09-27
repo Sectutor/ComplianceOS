@@ -1,6 +1,7 @@
 const https = require('https');
 
-const SMTP2GO_API_KEY = process.env.SMTP2GO_API_KEY || 'api-2A18E593715A4BA082E2D07DB76B4EC3';
+// SMTP2GO_API_KEY must be set in Netlify environment variables — no fallback.
+const SMTP2GO_API_KEY = process.env.SMTP2GO_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'ComplianceOS <reports@grcompliance.com>';
 const SITE_URL = process.env.URL || 'https://assess.grcompliance.com';
 
@@ -165,6 +166,10 @@ ComplianceOS Advisory &mdash; AI Agent &amp; LLM Compliance Assessments<br>
 
 function sendEmail(toEmail, subject, textBody, htmlBody) {
   return new Promise((resolve, reject) => {
+    if (!SMTP2GO_API_KEY) {
+      reject(new Error('SMTP2GO_API_KEY is not configured'));
+      return;
+    }
     const payload = JSON.stringify({
       api_key: SMTP2GO_API_KEY,
       to: [toEmail],

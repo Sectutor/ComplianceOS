@@ -1,6 +1,13 @@
 # ComplianceOS Production Deployment
 # Uses pre-built image and connects to host Supabase database
 # Usage: docker compose -f docker-compose.prod.yml up -d
+#
+# Secrets are REQUIRED from the environment (shell, .env, or Coolify UI):
+#   DATABASE_URL              - Postgres connection string
+#   APP_ENCRYPTION_KEY        - 32+ char random hex (openssl rand -hex 32)
+#   COMPLIANCE_ADMIN_PASSWORD - initial admin password (change after first login)
+# Compose fails fast if any of these are unset, instead of booting with a
+# publicly-known default.
 
 services:
   app:
@@ -10,17 +17,17 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3002
-      - DATABASE_URL=postgres://postgres:postgres@host.docker.internal:54322/postgres?sslmode=disable
+      - DATABASE_URL=${DATABASE_URL:?set DATABASE_URL to your Postgres connection string}
       - AUTH_MODE=local
       - VITE_ENABLE_PREMIUM=true
-      - APP_ENCRYPTION_KEY=change-me-to-a-random-32-char-key-1234567890ab
-      - ENCRYPTION_KEY=change-me-to-a-random-32-char-key-1234567890ab
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY (openssl rand -hex 32)}
+      - ENCRYPTION_KEY=${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY (openssl rand -hex 32)}
       - SUPABASE_URL=https://placeholder.supabase.co
       - SUPABASE_SERVICE_ROLE_KEY=placeholder
       - VITE_SUPABASE_URL=https://placeholder.supabase.co
       - VITE_SUPABASE_ANON_KEY=placeholder
-      - COMPLIANCE_ADMIN_EMAIL=admin@complianceos.local
-      - COMPLIANCE_ADMIN_PASSWORD=Admin@ComplianceOS1
+      - COMPLIANCE_ADMIN_EMAIL=${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
+      - COMPLIANCE_ADMIN_PASSWORD=${COMPLIANCE_ADMIN_PASSWORD:?set COMPLIANCE_ADMIN_PASSWORD}
       - NO_TELEMETRY=true
     restart: unless-stopped
     extra_hosts:

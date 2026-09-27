@@ -25,9 +25,18 @@ dotenv.config();
 // credentials stay decryptable across restarts). Dev keeps current behavior.
 const WEAK_ENCRYPTION_KEYS = new Set(['change-me-to-a-random-32-char-key']);
 
+// Compose variants have shipped longer placeholder strings such as
+// "change-me-to-a-random-32-char-key-1234567890ab" — match the pattern,
+// not just the exact historical values.
+function isWeakEncryptionKey(key: string | undefined): boolean {
+    if (!key) return true;
+    if (WEAK_ENCRYPTION_KEYS.has(key)) return true;
+    return /change-?me|placeholder|your[_-]?key/i.test(key);
+}
+
 if (process.env.NODE_ENV === 'production') {
     const currentKey = process.env.APP_ENCRYPTION_KEY || process.env.ENCRYPTION_KEY || '';
-    if (!currentKey || WEAK_ENCRYPTION_KEYS.has(currentKey)) {
+    if (isWeakEncryptionKey(currentKey)) {
         const dataDir = process.env.COMPLIANCEOS_DATA_DIR
             || path.join(process.env.HOME || process.env.USERPROFILE || '/tmp', '.complianceos');
         const keyPath = path.join(dataDir, '.encryption-key');
@@ -40,8 +49,7 @@ if (process.env.NODE_ENV === 'production') {
                     console.log('[EnvLoader] Restored persisted APP_ENCRYPTION_KEY from ' + keyPath);
                 }
             }
-            const stillWeak = !process.env.APP_ENCRYPTION_KEY
-                || WEAK_ENCRYPTION_KEYS.has(process.env.APP_ENCRYPTION_KEY);
+            const stillWeak = isWeakEncryptionKey(process.env.APP_ENCRYPTION_KEY);
             if (stillWeak) {
                 const generated = crypto.randomBytes(32).toString('hex');
                 fs.mkdirSync(dataDir, { recursive: true });

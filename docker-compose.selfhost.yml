@@ -110,8 +110,9 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # No published ports: Redis is only reachable from the app's internal
+    # network. It has no authentication, so exposing it to the host/LAN would
+    # let anyone flush rate-limit counters and poison caches.
     volumes:
       - complianceos_redis:/data
     restart: unless-stopped

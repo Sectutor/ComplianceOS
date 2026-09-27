@@ -81,8 +81,6 @@ services:
       POSTGRES_DB: complianceos
     volumes:
       - complianceos_db:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U complianceos"]
       interval: 10s
@@ -94,8 +92,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - complianceos_redis:/data
     restart: unless-stopped
