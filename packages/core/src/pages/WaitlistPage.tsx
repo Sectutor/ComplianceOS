@@ -17,10 +17,12 @@ export default function WaitlistPage() {
     const [industry, setIndustry] = useState("");
     const [interestedPlay, setInterestedPlay] = useState("");
     const [submitted, setSubmitted] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
 
     const joinMutation = trpc.waitlist.join.useMutation({
         onSuccess: (data) => {
             setSubmitted(true);
+            setSuccessMessage(data.message);
             toast.success(data.message);
         },
         onError: (error) => {
@@ -54,9 +56,9 @@ export default function WaitlistPage() {
                     <div className="h-20 w-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-500">
                         <CheckCircle2 className="h-10 w-10" />
                     </div>
-                    <h1 className="text-3xl font-bold">You're on the list!</h1>
+                    <h1 className="text-3xl font-bold">Check your inbox!</h1>
                     <p className="text-slate-300 text-lg">
-                        We've reserved your spot. A member of our team will reach out to you shortly to discuss your compliance requirements.
+                        {successMessage || "Your demo access link is on its way. Open the email, set your own password, and you're in."}
                     </p>
                     <Button
                         variant="outline"
@@ -95,7 +97,7 @@ export default function WaitlistPage() {
 
                 <div className="inline-flex items-center rounded-full border border-emerald-500/30 px-3 py-1 text-sm text-emerald-400 mb-8 bg-emerald-500/10 backdrop-blur-sm">
                     <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
-                    Exclusive Early Access
+                    Instant Demo Access
                 </div>
 
                 <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 max-w-4xl bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">
@@ -103,7 +105,7 @@ export default function WaitlistPage() {
                 </h1>
 
                 <p className="text-xl md:text-2xl text-slate-300 max-w-2xl mx-auto mb-12 leading-relaxed">
-                    Stop drowning in spreadsheets. Join the waiting list for the first AI-powered platform that automates your security governance.
+                    Stop drowning in spreadsheets. Sign up now and get instant demo access to the first AI-powered platform that automates your security governance.
                 </p>
 
                 <CardForm
@@ -165,6 +167,10 @@ function CardForm({
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
             <div className="relative bg-[#001e2b] border border-white/10 rounded-xl p-4 md:p-8 shadow-2xl">
                 <form onSubmit={onSubmit} className="space-y-6">
+                    <div className="text-left">
+                        <h2 className="text-xl font-semibold text-white">Get your instant demo</h2>
+                        <p className="text-sm text-slate-400 mt-1">Takes 20 seconds — we'll email you a login link, no password to invent until you're in.</p>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2 text-left">
                             <label className="text-sm font-medium text-slate-400">First Name</label>
@@ -277,13 +283,13 @@ function CardForm({
                         disabled={loading}
                         className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-lg border-none shadow-xl shadow-emerald-500/20 transition-all mt-6"
                     >
-                        {loading ? 'Joining...' : 'Secure Your Spot'}
+                        {loading ? 'Preparing your demo...' : 'Start My Demo'}
                     </Button>
                 </form>
             </div>
             <p className="mt-6 text-sm text-slate-400 flex items-center justify-center gap-2">
                 <Lock className="h-3 w-3" />
-                <span>Limited spots available for Q1 2026. Data is encrypted.</span>
+                <span>No credit card required. Your demo link arrives by email. Data is encrypted.</span>
             </p>
         </div>
     );
