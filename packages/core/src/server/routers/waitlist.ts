@@ -1,11 +1,108 @@
 import { z } from "zod";
 import * as db from "../../db";
-import { waitingList, magicLinks } from "../../schema";
-import { eq, sql } from "drizzle-orm";
+import { waitingList, magicLinks, users } from "../../schema";
+import { eq, and, gt, sql } from "drizzle-orm";
 import { notifyOwner } from "../../notification";
 import { sendInternalSystemEmail } from "../../lib/email/internalSender";
+import {
+    checkDemoIpThrottle,
+    isDisposableDemoEmail,
+    normalizeDemoEmail,
+    type DemoIpThrottleStore,
+} from "../../lib/demoSignupGuard";
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
+
+/**
+ * In-memory per-IP throttle store for demo signups. Single-instance
+ * self-host only — multi-instance deployments should front this endpoint
+ * with a shared limiter.
+ */
+const demoIpThrottleStore: DemoIpThrottleStore = {};
+
+/** True when landing-page signups should instantly mint a demo account. */
+function isAutoInviteEnabled(): boolean {
+    return process.env.AUTO_INVITE_WAITLIST === 'true';
+}
+
+/**
+ * Create + email a single-use demo-invite magic link for a waitlist lead.
+ * The link is bound to the lead's email, single-use, and expires; the
+ * visitor sets their own password at redemption (no credentials by email).
+ */
+async function sendDemoInvite(lead: { id: number; email: string; firstName?: string | null; lastName?: string | null }): Promise<void> {
+    const d = await db.getDb();
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // magic_links.createdById is NOT NULL — attribute auto-invites to the
+    // first platform admin (the demo operator account).
+    const [creator] = await d.select({ id: users.id })
+        .from(users)
+        .where(sql`role in ('owner', 'admin', 'super_admin')`)
+        .orderBy(users.id)
+        .limit(1);
+    if (!creator) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'No operator account exists to own demo invites' });
+    }
+
+    const [link] = await d.insert(magicLinks).values({
+        token,
+        label: `Demo Invite: ${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
+        email: lead.email,
+        role: 'viewer',
+        planTier: 'pro',
+        maxClients: 2,
+        accessDurationType: 'lifetime',
+        waitlistId: lead.id,
+        createdById: creator.id,
+        expiresAt,
+        usageLimit: 1,
+    }).returning();
+
+    await d.update(waitingList).set({ status: 'invited' }).where(eq(waitingList.id, lead.id));
+
+    const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+    const inviteUrl = `${baseUrl}/auth/redeem-link?token=${link.token}`;
+    const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
+    const { sendEmail } = await import("../../lib/email/transporter");
+    const { subject, html } = generateMagicLinkEmail({
+        inviteUrl,
+        recipientEmail: lead.email,
+        planTier: 'pro',
+        role: 'viewer',
+        expiresInDays: 30,
+    });
+    await sendEmail({ to: lead.email, subject, html });
+}
+
+/** Re-send the invite email for an existing active demo link (idempotent). */
+async function resendActiveDemoInvite(email: string): Promise<boolean> {
+    const d = await db.getDb();
+    const [link] = await d.select().from(magicLinks)
+        .where(and(
+            eq(magicLinks.email, email),
+            eq(magicLinks.status, 'active'),
+            gt(magicLinks.expiresAt, new Date())
+        ))
+        .limit(1);
+    if (!link) return false;
+
+    const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
+    const inviteUrl = `${baseUrl}/auth/redeem-link?token=${link.token}`;
+    const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
+    const { sendEmail } = await import("../../lib/email/transporter");
+    const { subject, html } = generateMagicLinkEmail({
+        inviteUrl,
+        recipientEmail: email,
+        planTier: (link as any).planTier || 'pro',
+        role: (link as any).role || 'viewer',
+        expiresInDays: 30,
+    });
+    await sendEmail({ to: email, subject, html });
+    return true;
+}
 
 export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedure: any) => {
     return t.router({
@@ -23,13 +120,43 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                 track: z.string().optional(),
                 source: z.string().optional().default("web"),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const d = await db.getDb();
+
+                // Abuse controls for the public signup endpoint.
+                const normalizedEmail = normalizeDemoEmail(input.email);
+                if (isDisposableDemoEmail(normalizedEmail)) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'This email provider cannot be used for signup. Please use a permanent email address.',
+                    });
+                }
+                const throttle = checkDemoIpThrottle(demoIpThrottleStore, ctx?.ip);
+                if (!throttle.allowed) {
+                    throw new TRPCError({
+                        code: 'TOO_MANY_REQUESTS',
+                        message: 'Too many signup attempts. Please try again later.',
+                    });
+                }
+                input.email = normalizedEmail;
 
                 // Check if email already exists
                 const existing = await d.select().from(waitingList).where(eq(waitingList.email, input.email));
 
                 if (existing.length > 0) {
+                    // Demo mode: if an active invite already exists for this
+                    // email, re-send it so a failed first delivery isn't a
+                    // dead end for the lead.
+                    if (isAutoInviteEnabled()) {
+                        try {
+                            const resent = await resendActiveDemoInvite(input.email);
+                            if (resent) {
+                                return { success: true, invited: true, message: "Your demo access link has been re-sent — please check your inbox." };
+                            }
+                        } catch (e) {
+                            console.warn("[Waitlist] Demo invite re-send failed:", e);
+                        }
+                    }
                     return { success: true, message: "Already on the list!" };
                 }
 
@@ -95,52 +222,36 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                     console.warn("[Waitlist] Internal CRM notification failed:", e);
                 }
 
-                // Optional: auto invite via magic link when enabled
-                try {
-                    if (process.env.AUTO_INVITE_WAITLIST === 'true') {
-                        const d2 = await db.getDb();
-                        const [lead] = await d2.select().from(waitingList).where(eq(waitingList.email, input.email)).limit(1);
+                // Instant demo signup: mint + email a single-use invite when
+                // AUTO_INVITE_WAITLIST is enabled. A failed email must not
+                // fail the signup silently — surface it in the response.
+                let invited = false;
+                let inviteError: string | null = null;
+                if (isAutoInviteEnabled()) {
+                    try {
+                        const [lead] = await d.select().from(waitingList).where(eq(waitingList.email, input.email)).limit(1);
                         if (lead) {
-                            const token = crypto.randomUUID();
-                            const expiresAt = new Date();
-                            expiresAt.setDate(expiresAt.getDate() + 30);
-                            const [link] = await d2.insert(magicLinks).values({
-                                token,
-                                label: `Auto Invite: ${input.firstName || ''} ${input.lastName || ''}`.trim(),
-                                email: input.email,
-                                role: 'viewer',
-                                planTier: 'pro',
-                                maxClients: 2,
-                                accessDurationType: 'lifetime',
-                                waitlistId: lead.id,
-                                expiresAt,
-                                usageLimit: 1
-                            }).returning();
-                            await d2.update(waitingList).set({ status: 'invited' }).where(eq(waitingList.id, lead.id));
-                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173";
-                            const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
-                            try {
-                                const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
-                                const { sendEmail } = await import("../../lib/email/transporter");
-                                const { subject, html } = generateMagicLinkEmail({
-                                    inviteUrl,
-                                    recipientEmail: input.email,
-                                    planTier: 'pro',
-                                    role: 'viewer',
-                                    expiresInDays: 30
-                                });
-                                await sendEmail({ to: input.email, subject, html });
-                            } catch (emailErr) {
-                                console.warn("[Waitlist] Auto invite email failed:", emailErr);
-                            }
-                            console.log("[Waitlist] Auto invite sent:", link.id);
+                            await sendDemoInvite(lead);
+                            invited = true;
+                            console.log(`[Waitlist] Demo invite sent to ${input.email}`);
                         }
+                    } catch (e) {
+                        console.warn("[Waitlist] Auto invite failed:", e);
+                        inviteError = e instanceof Error ? e.message : String(e);
                     }
-                } catch (e) {
-                    console.warn("[Waitlist] Auto invite failed:", e);
                 }
 
-                return { success: true, message: "Added to waiting list! A member of our team will reach out to you shortly." };
+                if (invited) {
+                    return {
+                        success: true,
+                        invited: true,
+                        message: "You're in! Check your inbox for your demo access link to set your password and sign in.",
+                    };
+                }
+                if (inviteError && process.env.NODE_ENV !== 'production') {
+                    return { success: true, invited: false, message: `Added to waiting list! (invite email failed: ${inviteError})` };
+                }
+                return { success: true, invited: false, message: "Added to waiting list! A member of our team will reach out to you shortly." };
             }),
 
         list: adminProcedure
