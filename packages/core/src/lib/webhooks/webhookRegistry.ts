@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { getDb } from "../../db";
 import { sql, type SQL } from "drizzle-orm";
 import { WEBHOOK_EVENT_CATALOG } from "./webhookEvents";
+import { assertPublicWebhookTarget } from "./ssrfGuard";
 
 export interface WebhookSubscription {
   id: number;
@@ -332,15 +333,29 @@ export async function dispatchWebhookEvent(
   let failureCount = 0;
 
   for (const sub of subscriptions) {
-    const signature = generateWebhookSignature(payloadString, sub.secret);
     const startTime = Date.now();
 
     let statusCode = 0;
     let responseBody = "";
     let isSuccess = false;
+    let signature = "";
+    let blocked = false;
+
+    // SSRF guard: resolve and validate every target immediately before any
+    // outbound call. A blocked target is recorded as a failed delivery and
+    // never fetched.
+    try {
+      await assertPublicWebhookTarget(sub.targetUrl);
+      signature = generateWebhookSignature(payloadString, sub.secret);
+    } catch (guardErr: any) {
+      statusCode = 403;
+      responseBody = `Blocked by SSRF guard: ${guardErr?.message || "webhook target is not a public endpoint"}`;
+      isSuccess = false;
+      blocked = true;
+    }
 
     // Bounded retry loop: attempt 0 is the initial call, up to maxRetries retries.
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    for (let attempt = 0; !blocked && attempt <= maxRetries; attempt++) {
       if (attempt > 0) {
         const delayIndex = Math.min(attempt - 1, retryDelaysMs.length - 1);
         const delay = retryDelaysMs[delayIndex] ?? 0;

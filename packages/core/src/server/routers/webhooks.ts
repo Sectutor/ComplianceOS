@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { WEBHOOK_EVENT_IDS } from "../../lib/webhooks/webhookEvents";
+import { assertPublicWebhookTarget } from "../../lib/webhooks/ssrfGuard";
 import {
   createWebhookSubscription,
   getClientWebhookSubscriptions,
@@ -35,8 +36,14 @@ export const createWebhooksRouter = (t: any, clientProcedure: any) => {
       )
       .mutation(async ({ input }: any) => {
         try {
+          // Reject private/internal targets at registration time (defense in
+          // depth — dispatch re-checks every delivery).
+          await assertPublicWebhookTarget(input.targetUrl);
           return await createWebhookSubscription(input);
         } catch (err) {
+          if (err instanceof Error && err.message.startsWith("webhook target")) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+          }
           console.error("[Webhooks] Failed to create subscription:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -68,6 +75,9 @@ export const createWebhooksRouter = (t: any, clientProcedure: any) => {
       )
       .mutation(async ({ input }: any) => {
         try {
+          if (input.targetUrl !== undefined) {
+            await assertPublicWebhookTarget(input.targetUrl);
+          }
           const updated = await updateWebhookSubscription(input.id, {
             name: input.name,
             targetUrl: input.targetUrl,
@@ -83,6 +93,9 @@ export const createWebhooksRouter = (t: any, clientProcedure: any) => {
           return updated;
         } catch (err) {
           if (err instanceof TRPCError) throw err;
+          if (err instanceof Error && err.message.startsWith("webhook target")) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+          }
           console.error("[Webhooks] Failed to update subscription:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

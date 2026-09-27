@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { trpc } from '@/lib/trpc';
 import { useParams, Link, useLocation } from "wouter";
 import NIST80037Layout from "./NIST80037Layout";
@@ -1182,7 +1183,7 @@ export default function NIST80037Prepare() {
                     <div className="flex-1 overflow-hidden bg-muted rounded-md border border-border p-4">
                         <ScrollArea className="h-full">
                             {linkedPolicyData ? (
-                                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: linkedPolicyData.clientPolicy?.content || "<p>No content available.</p>" }} />
+                                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(linkedPolicyData.clientPolicy?.content || "<p>No content available.</p>") }} />
                             ) : (
                                 <div className="flex items-center justify-center h-full text-muted-foreground">Loading policy content...</div>
                             )}

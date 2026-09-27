@@ -119,7 +119,7 @@ export function EmailView({ emailId, clientId, onBack, onDelete }: EmailViewProp
                         {/* Email Body */}
                         <div
                             className="prose prose-gray max-w-none text-gray-800 leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: email.body || '' }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body || '') }}
                         />
                     </div>
 

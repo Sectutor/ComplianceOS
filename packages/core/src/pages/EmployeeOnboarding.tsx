@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { TrainingModuleViewer } from "@/components/training/TrainingModuleViewer";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import {
     Dialog,
@@ -457,9 +458,10 @@ export default function EmployeeOnboarding() {
                                         const appearsToBeMarkdown = !unescaped.includes('<') && unescaped.includes('#');
 
                                         if (appearsToBeMarkdown) {
-                                            return marked.parse(unescaped, { async: false }) as string;
+                                            return DOMPurify.sanitize(marked.parse(unescaped, { async: false }) as string);
                                         }
-                                        return unescaped;
+                                        // Content may come from user-editable policy stores — never render raw.
+                                        return DOMPurify.sanitize(unescaped);
                                     })() : ''
                                 }}
                             />

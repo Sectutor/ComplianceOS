@@ -42,8 +42,10 @@ uploadRouter.post('/', async (req: any, res) => {
             return res.status(400).json({ error: 'File type not allowed' });
         }
 
-        // SECURITY: Executable & Script extension blacklist
-        const forbiddenExts = /\.(exe|bat|cmd|sh|php|pl|py|cgi|js|vbs|jar|scr|pif|msi|dll)$/i;
+        // SECURITY: Executable & Script extension blacklist. html/svg/xml are
+        // included because /uploads serves files inline — a stored HTML or SVG
+        // document would execute as stored XSS on the app origin.
+        const forbiddenExts = /\.(exe|bat|cmd|sh|php|pl|py|cgi|js|mjs|vbs|jar|scr|pif|msi|dll|html?|xhtml|svg|xml)$/i;
         if (forbiddenExts.test(filename)) {
             logger.warn({ message: '[Upload] Rejected forbidden executable extension', filename, user: req.user?.id });
             return res.status(400).json({ error: 'Executable and script file uploads are forbidden' });

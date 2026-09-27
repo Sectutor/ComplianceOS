@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/ta
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@complianceos/ui/ui/dialog";
 import RichTextEditor from "@/components/RichTextEditor";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import TurndownService from "turndown";
 // @ts-ignore
 import html2pdf from "html2pdf.js";
@@ -152,7 +153,7 @@ export default function ReportEditor() {
 
         try {
             const element = document.createElement('div');
-            element.innerHTML = marked.parse(content);
+            element.innerHTML = DOMPurify.sanitize(marked.parse(content) as string);
 
             const opt = {
                 margin: 1,
@@ -173,7 +174,7 @@ export default function ReportEditor() {
         if (!content) return;
 
         try {
-            const htmlContent = marked.parse(content);
+            const htmlContent = DOMPurify.sanitize(marked.parse(content) as string);
             const blob = await asBlob({ html: htmlContent });
             saveAs(blob, `${title.replace(/\s+/g, '_')}_${version}.docx`);
             toast.success("DOCX exported successfully");
@@ -349,7 +350,7 @@ export default function ReportEditor() {
                             <TabsContent value="preview" className="mt-0">
                                 <div
                                     className="prose prose-slate max-w-none p-6 border rounded-lg bg-white"
-                                    dangerouslySetInnerHTML={{ __html: marked.parse(content) }}
+                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(content) as string) }}
                                 />
                             </TabsContent>
                         </div>

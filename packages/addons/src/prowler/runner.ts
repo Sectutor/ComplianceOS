@@ -8,11 +8,27 @@
  * Falls back to a mock mode for development/testing without Docker.
  */
 
-import { execSync, spawn } from 'child_process';
+import { spawnSync, spawn } from 'child_process';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
+
+/**
+ * CLI-argument safety: values interpolated into the docker command line must
+ * be plain tokens. Scan settings (frameworks, regions, image tag) come from
+ * user-configurable addon settings, so anything outside this shape is
+ * rejected instead of passed through.
+ */
+const SAFE_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+const SAFE_IMAGE_TAG = /^[A-Za-z0-9][A-Za-z0-9._/-]*(?::[A-Za-z0-9][A-Za-z0-9._-]*)?$/;
+
+function assertSafeToken(value: string, label: string): string {
+  if (!SAFE_TOKEN.test(value)) {
+    throw new Error(`Invalid ${label}: contains forbidden characters`);
+  }
+  return value;
+}
 
 /** Supported cloud providers */
 export type CloudProvider = 'aws' | 'azure' | 'gcp';
@@ -108,25 +124,57 @@ export async function runProwlerScan(
     const dockerArgs = buildDockerCommand(config, tmpDir, outputDir, imageTag);
 
     console.log(
-      `[Prowler] Running scan for ${config.provider}:${config.accountName}`,
+      `[Prowler] Running scan for ${config.provider}:${config.accountName} ` +
+      `(${dockerArgs.length} args, credentials redacted)`,
     );
-    console.log(`[Prowler] Command: docker ${dockerArgs.join(' ')}`);
 
     const startTime = Date.now();
 
-    const stdout = execSync(`docker ${dockerArgs.join(' ')}`, {
+    // spawnSync with an args array — no shell interpolation, so scan settings
+    // can never inject additional commands. Credentials travel as `-e`
+    // arguments and are never logged.
+    const result = spawnSync('docker', dockerArgs, {
       timeout,
       maxBuffer: 50 * 1024 * 1024, // 50MB
-      env: { ...process.env, ...buildCredentialEnv(config) },
+      env: process.env,
     });
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[Prowler] Scan completed in ${duration}s`);
 
+    if (result.error) {
+      if ((result.error as any).message?.includes('timeout')) {
+        throw new Error(
+          `Prowler scan timed out after ${(timeout / 1000).toFixed(0)}s for ${config.provider}:${config.accountName}`,
+        );
+      }
+      throw new Error(
+        `Prowler scan failed for ${config.provider}:${config.accountName}: ${result.error.message}`,
+      );
+    }
+    if (result.status !== 0) {
+      const stderr = result.stderr?.toString() || '';
+      if (stderr.includes('Unable to locate credentials')) {
+        throw new Error(
+          `AWS credentials invalid for account "${config.accountName}". Check access key and permissions.`,
+        );
+      }
+      if (stderr.includes('AccessDenied')) {
+        throw new Error(
+          `Access denied scanning account "${config.accountName}". Verify IAM permissions.`,
+        );
+      }
+      throw new Error(
+        `Prowler scan failed for ${config.provider}:${config.accountName} (exit ${result.status}): ${stderr.slice(0, 500)}`,
+      );
+    }
+
+    const stdout = result.stdout;
+
     // Read the output JSON file
     const outputFile = join(outputDir!, `prowler-output-${config.provider}.json`);
     const fs = await import('fs');
-    
+
     let output: ProwlerRawOutput;
     if (fs.existsSync(outputFile)) {
       const raw = fs.readFileSync(outputFile, 'utf-8');
@@ -141,19 +189,6 @@ export async function runProwlerScan(
     if (error.message?.includes('timeout')) {
       throw new Error(
         `Prowler scan timed out after ${(timeout / 1000).toFixed(0)}s for ${config.provider}:${config.accountName}`,
-      );
-    }
-
-    // Try to parse stderr for meaningful error
-    const stderr = error.stderr?.toString() || '';
-    if (stderr.includes('Unable to locate credentials')) {
-      throw new Error(
-        `AWS credentials invalid for account "${config.accountName}". Check access key and permissions.`,
-      );
-    }
-    if (stderr.includes('AccessDenied')) {
-      throw new Error(
-        `Access denied scanning account "${config.accountName}". Verify IAM permissions.`,
       );
     }
 
@@ -181,13 +216,19 @@ function buildDockerCommand(
   outputDir: string,
   imageTag: string,
 ): string[] {
+  // Settings arrive from addon configuration — reject anything that is not a
+  // plain token before it reaches the command line.
+  const safeImageTag = SAFE_IMAGE_TAG.test(imageTag)
+    ? imageTag
+    : (() => { throw new Error(`Invalid Prowler image tag: contains forbidden characters`); })();
+
   const args: string[] = [
     'run',
     '--rm',
     '-v', `${outputDir}:/output`,
   ];
 
-  // Inject credentials via -e flags
+  // Inject credentials via -e flags (never logged)
   const credEnv = buildCredentialEnv(config);
   for (const [key, value] of Object.entries(credEnv)) {
     if (value) {
@@ -205,24 +246,25 @@ function buildDockerCommand(
 
   // Provider flag (Prowler v4 uses subcommand syntax)
   if (config.provider === 'aws') {
-    args.push(imageTag, 'aws');
+    args.push(safeImageTag, 'aws');
   } else if (config.provider === 'azure') {
-    args.push(imageTag, 'azure');
+    args.push(safeImageTag, 'azure');
   } else if (config.provider === 'gcp') {
-    args.push(imageTag, 'gcp');
+    args.push(safeImageTag, 'gcp');
   }
 
   // Regions
   if (config.regions.length > 0 && config.regions[0] !== 'all') {
-    args.push('-f', config.regions.join(','));
+    const safeRegions = config.regions.map((r) => assertSafeToken(r, 'Prowler region'));
+    args.push('-f', safeRegions.join(','));
   }
 
   // Compliance frameworks
   // Prowler v4 requires provider suffix: nist_csf_2.0_aws, soc2_aws, etc.
-  const frameworkFlags = config.frameworks.map(
-    (f) => `--compliance ${f}_${config.provider}`,
-  );
-  args.push(...frameworkFlags.flatMap((f) => f.split(' ')));
+  const safeFrameworks = config.frameworks.map((f) => assertSafeToken(f, 'Prowler framework'));
+  for (const f of safeFrameworks) {
+    args.push('--compliance', `${f}_${config.provider}`);
+  }
 
   // Output format
   args.push('--output-formats', 'json-asff', '--output-directory', '/output');
@@ -271,7 +313,6 @@ async function checkDocker(): Promise<boolean> {
     const result = await new Promise<string>((resolve, reject) => {
       const child = spawn('docker', ['version', '--format', '{{.Server.Version}}'], {
         stdio: ['ignore', 'pipe', 'pipe'],
-        shell: true,
         timeout: 2000,
       });
       const timer = setTimeout(() => { child.kill(); reject(new Error('timeout')); }, 2000);

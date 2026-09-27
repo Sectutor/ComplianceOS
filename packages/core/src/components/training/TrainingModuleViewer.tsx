@@ -21,6 +21,7 @@ import {
     Trophy
 } from "lucide-react";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import ReactPlayer from "react-player";
 import { motion, AnimatePresence } from "framer-motion";
@@ -370,7 +371,7 @@ export function TrainingModuleViewer({ clientId, employeeId, initialModuleId }: 
                                         {currentModule?.content ? (
                                             <div
                                                 className="[&_h1]:text-3xl [&_h1]:font-black [&_h1]:mb-8 [&_h1]:text-slate-900 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mt-12 [&_h2]:mb-6 [&_h2]:text-slate-800 [&_h2]:border-l-4 [&_h2]:border-indigo-500 [&_h2]:pl-4 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mt-10 [&_h3]:mb-4 [&_h3]:text-slate-800 [&_p]:text-lg [&_p]:mb-6 [&_p]:leading-relaxed [&_p]:text-slate-600 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-8 [&_li]:mb-3 [&_li]:text-lg [&_li]:text-slate-600 [&_strong]:text-slate-900 [&_blockquote]:italic [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-6 [&_blockquote]:my-8 [&_blockquote]:text-slate-500 whitespace-normal"
-                                                dangerouslySetInnerHTML={{ __html: marked.parse(currentModule.content) }}
+                                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(currentModule.content) as string) }}
                                             />
                                         ) : (
                                             <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">

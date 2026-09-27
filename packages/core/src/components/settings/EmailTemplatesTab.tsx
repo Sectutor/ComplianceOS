@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import DOMPurify from "dompurify";
 import { trpc } from "../../lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -390,7 +391,7 @@ export function EmailTemplatesTab({ clientId }: EmailTemplatesTabProps) {
                     </div>
                     <div
                         className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: selectedTemplate?.content || "" }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedTemplate?.content || "") }}
                     />
                 </div>
             </EnhancedDialog>

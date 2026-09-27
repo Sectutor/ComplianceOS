@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
@@ -246,7 +247,7 @@ export default function VendorContractTemplates() {
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col">
                             <div className="text-sm text-slate-500 mb-4 font-sans bg-slate-50 p-3 rounded border h-32 overflow-hidden relative">
-                                <div dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(t.content) }} />
+                                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(convertMarkdownToHtml(t.content)) }} />
                                 <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-50 to-transparent" />
                             </div>
 
@@ -294,7 +295,7 @@ export default function VendorContractTemplates() {
                         </DialogTitle>
                     </DialogHeader>
                     <div className="max-w-4xl mx-auto w-full py-8">
-                        <div className="bg-white p-12 rounded shadow-sm border min-h-[800px] print:shadow-none print:border-none" dangerouslySetInnerHTML={{ __html: viewingTemplate?.content || '' }} />
+                        <div className="bg-white p-12 rounded shadow-sm border min-h-[800px] print:shadow-none print:border-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewingTemplate?.content || '') }} />
                     </div>
                 </DialogContent>
             </Dialog>

@@ -204,10 +204,10 @@ class AgentChatStorage {
           ${message.senderRole || null},
           ${message.content},
           ${message.timestamp},
-          ${sql.raw(`'${mentionsJson.replace(/'/g, "''")}'::jsonb`)},
+          ${mentionsJson}::jsonb,
           ${message.delegatedTo || null},
-          ${sql.raw(`'${attachmentsJson.replace(/'/g, "''")}'::jsonb`)},
-          ${browserPreviewJson ? sql.raw(`'${browserPreviewJson.replace(/'/g, "''")}'::jsonb`) : null},
+          ${attachmentsJson}::jsonb,
+          ${browserPreviewJson}::jsonb,
           NOW()
         )
         ON CONFLICT (id) DO UPDATE SET

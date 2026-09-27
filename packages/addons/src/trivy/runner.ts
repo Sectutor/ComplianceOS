@@ -5,7 +5,7 @@
  * Falls back to mock data when Trivy isn't installed.
  */
 
-import { execSync, spawn } from 'child_process';
+import { spawnSync, spawn } from 'child_process';
 import { existsSync } from 'fs';
 
 export interface TrivyScanConfig {
@@ -62,6 +62,13 @@ export async function runTrivyScan(
   const scanType = config.scanType ?? 'fs';
 
   try {
+    // The target comes from user-configurable addon settings. Reject option
+    // injection (a target starting with "-" would be parsed as a Trivy flag);
+    // shell injection is impossible because we spawn with an args array.
+    if (config.target.startsWith('-')) {
+      throw new Error(`Invalid Trivy scan target: must not start with "-"`);
+    }
+
     const args = [
       scanType,
       '--format', 'json',
@@ -70,10 +77,11 @@ export async function runTrivyScan(
       config.target,
     ];
 
-    console.log(`[Trivy] Running: trivy ${args.join(' ')}`);
+    console.log(`[Trivy] Running ${scanType} scan`);
+
     const startTime = Date.now();
 
-    const stdout = execSync(`trivy ${args.join(' ')}`, {
+    const result = spawnSync('trivy', args, {
       timeout,
       maxBuffer: 50 * 1024 * 1024,
     });
@@ -81,19 +89,31 @@ export async function runTrivyScan(
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[Trivy] Scan completed in ${duration}s`);
 
-    return JSON.parse(stdout.toString());
+    if (result.error) {
+      if ((result.error as any).message?.includes('timeout')) {
+        throw new Error(
+          `Trivy scan timed out after ${(timeout / 1000).toFixed(0)}s for "${config.target}"`,
+        );
+      }
+      throw new Error(`Trivy scan failed for "${config.target}": ${result.error.message}`);
+    }
+    if (result.status !== 0) {
+      const stderr = result.stderr?.toString() || '';
+      if (stderr.includes('not found') || stderr.includes('no such file')) {
+        throw new Error(
+          `Scan target "${config.target}" not found. Check the path and try again.`,
+        );
+      }
+      throw new Error(
+        `Trivy scan failed for "${config.target}" (exit ${result.status}): ${stderr.slice(0, 500)}`,
+      );
+    }
+
+    return JSON.parse(result.stdout.toString());
   } catch (error: any) {
     if (error.message?.includes('timeout')) {
       throw new Error(
         `Trivy scan timed out after ${(timeout / 1000).toFixed(0)}s for "${config.target}"`,
-      );
-    }
-
-    // If stderr has meaningful error, surface it
-    const stderr = error.stderr?.toString() || '';
-    if (stderr.includes('not found') || stderr.includes('no such file')) {
-      throw new Error(
-        `Scan target "${config.target}" not found. Check the path and try again.`,
       );
     }
 
@@ -111,7 +131,6 @@ async function checkTrivy(): Promise<boolean> {
     const result = await new Promise<string>((resolve, reject) => {
       const child = spawn('trivy', ['--version'], {
         stdio: ['ignore', 'pipe', 'pipe'],
-        shell: true,
         timeout: 2000,
       });
       const timer = setTimeout(() => { child.kill(); reject(new Error('timeout')); }, 2000);

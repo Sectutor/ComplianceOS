@@ -14,6 +14,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { ArrowLeft, Check, Copy, Eye, History, Loader2, Save, Sparkles, Trash2, Shield, AlertTriangle, Clock, Target, CheckCircle2, FileText, Users, Wand2, ShieldAlert, Link as LinkIcon, Unlink, TrendingDown, TrendingUp, ExternalLink, BarChart3, X, Send, RotateCcw, Activity, MessageSquare, Plus } from "lucide-react";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
@@ -791,16 +792,16 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
             if (content && content.trim() !== "") {
                 // Check if content looks like HTML
                 if (content.includes('<') && content.includes('>')) {
-                    return { __html: content };
+                    return { __html: DOMPurify.sanitize(content) };
                 } else {
                     // Convert markdown to HTML
-                    return { __html: marked.parse(content, { async: false }) as string };
+                    return { __html: DOMPurify.sanitize(marked.parse(content, { async: false }) as string) };
                 }
             }
             return { __html: "" };
         } catch (error) {
             console.error("Error rendering preview:", error);
-            return { __html: content || "" };
+            return { __html: DOMPurify.sanitize(content || "") };
         }
     };
 

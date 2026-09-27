@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
+import DOMPurify from 'dompurify';
 import { Sparkles, Wand2, MessageSquare } from 'lucide-react';
 import { Button } from '@complianceos/ui/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@complianceos/ui/ui/tooltip';
@@ -68,7 +69,9 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
   const ensureEnumerationParagraphs = (html: string) => {
     try {
       const container = document.createElement('div');
-      container.innerHTML = html || '';
+      // Sanitize before DOM parsing: this HTML feeds saved rich-text content
+      // and downstream innerHTML sinks.
+      container.innerHTML = DOMPurify.sanitize(html || '');
       const ps = Array.from(container.querySelectorAll('p'));
       ps.forEach(p => {
         const inner = p.innerHTML;
