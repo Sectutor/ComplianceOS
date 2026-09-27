@@ -9,8 +9,63 @@ import { users, userClients, clients, userInvitations, magicLinks, magicLinkRede
 import { sendEmail } from "../../lib/email/transporter";
 import { sql } from "drizzle-orm";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { localAuth } from "../../lib/auth/local-auth";
 
 import { router, publicProcedure, isAuthed, adminProcedure, clientProcedure, protectedProcedure } from "../trpc";
+
+/**
+ * Create the auth credential for a new signup. Cloud mode uses Supabase
+ * admin user creation; self-host/local-auth mode has no Supabase — the
+ * credential goes into the local user store (PBKDF2-hashed).
+ *
+ * When Supabase is configured, the credential is ALSO mirrored into the
+ * local store: the shipped login page authenticates exclusively against
+ * /api/auth/local-login, so a Supabase-only identity would be unable to
+ * sign in. Returns the id to store in users.openId.
+ */
+async function createAuthIdentity(email: string, password: string, name: string, role: string): Promise<string> {
+    const localRole = role === 'admin' ? 'admin' : 'user';
+
+    if (localAuth.isLocalAuthActive()) {
+        const result = localAuth.register(email, password, name, localRole);
+        if (!result.success || !result.user) {
+            throw new TRPCError({
+                code: 'CONFLICT',
+                message: result.error || 'An account with this email already exists. Please sign in to claim this invitation.'
+            });
+        }
+        return `local-${result.user.id}`;
+    }
+
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: name }
+    });
+
+    if (authError) {
+        if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
+            throw new TRPCError({
+                code: "CONFLICT",
+                message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
+            });
+        }
+        throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
+    }
+    if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+
+    // Mirror into the local user store so the login page's local-login
+    // endpoint recognizes this account. Best-effort: an existing local
+    // entry (re-invite) is fine.
+    try {
+        localAuth.register(email, password, name, localRole);
+    } catch (e) {
+        console.warn('[users] Local mirror of signup credential failed:', e);
+    }
+
+    return authUser.user.id;
+}
 
 export const usersSubRouter = router({
     acceptInviteAndSignup: publicProcedure
@@ -77,34 +132,16 @@ export const usersSubRouter = router({
                 });
             }
 
-            // 3. Create User in Supabase
-            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                email: userEmail,
-                password: input.password,
-                email_confirm: true,
-                user_metadata: { full_name: input.name }
-            });
-
-            if (authError) {
-                if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
-                    throw new TRPCError({
-                        code: "CONFLICT",
-                        message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
-                    });
-                }
-                throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
-            }
-
-            if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
-
-            // 3. Create User in DB
+            // 3. Create auth identity + DB user
             const isWaitlistOrigin = (link as any).waitlistId != null;
             const globalRole = input.clientId
                 ? 'user'
                 : (isWaitlistOrigin ? 'user' : (['admin', 'owner', 'user'].includes(link.role || '') ? link.role : 'user'));
 
+            const authIdentityId = await createAuthIdentity(userEmail, input.password, input.name, globalRole);
+
             const [newUser] = await dbConn.insert(users).values({
-                openId: authUser.user.id,
+                openId: authIdentityId,
                 email: userEmail,
                 name: input.name,
                 role: globalRole as any,
@@ -199,30 +236,12 @@ export const usersSubRouter = router({
                 });
             }
 
-            // 3. Create User in Supabase
-            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                email: invite.email,
-                password: input.password,
-                email_confirm: true,
-                user_metadata: { full_name: input.name }
-            });
-
-            if (authError) {
-                if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
-                    throw new TRPCError({
-                        code: "CONFLICT",
-                        message: "An account with this email already exists in our authentication system. Please sign in to claim this invitation."
-                    });
-                }
-                throw new TRPCError({ code: "BAD_REQUEST", message: authError.message });
-            }
-
-            if (!authUser.user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
-
-            // 3. Create User in DB (users table)
+            // 3. Create auth identity + DB user (users table)
             // User invitations are currently platform-wide.
+            const authIdentityId = await createAuthIdentity(invite.email, input.password, input.name, invite.role || 'user');
+
             const [newUser] = await dbConn.insert(users).values({
-                openId: authUser.user.id,
+                openId: authIdentityId,
                 email: invite.email,
                 name: input.name,
                 role: (invite.role || 'user') as any, // Default to user if not specified

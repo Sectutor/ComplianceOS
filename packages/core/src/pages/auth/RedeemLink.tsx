@@ -56,7 +56,7 @@ export default function RedeemLink() {
                 navigate('/dashboard');
             } catch (e) {
                 toast.error("Account created, but failed to sign in automatically. Please login.");
-                navigate('/auth/login');
+                navigate('/login');
             }
         },
         onError: (err) => {
@@ -64,7 +64,7 @@ export default function RedeemLink() {
                 toast.error(err.message, {
                     action: {
                         label: 'Sign In',
-                        onClick: () => navigate(`/auth/login?invite=${token}&email=${encodeURIComponent(formData.email)}`)
+                        onClick: () => navigate(`/login?invite=${token}&email=${encodeURIComponent(formData.email)}`)
                     },
                     duration: 10000
                 });
@@ -104,7 +104,7 @@ export default function RedeemLink() {
                     </CardHeader>
                     <CardFooter>
                         <Button asChild className="w-full">
-                            <Link to="/auth/login">Go to Login</Link>
+                            <Link to="/login">Go to Login</Link>
                         </Button>
                     </CardFooter>
                 </Card>
@@ -136,7 +136,7 @@ export default function RedeemLink() {
                     </CardHeader>
                     <CardFooter>
                         <Button asChild className="w-full">
-                            <Link to="/auth/login">Back to Login</Link>
+                            <Link to="/login">Back to Login</Link>
                         </Button>
                     </CardFooter>
                 </Card>
@@ -257,7 +257,7 @@ export default function RedeemLink() {
                                             type="button"
                                             variant="outline"
                                             className="w-full border-amber-200 hover:bg-amber-100 text-amber-900 font-bold"
-                                            onClick={() => navigate(`/auth/login?invite=${token}&email=${encodeURIComponent(formData.email)}`)}
+                                            onClick={() => navigate(`/login?invite=${token}&email=${encodeURIComponent(formData.email)}`)}
                                         >
                                             Sign In with {formData.email}
                                         </Button>
@@ -283,7 +283,7 @@ export default function RedeemLink() {
                                     Already have an account?
                                 </p>
                                 <Button asChild variant="link" className="text-blue-600 font-semibold p-0 h-auto">
-                                    <Link to={`/auth/login?invite=${token}`}>Sign in to redeem</Link>
+                                    <Link to={`/login?invite=${token}`}>Sign in to redeem</Link>
                                 </Button>
                             </div>
                         </div>
@@ -301,7 +301,7 @@ export default function RedeemLink() {
                                 </div>
                             </div>
                             <Button variant="ghost" size="sm" asChild className="text-blue-600 hover:bg-blue-100 h-8 text-xs font-bold">
-                                <Link to="/auth/login">Not you?</Link>
+                                <Link to="/login">Not you?</Link>
                             </Button>
                         </div>
                     )}

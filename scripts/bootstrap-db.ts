@@ -1499,6 +1499,16 @@ async function main() {
         }
     }
 
+    // 18. Realign every serial sequence to MAX(id). Pinned-id inserts above
+    // (LaTorre LTD = 7) leave sequences behind the table contents; without
+    // this, the next workspace/client insert fails on a duplicate key.
+    try {
+        await db.realignSequences();
+        console.log("[BootstrapDB] ✅ Serial sequences realigned.");
+    } catch (seqErr) {
+        console.warn("[BootstrapDB] Sequence realignment failed (continuing):", seqErr?.message || seqErr);
+    }
+
     await sql.end();
     process.exit(0);
 }

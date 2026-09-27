@@ -3167,6 +3167,39 @@ export const NATIVE_OWASP_STANDARDS = [
   "API-T10"
 ];
 
+/**
+ * Realign every serial/id sequence in the database to MAX(id).
+ *
+ * Seed code pins rows to fixed ids (e.g. the LaTorre demo workspace = 7) so
+ * demos can find them, but pinned inserts never advance the sequence — so the
+ * next natural insert (a new client, a waitlist signup, an invite) collides
+ * with an existing id and fails on the primary key. Call this after any
+ * bulk/seed insert that pins ids.
+ */
+export async function realignSequences(): Promise<void> {
+    const db = await getDb();
+    const rows = await db.execute(sql`
+        SELECT table_schema, table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND column_default LIKE 'nextval%'
+    `);
+    const list = (rows.rows || rows) as Array<{ table_schema: string; table_name: string; column_name: string }>;
+    let fixed = 0;
+    for (const { table_schema, table_name, column_name } of list) {
+        try {
+            await db.execute(sql.raw(
+                `SELECT setval(pg_get_serial_sequence('${table_schema}.${table_name}', '${column_name}'), ` +
+                `(SELECT COALESCE(MAX("${column_name}"), 1) FROM "${table_schema}"."${table_name}"))`
+            ));
+            fixed++;
+        } catch (e) {
+            console.warn(`[DB] Could not realign ${table_name}.${column_name}:`, (e as Error).message);
+        }
+    }
+    console.log(`[DB] Realigned ${fixed}/${list.length} sequences`);
+}
+
 export async function onboardClient(data: {
   name: string;
   industry: string;
