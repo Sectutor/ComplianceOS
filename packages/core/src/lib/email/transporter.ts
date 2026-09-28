@@ -92,12 +92,51 @@ export async function sendEmail({ to, subject, html, from, replyTo, clientId }: 
             if (error.response) {
                 console.error(`[Email] SendGrid Response: ${JSON.stringify(error.response.body)}`);
             }
-            // Fallback to SMTP if SendGrid fails? 
+            // Fallback to SMTP if SendGrid fails?
             // Only if SMTP config is present.
             if (!process.env.SMTP_HOST) {
                 return { success: false, error };
             }
             console.log("[Email] Falling back to Default SMTP due to SendGrid failure.");
+        }
+    }
+
+    // 2b. Use Resend if available and no custom client transporter
+    if (!transporter && process.env.RESEND_API_KEY) {
+        try {
+            console.log(`[Email] Sending via Resend API to ${to}`);
+
+            const toArray = Array.isArray(to) ? to : [to];
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from: fromAddress,
+                    to: toArray,
+                    reply_to: replyToAddress,
+                    subject: subject,
+                    html: html,
+                }),
+            });
+
+            if (!response.ok) {
+                const errText = await response.text().catch(() => '');
+                throw new Error(`Resend error (HTTP ${response.status}): ${errText.slice(0, 300)}`);
+            }
+
+            const result = await response.json().catch(() => ({} as any));
+            console.log(`[Email] Resend accepted message ${result?.id || ''}`);
+            return { success: true, messageId: result?.id || 'resend-api-success' };
+        } catch (error: any) {
+            console.error(`[Email] Resend API failed: ${error.message}`);
+            // Same policy as SendGrid: fall back to SMTP only if configured.
+            if (!process.env.SMTP_HOST) {
+                return { success: false, error };
+            }
+            console.log("[Email] Falling back to Default SMTP due to Resend failure.");
         }
     }
 
