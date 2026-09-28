@@ -128,6 +128,7 @@ const SignUpPage = lazyLoad(() => import("./pages/auth/SignUpPage"));
 const CompleteSubscription = lazyLoad(() => import("./pages/auth/CompleteSubscription"));
 const ForgotPassword = lazyLoad(() => import("./pages/auth/ForgotPassword"));
 const UpdatePassword = lazyLoad(() => import("./pages/auth/UpdatePassword"));
+const LocalResetPassword = lazyLoad(() => import("./pages/auth/LocalResetPassword"));
 const RedeemLink = lazyLoad(() => import("./pages/auth/RedeemLink"));
 const AcceptInvite = lazyLoad(() => import("./pages/auth/AcceptInvite"));
 const SsoCallback = lazyLoad(() => import("./pages/auth/SsoCallback"));
@@ -748,6 +749,7 @@ function Router() {
         <Route path="/login" component={LoginPage} />
         <Route path="/signup" component={SignUpPage} />
         <Route path="/auth/redeem-link" component={RedeemLink} />
+        <Route path="/auth/reset-password" component={LocalResetPassword} />
         <Route path="/auth/accept-invite" component={AcceptInvite} />
         <Route path="/auth/sso/callback" component={SsoCallback} />
 

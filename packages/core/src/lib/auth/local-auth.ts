@@ -200,6 +200,35 @@ export function verifyToken(token: string): { id: string; email: string; role: s
 }
 
 /* ------------------------------------------------------------------ */
+/*  Password reset tokens (local mode)                                 */
+/* ------------------------------------------------------------------ */
+
+const RESET_DB_PATH = join(DATA_DIR, 'password-resets.json');
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+interface PasswordResetEntry {
+  token: string;
+  email: string;
+  expiresAt: string;
+  used: boolean;
+}
+
+function loadResets(): PasswordResetEntry[] {
+  try {
+    return JSON.parse(readFileSync(RESET_DB_PATH, 'utf-8'));
+  } catch {
+    return [];
+  }
+}
+
+function saveResets(entries: PasswordResetEntry[]): void {
+  if (!existsSync(DATA_DIR)) {
+    mkdirSync(DATA_DIR, { recursive: true });
+  }
+  writeFileSync(RESET_DB_PATH, JSON.stringify(entries, null, 2), 'utf-8');
+}
+
+/* ------------------------------------------------------------------ */
 /*  User persistence                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -337,5 +366,46 @@ export const localAuth = {
    */
   isLocalAuthActive(): boolean {
     return !process.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL.includes('placeholder');
+  },
+
+  /**
+   * Issue a one-hour, single-use password reset token for a local user.
+   * Returns null when the email is unknown (do not reveal existence).
+   */
+  requestPasswordReset(email: string): string | null {
+    const users = loadUsers();
+    const user = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (!user) return null;
+    const token = randomBytes(24).toString('hex');
+    // Drop expired/used entries, then record the new token.
+    const now = Date.now();
+    const active = loadResets().filter((r) => !r.used && new Date(r.expiresAt).getTime() > now);
+    active.push({ token, email: user.email, expiresAt: new Date(now + RESET_TOKEN_TTL_MS).toISOString(), used: false });
+    saveResets(active);
+    return token;
+  },
+
+  /**
+   * Complete a password reset: validate the token, set the new password,
+   * mark the token used.
+   */
+  completePasswordReset(token: string, newPassword: string): AuthResult {
+    const resets = loadResets();
+    const entry = resets.find((r) => r.token === token);
+    if (!entry || entry.used || new Date(entry.expiresAt).getTime() < Date.now()) {
+      return { success: false, error: 'This reset link is invalid or has expired' };
+    }
+    const users = loadUsers();
+    const user = users.find((u) => u.email.toLowerCase() === entry.email.toLowerCase());
+    if (!user) return { success: false, error: 'Account no longer exists' };
+
+    const { hash, salt } = hashPassword(newPassword);
+    user.passwordHash = hash;
+    user.passwordSalt = salt;
+    saveUsers(users);
+
+    entry.used = true;
+    saveResets(resets);
+    return { success: true };
   },
 };

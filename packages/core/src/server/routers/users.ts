@@ -593,6 +593,34 @@ export const usersSubRouter = router({
             if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
             if (!user.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'User has no email address' });
 
+            const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005';
+
+            // Local-auth mode: issue a native single-use reset token (no Supabase).
+            if (localAuth.isLocalAuthActive()) {
+                const token = localAuth.requestPasswordReset(user.email);
+                if (!token) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'No local account exists for this email' });
+                }
+                const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
+                await sendEmail({
+                    to: user.email,
+                    subject: 'Reset Your ComplianceOS Password',
+                    html: `
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h1>Password Reset Request</h1>
+                            <p>An administrator has requested a password reset for your ComplianceOS account.</p>
+                            <p>Click the button below to set a new password:</p>
+                            <div style="margin: 24px 0;">
+                                <a href="${resetLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+                            </div>
+                            <p style="color: #666; font-size: 14px;">This link will expire in 1 hour and can be used once.</p>
+                            <p style="color: #666; font-size: 14px;">If you didn't expect this email, you can ignore it.</p>
+                        </div>
+                    `
+                });
+                return { success: true, message: `Password reset email sent to ${user.email}` };
+            }
+
             if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
                 throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Password reset requires Supabase service role key.' });
             }
@@ -629,6 +657,24 @@ export const usersSubRouter = router({
             });
 
             return { success: true, message: `Password reset email sent to ${user.email}` };
+        }),
+
+    /**
+     * Complete a local-mode password reset (token from the emailed link).
+     * Public: the token is single-use, one hour, and delivered to the
+     * account's email — possession of the link is the authorization.
+     */
+    completeLocalPasswordReset: publicProcedure
+        .input(z.object({
+            token: z.string().min(16),
+            newPassword: z.string().min(12, "Password must be at least 12 characters for security compliance.")
+        }))
+        .mutation(async ({ input }: any) => {
+            const result = localAuth.completePasswordReset(input.token, input.newPassword);
+            if (!result.success) {
+                throw new TRPCError({ code: 'BAD_REQUEST', message: result.error || 'Invalid reset link' });
+            }
+            return { success: true };
         }),
 
     listInvitations: adminProcedure
