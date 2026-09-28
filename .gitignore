@@ -94,3 +94,6 @@ data/
 *.node
 target/
 netlify-update.json
+
+# Coolify MCP config contains the API token - never commit
+.zcode/config.json
