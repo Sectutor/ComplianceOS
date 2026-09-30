@@ -67,7 +67,7 @@ async function sendDemoInvite(lead: { id: number; email: string; firstName?: str
     const inviteUrl = `${baseUrl}/auth/redeem-link?token=${link.token}`;
     const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
     const { sendEmail } = await import("../../lib/email/transporter");
-    const { subject, html } = generateMagicLinkEmail({
+    const { subject, html, text } = generateMagicLinkEmail({
         inviteUrl,
         recipientEmail: lead.email,
         planTier: 'pro',
@@ -93,7 +93,7 @@ async function resendActiveDemoInvite(email: string): Promise<boolean> {
     const inviteUrl = `${baseUrl}/auth/redeem-link?token=${link.token}`;
     const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
     const { sendEmail } = await import("../../lib/email/transporter");
-    const { subject, html } = generateMagicLinkEmail({
+    const { subject, html, text } = generateMagicLinkEmail({
         inviteUrl,
         recipientEmail: email,
         planTier: (link as any).planTier || 'pro',
@@ -332,7 +332,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                     try {
                         const { generateMagicLinkEmail } = await import("../../components/email/templates/MagicLinkInvite");
                         const { sendEmail } = await import("../../lib/email/transporter");
-                        const { subject, html } = generateMagicLinkEmail({
+                        const { subject, html, text } = generateMagicLinkEmail({
                             inviteUrl,
                             recipientEmail: lead.email,
                             planTier: input.planTier || 'pro',

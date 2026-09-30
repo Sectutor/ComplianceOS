@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@complianceos/ui/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@complianceos/ui/ui/tabs';
 import { trpc } from '@/lib/trpc';
-import { Shield, Loader2, Check, Calculator, Plus, ArrowLeft, Save, Trash2, Calendar, FileText, Activity } from 'lucide-react';
+import { Shield, Loader2, Check, Calculator, Plus, ArrowLeft, ArrowRight, Save, Trash2, Calendar, FileText, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@complianceos/ui/ui/card';
@@ -80,6 +80,34 @@ export default function RiskAssessmentEditor() {
     const [isResidualRiskManual, setIsResidualRiskManual] = useState(false);
     const [activeTab, setActiveTab] = useState('identification'); // Split into more granular tabs or sections? keeping tabs for now but page layout
 
+    // Wizard mode: new assessments walk through 4 guided steps; after saving,
+    // the editor switches to free-form tabs for continued editing.
+    const WIZARD_TABS = ['identification', 'analysis', 'controls', 'treatment'] as const;
+    const [wizardStep, setWizardStep] = useState(0);
+    const [isWizardMode, setIsWizardMode] = useState(!assessmentId);
+
+    const validateWizardStep = (step: number): string | null => {
+      switch (step) {
+        case 0:
+          if (!formData.title.trim()) return 'Please enter a title for the risk assessment.';
+          return null;
+        case 1:
+          if (!formData.threatId && !formData.threatDescription.trim()) return 'Please select or describe a threat.';
+          if (!formData.vulnerabilityId && !formData.vulnerabilityDescription.trim()) return 'Please select or describe a vulnerability.';
+          if (!formData.likelihood || !formData.impact) return 'Please set likelihood and impact.';
+          return null;
+        case 2:
+          if (!formData.controlEffectiveness) return 'Please set control effectiveness.';
+          return null;
+        case 3:
+          if (!formData.treatmentOption || formData.treatmentOption === 'None') return 'Please choose a treatment decision.';
+          if (!formData.riskOwner) return 'Please assign a risk owner.';
+          return null;
+        default:
+          return null;
+      }
+    };
+
     // Treatment Form State
     const [showTreatmentForm, setShowTreatmentForm] = useState(false);
     const [selectedTreatment, setSelectedTreatment] = useState<any>(null);
@@ -142,15 +170,15 @@ export default function RiskAssessmentEditor() {
             setIsResidualRiskManual(isManual);
 
             setFormData({
-                assessmentId: existingAssessment.assessmentId,
-                title: existingAssessment.title || '',
+                assessmentId: String(existingAssessment.assessmentId || ''),
+                title: String(existingAssessment.title || ''),
                 assessmentDate: existingAssessment.assessmentDate ? new Date(existingAssessment.assessmentDate).toISOString().split('T')[0] : '',
-                assessor: existingAssessment.assessor || '',
-                method: existingAssessment.method || 'Qualitative',
-                threatId: existingAssessment.threatId,
-                threatDescription: existingAssessment.threatDescription || '',
-                vulnerabilityId: existingAssessment.vulnerabilityId,
-                vulnerabilityDescription: existingAssessment.vulnerabilityDescription || '',
+                assessor: String(existingAssessment.assessor || ''),
+                method: String(existingAssessment.method || 'Qualitative'),
+                threatId: existingAssessment.threatId as number | undefined,
+                threatDescription: String(existingAssessment.threatDescription || ''),
+                vulnerabilityId: existingAssessment.vulnerabilityId as number | undefined,
+                vulnerabilityDescription: String(existingAssessment.vulnerabilityDescription || ''),
                 affectedAssets: Array.isArray(existingAssessment.affectedAssets) ? existingAssessment.affectedAssets : [],
                 likelihood: REVERSE_LIKELIHOOD_MAP[existingAssessment.likelihood] || existingAssessment.likelihood || 'Possible',
                 impact: REVERSE_IMPACT_MAP[existingAssessment.impact] || existingAssessment.impact || 'High',
@@ -437,7 +465,45 @@ export default function RiskAssessmentEditor() {
                     </div>
                 </div>
 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
+                <Tabs value={isWizardMode ? WIZARD_TABS[wizardStep] : activeTab} onValueChange={(v) => { if (!isWizardMode) setActiveTab(v); }} className="w-full space-y-8">
+                    {isWizardMode ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    {WIZARD_TABS.map((tab, i) => (
+                                        <React.Fragment key={tab}>
+                                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                                i === wizardStep
+                                                    ? 'bg-brand text-white shadow-sm'
+                                                    : i < wizardStep
+                                                    ? 'bg-emerald-100 text-emerald-700'
+                                                    : 'bg-slate-100 text-slate-400'
+                                            }`}>
+                                                {i < wizardStep ? <Check className="w-3.5 h-3.5" /> : <span className="w-3.5 h-3.5 flex items-center justify-center text-[10px] font-bold">{i + 1}</span>}
+                                                <span className="hidden sm:inline">{tab === 'identification' ? 'Identify' : tab === 'analysis' ? 'Analyze' : tab === 'controls' ? 'Mitigate' : 'Treat'}</span>
+                                            </div>
+                                            {i < WIZARD_TABS.length - 1 && (
+                                                <div className={`w-6 h-0.5 ${i < wizardStep ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsWizardMode(false)}
+                                    className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    Switch to tabs →
+                                </button>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-brand to-emerald-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${((wizardStep + 1) / WIZARD_TABS.length) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+                    ) : (
                     <TabsList className="w-full h-auto p-1.5 bg-slate-100/50 border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-2">
                         {[
                             { id: 'identification', label: 'Identification', icon: FileText, desc: 'Basic Details' },
@@ -463,6 +529,7 @@ export default function RiskAssessmentEditor() {
                             </TabsTrigger>
                         ))}
                     </TabsList>
+                    )}
 
                     <div className="w-full">
                         {/* Identification Section */}
@@ -739,9 +806,9 @@ export default function RiskAssessmentEditor() {
                                     </div>
 
                                     <GapAnalysis
-                                        clientId={parseInt(clientId!)}
-                                        threat={formData.threatDescription || ""}
-                                        vulnerability={formData.vulnerabilityDescription || ""}
+                                        clientId={parseInt(clientId!) || 0}
+                                        threat={String(formData.threatDescription || "")}
+                                        vulnerability={String(formData.vulnerabilityDescription || "")}
                                         onControlAdopted={() => {
                                             // Refresh control list? In a real app we'd invalidate query
                                             // But since we use useQuery hook in parent, simpler to just let user refresh or optimistic update
@@ -951,6 +1018,50 @@ export default function RiskAssessmentEditor() {
                         </TabsContent>
                     </div>
                 </Tabs>
+
+                {/* Wizard navigation */}
+                {isWizardMode && (
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                        <Button
+                            variant="outline"
+                            onClick={() => setWizardStep(s => Math.max(0, s - 1))}
+                            disabled={wizardStep === 0}
+                            className="gap-2"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back
+                        </Button>
+                        <span className="text-xs text-slate-400 font-medium">
+                            Step {wizardStep + 1} of {WIZARD_TABS.length}
+                        </span>
+                        {wizardStep < WIZARD_TABS.length - 1 ? (
+                            <Button
+                                onClick={() => {
+                                    const err = validateWizardStep(wizardStep);
+                                    if (err) {
+                                        toast.error(err);
+                                        return;
+                                    }
+                                    setWizardStep(s => s + 1);
+                                }}
+                                className="gap-2 bg-brand hover:bg-brand/90 text-white"
+                            >
+                                Next
+                                <ArrowRight className="w-4 h-4" />
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                <Save className="w-4 h-4" />
+                                Save Assessment
+                            </Button>
+                        )}
+                    </div>
+                )}
             </div>
         </DashboardLayout >
     );

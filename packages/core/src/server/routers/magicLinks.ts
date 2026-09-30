@@ -92,7 +92,7 @@ export const magicLinksRouter = router({
                     const inviteUrl = `${baseUrl}/auth/redeem-link?token=${token}`;
 
                     try {
-                        const { subject, html } = generateMagicLinkEmail({
+                        const { subject, html, text } = generateMagicLinkEmail({
                             inviteUrl,
                             recipientEmail: input.email,
                             planTier: input.planTier,

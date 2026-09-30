@@ -15,13 +15,23 @@ export function generateMagicLinkEmail({
     planTier,
     role,
     expiresInDays
-}: MagicLinkEmailProps): { subject: string; html: string } {
+}: MagicLinkEmailProps): { subject: string; html: string; text: string } {
 
     // Capitalize for display
     const planDisplay = planTier.charAt(0).toUpperCase() + planTier.slice(1);
     const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
 
     const subject = `You've been invited to join ComplianceOS (${planDisplay} Access)`;
+
+    const text = `You've been invited to ComplianceOS (${planDisplay} Plan, ${roleDisplay} role).
+
+${inviterName} has invited you to join ComplianceOS. Open this single-use link to accept the invitation and set your own password:
+
+${inviteUrl}
+
+The link expires in ${expiresInDays} days and can be used once. If you weren't expecting this invitation, you can ignore this email.
+
+© ${new Date().getFullYear()} ComplianceOS`;
 
     const html = `
 <!DOCTYPE html>
@@ -73,22 +83,22 @@ export function generateMagicLinkEmail({
                             </div>
 
                             <p style="margin: 0 0 32px; font-size: 16px; line-height: 24px; color: #4b5563;">
-                                Click the button below to accept your invitation and set up your account.
+                                Click the button below to accept your invitation and set up your account. If the button doesn't work, copy the link underneath it.
                             </p>
 
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
-                                    <td align="center">
-                                        <a href="${inviteUrl}" target="_blank" style="display: inline-block; padding: 16px 32px; background-color: #2563eb; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 8px; transition: background-color 0.2s;">
-                                            Accept Invitation
+                                    <td align="center" bgcolor="#2563eb" style="border-radius: 8px; mso-padding-alt: 16px 32px;">
+                                        <a href="${inviteUrl}" target="_blank" style="display: inline-block; padding: 16px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">
+                                            Accept Invitation &amp; Set Password
                                         </a>
                                     </td>
                                 </tr>
                             </table>
-                            
-                            <p style="margin: 32px 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+
+                            <p style="margin: 24px 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
                                 Or copy and paste this link into your browser:<br>
-                                <a href="${inviteUrl}" style="color: #2563eb; text-decoration: none; word-break: break-all;">${inviteUrl}</a>
+                                <a href="${inviteUrl}" style="color: #2563eb; text-decoration: underline; word-break: break-all;">${inviteUrl}</a>
                             </p>
                         </td>
                     </tr>
@@ -110,5 +120,5 @@ export function generateMagicLinkEmail({
 </html>
     `;
 
-    return { subject, html };
+    return { subject, html, text };
 }

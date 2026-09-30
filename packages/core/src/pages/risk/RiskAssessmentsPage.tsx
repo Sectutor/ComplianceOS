@@ -103,7 +103,11 @@ export default function RiskAssessmentsPage() {
 
     const { data: assessments, isLoading: loadingAssessments, refetch } = trpc.risks.getRiskAssessments.useQuery(
         { clientId: clientId },
-        { enabled: !!clientId }
+        {
+            enabled: !!clientId,
+            refetchInterval: 5000,
+            refetchOnWindowFocus: true,
+        }
     );
     const exportReportMutation = trpc.risks.exportReport.useMutation();
 

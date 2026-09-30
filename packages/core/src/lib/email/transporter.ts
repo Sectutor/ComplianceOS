@@ -8,6 +8,7 @@ interface SendEmailOptions {
     to: string | string[];
     subject: string;
     html: string;
+    text?: string; // Plain-text alternative — improves rendering in clients that distrust HTML
     from?: string;
     replyTo?: string; // Email address for replies
     clientId?: number; // Context to find specific SMTP settings
@@ -24,7 +25,7 @@ if (SENDGRID_API_KEY) {
     console.log("[Email] SendGrid SDK initialized.");
 }
 
-export async function sendEmail({ to, subject, html, from, replyTo, clientId }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: any }> {
+export async function sendEmail({ to, subject, html, text, from, replyTo, clientId }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: any }> {
     let transporter = null;
     let fromAddress = from || process.env.SMTP_FROM || 'system@compliance-os.com';
     // Default replyTo to the sender's email if not specified
@@ -82,6 +83,7 @@ export async function sendEmail({ to, subject, html, from, replyTo, clientId }: 
                 replyTo: replyToAddress,
                 subject: subject,
                 html: html,
+                text: text,
                 // Track this as a system category
                 categories: ['compliance-os-system'],
             });
@@ -119,6 +121,7 @@ export async function sendEmail({ to, subject, html, from, replyTo, clientId }: 
                     reply_to: replyToAddress,
                     subject: subject,
                     html: html,
+                    text: text,
                 }),
             });
 
@@ -173,6 +176,7 @@ export async function sendEmail({ to, subject, html, from, replyTo, clientId }: 
             to: Array.isArray(to) ? to.join(', ') : to,
             subject,
             html,
+            text,
         });
         console.log(`[Email] Sent (SMTP): ${info.messageId}`);
         return { success: true, messageId: info.messageId };
