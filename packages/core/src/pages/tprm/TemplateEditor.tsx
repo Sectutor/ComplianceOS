@@ -12,12 +12,6 @@ import { QuestionTable, Section } from "./QuestionTable";
 import { Card, CardContent } from "@complianceos/ui/ui/card";
 import { PageGuide } from "@/components/PageGuide";
 
-// Built-in template IDs from questionnaire router
-// NOTE: These must match the built-in template IDs returned by trpc.questionnaire.listTemplates
-// TODO: Fetch built-in templates dynamically from server using trpc.questionnaire.listTemplates
-//       to avoid maintaining duplicate lists in frontend and backend
-const BUILT_IN_TEMPLATES = ['sig-lite', 'caiq-v4', 'iso27001-baseline', 'nist-csf', 'soc2-type2', 'pentest-scope', 'gdpr-readiness', 'hipaa-security'];
-
 export default function TemplateEditor() {
     const { id, templateId } = useParams(); // id is clientId, templateId is template ID or 'new'
     const { selectedClientId } = useClientContext();
@@ -27,7 +21,15 @@ export default function TemplateEditor() {
     const clientId = selectedClientId || (id ? parseInt(id) : null);
 
     const isNew = templateId === "new";
-    const isBuiltIn = !isNew && templateId && BUILT_IN_TEMPLATES.includes(templateId);
+
+    // Built-in template ids are resolved dynamically from the questionnaire
+    // router (single source of truth) instead of a stale hardcoded list.
+    const { data: availableTemplates } = trpc.questionnaire.listTemplates.useQuery(
+        {},
+        { enabled: !isNew && !!templateId }
+    );
+    const isBuiltIn =
+        !isNew && !!templateId && (availableTemplates || []).some((t) => t.id === templateId && !String(t.id).startsWith("custom-"));
     const numericTemplateId = !isNew && !isBuiltIn && templateId ? parseInt(templateId) : null;
 
     const [templateData, setTemplateData] = useState({
@@ -67,7 +69,7 @@ export default function TemplateEditor() {
             const categoryMap = new Map<string, typeof builtInQuestions>();
 
             builtInQuestions.forEach(q => {
-                const cat = q.category || 'General';
+                const cat = (q as any).category || (q as any).focusArea || 'General';
                 if (!categoryMap.has(cat)) {
                     categoryMap.set(cat, []);
                 }

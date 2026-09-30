@@ -1586,3 +1586,132 @@ export const getErmRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
     ]
 });
 
+
+/**
+ * Security Questionnaires 90-Day Program Roadmap Spec
+ *
+ * The operational plan for the Questionnaires module: build the reusable
+ * Answer Library, turn customer questionnaires around fast (inbound), and
+ * assess vendors with secure links, scoring and findings (outbound).
+ */
+export const getQuestionnaireRoadmap = (clientId: number): FrameworkRoadmapSpec => ({
+    id: 'questionnaire',
+    title: '90-Day Security Questionnaire Program Roadmap',
+    shortTitle: 'Questionnaire 90-Day Roadmap',
+    subtitle: '12-week operational schedule covering the Master Answer Profile, inbound questionnaire turnaround, outbound vendor assessments, and findings-driven follow-up.',
+    frameworkBadge: 'SIG • CAIQ • SOC 2 • ISO 27001',
+    color: 'blue',
+    months: [
+        {
+            month: 1,
+            weeks: 'Weeks 1 to 4',
+            title: 'Foundation: Master Answer Profile, Grounding Context & First Win',
+            clauseRef: 'Customer Trust • NIST 800-161 §3.3 (Due Diligence)',
+            badgeColor: 'bg-blue-600 text-white',
+            badgeText: 'Month 1 • Weeks 1 to 4',
+            bgLight: 'bg-blue-50/70',
+            borderColor: 'border-blue-100',
+            textColor: 'text-blue-700',
+            tasks: [
+                {
+                    id: 'questionnaire_m1_library',
+                    title: 'Build the Master Answer Profile',
+                    desc: 'Add canonical company answers to the Answer Library so every incoming questionnaire starts pre-filled and word-perfectly consistent.',
+                    link: `/clients/${clientId}/answer-library`,
+                    cta: 'Answer Library',
+                    articleRef: 'Reuse'
+                },
+                {
+                    id: 'questionnaire_m1_context',
+                    title: 'Keep Policies & Controls Current',
+                    desc: 'AI drafts are grounded in your implemented controls and policies — keep statuses accurate so generated answers reflect reality, never aspirations.',
+                    link: `/clients/${clientId}/controls`,
+                    cta: 'Controls',
+                    articleRef: 'Grounding'
+                },
+                {
+                    id: 'questionnaire_m1_first_inbound',
+                    title: 'Import & Answer Your First Inbound Questionnaire',
+                    desc: 'Upload a customer questionnaire (XLSX / CSV / PDF), review the AI-drafted answers, and export the completed workbook back to the customer.',
+                    link: `/clients/${clientId}/questionnaire-workspace?direction=inbound`,
+                    cta: 'Answer Now',
+                    articleRef: 'Inbound'
+                }
+            ]
+        },
+        {
+            month: 2,
+            weeks: 'Weeks 5 to 8',
+            title: 'Inbound Velocity & Outbound Vendor Assessments',
+            clauseRef: 'SIG • CAIQ • NIST 800-161 §3.3 (Assessment Dispatch)',
+            badgeColor: 'bg-indigo-600 text-white',
+            badgeText: 'Month 2 • Weeks 5 to 8',
+            bgLight: 'bg-indigo-50/70',
+            borderColor: 'border-indigo-100',
+            textColor: 'text-indigo-700',
+            tasks: [
+                {
+                    id: 'questionnaire_m2_inbound_sla',
+                    title: 'Turn Customer Questionnaires Around in 5 Business Days',
+                    desc: 'Lean on answer-library reuse and AI drafting to cut response time; track due dates and overdue items directly on the dashboard.',
+                    link: `/clients/${clientId}/questionnaires`,
+                    cta: 'Inbound Queue',
+                    articleRef: 'SLA'
+                },
+                {
+                    id: 'questionnaire_m2_outbound_send',
+                    title: 'Send Standard Assessments to Tier-1 Vendors',
+                    desc: 'Dispatch SIG Lite / CAIQ v4 to critical vendors via secure portal links — no email attachments, no version confusion.',
+                    link: `/clients/${clientId}/questionnaire-workspace?mode=template&direction=outbound`,
+                    cta: 'Send Assessment',
+                    articleRef: 'Outbound'
+                },
+                {
+                    id: 'questionnaire_m2_standardize',
+                    title: 'Standardize Your Outgoing Question Set',
+                    desc: 'Upload your own question set once and reuse it for every vendor assessment instead of ad-hoc spreadsheet versions.',
+                    link: `/clients/${clientId}/questionnaire-workspace?direction=outbound`,
+                    cta: 'Your Template',
+                    articleRef: 'Standardize'
+                }
+            ]
+        },
+        {
+            month: 3,
+            weeks: 'Weeks 9 to 12',
+            title: 'Evaluate, Findings-Driven Follow-Up & Continuous Improvement',
+            clauseRef: 'NIST 800-161 §3.4 (Monitoring & Remediation)',
+            badgeColor: 'bg-emerald-600 text-white',
+            badgeText: 'Month 3 • Weeks 9 to 12',
+            bgLight: 'bg-emerald-50/70',
+            borderColor: 'border-emerald-100',
+            textColor: 'text-emerald-700',
+            tasks: [
+                {
+                    id: 'questionnaire_m3_review',
+                    title: 'Score Vendor Responses & Flag Failed Controls',
+                    desc: 'Review submitted assessments: accept solid answers, flag failures, and set priority plus remediation deadlines on every finding.',
+                    link: `/clients/${clientId}/questionnaires`,
+                    cta: 'Review & Score',
+                    articleRef: 'Findings'
+                },
+                {
+                    id: 'questionnaire_m3_remediation',
+                    title: 'Chase Remediation with Reminders & Re-invites',
+                    desc: 'Send reminder emails for pending vendors and reopen flagged assessments so vendors correct insufficient answers and resubmit.',
+                    link: `/clients/${clientId}/questionnaires`,
+                    cta: 'Follow Up',
+                    articleRef: 'Remediation'
+                },
+                {
+                    id: 'questionnaire_m3_harvest',
+                    title: 'Harvest Approved Answers Back Into the Library',
+                    desc: 'Complete inbound questionnaires so their approved answers feed the Master Answer Profile and every future AI draft.',
+                    link: `/clients/${clientId}/answer-library`,
+                    cta: 'Harvest',
+                    articleRef: 'Improve'
+                }
+            ]
+        }
+    ]
+});

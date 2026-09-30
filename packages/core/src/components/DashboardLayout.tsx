@@ -125,6 +125,7 @@ export function translateNavLabel(label: string, t: (key: string, options?: any)
     "Vendors": "navigation:vendors",
     "Vendor Directory": "navigation:vendorDirectory",
     "Questionnaires": "navigation:questionnaires",
+    "Answer Library": "navigation:answerLibrary",
     "Evidence": "navigation:evidence",
     "Training": "navigation:training",
     "Reports": "navigation:reports",
@@ -872,6 +873,7 @@ function DashboardLayoutContent({
           { icon: Search, label: "Discovery", path: "/vendors/discovery" },
           { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
           { icon: ClipboardList, label: "Questionnaires", path: "/questionnaires" },
+          { icon: BookOpen, label: "Answer Library", path: "/answer-library" },
           { icon: Target, label: "Assessment Templates", path: "/vendors/templates" },
         ]
       },
@@ -1418,10 +1420,10 @@ function DashboardLayoutContent({
             {!isCollapsed && (
               <div className="px-3 py-2">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-white/50 pointer-events-none" />
                   <Input
                     placeholder="Search menu..."
-                    className="pl-8 h-9 text-xs bg-sidebar-accent/5"
+                    className="pl-8 h-9 text-xs bg-white/5 border-white/15 text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/20"
                     value={menuSearch}
                     onChange={(e) => setMenuSearch(e.target.value)}
                   />

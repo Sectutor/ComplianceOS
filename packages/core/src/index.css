@@ -1238,22 +1238,41 @@
   color: #ffffff !important;
 }
 
-/* Action Center dialog/popup */
+/* App-wide dialog theme — light surface, matching the app's card idiom
+   (bg-white / slate-200 border / slate-900 text). These rules previously
+   forced a navy surface on EVERY dialog regardless of theme, which made
+   dialogs stand out as "too dark too blue" against the rest of the app. */
 div[role="dialog"][data-state="open"] {
-  background-color: #0F2C59 !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  color: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-color: rgba(203, 213, 225, 0.9) !important;
+  color: #0F172A !important;
   border-radius: 1.5rem !important;
 }
 
 /* :not(.driver-popover) — the welcome-tour popover (driver.js) has role="dialog"
    but must keep its own light theme from driver.css */
-div[role="dialog"]:not(.driver-popover) * {
-  color: #FFFFFF !important;
+/* Non-button content gets dark text for readability on the white surface.
+   Buttons are EXCLUDED so each Button variant keeps its own contrast —
+   e.g. white text on the navy primary button, matching the rest of the app.
+   (Forcing #1E293B here made primary-button labels dark-on-dark.)
+   Elements that declare their own background (badges, chips: bg-slate-700,
+   bg-amber-600, bg-rose-600, …) are also excluded — their paired text color
+   (usually text-white) is what keeps them readable. */
+div[role="dialog"]:not(.driver-popover) *:not(button):not(button *):not([class*="bg-"]) {
+  color: #1E293B !important;
   font-weight: 400 !important;
 }
 
+/* Restore the muted-text hierarchy that the universal color rule above
+   flattens (descriptions, helper copy). */
+div[role="dialog"]:not(.driver-popover) .text-muted-foreground,
+div[role="dialog"]:not(.driver-popover) p[class*="text-muted-foreground"],
+div[role="dialog"] p[class*="text-muted-foreground"] {
+  color: #64748B !important;
+}
+
 div[role="dialog"]:not(.driver-popover) h2 {
+  color: #0F2C59 !important;
   font-weight: 600 !important;
   font-size: 1.125rem !important;
   line-height: 1.4 !important;
@@ -1280,17 +1299,10 @@ div[role="dialog"] [class*="bg-blue-50"] * {
   color: #334155 !important;
 }
 
-/* Dialog buttons */
+/* Dialog buttons — keep the app's rounded shape only. Colors and weights
+   come from the Button component's own variants (bg-primary, outline, ghost):
+   forcing navy here painted every button-shaped element inside dialogs —
+   including selectable list cards — dark and unreadable on the white surface. */
 div[role="dialog"]:not(.driver-popover) button {
-  background-color: #0a1f3d !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 0.75rem !important;
-  font-weight: 400 !important;
-  transition: all 0.2s ease !important;
-}
-
-div[role="dialog"]:not(.driver-popover) button:hover {
-  background-color: #061225 !important;
-  color: #ffffff !important;
 }

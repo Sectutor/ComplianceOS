@@ -330,6 +330,7 @@ const PrivacyLayout = lazyLoad(() => import("./pages/privacy/PrivacyLayout").the
 const KnowledgeBase = lazyLoad(() => import("./pages/KnowledgeBase"));
 const QuestionnaireWorkspace = lazyLoad(() => import("./pages/QuestionnaireWorkspace"));
 const QuestionnairesDashboard = lazyLoad(() => import("./pages/QuestionnairesDashboard"));
+const AnswerLibraryPage = lazyLoad(() => import("./pages/AnswerLibraryPage"));
 
 const CyberDashboard = lazyLoad(() => import("./pages/cyber/CyberDashboard"));
 const CyberAssessment = lazyLoad(() => import("./pages/cyber/CyberAssessment"));
@@ -945,6 +946,9 @@ function Router() {
         </Route>
         <Route path="/clients/:id/questionnaires">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={QuestionnairesDashboard} /></UnifiedClientGuard>}
+        </Route>
+        <Route path="/clients/:id/answer-library">
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={AnswerLibraryPage} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/questionnaire-workspace">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={QuestionnaireWorkspace} /></UnifiedClientGuard>}

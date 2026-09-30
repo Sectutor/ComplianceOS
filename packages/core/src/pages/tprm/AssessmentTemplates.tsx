@@ -63,7 +63,7 @@ export default function AssessmentTemplates() {
 
     const confirmDelete = () => {
         if (templateToDelete) {
-            deleteMutation.mutate({ id: templateToDelete.id });
+            deleteMutation.mutate({ id: templateToDelete.id, clientId: clientId ?? undefined });
         }
     };
 

@@ -110,6 +110,93 @@ describe('questionnaire router — route shape', () => {
       expect(typeof router[name].handler).toBe('function');
     }
   });
+
+  it('exposes the completion, lifecycle and vendor-portal routes', () => {
+    const { router } = buildFakeTRPC();
+    for (const name of [
+      'list',
+      'counts',
+      'create',
+      'update',
+      'delete',
+      'parse',
+      'populateWorkbook',
+      'complete',
+      'generateAnswers',
+      'exportWorkbook',
+      'exportJSON',
+      'getTemplateQuestions',
+      'sendVendorInvite',
+      'getByVendorToken',
+      'submitVendorResponses',
+      'scoreAll',
+      'autoAnswer',
+    ]) {
+      expect(router[name], `route "${name}"`).toBeDefined();
+      expect(typeof router[name].handler).toBe('function');
+    }
+  });
+
+  it('exposes the reviewer-workflow, findings, reminder and answer-library routes', () => {
+    const { router } = buildFakeTRPC();
+    for (const name of [
+      'reviewQuestion',
+      'getFindings',
+      'sendVendorReminder',
+      'libraryList',
+      'librarySaveEntry',
+      'libraryDeleteEntry',
+    ]) {
+      expect(router[name], `route "${name}"`).toBeDefined();
+      expect(typeof router[name].handler).toBe('function');
+    }
+  });
+
+  it('sendVendorReminder refuses to run before an invite exists', async () => {
+    const db: any = {
+      select: () => ({
+        from: () => ({
+          where: () => ({ limit: async () => [{ id: 42, clientId: 7, vendorToken: null, vendorEmail: null }] }),
+        }),
+      }),
+    };
+    dbMocks.getDb.mockResolvedValue(db);
+    const { router } = buildFakeTRPC();
+
+    await expect(
+      router.sendVendorReminder.handler({ input: { questionnaireId: 42 }, ctx: undefined })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
+  it('generates cryptographically random vendor tokens (not timestamp-based)', async () => {
+    // sendVendorInvite persists a token via the DB mock; capture the set() call.
+    const setCalls: any[] = [];
+    const db: any = {
+      select: () => ({
+        from: () => ({
+          where: () => ({ limit: async () => [{ id: 42, clientId: 7, name: 'Q', dueDate: null }] }),
+        }),
+      }),
+      update: () => ({
+        set: (patch: any) => {
+          setCalls.push(patch);
+          return { where: async () => undefined };
+        },
+      }),
+    };
+    dbMocks.getDb.mockResolvedValue(db);
+    const { router } = buildFakeTRPC();
+
+    const result = await router.sendVendorInvite.handler({
+      input: { questionnaireId: 42, vendorEmail: 'sec@vendor.com' },
+      ctx: undefined,
+    });
+
+    const patch = setCalls[0];
+    expect(patch.vendorToken).toMatch(/^vst_[0-9a-f]{48}$/);
+    expect(result.success).toBe(true);
+    expect(result.portalUrl).toContain(`/questionnaire/${patch.vendorToken}`);
+  });
 });
 
 describe('questionnaire router — score', () => {

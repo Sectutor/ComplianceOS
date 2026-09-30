@@ -364,17 +364,21 @@ export class AutopilotEngine {
     let created = 0;
     for (const control of controls) {
       const actionStatus = config.approvalMode === 'auto' ? 'executed' : 'pending';
-      await db.insert(autopilotActions).values({
-        runId: 0, // Will be linked
-        clientId,
-        type: 'create_task' as const,
-        title: `Implement control: ${control.clientControlId || control.id}`,
-        description: `Autopilot detected that control needs implementation. Review and assign.`,
-        priority: 'medium',
-        status: actionStatus as 'pending' | 'executed',
-        targetEntity: { type: 'control', id: control.id },
-        metadata: { source: 'autopilot_gap_detection' },
-      });
+      // Raw SQL with ::jsonb casts passing objects DIRECTLY — postgres.js
+      // serializes JS objects itself; pre-stringified values land as
+      // double-encoded JSON strings (the dedupe-breaking bug).
+      await db.execute(sql`
+        INSERT INTO autopilot_actions
+          (run_id, client_id, type, title, description, priority, status, target_entity, metadata, ai_rationale)
+        VALUES (
+          0, ${clientId}, 'create_task',
+          ${`Implement control: ${control.clientControlId || control.id}`.slice(0, 250)},
+          'Autopilot detected that control needs implementation. Review and assign.',
+          'medium', ${actionStatus},
+          ${{ type: 'control', id: control.id }}::jsonb,
+          ${{ source: 'autopilot_gap_detection' }}::jsonb,
+          'Autopilot detected that control needs implementation. Review and assign.'
+        )`);
       created++;
     }
     return created;

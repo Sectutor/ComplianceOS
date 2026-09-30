@@ -94,6 +94,7 @@ export function resolveNavigationPath(itemPath: string | undefined | null, clien
     if (purePath === "/compliance-obligations") return `/clients/${clientId}/compliance-obligations${queryStr}`;
     if (purePath === "/frameworks") return `/frameworks${queryStr}`;
     if (purePath === "/questionnaires") return `/clients/${clientId}/questionnaires${queryStr}`;
+    if (purePath === "/answer-library") return `/clients/${clientId}/answer-library${queryStr}`;
     if (purePath === "/risk-register/critical") return `/clients/${clientId}/risks/critical${queryStr}`;
     if (purePath.startsWith("/risk-register")) return `/clients/${clientId}/risks/register${queryStr}`;
     if (purePath === "/audit-prep") return `/clients/${clientId}/audit-hub${queryStr}`;

@@ -9,7 +9,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Loader2, Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Save, ChevronRight, ArrowLeft, Sparkles, Lock, FileDown, FileSpreadsheet, Mail, LayoutGrid, Check, Download, Zap, ShieldCheck, Database, KeyRound, Cloud } from "lucide-react";
+import { Loader2, Upload, FileText, CheckCircle, AlertCircle, Save, ArrowLeft, Sparkles, FileDown, FileSpreadsheet, Mail, Check, Download, Zap, ShieldCheck, Copy, Users, Flag, RotateCcw, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@complianceos/ui/ui/progress";
 import {
@@ -42,6 +42,7 @@ import {
 } from "./questionnaires/questionnaireApi.tsx";
 
 type Step = "upload" | "preview" | "generating" | "review";
+type Direction = "inbound" | "outbound";
 
 /** Live auto-score panel for the review step (per-focus-area breakdown). */
 function AutoScorePanel({ answers }: { answers: any[] }) {
@@ -152,6 +153,16 @@ export default function QuestionnaireWorkspace() {
   const clientId = parseInt(params.id || "0");
   const qId = params.qId ? parseInt(params.qId) : null;
 
+  // Direction from the dashboard link (?direction=outbound) — outbound flips
+  // the workspace into vendor-assessment mode.
+  const [direction] = useState<Direction>(() => {
+    if (typeof window === "undefined") return "inbound";
+    return new URLSearchParams(window.location.search).get("direction") === "outbound"
+      ? "outbound"
+      : "inbound";
+  });
+  const isOutbound = direction === "outbound";
+
   const [workspaceTab, setWorkspaceTab] = useState<"inplace" | "standard">("inplace");
   const [currentStep, setCurrentStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
@@ -163,12 +174,17 @@ export default function QuestionnaireWorkspace() {
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [senderName, setSenderName] = useState("");
+  const [productName, setProductName] = useState("Default");
+  const [vendorName, setVendorName] = useState("");
+  const [vendorEmail, setVendorEmail] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isParseComplete, setIsParseComplete] = useState(false);
 
+  // Paste-text parsing (fallback when file extraction fails)
+  const [pastedText, setPastedText] = useState("");
+
   // Template Selection State
-  const [isTemplateMode, setIsTemplateMode] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
 
   // In-Place CAIQ / Excel Populator State
@@ -176,48 +192,75 @@ export default function QuestionnaireWorkspace() {
   const [targetCloud, setTargetCloud] = useState("AWS (us-east-1)");
   const [targetIdp, setTargetIdp] = useState("Google Workspace & Okta");
   const [targetCodeHost, setTargetCodeHost] = useState("GitHub");
-  const [maxQuestionLimit, setMaxQuestionLimit] = useState<number>(25);
   const [populating, setPopulating] = useState(false);
   const [populatedResult, setPopulatedResult] = useState<any>(null);
 
-  // Vendor Dialog State
+  // Vendor invite dialog state (outbound assessments)
   const [showVendorDialog, setShowVendorDialog] = useState(false);
-  const [vendorName, setVendorName] = useState("");
-  const [vendorEmail, setVendorEmail] = useState("");
-  const [vendorMessage, setVendorMessage] = useState("");
+  const [inviteVendorName, setInviteVendorName] = useState("");
+  const [inviteVendorEmail, setInviteVendorEmail] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteResult, setInviteResult] = useState<{ portalUrl: string; emailSent: boolean; emailError?: string } | null>(null);
 
-  // Detect template mode from URL (SSR-safe)
+  // Detect template mode from URL (SSR-safe): ?mode=template opens the picker
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mode') === 'template') {
-      setIsTemplateMode(true);
       setShowTemplateDialog(true);
     }
   }, []);
 
   // Fetch template questions when a template is selected
-  const { data: templateQuestions } = trpc.questionnaire.getTemplateQuestions.useQuery(
-    { templateId: selectedTemplateId! },
-    { enabled: !!selectedTemplateId }
+  const { data: templateQuestions, isLoading: templateQuestionsLoading } = trpc.questionnaire.getTemplateQuestions.useQuery(
+    { templateId: selectedTemplate?.id ?? "" },
+    { enabled: !!selectedTemplate?.id }
   );
 
+  // When template questions arrive, seed the create flow with them
+  useEffect(() => {
+    const qs = (templateQuestions as any)?.questions;
+    if (selectedTemplate && Array.isArray(qs) && qs.length > 0) {
+      setQuestions(
+        qs.map((q: any) => ({
+          questionId: q.questionId,
+          question: q.question,
+          focusArea: q.focusArea,
+          subFocusArea: q.subFocusArea,
+          responseType: q.responseType,
+        }))
+      );
+      setProjectName(selectedTemplate.name);
+      setShowTemplateDialog(false);
+      setIsCreateOpen(true);
+      setSelectedTemplate(null);
+    }
+  }, [templateQuestions, selectedTemplate]);
+
   // Queries & Mutations
-  const { data: projectData, isLoading: isProjectLoading, refetch: refetchProject } = trpc.questionnaire.get.useQuery({ id: qId! }, {
-    enabled: !!qId
-  });
+  const { data: templates } = trpc.questionnaire.listTemplates.useQuery(
+    clientId && clientId > 0 ? { clientId } : {},
+    { enabled: clientId !== undefined }
+  );
+
+  const { data: projectData, isLoading: isProjectLoading, refetch: refetchProject } = trpc.questionnaire.get.useQuery(
+    { id: qId!, clientId },
+    { enabled: !!qId && !!clientId }
+  );
 
   // Load project data when it changes
   useEffect(() => {
     if (projectData?.questions && projectData.questions.length > 0) {
       const mappedAnswers = projectData.questions.map((q: any) => ({
-        questionId: q.questionId,
+        questionId: q.questionId || `Q${q.id}`,
+        rowId: q.id,
         focusArea: q.focusArea || "",
         subFocusArea: q.subFocusArea || "",
         extraFields: q.extraFields || {},
         question: q.question,
         answer: q.answer || "",
+        comment: q.comment || "",
         confidence: q.confidence || 0,
         sources: q.sources || [],
         status: q.status
@@ -230,12 +273,18 @@ export default function QuestionnaireWorkspace() {
 
   const parseMutation = trpc.questionnaire.parse.useMutation({
     onSuccess: (data) => {
+      if (!data.parsed || !data.questions?.length) {
+        toast.error("Could not extract questions", {
+          description: data.notice || "Try the In-Place Excel Populator, or paste the question text directly.",
+        });
+        return;
+      }
       setQuestions(data.questions);
       setProjectName(file?.name?.replace(/\.[^/.]+$/, "") || "New Questionnaire");
       setIsCreateOpen(true);
     },
     onError: (err) => {
-      toast.error(`Failed to parse file: ${err.message}`);
+      toast.error(`Failed to parse input: ${err.message}`);
     }
   });
 
@@ -249,46 +298,9 @@ export default function QuestionnaireWorkspace() {
     }
   });
 
-  const createProjectMutation = trpc.questionnaire.create.useMutation({
-    onSuccess: async (data) => {
-      toast.success("Questionnaire created successfully");
-      setIsCreateOpen(false);
-      await saveQuestionsMutation.mutateAsync({
-        questionnaireId: data.id,
-        questions: questions.map(q => ({
-          questionId: q.questionId,
-          focusArea: (q as any).focusArea,
-          subFocusArea: (q as any).subFocusArea,
-          extraFields: (q as any).extraFields,
-          question: q.question,
-          status: 'pending'
-        }))
-      });
+  const createProjectMutation = trpc.questionnaire.create.useMutation();
 
-      const initialAnswers = questions.map(q => ({
-        questionId: q.questionId,
-        focusArea: (q as any).focusArea || "",
-        subFocusArea: (q as any).subFocusArea || "",
-        extraFields: (q as any).extraFields || {},
-        question: q.question,
-        answer: "",
-        comment: "",
-        tags: [],
-        access: "internal",
-        assignee: null,
-        confidence: 0,
-        sources: [],
-        status: "pending"
-      }));
-      setAnswers(initialAnswers);
-      setCurrentStep("review");
-      setLocation(`/clients/${clientId}/questionnaires/${data.id}`);
-    }
-  });
-
-  const saveQuestionsMutation = trpc.questionnaire.saveQuestions.useMutation({
-    onSuccess: () => {}
-  });
+  const saveQuestionsMutation = trpc.questionnaire.saveQuestions.useMutation();
 
   const updateMutation = trpc.questionnaire.update.useMutation({
     onSuccess: () => {
@@ -299,7 +311,7 @@ export default function QuestionnaireWorkspace() {
 
   const completeMutation = trpc.questionnaire.complete.useMutation({
     onSuccess: (data) => {
-      toast.success(`Questionnaire completed! ${data.indexedCount} answers saved.`);
+      toast.success(`Questionnaire completed! ${data.indexedCount} answers added to your answer library.`);
       refetchProject();
     },
     onError: (err) => {
@@ -307,27 +319,29 @@ export default function QuestionnaireWorkspace() {
     }
   });
 
-  const exportExcelQuery = trpc.questionnaire.exportExcel.useQuery({ id: qId! }, {
-    enabled: false
+  const exportWorkbookMutation = trpc.questionnaire.exportWorkbook.useMutation({
+    onSuccess: (data) => {
+      const link = document.createElement("a");
+      link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${data.base64}`;
+      link.download = data.filename;
+      link.click();
+      toast.success(`Exported ${data.questionCount} questions to ${data.filename}`);
+    },
+    onError: (err) => {
+      toast.error(`Export failed: ${err.message}`);
+    }
   });
 
-  const { data: templates } = trpc.questionnaire.listTemplates.useQuery(
-    clientId && clientId > 0 ? { clientId } : {},
-    { enabled: clientId !== undefined }
-  );
-
-  const { data: vendorList } = trpc.vendors.listVendors.useQuery(
-    { clientId },
-    { enabled: !!clientId && clientId > 0 }
-  );
-
   const sendVendorInviteMutation = trpc.questionnaire.sendVendorInvite.useMutation({
-    onSuccess: () => {
-      toast.success(`Vendor invite sent to ${vendorEmail}!`);
-      setShowVendorDialog(false);
-      setVendorName("");
-      setVendorEmail("");
-      setVendorMessage("");
+    onSuccess: (data) => {
+      setInviteResult({ portalUrl: data.portalUrl, emailSent: !!data.emailSent, emailError: data.emailError });
+      if (data.emailSent) {
+        toast.success(`Vendor invite emailed to ${data.recipient}!`);
+      } else {
+        toast.warning("Invite created, but the email could not be delivered", {
+          description: data.emailError || "Copy the link below and send it to the vendor manually.",
+        });
+      }
       refetchProject();
     },
     onError: (err) => {
@@ -335,15 +349,65 @@ export default function QuestionnaireWorkspace() {
     }
   });
 
-  const submitForReviewMutation = trpc.questionnaire.submitForReview.useMutation({
+  // Reviewer workflow (outbound assessments): approve/flag vendor answers.
+  const reviewQuestionMutation = trpc.questionnaire.reviewQuestion.useMutation({
     onSuccess: () => {
-      toast.success("Questionnaire submitted for review!");
+      refetchFindings();
       refetchProject();
     },
-    onError: (err) => {
-      toast.error(`Failed to submit: ${err.message}`);
-    }
+    onError: (err) => toast.error(`Review action failed: ${err.message}`)
   });
+
+  // Findings panel data (outbound only): failed/flagged vendor answers.
+  const isOutboundProject = ((projectData as any)?.direction ?? direction) === "outbound";
+  const { data: findingsData, refetch: refetchFindings } = trpc.questionnaire.getFindings.useQuery(
+    { id: qId!, clientId },
+    { enabled: !!qId && isOutboundProject }
+  );
+
+  const handleReviewQuestion = (rowId: number | undefined, status: string) => {
+    if (!qId || !rowId) return;
+    reviewQuestionMutation.mutate({
+      questionnaireId: qId,
+      clientId,
+      rowId,
+      status: status as any,
+    });
+  };
+
+  const handleReviewMeta = (rowId: number | undefined, patch: { priority?: string; remediationDeadline?: string | null }) => {
+    if (!qId || !rowId) return;
+    reviewQuestionMutation.mutate({
+      questionnaireId: qId,
+      clientId,
+      rowId,
+      status: "needs_review",
+      ...patch,
+    } as any);
+  };
+
+  // Outbound lifecycle: send a rejected/updated assessment back to the vendor.
+  const handleReopenForVendor = async () => {
+    if (!qId) return;
+    try {
+      await updateMutation.mutateAsync({ id: qId, clientId, status: "vendor_pending" } as any);
+      if (projectData?.vendorEmail) {
+        await sendVendorInviteMutation.mutateAsync({
+          questionnaireId: qId,
+          clientId,
+          vendorEmail: projectData.vendorEmail,
+          vendorName: projectData.vendorName || undefined,
+          message: "The reviewer requested updates to some of your answers. Please review the flagged questions and resubmit.",
+        });
+        setShowVendorDialog(true);
+      } else {
+        toast.info("Assessment reopened — send a new invite to the vendor.");
+        handleOpenInviteDialog();
+      }
+    } catch {
+      // handled by mutation onError handlers
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -397,6 +461,12 @@ export default function QuestionnaireWorkspace() {
     downloadLink.click();
   };
 
+  const detectFileType = (name: string): "pdf" | "xlsx" | "csv" => {
+    if (name.endsWith('.xlsx') || name.endsWith('.xls')) return 'xlsx';
+    if (name.endsWith('.csv')) return 'csv';
+    return 'pdf';
+  };
+
   const handleParse = async () => {
     if (!file) return;
 
@@ -418,15 +488,11 @@ export default function QuestionnaireWorkspace() {
         return;
       }
 
-      const fileType = file.name.endsWith('.pdf') ? 'pdf' :
-        file.name.endsWith('.xlsx') ? 'xlsx' :
-          file.name.endsWith('.csv') ? 'csv' : 'pdf';
-
       try {
         await parseMutation.mutateAsync({
           fileBase64: base64,
           filename: file.name,
-          fileType: fileType as any
+          fileType: detectFileType(file.name)
         });
         clearInterval(interval);
         setUploadProgress(100);
@@ -439,39 +505,135 @@ export default function QuestionnaireWorkspace() {
     reader.readAsDataURL(file);
   };
 
-  const handleCreateProject = () => {
-    createProjectMutation.mutate({
-      clientId,
-      name: projectName,
-      direction: "inbound",
-      senderName: senderName,
-      productName: "Default"
-    });
+  const handleParsePastedText = async () => {
+    if (!pastedText.trim()) return;
+    await parseMutation.mutateAsync({ text: pastedText });
+  };
+
+  const handleCreateProject = async () => {
+    if (isOutbound && !vendorEmail.trim()) {
+      toast.error("Vendor email is required for outbound assessments");
+      return;
+    }
+
+    try {
+      const created = await createProjectMutation.mutateAsync({
+        clientId,
+        name: projectName,
+        direction: isOutbound ? "outbound" : "inbound",
+        senderName: isOutbound ? undefined : (senderName || undefined),
+        productName: productName || "Default",
+        vendorName: isOutbound ? (vendorName || undefined) : undefined,
+        vendorEmail: isOutbound ? vendorEmail : undefined,
+      } as any);
+
+      toast.success("Questionnaire created successfully");
+      setIsCreateOpen(false);
+
+      if (questions.length > 0) {
+        await saveQuestionsMutation.mutateAsync({
+          questionnaireId: created.id,
+          clientId,
+          questions: questions.map(q => ({
+            questionId: q.questionId,
+            focusArea: (q as any).focusArea,
+            subFocusArea: (q as any).subFocusArea,
+            extraFields: (q as any).extraFields,
+            question: q.question,
+            status: 'pending'
+          }))
+        });
+      }
+
+      if (isOutbound && vendorEmail.trim()) {
+        // Straight into the invite so the vendor actually receives the link.
+        const invite = await sendVendorInviteMutation.mutateAsync({
+          questionnaireId: created.id,
+          clientId,
+          vendorEmail: vendorEmail.trim(),
+          vendorName: vendorName || undefined,
+        });
+        setInviteVendorEmail(vendorEmail);
+        setInviteVendorName(vendorName);
+        setInviteResult({ portalUrl: invite.portalUrl, emailSent: !!invite.emailSent, emailError: invite.emailError });
+        setShowVendorDialog(true);
+      } else {
+        setLocation(`/clients/${clientId}/questionnaires/${created.id}`);
+      }
+    } catch (err: any) {
+      toast.error(`Failed to create questionnaire: ${err.message}`);
+    }
+  };
+
+  const handleOpenInviteDialog = () => {
+    setInviteVendorName(projectData?.vendorName || "");
+    setInviteVendorEmail(projectData?.vendorEmail || "");
+    setInviteMessage("");
+    setInviteResult(null);
+    setShowVendorDialog(true);
+  };
+
+  const handleSendInvite = async () => {
+    if (!qId) return;
+    if (!inviteVendorEmail.trim()) {
+      toast.error("Vendor email is required");
+      return;
+    }
+    try {
+      await sendVendorInviteMutation.mutateAsync({
+        questionnaireId: qId,
+        clientId,
+        vendorEmail: inviteVendorEmail.trim(),
+        vendorName: inviteVendorName || undefined,
+        message: inviteMessage || undefined,
+      });
+    } catch {
+      // handled by onError
+    }
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (!inviteResult?.portalUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteResult.portalUrl);
+      toast.success("Portal link copied to clipboard");
+    } catch {
+      toast.error("Could not copy — select the link text manually");
+    }
   };
 
   const handleSaveProgress = async () => {
     if (!qId) return;
-    await saveQuestionsMutation.mutateAsync({
-      questionnaireId: qId,
-      questions: answers.map((a: any) => ({
-        question: a.question,
-        focusArea: a.focusArea,
-        subFocusArea: a.subFocusArea,
-        extraFields: a.extraFields,
-        answer: a.answer,
-        confidence: a.confidence,
-        sources: a.sources,
-        status: a.status,
-      })),
-    });
-    toast.success("Progress saved");
+    try {
+      await saveQuestionsMutation.mutateAsync({
+        questionnaireId: qId,
+        clientId,
+        questions: answers.map((a: any, i: number) => ({
+          questionId: a.questionId || `Q${i + 1}`,
+          question: a.question,
+          focusArea: a.focusArea || "",
+          subFocusArea: a.subFocusArea || "",
+          extraFields: a.extraFields || {},
+          answer: a.answer || "",
+          comment: a.comment || "",
+          confidence: a.confidence,
+          sources: a.sources,
+          status: a.status,
+        })),
+      });
+      toast.success("Progress saved");
+      refetchProject();
+    } catch (err: any) {
+      toast.error(`Failed to save progress: ${err.message}`);
+    }
   };
 
-  // AI answer generation (LLM-backed with rules fallback, per question)
+  // AI answer generation (answer library → LLM, honest "Needs Review" on gaps)
   const generateAnswersMutation = trpc.questionnaire.generateAnswers.useMutation({
     onSuccess: (result: any) => {
       const answered = result?.answeredQuestions || [];
       let applied = 0;
+      let needsReview = 0;
       setAnswers((prev: any[]) =>
         prev.map((a) => {
           const match = answered.find(
@@ -479,18 +641,25 @@ export default function QuestionnaireWorkspace() {
           );
           if (!match) return a;
           applied++;
+          if (match.shortAnswer === "Needs Review") needsReview++;
           return {
             ...a,
-            answer: `${match.shortAnswer}. ${match.answer}`.trim(),
+            answer: match.shortAnswer === "Needs Review"
+              ? a.answer || match.answer
+              : `${match.shortAnswer}. ${match.answer}`.trim(),
             confidence: Math.round(match.confidenceScore || 0),
             sources: [match.supportingEvidence, match.policyCitation].filter(Boolean),
-            status: "answered",
+            status: match.shortAnswer === "Needs Review" ? a.status || "pending" : "answered",
           };
         })
       );
-      toast.success(`AI answered ${applied} question(s)`, {
-        description: `Engine: ${result.engine}${result.modelUsed ? ` (${result.modelUsed})` : ""} · Avg confidence ${result.overallConfidence}%`,
-      });
+      if (applied === 0) {
+        toast.info("No new answers were generated");
+      } else {
+        toast.success(`AI drafted ${applied} question(s)`, {
+          description: `Engine: ${result.engine}${result.modelUsed ? ` (${result.modelUsed})` : ""} · Avg confidence ${result.overallConfidence}%${needsReview > 0 ? ` · ${needsReview} need human review` : ""}`,
+        });
+      }
     },
     onError: (err: any) => {
       toast.error("AI answering failed", { description: err.message });
@@ -499,16 +668,21 @@ export default function QuestionnaireWorkspace() {
 
   const handleGenerateAnswers = async () => {
     if (!qId || !clientId) return;
-    if (!answers.length) {
+    const unanswered = answers.filter((a: any) => !(a.answer || "").trim());
+    if (answers.length === 0) {
       toast.error("No questions to answer", { description: "Upload or select questions first." });
+      return;
+    }
+    if (unanswered.length === 0) {
+      toast.info("All questions already have answers", { description: "Clear an answer to re-draft it with AI." });
       return;
     }
     await generateAnswersMutation.mutateAsync({
       clientId,
       questionnaireId: qId,
       engine: "auto",
-      questions: answers.map((a: any) => ({
-        questionId: a.questionId || String(a.id ?? ""),
+      questions: unanswered.map((a: any) => ({
+        questionId: a.questionId || String(a.rowId ?? ""),
         questionText: a.question,
         category: a.focusArea || undefined,
       })),
@@ -520,6 +694,7 @@ export default function QuestionnaireWorkspace() {
       case "draft":
         return <Badge variant="secondary">Draft</Badge>;
       case "in_review":
+      case "pending_review":
         return <Badge className="bg-yellow-500 hover:bg-yellow-600">In Review</Badge>;
       case "completed":
         return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
@@ -544,11 +719,13 @@ export default function QuestionnaireWorkspace() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
-                {projectData ? projectData.name : "AI Questionnaire & CAIQ Auto-Populator"}
+                {projectData ? projectData.name : isOutbound ? "New Vendor Assessment" : "AI Questionnaire & CAIQ Auto-Populator"}
               </h1>
               <p className="text-muted-foreground mt-1">
                 {projectData
-                  ? `Status: ${projectData.status}`
+                  ? `Status: ${formatStatus(projectData.status)}`
+                  : isOutbound
+                  ? "Send a security questionnaire to a vendor and track their responses."
                   : "Auto-populate vendor security assessments in-place or manage full audit workflows."
                 }
               </p>
@@ -557,11 +734,11 @@ export default function QuestionnaireWorkspace() {
           <PageGuide
             title="Questionnaire Populator"
             description="High-velocity in-place Excel auto-populator and GRC questionnaire solver."
-            rationale="Eliminates manual questionnaire filling by injecting auditor-grade answers directly into original client workbooks."
+            rationale="Eliminates manual questionnaire filling by drafting answers directly into original client workbooks — every draft is flagged for human verification."
             howToUse={[
               { step: "Upload", description: "Drop the prospect's original .xlsx or .csv workbook." },
               { step: "Target Context", description: "Set company name, cloud provider, and IdP variables." },
-              { step: "1-Click Populate", description: "Download the exact same .xlsx file populated in-place." }
+              { step: "1-Click Populate", description: "Download the exact same .xlsx file with draft answers in-place." }
             ]}
           />
         </div>
@@ -590,7 +767,7 @@ export default function QuestionnaireWorkspace() {
                       Client Context Variables
                     </CardTitle>
                     <CardDescription>
-                      Injected dynamically into boilerplate responses.
+                      Injected dynamically into draft responses. Every draft is marked for human verification.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -645,7 +822,7 @@ export default function QuestionnaireWorkspace() {
                       Upload Workbook & Auto-Populate In-Place
                     </CardTitle>
                     <CardDescription>
-                      Upload the prospect's original <code>.xlsx</code> file. All sheets, tabs, formulas, and styles are 100% preserved.
+                      Upload the prospect's original <code>.xlsx</code> file. All sheets, tabs, formulas, and styles are 100% preserved. Draft answers are written into the response column — verify each one before sending.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -653,7 +830,7 @@ export default function QuestionnaireWorkspace() {
                       <Upload className="h-10 w-10 text-muted-foreground mb-3" />
                       <p className="font-semibold text-sm">Select CAIQ, SIG Lite, or Vendor Assessment (.xlsx / .csv)</p>
                       <p className="text-xs text-muted-foreground mt-1">Accepts standard Excel files with question and response columns.</p>
-                      
+
                       <Input
                         type="file"
                         accept=".xlsx,.xls,.csv"
@@ -701,7 +878,7 @@ export default function QuestionnaireWorkspace() {
                               </h4>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              Populated <strong>{populatedResult.populatedCount}</strong> questions directly into sheet <code>{populatedResult.sheetName}</code>.
+                              Populated <strong>{populatedResult.populatedCount}</strong> questions directly into sheet <code>{populatedResult.sheetName}</code>. Every response is an unverified AI draft — review before sending.
                             </p>
                             <div className="flex flex-wrap gap-2 pt-1">
                               <Badge variant="outline" className="text-[10px]">
@@ -807,6 +984,30 @@ export default function QuestionnaireWorkspace() {
                       Process & Create Project
                     </Button>
                   )}
+
+                  <div className="w-full border-t border-border/60 pt-4 space-y-2">
+                    <Label htmlFor="paste-questions" className="text-xs text-muted-foreground">
+                      Or paste questions (one per line, or rows copied from Excel/CSV)
+                    </Label>
+                    <Textarea
+                      id="paste-questions"
+                      rows={5}
+                      value={pastedText}
+                      onChange={(e) => setPastedText(e.target.value)}
+                      placeholder={"1. Is MFA enforced for all remote access?\n2. Are backups tested for restoration?"}
+                      className="text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleParsePastedText}
+                      disabled={!pastedText.trim() || parseMutation.isPending}
+                      className="w-full"
+                    >
+                      <FileText className="h-3.5 w-3.5 mr-1.5" />
+                      Parse Pasted Questions
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -818,6 +1019,99 @@ export default function QuestionnaireWorkspace() {
           <div className="space-y-6">
             <AutoScorePanel answers={answers} />
 
+            {/* Vendor Findings (outbound only): failed/flagged answers awaiting review */}
+            {isOutboundProject && findingsData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TriangleAlert className="h-4 w-4 text-amber-500" />
+                    Vendor Findings
+                  </CardTitle>
+                  <CardDescription>
+                    {findingsData.summary.failed} failed · {findingsData.summary.flagged} flagged, out of{" "}
+                    {findingsData.summary.total} answers. Approve, flag, or set a remediation deadline —
+                    then reopen &amp; re-invite to send flagged items back to the vendor.
+                  </CardDescription>
+                </CardHeader>
+                {findingsData.findings.length > 0 && (
+                  <CardContent>
+                    <div className="space-y-3">
+                      {findingsData.findings.map((f: any) => (
+                        <div key={f.rowId} className="rounded-xl border border-border/70 p-3 space-y-2 bg-muted/20">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-[10px] font-mono">{f.questionId}</Badge>
+                                <Badge
+                                  className={
+                                    f.classification === "fail"
+                                      ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30"
+                                      : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                                  }
+                                >
+                                  {f.classification === "fail" ? "Failed" : f.status === "flagged" ? "Flagged" : "Needs Review"}
+                                </Badge>
+                                {f.priority === "high" && (
+                                  <Badge variant="destructive" className="text-[10px]">High priority</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm font-medium mt-1.5">{f.question}</p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                <span className="font-semibold">Vendor answer:</span> {f.answer || "—"}
+                              </p>
+                              {f.comment && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5 italic">
+                                  Vendor note: {f.comment}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                              onClick={() => handleReviewQuestion(f.rowId, "approved")}
+                              disabled={reviewQuestionMutation.isPending}
+                            >
+                              <Check className="h-3.5 w-3.5 mr-1" /> Accept
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-border/50">
+                            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              Priority
+                              <select
+                                value={f.priority}
+                                onChange={(e) => handleReviewMeta(f.rowId, { priority: e.target.value })}
+                                className="h-7 rounded-md border border-border bg-background text-xs px-1.5"
+                              >
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              Remediation due
+                              <Input
+                                type="date"
+                                value={f.remediationDeadline ? new Date(f.remediationDeadline).toISOString().slice(0, 10) : ""}
+                                onChange={(e) =>
+                                  handleReviewMeta(f.rowId, {
+                                    remediationDeadline: e.target.value
+                                      ? new Date(`${e.target.value}T23:59:59`).toISOString()
+                                      : null,
+                                  })
+                                }
+                                className="h-7 text-xs w-36"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -826,13 +1120,43 @@ export default function QuestionnaireWorkspace() {
                     {answers.length} questions loaded. Verify and customize answers before marking complete.
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleGenerateAnswers} variant="outline" size="sm" className="flex items-center gap-2 border-amber-400 text-amber-700 hover:bg-amber-50" disabled={generateAnswersMutation.isPending}>
-                    {generateAnswersMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-amber-500" />}
-                    {generateAnswersMutation.isPending ? "AI Answering…" : "AI Answer All"}
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <Button
+                    onClick={() => exportWorkbookMutation.mutate({ id: qId, clientId })}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                    disabled={exportWorkbookMutation.isPending}
+                  >
+                    {exportWorkbookMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                    Export .xlsx
                   </Button>
-                  <Button onClick={handleSaveProgress} variant="outline" size="sm" className="flex items-center gap-2">
-                    <Save className="h-4 w-4" /> Save Progress
+                  {isOutboundProject &&
+                    (projectData?.status === "completed" || projectData?.status === "pending_review") && (
+                      <Button
+                        onClick={handleReopenForVendor}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        Reopen & Re-invite Vendor
+                      </Button>
+                    )}
+                  {isOutboundProject && (
+                    <Button onClick={handleOpenInviteDialog} variant="outline" size="sm" className="flex items-center gap-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+                      <Mail className="h-4 w-4" />
+                      Invite Vendor
+                    </Button>
+                  )}
+                  {!isOutboundProject && (
+                    <Button onClick={handleGenerateAnswers} variant="outline" size="sm" className="flex items-center gap-2 border-amber-400 text-amber-700 hover:bg-amber-50" disabled={generateAnswersMutation.isPending}>
+                      {generateAnswersMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-amber-500" />}
+                      {generateAnswersMutation.isPending ? "AI Answering…" : "AI Answer Unanswered"}
+                    </Button>
+                  )}
+                  <Button onClick={handleSaveProgress} variant="outline" size="sm" className="flex items-center gap-2" disabled={saveQuestionsMutation.isPending}>
+                    {saveQuestionsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Progress
                   </Button>
                   <Button onClick={() => setIsCompleteOpen(true)} size="sm" className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
                     <Check className="h-4 w-4" /> Mark Complete
@@ -848,19 +1172,25 @@ export default function QuestionnaireWorkspace() {
                         <TableHead className="w-1/3">Question</TableHead>
                         <TableHead>Answer</TableHead>
                         <TableHead className="w-28">Status</TableHead>
+                        {isOutboundProject && <TableHead className="w-32">Review</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {answers.map((a, i) => (
-                        <TableRow key={i}>
+                        <TableRow key={a.rowId ?? i}>
                           <TableCell className="font-mono text-xs font-bold text-primary">{a.questionId || `Q${i+1}`}</TableCell>
-                          <TableCell className="text-sm font-medium">{a.question}</TableCell>
+                          <TableCell className="text-sm font-medium">
+                            {a.question}
+                            {isOutboundProject && a.comment && (
+                              <p className="text-[11px] text-muted-foreground mt-1 italic">Vendor note: {a.comment}</p>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Textarea
                               value={a.answer}
                               onChange={(e) => {
                                 const newAnswers = [...answers];
-                                newAnswers[i].answer = e.target.value;
+                                newAnswers[i] = { ...newAnswers[i], answer: e.target.value };
                                 setAnswers(newAnswers);
                               }}
                               rows={2}
@@ -868,10 +1198,54 @@ export default function QuestionnaireWorkspace() {
                             />
                           </TableCell>
                           <TableCell>
-                            <Badge variant={a.answer ? "outline" : "secondary"}>
-                              {a.answer ? "Drafted" : "Pending"}
-                            </Badge>
+                            {a.status === "approved" ? (
+                              <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">Approved</Badge>
+                            ) : a.status === "flagged" ? (
+                              <Badge className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30">Flagged</Badge>
+                            ) : a.status === "needs_review" ? (
+                              <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">Needs Review</Badge>
+                            ) : (
+                              <Badge variant={a.answer ? "outline" : "secondary"}>
+                                {a.answer ? "Drafted" : "Pending"}
+                              </Badge>
+                            )}
                           </TableCell>
+                          {isOutboundProject && (
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-500/10"
+                                  title="Approve answer"
+                                  onClick={() => handleReviewQuestion(a.rowId, "approved")}
+                                  disabled={reviewQuestionMutation.isPending}
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-500/10"
+                                  title="Flag answer for vendor follow-up"
+                                  onClick={() => handleReviewQuestion(a.rowId, "flagged")}
+                                  disabled={reviewQuestionMutation.isPending}
+                                >
+                                  <Flag className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted"
+                                  title="Reset to needs review"
+                                  onClick={() => handleReviewQuestion(a.rowId, "needs_review")}
+                                  disabled={reviewQuestionMutation.isPending}
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -884,11 +1258,11 @@ export default function QuestionnaireWorkspace() {
 
         {/* Create Project Dialog */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent>
+          <DialogContent className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
             <DialogHeader>
               <DialogTitle>Create Questionnaire Project</DialogTitle>
               <DialogDescription>
-                Parsed {questions.length} questions from {file?.name}. Enter details to initialize the workspace.
+                Parsed {questions.length} questions{file ? ` from ${file.name}` : " from pasted text"}. Enter details to initialize the workspace.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
@@ -901,40 +1275,200 @@ export default function QuestionnaireWorkspace() {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label htmlFor="sndr">Sender / Client Organization</Label>
-                <Input
-                  id="sndr"
-                  placeholder="e.g. Enterprise Client Security Team"
-                  value={senderName}
-                  onChange={(e) => setSenderName(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
+              {isOutbound ? (
+                <>
+                  <div>
+                    <Label htmlFor="vndName">Vendor Name</Label>
+                    <Input
+                      id="vndName"
+                      placeholder="e.g. Acme Cloud Services"
+                      value={vendorName}
+                      onChange={(e) => setVendorName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="vndEmail">Vendor Email (invite recipient)</Label>
+                    <Input
+                      id="vndEmail"
+                      type="email"
+                      placeholder="security@vendor.com"
+                      value={vendorEmail}
+                      onChange={(e) => setVendorEmail(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <Label htmlFor="sndr">Sender / Client Organization</Label>
+                  <Input
+                    id="sndr"
+                    placeholder="e.g. Enterprise Client Security Team"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateProject} disabled={createProjectMutation.isPending}>
                 {createProjectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Initialize Workspace
+                {isOutbound && vendorEmail.trim() ? "Create & Send Invite" : "Initialize Workspace"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
+        {/* Vendor Invite Dialog */}
+        <Dialog open={showVendorDialog} onOpenChange={setShowVendorDialog}>
+          <DialogContent className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-indigo-500" />
+                {inviteResult ? "Vendor Invite Ready" : "Invite Vendor"}
+              </DialogTitle>
+              <DialogDescription>
+                {inviteResult
+                  ? "The vendor completes the assessment through this secure link."
+                  : "The vendor receives a secure link and can save progress until they submit."}
+              </DialogDescription>
+            </DialogHeader>
+            {inviteResult ? (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-2">
+                  {inviteResult.emailSent ? (
+                    <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                      <Check className="h-3 w-3 mr-1" /> Email sent
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                      <AlertCircle className="h-3 w-3 mr-1" /> Email not sent{inviteResult.emailError ? `: ${inviteResult.emailError}` : ""}
+                    </Badge>
+                  )}
+                </div>
+                <div>
+                  <Label>Portal Link</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input readOnly value={inviteResult.portalUrl} className="text-xs font-mono" />
+                    <Button variant="outline" size="sm" onClick={handleCopyInviteLink} className="shrink-0">
+                      <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 py-2">
+                <div>
+                  <Label htmlFor="invVndName">Vendor Name</Label>
+                  <Input
+                    id="invVndName"
+                    placeholder="e.g. Acme Cloud Services"
+                    value={inviteVendorName}
+                    onChange={(e) => setInviteVendorName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="invVndEmail">Vendor Email</Label>
+                  <Input
+                    id="invVndEmail"
+                    type="email"
+                    placeholder="security@vendor.com"
+                    value={inviteVendorEmail}
+                    onChange={(e) => setInviteVendorEmail(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="invMsg">Message (optional)</Label>
+                  <Textarea
+                    id="invMsg"
+                    rows={3}
+                    placeholder="Context for the vendor — deadlines, scope, contacts…"
+                    value={inviteMessage}
+                    onChange={(e) => setInviteMessage(e.target.value)}
+                    className="mt-1 text-xs"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              {inviteResult ? (
+                <>
+                  <Button variant="outline" onClick={() => setShowVendorDialog(false)}>Close</Button>
+                  <Button onClick={() => setLocation(`/clients/${clientId}/questionnaires`)}>Back to List</Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setShowVendorDialog(false)}>Cancel</Button>
+                  <Button onClick={handleSendInvite} disabled={sendVendorInviteMutation.isPending}>
+                    {sendVendorInviteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                    Send Invite
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Template Picker Dialog */}
+        <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+          <DialogContent className="max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
+                Start from a Standard Template
+              </DialogTitle>
+              <DialogDescription>
+                {isOutbound
+                  ? "Pick the questionnaire to send to your vendor. You'll enter vendor details next."
+                  : "Pick the assessment you received, or closest to it — you can edit questions after import."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[380px] overflow-y-auto space-y-2 py-2">
+              {(templates || []).map((t: any) => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTemplate(t)}
+                  disabled={templateQuestionsLoading}
+                  className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-800 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-primary/40 transition-colors flex items-start justify-between gap-3"
+                >
+                  <div>
+                    <div className="text-sm font-semibold">{t.name}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{t.description}</div>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                    {t.questionCount} Q
+                  </Badge>
+                </button>
+              ))}
+              {(!templates || templates.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  No templates available yet.
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Complete Confirmation Dialog */}
         <AlertDialog open={isCompleteOpen} onOpenChange={setIsCompleteOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
             <AlertDialogHeader>
               <AlertDialogTitle>Complete Questionnaire?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will lock the questionnaire, record final readiness compliance scores, and index verified answers into your knowledge base.
+                This will record final readiness scores and add all answered questions to your answer
+                library — approved responses will be suggested automatically for matching questions in
+                future questionnaires.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => completeMutation.mutate({ id: qId! })}
+                onClick={() => completeMutation.mutate({ id: qId!, clientId })}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 Confirm & Complete

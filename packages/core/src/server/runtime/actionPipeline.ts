@@ -3,7 +3,6 @@
  */
 import { eq, and, sql } from "drizzle-orm";
 import { getDb } from "../../db";
-import { autopilotActions, autopilotRuns } from "../../schema_autopilot";
 import { notificationLog, governanceEvents } from "../../schema";
 
 export interface ActionResult {
@@ -101,44 +100,67 @@ export async function processObservation(
   const db = await getDb();
   if (!db) return { actionId: null, outcome: "failed", detail: "no db" };
 
-  // 1. Dedupe: skip if same dedupeKey seen in an open/recent action within 7 days
-  try {
-    const dupes = await db.execute(sql`
-      SELECT id FROM autopilot_actions
-      WHERE client_id = ${clientId}
-        AND metadata->>'dedupeKey' = ${obs.dedupeKey}
-        AND created_at > now() - interval '7 days'
-      LIMIT 1`).then((r: any) => r.rows ?? r);
-    if (dupes.length > 0) {
-      return { actionId: dupes[0].id, outcome: "deduped" };
-    }
-  } catch { /* dedupe is an optimization, not a gate */ }
+  // 1. Dedupe: skip if the same logical finding already exists
+  //    a) as a still-pending action (any age) — the condition is unresolved;
+  //    b) created within the last 7 days — recently handled, don't re-nag.
+  //
+  //    The key expression handles BOTH metadata encodings: rows written
+  //    through the drizzle postgres-js jsonb path are stored double-encoded
+  //    (a JSON string inside the jsonb column), for which
+  //    metadata->>'dedupeKey' returns NULL. That silently defeated dedupe
+  //    and re-inserted every bot finding on every run (~860 rows/day).
+  if (obs.dedupeKey) {
+    try {
+      const dupes = await db.execute(sql`
+        SELECT id FROM autopilot_actions
+        WHERE client_id = ${clientId}
+          AND CASE
+            WHEN jsonb_typeof(metadata) = 'object' THEN metadata->>'dedupeKey'
+            WHEN jsonb_typeof(metadata) = 'string' AND (metadata #>> '{}') LIKE '{%'
+              THEN (metadata #>> '{}')::jsonb->>'dedupeKey'
+          END = ${obs.dedupeKey}
+          AND (status = 'pending' OR created_at > now() - interval '7 days')
+        LIMIT 1`).then((r: any) => r.rows ?? r);
+      if (dupes.length > 0) {
+        return { actionId: dupes[0].id, outcome: "deduped" };
+      }
+    } catch { /* dedupe is an optimization, not a gate */ }
+  }
 
   const executeDirectly = approvalMode === "auto" && obs.severity !== "critical"
     ? true
     : approvalMode === "auto" && obs.proposedAction.kind !== "escalate";
 
-  // 2. Create the action record
-  const [action] = await db.insert(autopilotActions).values({
-    runId,
-    clientId,
-    type: `${botId}:${obs.proposedAction.kind}`,
-    title: obs.title.slice(0, 250),
-    description: obs.rationale.slice(0, 4000),
-    priority: obs.proposedAction.priority ?? (obs.severity === "critical" ? "critical" : obs.severity === "warning" ? "high" : "medium"),
-    status: executeDirectly ? "executed" : "pending", // legacy UI filter expects 'pending'
-    targetEntity: JSON.stringify({ entityType: obs.entityType, entityId: obs.entityId ?? null }),
-    metadata: { 
-      botId, 
-      dedupeKey: obs.dedupeKey, 
-      severity: obs.severity, 
-      proposedAction: obs.proposedAction, 
-      confidence: obs.confidence ?? 80, 
-      autoRemediationId: obs.autoRemediationId ?? null,
-      ...(obs.metadata || {}) 
-    },
-    aiRationale: obs.rationale,
-  }).returning();
+  // 2. Create the action record. Raw SQL with ::jsonb casts passing the
+  //    objects DIRECTLY: postgres.js serializes JS objects to JSON itself,
+  //    but JSON-encodes string params — so pre-stringifying (what the old
+  //    drizzle jsonb path effectively did) stores a double-encoded string,
+  //    which is what broke the metadata-based dedupe above.
+  const priority = obs.proposedAction.priority
+    ?? (obs.severity === "critical" ? "critical" : obs.severity === "warning" ? "high" : "medium");
+  const status: "pending" | "executed" = executeDirectly ? "executed" : "pending";
+  const metadataObj: Record<string, unknown> = {
+    botId,
+    dedupeKey: obs.dedupeKey ?? null,
+    severity: obs.severity,
+    proposedAction: obs.proposedAction,
+    confidence: obs.confidence ?? 80,
+    autoRemediationId: obs.autoRemediationId ?? null,
+    ...(obs.metadata || {}),
+  };
+  const inserted = await db.execute(sql`
+    INSERT INTO autopilot_actions
+      (run_id, client_id, type, title, description, priority, status, target_entity, metadata, ai_rationale)
+    VALUES (
+      ${runId}, ${clientId}, ${`${botId}:${obs.proposedAction.kind}`},
+      ${obs.title.slice(0, 250)}, ${obs.rationale.slice(0, 4000)},
+      ${priority}, ${status},
+      ${{ entityType: obs.entityType, entityId: obs.entityId ?? null }}::jsonb,
+      ${metadataObj}::jsonb,
+      ${obs.rationale.slice(0, 4000)}
+    )
+    RETURNING id`).then((r: any) => r.rows ?? r);
+  const action = { id: Number(inserted[0]?.id ?? 0) };
 
   // 3. Execute or hold for review
   if (executeDirectly) {
@@ -238,7 +260,12 @@ export async function runEscalationSweep(clientId: number, ackAfterHours = 48): 
       SELECT id, title, ai_rationale, priority FROM autopilot_actions
       WHERE client_id = ${clientId}
         AND status IN ('pending','pending_review')
-        AND coalesce(metadata->>'escalated','false') <> 'true'
+        AND coalesce(
+          CASE jsonb_typeof(metadata)
+            WHEN 'object' THEN metadata->>'escalated'
+            WHEN 'string' AND (metadata #>> '{}') LIKE '{%' THEN (metadata #>> '{}')::jsonb->>'escalated'
+          END,
+          'false') <> 'true'
         AND created_at < now() - (${ackAfterHours} || ' hours')::interval
       LIMIT 20`).then((r: any) => r.rows ?? r);
 

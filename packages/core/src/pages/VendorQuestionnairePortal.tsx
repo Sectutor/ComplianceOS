@@ -220,7 +220,7 @@ export default function VendorQuestionnairePortal() {
                 </Card>
 
                 {isCompleted && (
-                    <Alert variant="success" className="mb-8 border-emerald-200 bg-emerald-50 text-emerald-900">
+                    <Alert className="mb-8 border-emerald-200 bg-emerald-50 text-emerald-900">
                         <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                         <AlertTitle className="text-emerald-800 font-semibold">Assessment Submitted</AlertTitle>
                         <AlertDescription className="text-emerald-700">

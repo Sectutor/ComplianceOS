@@ -1,83 +1,39 @@
 /**
  * Questionnaires — data contract + hooks
  * ======================================
- * UI-side typed view of the `questionnaire.*` tRPC procedures in
+ * UI-side hooks over the `questionnaire.*` tRPC procedures in
  * `packages/core/src/server/routers/questionnaire.ts` (registered as
  * `questionnaire:` on the AppRouter in `packages/core/src/routers.ts`).
- * Types mirror the shapes returned by
- * `packages/core/src/lib/questionnaire/questionnaireScoring.ts`.
  *
- * COORDINATION BY CONVENTION — if the procedures are not live yet the tRPC
- * HTTP call 404s and the query surfaces an error; every consumer in the UI
- * degrades to a graceful EmptyState / dash.
+ * Hooks call tRPC DIRECTLY (inferred types — no hand-written casts) so that
+ * procedure drift between frontend and backend is a compile error, not a
+ * runtime 404.
  *
- * ---------------------------------------------------------------------------
- * Procedures:
- *
- * 1) questionnaire.score
- *    input:  { id: number | string }
- *    output: { questionnaireId: number; score: QuestionnaireScore; summary: ScoreSummary }
- *            Never throws on read — on DB failure the backend returns an empty
- *            score (readiness "No Data"); unknown id returns null.
- *
- * 2) questionnaire.scoreAnswers
- *    input:  { questions: QuestionnaireAnswer[] }
- *    output: { score: QuestionnaireScore; summary: ScoreSummary }
- *            Pure passthrough (no DB), never throws.
- * ---------------------------------------------------------------------------
+ * Graceful degradation: score reads never throw server-side (DB failure =>
+ * empty "No Data" score; unknown id => null); consumers render a dash.
  */
 
 import { trpc } from "@/lib/trpc";
-import { Progress } from "@complianceos/ui/ui/progress";
+import {
+  type QuestionnaireAnswer,
+  type QuestionnaireScore,
+  type ScoreSummary,
+  type ReadinessLevel,
+} from "../../lib/questionnaire/questionnaireScoring";
 
 /* ------------------------------------------------------------------ */
-/* Types (mirror the backend contract 1:1, defensive on optionals)    */
+/* Types (re-exported from the scoring engine — single source of truth)*/
 /* ------------------------------------------------------------------ */
 
-export type AnswerClassification = "pass" | "partial" | "fail" | "neutral" | "unanswered";
-export type Readiness = "Strong" | "Developing" | "At Risk" | "No Data";
+export type AnswerClassification =
+  | "pass"
+  | "partial"
+  | "fail"
+  | "neutral"
+  | "unanswered";
+export type Readiness = ReadinessLevel;
 export type ScoreTone = "positive" | "warning" | "danger" | "neutral";
-
-export interface QuestionnaireAnswer {
-  questionId: string;
-  question?: string | null;
-  focusArea?: string | null;
-  subFocusArea?: string | null;
-  answer?: string | null;
-  status?: string | null;
-}
-
-export interface FocusAreaScore {
-  focusArea: string;
-  total: number;
-  answered: number;
-  passed: number;
-  partial: number;
-  failed: number;
-  neutral: number;
-  score: number;
-}
-
-/** 0–100 integers; higher complianceScore = stronger posture. */
-export interface QuestionnaireScore {
-  total: number;
-  answered: number;
-  unanswered: number;
-  passed: number;
-  partial: number;
-  failed: number;
-  neutral: number;
-  completionRate: number;
-  complianceScore: number;
-  focusAreas: FocusAreaScore[];
-  readiness: Readiness | string;
-}
-
-export interface ScoreSummary {
-  label: string;
-  tone: ScoreTone | string;
-  description: string;
-}
+export type { QuestionnaireAnswer, QuestionnaireScore, ScoreSummary };
 
 export interface QuestionnaireScoreResponse {
   questionnaireId: number;
@@ -90,37 +46,7 @@ export interface ScoreAnswersResponse {
   summary: ScoreSummary;
 }
 
-/* ------------------------------------------------------------------ */
-/* Narrowed tRPC query/mutation result shapes (runtime is a superset) */
-/* ------------------------------------------------------------------ */
-
-export interface QueryLike<T> {
-  data?: T;
-  isLoading: boolean;
-  isError: boolean;
-  isFetching?: boolean;
-  error?: unknown;
-  refetch: () => unknown;
-}
-
-interface QuestionnaireTrpc {
-  questionnaire: {
-    score: {
-      useQuery: (
-        input: { id: number | string },
-        opts?: { enabled?: boolean; retry?: boolean | number; staleTime?: number }
-      ) => QueryLike<QuestionnaireScoreResponse | null>;
-    };
-    scoreAnswers: {
-      useQuery: (
-        input: { questions: QuestionnaireAnswer[] },
-        opts?: { enabled?: boolean; retry?: boolean | number; staleTime?: number }
-      ) => QueryLike<ScoreAnswersResponse>;
-    };
-  };
-}
-
-const questionnaireApi = trpc as unknown as QuestionnaireTrpc;
+export interface BatchedScoreItem extends QuestionnaireScoreResponse {}
 
 /* ------------------------------------------------------------------ */
 /* Readiness / tone helpers (token-safe, dark-mode friendly)          */
@@ -179,11 +105,29 @@ export function getScoreBarClass(tone: ScoreTone | string | null | undefined): s
  * Per-questionnaire readiness score. Gracefully degrades: loading => no
  * data yet, error or null => caller shows a dash / EmptyState.
  */
-export function useQuestionnaireScore(id: number | string | null | undefined) {
-  return questionnaireApi.questionnaire.score.useQuery(
-    { id: id as number | string },
+export function useQuestionnaireScore(id: number | string | null | undefined, clientId?: number) {
+  return trpc.questionnaire.score.useQuery(
+    { id: id as number | string, clientId },
     {
       enabled: id !== null && id !== undefined && id !== "" && id !== "0" && id !== 0,
+      retry: false,
+      staleTime: 15_000,
+    }
+  );
+}
+
+/**
+ * Batched readiness scores for a list view — one round-trip instead of one
+ * per row. Disabled until there is a tenant.
+ */
+export function useQuestionnaireScoresBatch(
+  input: { clientId?: number; direction?: "inbound" | "outbound"; ids?: number[] },
+  opts?: { enabled?: boolean }
+) {
+  return trpc.questionnaire.scoreAll.useQuery(
+    { clientId: input.clientId, direction: input.direction, ids: input.ids },
+    {
+      enabled: opts?.enabled ?? (input.clientId !== undefined || (input.ids?.length ?? 0) > 0),
       retry: false,
       staleTime: 15_000,
     }
@@ -206,7 +150,7 @@ export function useQuestionnaireAnswersScore(answers: QuestionnaireAnswer[] | an
         status: a?.status ?? null,
       }))
     : [];
-  return questionnaireApi.questionnaire.scoreAnswers.useQuery(
+  return trpc.questionnaire.scoreAnswers.useQuery(
     { questions: safeAnswers },
     {
       enabled: safeAnswers.length > 0,

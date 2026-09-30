@@ -1,7 +1,3 @@
-import { getDb } from "../../db";
-import { clientControls, controls, evidence, clientPolicies } from "../../schema";
-import { eq } from "drizzle-orm";
-
 export interface QuestionnaireQuestion {
   questionId: string;
   questionText: string;
@@ -20,12 +16,67 @@ export interface ClientSecurityContext {
 export interface AnsweredQuestion {
   questionId: string;
   questionText: string;
-  shortAnswer: string; // "Yes", "Implemented", "Compliant"
+  shortAnswer: string; // "Yes", "Partial", "Needs Review", ...
   answer: string; // Detailed auditor-grade description
   confidenceScore: number;
   supportingEvidence: string;
   policyCitation?: string;
   focusArea?: string;
+}
+
+/** How the generated answer is meant to be used. */
+export type ResponderMode =
+  // Draft fills (in-place Excel populator): template bodies stay, but every
+  // cell is explicitly framed as an unverified draft the human must confirm.
+  | "draft"
+  // AI answering in the workspace: NEVER asserts an unverified control —
+  // returns an honest "Needs Review" placeholder instead of a fabricated Yes.
+  | "review";
+
+/**
+ * "EVD-MFA-100 (Identity Provider MFA Enforcement Report)" ->
+ * "Identity Provider MFA Enforcement Report".
+ *
+ * The rule table was seeded with invented evidence IDs; those IDs must never
+ * reach a client-facing answer. Only the human-readable description survives.
+ */
+function evidenceSuggestion(rawEvidence: string): string {
+  const parenthetical = rawEvidence.match(/\((.+)\)/);
+  if (parenthetical) return parenthetical[1];
+  return rawEvidence.replace(/^(EVD|evd)[-_A-Z0-9]*\s*:?\s*/, "").trim();
+}
+
+/** "Access Control & Authentication Policy §3.2" -> "Access Control & Authentication Policy". */
+function policyArea(rawPolicy: string): string {
+  return rawPolicy.split("§")[0].replace(/\s+$/, "").trim();
+}
+
+/**
+ * Honest placeholder for questions the system cannot answer from verified
+ * context. Used by both the rules engine (review mode) and the LLM responder
+ * when a question comes back without a usable answer.
+ */
+export function needsReviewAnswer(
+  questionText: string,
+  domain?: string,
+  evidenceSuggestionText?: string
+): AnsweredQuestion {
+  const area = domain || "General Security & Governance";
+  const suggestion = evidenceSuggestionText
+    ? ` Suggested evidence to attach: ${evidenceSuggestionText}.`
+    : "";
+  return {
+    questionId: "",
+    questionText,
+    shortAnswer: "Needs Review",
+    answer:
+      `No verified answer exists in the answer library for this question (matched control area: ${area}).` +
+      ` A human must draft this response and confirm it against actual practice before the questionnaire is sent.${suggestion}`,
+    confidenceScore: 0,
+    supportingEvidence: "",
+    policyCitation: "",
+    focusArea: area,
+  };
 }
 
 interface DomainRule {
@@ -342,11 +393,19 @@ const GRC_KNOWLEDGE_RULES: DomainRule[] = [
 ];
 
 /**
- * Generate an auditor-grade response for a single question based on keywords and context.
+ * Generate a response for a single question based on keywords and context.
+ *
+ * mode="draft" (default, in-place Excel populator): a matched rule yields the
+ *   templated control description, framed as an unverified draft — evidence
+ *   and policy references are suggestions, never invented IDs or section
+ *   numbers. Unmatched questions get an honest "Needs Review" placeholder.
+ * mode="review" (workspace AI answering): NEVER asserts an unverified
+ *   control — every question gets the honest "Needs Review" placeholder.
  */
 export function generateQuestionAnswer(
   questionText: string,
-  context: ClientSecurityContext = {}
+  context: ClientSecurityContext = {},
+  options: { mode?: ResponderMode } = {}
 ): {
   shortAnswer: string;
   answer: string;
@@ -355,6 +414,7 @@ export function generateQuestionAnswer(
   policyCitation: string;
   focusArea: string;
 } {
+  const mode: ResponderMode = options.mode ?? "draft";
   const textLower = (questionText || "").toLowerCase().trim();
 
   // Score each rule based on keyword matches
@@ -375,37 +435,53 @@ export function generateQuestionAnswer(
     }
   }
 
-  if (bestMatch && maxMatchCount > 0) {
+  const suggestion = bestMatch ? evidenceSuggestion(bestMatch.evidence) : "";
+  const area = bestMatch ? policyArea(bestMatch.policy) : "";
+
+  if (bestMatch && maxMatchCount > 0 && mode === "draft") {
     return {
       shortAnswer: bestMatch.shortAnswer,
       answer: bestMatch.template(context),
       confidenceScore: bestMatch.confidence,
-      supportingEvidence: bestMatch.evidence,
-      policyCitation: bestMatch.policy,
+      supportingEvidence: `Suggested evidence: ${suggestion} (verify this exists before sending)`,
+      policyCitation: `Relevant policy area: ${area}`,
       focusArea: bestMatch.domain,
     };
   }
 
-  // Fallback for general compliance questions
+  // Unmatched question (draft mode) or any question in review mode: never
+  // assert an unverified control.
+  const placeholder = needsReviewAnswer(
+    questionText,
+    bestMatch?.domain,
+    suggestion || undefined
+  );
   return {
-    shortAnswer: "Yes",
-    answer: `Yes. ${context.companyName || "The organization"} enforces this control as part of its documented Information Security Management System (ISMS) and standard cloud operating procedures (${context.cloudProvider || "AWS"}), continuously monitored for compliance.`,
-    confidenceScore: 88,
-    supportingEvidence: "EVD-GEN-100 (ISMS Continuous Monitoring & Compliance Verification)",
-    policyCitation: "Information Security Management System Policy §2.0",
-    focusArea: "General Security & Governance",
+    shortAnswer: placeholder.shortAnswer,
+    answer: placeholder.answer,
+    confidenceScore: placeholder.confidenceScore,
+    supportingEvidence: placeholder.supportingEvidence,
+    policyCitation: placeholder.policyCitation ?? "",
+    focusArea: placeholder.focusArea ?? "",
   };
 }
 
 /**
- * AI-Assisted Vendor Security Questionnaire Auto-Responder.
+ * Rules-based questionnaire responder (workspace AI answering fallback).
+ *
+ * Deliberately runs in "review" mode: without an LLM or a verified answer
+ * library this engine has NO knowledge of what the client actually does, so
+ * it returns honest "Needs Review" placeholders instead of asserting
+ * controls. Template-based draft filling lives in the in-place Excel
+ * populator (mode="draft"), where the human explicitly provides the
+ * organizational context and reviews the workbook before sending.
  */
 export async function autoAnswerQuestionnaire(
   clientId: number,
   questions: QuestionnaireQuestion[],
   customContext?: ClientSecurityContext
 ): Promise<{ answeredQuestions: AnsweredQuestion[]; overallConfidence: number }> {
-  let context: ClientSecurityContext = {
+  const context: ClientSecurityContext = {
     companyName: "ComplianceOS Client",
     cloudProvider: "AWS (us-east-1)",
     idp: "Google Workspace & Okta",
@@ -415,28 +491,11 @@ export async function autoAnswerQuestionnaire(
     ...customContext,
   };
 
-  try {
-    const db = await getDb();
-    if (db && clientId) {
-      const policiesList = await db
-        .select({ title: clientPolicies.name, content: clientPolicies.content })
-        .from(clientPolicies)
-        .where(eq(clientPolicies.clientId, clientId))
-        .catch(() => []);
-
-      if (policiesList.length > 0) {
-        // DB client policies exist
-      }
-    }
-  } catch (e) {
-    // Graceful fallback to pure memory context
-  }
-
   const answeredQuestions: AnsweredQuestion[] = [];
   let totalConfidence = 0;
 
   for (const q of questions) {
-    const generated = generateQuestionAnswer(q.questionText, context);
+    const generated = generateQuestionAnswer(q.questionText, context, { mode: "review" });
     totalConfidence += generated.confidenceScore;
 
     answeredQuestions.push({
@@ -447,12 +506,12 @@ export async function autoAnswerQuestionnaire(
       confidenceScore: generated.confidenceScore,
       supportingEvidence: generated.supportingEvidence,
       policyCitation: generated.policyCitation,
-      focusArea: generated.focusArea,
+      focusArea: generated.focusArea || q.category,
     });
   }
 
   const overallConfidence =
-    questions.length > 0 ? Math.round(totalConfidence / questions.length) : 100;
+    questions.length > 0 ? Math.round(totalConfidence / questions.length) : 0;
 
   return {
     answeredQuestions,

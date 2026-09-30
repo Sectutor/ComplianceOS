@@ -314,9 +314,11 @@ export function populateWorkbookInPlace(
       const respCellAddr = XLSX.utils.encode_cell({ r, c: responseColIdx });
       worksheet[respCellAddr] = { t: 's', v: generated.shortAnswer };
 
-      // Write Detailed Implementation + Evidence into Details cell
+      // Write Detailed Implementation + Evidence into Details cell.
+      // Draft framing is mandatory: these are template fills the human must
+      // verify against actual practice before the workbook is sent anywhere.
       const detailsCellAddr = XLSX.utils.encode_cell({ r, c: detailsColIdx });
-      const fullDetail = `${generated.answer} [Evidence: ${generated.supportingEvidence}] [Policy: ${generated.policyCitation}]`;
+      const fullDetail = `[AI DRAFT — verify before sending] ${generated.answer} [${generated.supportingEvidence}] [${generated.policyCitation}]`;
       worksheet[detailsCellAddr] = { t: 's', v: fullDetail };
 
       previewList.push({

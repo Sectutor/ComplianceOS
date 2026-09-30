@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { PageGuide } from "@/components/PageGuide";
 import { trpc } from "@/lib/trpc";
 import { useParams, useLocation } from "wouter";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -33,6 +34,12 @@ import {
   X,
   FileSpreadsheet,
   Layers,
+  CalendarClock,
+  RotateCcw,
+  Bell,
+  Map as MapIcon,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Input } from "@complianceos/ui/ui/input";
 import {
@@ -40,7 +47,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
 } from "@complianceos/ui/ui/dropdown-menu";
 import { format } from "date-fns";
 import {
@@ -54,23 +61,29 @@ import {
   AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 import {
-  useQuestionnaireScore,
+  useQuestionnaireScoresBatch,
   getReadinessMeta,
   ScoreBadge,
   ScoreProgress,
   type QuestionnaireScoreResponse,
 } from "./questionnaires/questionnaireApi.tsx";
+import { Framework90DayRoadmap } from "@/components/roadmap/Framework90DayRoadmap";
+import { getQuestionnaireRoadmap } from "@/data/frameworkRoadmaps";
 
 type Direction = "inbound" | "outbound";
 
-/** Per-row readiness score cell (isolated so hooks stay out of the map loop). */
-function QuestionnaireScoreCell({ questionnaireId }: { questionnaireId: number }) {
-  const { data, isLoading, isError } = useQuestionnaireScore(questionnaireId);
+/** Per-row readiness score cell — fed by the batched scoreAll query. */
+function QuestionnaireScoreCell({
+  scoreResult,
+  isLoading,
+}: {
+  scoreResult: QuestionnaireScoreResponse | undefined;
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return <div className="h-5 w-24 bg-muted/60 animate-pulse rounded-full" aria-label="Loading score" />;
   }
-  const scoreResult = data as QuestionnaireScoreResponse | null | undefined;
-  if (isError || !scoreResult?.score) {
+  if (!scoreResult?.score) {
     return <span className="text-muted-foreground text-xs font-mono">—</span>;
   }
   const meta = getReadinessMeta(scoreResult.score.readiness);
@@ -88,9 +101,15 @@ export default function QuestionnairesDashboard() {
   const clientId = parseInt(id || "0", 10);
 
   const [direction, setDirection] = useState<Direction>("inbound");
+  const [activeTab, setActiveTab] = useState<Direction | "roadmap">("inbound");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [questionnaireToDelete, setQuestionnaireToDelete] = useState<any>(null);
+
+  const selectTab = (tab: Direction | "roadmap") => {
+    setActiveTab(tab);
+    if (tab !== "roadmap") setDirection(tab);
+  };
 
   // Reset status filter and search query when switching direction
   useEffect(() => {
@@ -98,10 +117,35 @@ export default function QuestionnairesDashboard() {
     setSearchQuery("");
   }, [direction]);
 
+  // Deep link: #quest-roadmap opens the roadmap tab directly
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#quest-roadmap") setActiveTab("roadmap");
+  }, []);
+
   const { data: questionnaires, refetch, isLoading } = trpc.questionnaire.list.useQuery(
     { clientId, direction },
     { enabled: !!clientId }
   );
+
+  // Per-direction totals for the tab badges (server-computed, both tabs at once).
+  const { data: directionCounts } = trpc.questionnaire.counts.useQuery(
+    { clientId },
+    { enabled: !!clientId }
+  );
+
+  // Batched readiness scores — one round-trip for the whole visible list.
+  const { data: scoreBatch, refetch: scoreBatchRefetch, isFetching: scoresLoading } = useQuestionnaireScoresBatch(
+    { clientId, direction },
+    { enabled: !!clientId }
+  );
+  const scoreById = useMemo(() => {
+    const map = new Map<number, QuestionnaireScoreResponse>();
+    for (const item of scoreBatch?.scores || []) {
+      map.set(item.questionnaireId, item);
+    }
+    return map;
+  }, [scoreBatch]);
 
   // Filtered list based on status and search query
   const filteredQuestionnaires = useMemo(() => {
@@ -126,8 +170,49 @@ export default function QuestionnairesDashboard() {
   }, [questionnaires]);
 
   const deleteMutation = trpc.questionnaire.delete.useMutation({
-    onSuccess: () => refetch()
+    onSuccess: () => {
+      toast.success("Questionnaire deleted");
+      refetch();
+    },
+    onError: (err) => toast.error(`Failed to delete: ${err.message}`)
   });
+
+  const updateMutation = trpc.questionnaire.update.useMutation({
+    onSuccess: () => {
+      toast.success("Questionnaire updated");
+      refetch();
+      // Batched scores may have shifted with a status change.
+      scoreBatchRefetch();
+    }
+  });
+
+  const sendReminderMutation = trpc.questionnaire.sendVendorReminder.useMutation({
+    onSuccess: (data) => {
+      if (data.emailSent) {
+        toast.success(`Reminder emailed to ${data.recipient}`);
+      } else {
+        toast.warning("Reminder could not be emailed", {
+          description: data.emailError || "Check your SMTP/SendGrid settings and re-invite the vendor.",
+        });
+      }
+    },
+    onError: (err) => toast.error(`Failed to send reminder: ${err.message}`)
+  });
+
+  const handleSendReminder = (q: any) => {
+    sendReminderMutation.mutate({ questionnaireId: q.id, clientId });
+  };
+
+  const handleSetDueDate = (q: any, value: string) => {
+    if (!value) return;
+    const dueDate = new Date(`${value}T23:59:59`).toISOString();
+    updateMutation.mutate({ id: q.id, clientId, dueDate });
+  };
+
+  const handleSetStatus = (q: any, status: string) => {
+    if (q.status === status) return;
+    updateMutation.mutate({ id: q.id, clientId, status: status as any });
+  };
 
   const handleDelete = (q: any) => setQuestionnaireToDelete(q);
 
@@ -143,41 +228,75 @@ export default function QuestionnairesDashboard() {
       <DropdownMenuTrigger asChild>
         <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs hover:shadow-md transition-all gap-2 text-xs h-9 px-4 rounded-xl">
           <Plus className="w-4 h-4" />
-          {direction === "inbound" ? "New Inbound Assessment" : "New Vendor Assessment"}
+          {direction === "inbound" ? "Answer a Questionnaire" : "Send to a Vendor"}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64 rounded-xl shadow-lg border-border/80 p-1.5">
-        <DropdownMenuItem
-          className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
-          onClick={() =>
-            setLocation(`/clients/${clientId}/questionnaire-workspace?direction=${direction}`)
-          }
-        >
-          <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-            <Upload className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <div className="font-semibold text-foreground">Upload Spreadsheet / PDF</div>
-            <div className="text-[10px] text-muted-foreground">Import XLSX, CSV, or document</div>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator className="my-1" />
-
-        <DropdownMenuItem
-          className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
-          onClick={() =>
-            setLocation(`/clients/${clientId}/questionnaire-workspace?mode=template&direction=${direction}`)
-          }
-        >
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <div className="font-semibold text-foreground">Start from Standard Template</div>
-            <div className="text-[10px] text-muted-foreground">SIG Lite, CAIQ, Vanta Standard</div>
-          </div>
-        </DropdownMenuItem>
+      <DropdownMenuContent align="end" className="w-72 rounded-xl shadow-lg border-border/80 p-1.5">
+        {direction === "inbound" ? (
+          <>
+            <DropdownMenuItem
+              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
+              onClick={() =>
+                setLocation(`/clients/${clientId}/questionnaire-workspace?direction=inbound`)
+              }
+            >
+              <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                <Upload className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <div className="font-semibold text-foreground">Upload the questionnaire you received</div>
+                <div className="text-[10px] text-muted-foreground">The XLSX / CSV / PDF a customer sent you</div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuItem
+              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
+              onClick={() =>
+                setLocation(`/clients/${clientId}/questionnaire-workspace?mode=template&direction=inbound`)
+              }
+            >
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <div className="font-semibold text-foreground">Answer using a matching template</div>
+                <div className="text-[10px] text-muted-foreground">Closest to what they sent — SIG Lite, CAIQ v4, SOC 2</div>
+              </div>
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem
+              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
+              onClick={() =>
+                setLocation(`/clients/${clientId}/questionnaire-workspace?mode=template&direction=outbound`)
+              }
+            >
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <div className="font-semibold text-foreground">Send a standard template to a vendor</div>
+                <div className="text-[10px] text-muted-foreground">They answer via a secure link — SIG Lite, CAIQ v4, SOC 2</div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuItem
+              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
+              onClick={() =>
+                setLocation(`/clients/${clientId}/questionnaire-workspace?direction=outbound`)
+              }
+            >
+              <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                <Upload className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <div className="font-semibold text-foreground">Upload your own question set</div>
+                <div className="text-[10px] text-muted-foreground">Your XLSX / CSV questions to send out</div>
+              </div>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -196,72 +315,79 @@ export default function QuestionnairesDashboard() {
               Security Questionnaires
             </h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-              Automate customer security reviews and streamline third-party supplier risk evaluations with AI-assisted answers and evidence linking.
+              Two directions, one place: <span className="font-semibold text-blue-600 dark:text-blue-400">Inbound</span> — a customer sent you a questionnaire and you answer it; <span className="font-semibold text-emerald-600 dark:text-emerald-400">Outbound</span> — you send a questionnaire to a vendor and review their answers.
             </p>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
             <PageGuide
               title="Security Questionnaires"
-              description="Manage incoming customer RFPs and outgoing supplier security assessments."
-              rationale="Streamlines vendor risk management and accelerates enterprise sales closing."
+              description="One place for both directions: questionnaires you receive and questionnaires you send."
+              rationale="Answer customer reviews faster with AI drafts from your Answer Library, and assess vendors with secure links, scoring, and findings."
               howToUse={[
-                { step: "Customer Questionnaires (Inbound)", description: "Answer security forms sent by prospective clients using AI copilot.", targetId: "dir-tab-inbound" },
-                { step: "Vendor Assessments (Outbound)", description: "Send automated compliance questionnaires to third-party vendors.", targetId: "dir-tab-outbound" },
-                { step: "Review & Score", description: "Audit readiness percentages and evidence traceability before exporting.", targetId: "quest-table-list" }
+                { step: "Inbound — a customer asked you", description: "Upload the file they sent or pick the closest template; AI drafts answers, you review and export it back.", targetId: "dir-tab-inbound" },
+                { step: "Outbound — you ask a vendor", description: "Pick a template, enter the vendor's email; they answer via a secure link and you score the results.", targetId: "dir-tab-outbound" },
+                { step: "Review & Score", description: "Track completion, readiness scores, findings, and due dates before exporting or following up.", targetId: "quest-table-list" }
               ]}
               integrations={[
-                { name: "Knowledge Base", description: "Autonomous answering engine." },
-                { name: "Evidence Library", description: "Automatic control proof attachment." }
+                { name: "Answer Library", description: "Approved answers reused automatically on inbound questionnaires." },
+                { name: "Vendor Findings", description: "Failed vendor answers become flagged findings with remediation deadlines." }
               ]}
             />
-            {createDropdown}
+            {activeTab !== "roadmap" && createDropdown}
           </div>
         </div>
 
-        {/* Strategic Overview Metric Cards */}
+        {/* Strategic Overview Metric Cards — each stat carries its own accent
+            gradient so the page reads inviting rather than clinical. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4 flex items-center gap-4 border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl">
-            <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-              <Layers className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.total}</p>
-              <p className="text-xs font-medium text-muted-foreground">
-                {direction === "inbound" ? "Total Inbound RFPs" : "Total Vendor Assessments"}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="p-4 flex items-center gap-4 border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl">
-            <div className="h-12 w-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-              <Clock className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.open}</p>
-              <p className="text-xs font-medium text-muted-foreground">Open / Awaiting Action</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 flex items-center gap-4 border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl">
-            <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.inProgress}</p>
-              <p className="text-xs font-medium text-muted-foreground">In Progress / AI Drafting</p>
-            </div>
-          </Card>
-
-          <Card className="p-4 flex items-center gap-4 border border-border/70 bg-card/70 backdrop-blur-xl shadow-xs rounded-2xl">
-            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-black text-foreground tracking-tight">{stats.completed}</p>
-              <p className="text-xs font-medium text-muted-foreground">Completed & Verified</p>
-            </div>
-          </Card>
+          {[
+            {
+              icon: Layers,
+              value: stats.total,
+              label: direction === "inbound" ? "Received from customers" : "Sent to vendors",
+              card: "from-blue-50 to-indigo-50/70 border-blue-200/70",
+              chip: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/25",
+              valueText: "text-blue-700",
+            },
+            {
+              icon: Clock,
+              value: stats.open,
+              label: direction === "inbound" ? "Open — waiting on you" : "Open — not sent yet",
+              card: "from-amber-50 to-orange-50/70 border-amber-200/70",
+              chip: "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25",
+              valueText: "text-amber-700",
+            },
+            {
+              icon: Sparkles,
+              value: stats.inProgress,
+              label: "In Progress / AI Drafting",
+              card: "from-violet-50 to-purple-50/70 border-violet-200/70",
+              chip: "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/25",
+              valueText: "text-violet-700",
+            },
+            {
+              icon: CheckCircle2,
+              value: stats.completed,
+              label: direction === "inbound" ? "Completed & sent back" : "Completed & reviewed",
+              card: "from-emerald-50 to-teal-50/70 border-emerald-200/70",
+              chip: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25",
+              valueText: "text-emerald-700",
+            },
+          ].map((s) => (
+            <Card
+              key={s.label}
+              className={`p-4 flex items-center gap-4 border bg-gradient-to-br shadow-sm rounded-2xl hover:shadow-md transition-shadow ${s.card}`}
+            >
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${s.chip}`}>
+                <s.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className={`text-2xl font-black tracking-tight ${s.valueText}`}>{s.value}</p>
+                <p className="text-xs font-medium text-slate-600">{s.label}</p>
+              </div>
+            </Card>
+          ))}
         </div>
 
         {/* Direction Switcher (Inbound vs Outbound) */}
@@ -270,40 +396,126 @@ export default function QuestionnairesDashboard() {
             <div className="p-1 bg-muted/60 rounded-2xl border border-border/70 inline-flex shadow-xs">
               <button
                 id="dir-tab-inbound"
-                onClick={() => setDirection("inbound")}
-                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
-                  direction === "inbound"
-                    ? "bg-card text-foreground shadow-sm border border-border/50"
-                    : "text-muted-foreground hover:text-foreground"
+                onClick={() => selectTab("inbound")}
+                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl font-semibold text-xs transition-all duration-200 border ${
+                  activeTab === "inbound"
+                    ? "bg-blue-50 border-blue-300 text-blue-950 shadow-sm"
+                    : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-white/70"
                 }`}
               >
                 <Inbox className="h-4 w-4 text-blue-500" />
-                <span>Customer Questionnaires (Inbound)</span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-bold bg-muted text-foreground">
-                  {direction === "inbound" ? stats.total : questionnaires?.length ?? 0}
-                </Badge>
+                <span className="flex flex-col items-start leading-tight text-left">
+                  <span className="flex items-center gap-2">
+                    Customer Questionnaires
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-bold bg-blue-100 text-blue-700">
+                      {directionCounts?.inbound ?? 0}
+                    </Badge>
+                  </span>
+                  <span className={`text-[10px] font-normal ${activeTab === "inbound" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`}>
+                    They asked — you answer &amp; send it back
+                  </span>
+                </span>
               </button>
 
               <button
                 id="dir-tab-outbound"
-                onClick={() => setDirection("outbound")}
-                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 ${
-                  direction === "outbound"
-                    ? "bg-card text-foreground shadow-sm border border-border/50"
-                    : "text-muted-foreground hover:text-foreground"
+                onClick={() => selectTab("outbound")}
+                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl font-semibold text-xs transition-all duration-200 border ${
+                  activeTab === "outbound"
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-950 shadow-sm"
+                    : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-white/70"
                 }`}
               >
                 <Send className="h-4 w-4 text-emerald-500" />
-                <span>Vendor Risk Assessments (Outbound)</span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-bold bg-muted text-foreground">
-                  {direction === "outbound" ? stats.total : 0}
-                </Badge>
+                <span className="flex flex-col items-start leading-tight text-left">
+                  <span className="flex items-center gap-2">
+                    Vendor Assessments
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-bold bg-emerald-100 text-emerald-700">
+                      {directionCounts?.outbound ?? 0}
+                    </Badge>
+                  </span>
+                  <span className={`text-[10px] font-normal ${activeTab === "outbound" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                    You ask — they answer via a secure link
+                  </span>
+                </span>
+              </button>
+
+              <button
+                id="dir-tab-roadmap"
+                onClick={() => selectTab("roadmap")}
+                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl font-semibold text-xs transition-all duration-200 border ${
+                  activeTab === "roadmap"
+                    ? "bg-amber-50 border-amber-300 text-amber-950 shadow-sm"
+                    : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-white/70"
+                }`}
+              >
+                <MapIcon className="h-4 w-4 text-amber-500" />
+                <span className="flex flex-col items-start leading-tight text-left">
+                  <span>90-Day Roadmap</span>
+                  <span className={`text-[10px] font-normal ${activeTab === "roadmap" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                    Your 12-week program plan
+                  </span>
+                </span>
               </button>
             </div>
 
-            <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-              <span>Showing {filteredQuestionnaires.length} of {stats.total} assessments</span>
+            {activeTab !== "roadmap" && (
+              <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                <span>Showing {filteredQuestionnaires.length} of {stats.total} assessments</span>
+              </div>
+            )}
+          </div>
+
+          {activeTab !== "roadmap" && (
+          <>
+          {/* Direction explainer — removes the inbound/outbound ambiguity and
+              gives first-time users an unambiguous "where to start" action. */}
+          <div
+            className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${
+              direction === "inbound"
+                ? "border-blue-500/30 bg-blue-500/5"
+                : "border-emerald-500/30 bg-emerald-500/5"
+            }`}
+          >
+            <div
+              className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+                direction === "inbound"
+                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              }`}
+            >
+              {direction === "inbound" ? <Inbox className="h-5 w-5" /> : <Send className="h-5 w-5" />}
             </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {direction === "inbound"
+                  ? "A customer sent you a security questionnaire — you fill it in and send it back."
+                  : "You are assessing a vendor's security — they fill in the questionnaire you send."}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {direction === "inbound"
+                  ? "Where to start: upload the file they sent (XLSX / CSV / PDF) or pick the closest template. AI drafts answers from your Answer Library — you review, export, and return it."
+                  : "Where to start: pick a standard template (SIG Lite, CAIQ v4, SOC 2…), enter the vendor's email, and they receive a secure link. Their answers come back here for you to score, flag, and follow up."}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() =>
+                setLocation(
+                  direction === "inbound"
+                    ? `/clients/${clientId}/questionnaire-workspace?direction=inbound`
+                    : `/clients/${clientId}/questionnaire-workspace?mode=template&direction=outbound`
+                )
+              }
+              className={`shrink-0 font-semibold text-xs rounded-xl gap-1.5 ${
+                direction === "inbound"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+            >
+              {direction === "inbound" ? <Upload className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+              {direction === "inbound" ? "Start answering" : "Send to a vendor"}
+            </Button>
           </div>
 
           {/* Search Bar & Status Filter Bar */}
@@ -440,7 +652,10 @@ export default function QuestionnairesDashboard() {
                       </TableCell>
 
                       <TableCell className="py-4">
-                        <QuestionnaireScoreCell questionnaireId={q.id} />
+                        <QuestionnaireScoreCell
+                          scoreResult={scoreById.get(q.id)}
+                          isLoading={scoresLoading && !scoreById.size}
+                        />
                       </TableCell>
 
                       <TableCell className="py-4">
@@ -485,10 +700,22 @@ export default function QuestionnairesDashboard() {
 
                       <TableCell className="py-4 text-xs font-mono">
                         {q.dueDate ? (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{format(new Date(q.dueDate), "MMM d, yyyy")}</span>
-                          </div>
+                          (() => {
+                            const due = new Date(q.dueDate);
+                            const isOverdue =
+                              q.status !== "completed" && due.getTime() < Date.now();
+                            return (
+                              <div className={`flex items-center gap-1 ${isOverdue ? "text-rose-600 dark:text-rose-400 font-semibold" : "text-muted-foreground"}`}>
+                                <Calendar className="h-3 w-3" />
+                                <span>{format(due, "MMM d, yyyy")}</span>
+                                {isOverdue && (
+                                  <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0 h-3.5 font-bold">
+                                    Overdue
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })()
                         ) : (
                           <span className="text-muted-foreground/60">—</span>
                         )}
@@ -504,7 +731,7 @@ export default function QuestionnairesDashboard() {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border-border/80 p-1">
+                          <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-border/80 p-1">
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -515,6 +742,53 @@ export default function QuestionnairesDashboard() {
                               <ExternalLink className="mr-2 h-3.5 w-3.5" />
                               Open Workspace
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetStatus(q, "completed");
+                              }}
+                              className="rounded-lg text-xs font-medium cursor-pointer"
+                            >
+                              <CheckCircle2 className="mr-2 h-3.5 w-3.5 text-emerald-500" />
+                              Mark Completed
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetStatus(q, "in_progress");
+                              }}
+                              className="rounded-lg text-xs font-medium cursor-pointer"
+                            >
+                              <RotateCcw className="mr-2 h-3.5 w-3.5 text-amber-500" />
+                              Reopen (In Progress)
+                            </DropdownMenuItem>
+                            <div
+                              className="px-2.5 py-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                                <CalendarClock className="h-3 w-3" />
+                                Due Date
+                              </label>
+                              <Input
+                                type="date"
+                                defaultValue={q.dueDate ? format(new Date(q.dueDate), "yyyy-MM-dd") : ""}
+                                onChange={(e) => handleSetDueDate(q, e.target.value)}
+                                className="h-8 text-xs rounded-lg"
+                              />
+                            </div>
+                            {(q as any).direction === "outbound" && (q as any).vendorEmail && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSendReminder(q);
+                                }}
+                                className="rounded-lg text-xs font-medium cursor-pointer"
+                              >
+                                <Bell className="mr-2 h-3.5 w-3.5 text-amber-500" />
+                                Send Reminder to Vendor
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator className="my-1" />
                             <DropdownMenuItem
                               className="text-destructive rounded-lg text-xs font-medium cursor-pointer hover:bg-destructive/10"
@@ -548,8 +822,8 @@ export default function QuestionnairesDashboard() {
                             {searchQuery || statusFilter !== "all"
                               ? "Try clearing your search query or switching your status filter tab."
                               : direction === "inbound"
-                              ? "Upload an RFP spreadsheet or PDF you've received from an enterprise customer to start answering."
-                              : "Send a standard security questionnaire (SIG, CAIQ, SOC2) to your third-party vendors."}
+                              ? "A customer sent you a questionnaire — upload the file they sent above to start answering."
+                              : "You send it: use \"Send to a vendor\" above — pick a template, enter their email, and they answer via a secure link."}
                           </p>
                         </div>
                         {searchQuery || statusFilter !== "all" ? (
@@ -596,12 +870,26 @@ export default function QuestionnairesDashboard() {
               </TableBody>
             </Table>
           </div>
+          </>
+          )}
+
+          {/* Roadmap tab view — the 12-week program plan as a first-class
+              view (same tab pattern as the vendor program guide), not a
+              footnote at the bottom of the page. */}
+          {activeTab === "roadmap" && (
+            <div className="rounded-2xl border border-border/80 shadow-xs bg-card/80 backdrop-blur-md p-4" id="quest-roadmap">
+              <Framework90DayRoadmap
+                spec={getQuestionnaireRoadmap(clientId)}
+                clientId={clientId}
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!questionnaireToDelete} onOpenChange={(open) => !open && setQuestionnaireToDelete(null)}>
-        <AlertDialogContent className="rounded-2xl border-border/80">
+        <AlertDialogContent className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg font-bold">Delete Questionnaire?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground">
