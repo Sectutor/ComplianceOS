@@ -43,12 +43,32 @@ coverage/
 .trae/documents/
 .agent/
 
-# Internal Documents
+# Internal Documents - Strategy, Marketing, Sales, Plans
 brainstorm*.md
 *plan.md
+*PLAN.md
+*STRATEGY*.md
+*MARKETING*.md
+*SALES*.md
+*GTM*.md
+*MSP*.md
+*FORECAST*.md
+*LEDGER*.md
+*THREAT_INTEL*.md
+*PIVOT*.md
+*EXTINCTION*.md
+*ANNIHILATION*.md
+*DISRUPTION*.md
+*SCALABILITY*.md
+*INFRASTRUCTURE*.md
+*IMPLEMENTATION_SUMMARY*.md
+*BACKUP_RESTORE*.md
+*WORKLIST*.md
 ROADMAP_IMPLEMENTATION_INTEGRATION.md
 db_plan.md
 docs/features/
+COMPLIANCEOS_PROJECT.md
+GAP-LOG.md
 
 # Internal Scripts and Debug Files
 debug_*
@@ -64,6 +84,43 @@ diagnose_*
 *.py
 build_output*
 db_counts*
+_test_*
+_smoke_test_*
+diag-*
+tsc-cycle*
+tsc_cycle*
+tsc-*.log
+tsc_*.log
+vitest-cycle*
+vitest-*.log
+vitest_*.log
+smoke-cycle*
+server*.log
+vite*.log
+supabase-start*.log
+test_out.log
+testrun.log
+coverage_out.txt
+worklist-*
+*.backup
+*.backup-conductor
+index.css.backup
+*.docx
+_check_settings.mjs
+fix_routers.py
+read_report.ts
+index.ts
+db.ts
+routers.ts
+addon-init.ts
+env-loader.ts
+emailNotification.ts
+policyExport.ts
+policyZipExport.ts
+drizzle.license.config.ts
+start.bat
+server_entry.ts
+server-enterprise.ts
 
 # Local Netlify folder
 .netlify

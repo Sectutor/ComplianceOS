@@ -1,7 +1,0 @@
-{
-    "build_settings": {
-        "cmd": "npm ci && npm run build -w @complianceos/core",
-        "dir": "packages/core/dist",
-        "base": ""
-    }
-}

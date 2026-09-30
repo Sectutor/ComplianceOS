@@ -22,7 +22,7 @@ This is a monorepo managed with npm workspaces:
 - `packages/core`: The main open-source application logic.
 - `packages/ui`: Shared UI components (shadcn/ui).
 
-**Note:** Premium features are not included in the open-source repository. The build system automatically mocks these components.
+**Note:** All features are included in the open-source repository. The build system uses the `BUILD_TYPE` environment variable to toggle between `AGPLv3` (community) and `COMMERCIAL` (enterprise) editions.
 
 ### Running Locally
 To start the development server:
@@ -48,4 +48,4 @@ Please be respectful and professional in all interactions. We are committed to p
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the AGPL-3.0 License (the community edition license).
