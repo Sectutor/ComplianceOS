@@ -8,7 +8,7 @@ import { trpc } from '@/lib/trpc';
 import { Link } from 'wouter';
 import { ScrollArea } from "@complianceos/ui/ui/scroll-area";
 
-export const MyTasksView = () => {
+export const MyTasksView = ({ clientId }: { clientId: number }) => {
     const { data: tasks, isLoading } = trpc.implementation.getMyTasks.useQuery();
 
     if (isLoading) {
@@ -86,7 +86,7 @@ export const MyTasksView = () => {
                                             </div>
                                         </div>
                                         <div className="mt-3 sm:mt-0 flex justify-end">
-                                            <Link href={`/implementation/${task.implementationPlanId}`}>
+                                            <Link href={`/clients/${clientId}/implementation/plan/${task.implementationPlanId}`}>
                                                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <ArrowRight className="w-4 h-4 text-slate-400" />
                                                 </Button>

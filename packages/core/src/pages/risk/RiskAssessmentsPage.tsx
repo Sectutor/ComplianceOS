@@ -93,7 +93,7 @@ export default function RiskAssessmentsPage() {
     // Determine effective client ID
     const effectiveClientId = routeClientId || authClient?.id;
 
-    const { data: fetchedClient, isLoading: loadingClientDetails } = trpc.clients.get.useQuery(
+    const { data: fetchedClient, isLoading: loadingClientDetails, isError: clientQueryError, error: clientQueryErrorMsg } = trpc.clients.get.useQuery(
         { id: effectiveClientId || 0 },
         { enabled: !!effectiveClientId && !authClient }
     );
@@ -257,6 +257,14 @@ export default function RiskAssessmentsPage() {
     if (loadingClientDetails) return (
         <DashboardLayout>
             <div className="p-8 text-center text-muted-foreground">Loading client data...</div>
+        </DashboardLayout>
+    );
+
+    if (clientQueryError) return (
+        <DashboardLayout>
+            <div className="p-8 text-center text-destructive">
+                {clientQueryErrorMsg?.message || 'Client not found.'}
+            </div>
         </DashboardLayout>
     );
 

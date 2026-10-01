@@ -275,7 +275,7 @@ export function ActionCenterWidget({ clientId, compact = false }: ActionCenterWi
             variant="ghost"
             size="sm"
             className="w-full text-xs text-muted-foreground"
-            onClick={() => { window.location.href = `/client/${clientId}/action-center`; }}
+            onClick={() => { window.location.href = `/action-center?clientId=${clientId}`; }}
           >
             View all {actions.length} items
             <ChevronRight className="h-3 w-3 ml-1" />

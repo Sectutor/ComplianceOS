@@ -98,7 +98,7 @@ export function AutopilotWidget({ clientId }: AutopilotWidgetProps) {
             size="sm"
             className="h-auto p-0 mt-2 text-xs"
             onClick={() => {
-              window.location.href = `/client/${clientId}/autopilot`;
+              window.location.href = `/clients/${clientId}/autopilot`;
             }}
           >
             Configure Autopilot →
@@ -175,7 +175,7 @@ export function AutopilotWidget({ clientId }: AutopilotWidgetProps) {
             size="sm"
             className="h-7 text-xs ml-auto"
             onClick={() => {
-              window.location.href = `/client/${clientId}/autopilot`;
+              window.location.href = `/clients/${clientId}/autopilot`;
             }}
           >
             Open Autopilot

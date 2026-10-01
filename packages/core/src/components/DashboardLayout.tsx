@@ -57,6 +57,7 @@ import { Slider } from "@complianceos/ui/ui/slider";
 import { toast } from "sonner";
 import { resolveNavigationPath, clientSpecificMenuItems } from "@/lib/navigation";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n/config";
 
 export function translateNavLabel(label: string, t: (key: string, options?: any) => string): string {
   if (!label) return "";
@@ -148,18 +149,20 @@ export function translateNavLabel(label: string, t: (key: string, options?: any)
     "All Clients Directory": "navigation:allClientsDirectory",
   };
 
+  // Guard every lookup with i18n.exists(). These keys are optional — most nav
+  // labels intentionally have no translation entry — and calling t() on an
+  // absent key makes i18next log a "missingKey" warning for each one.
   const mappedKey = labelMap[label];
-  if (mappedKey) {
-    const translated = t(mappedKey, { defaultValue: label });
-    if (translated && translated !== mappedKey) return translated;
+  if (mappedKey && i18n.exists(mappedKey)) {
+    return t(mappedKey, { defaultValue: label });
   }
 
   const slugKey = label.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const directNav = t(`navigation:${slugKey}`, { defaultValue: '' });
-  if (directNav && directNav !== `navigation:${slugKey}`) return directNav;
+  const navKey = `navigation:${slugKey}`;
+  if (i18n.exists(navKey)) return t(navKey, { defaultValue: label });
 
-  const directCommon = t(`common:common.${slugKey}`, { defaultValue: '' });
-  if (directCommon && directCommon !== `common:common.${slugKey}`) return directCommon;
+  const commonKey = `common:common.${slugKey}`;
+  if (i18n.exists(commonKey)) return t(commonKey, { defaultValue: label });
 
   return label;
 }

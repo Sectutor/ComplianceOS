@@ -450,10 +450,17 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
             .input(z.object({
                 id: z.number(),
                 status: z.string().optional(),
+                reviewStatus: z.string().optional(),
                 score: z.number().optional(),
                 findings: z.string().optional(),
                 documentUrl: z.string().optional(),
                 completedDate: z.string().optional(),
+                inherentImpact: z.string().optional(),
+                inherentLikelihood: z.string().optional(),
+                inherentRiskLevel: z.string().optional(),
+                residualImpact: z.string().optional(),
+                residualLikelihood: z.string().optional(),
+                residualRiskLevel: z.string().optional(),
             }))
             .mutation(async ({ input }: { input: any }) => {
                 const db = await getDb();

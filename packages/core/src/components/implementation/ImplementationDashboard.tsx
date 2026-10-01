@@ -133,7 +133,7 @@ export default function ImplementationDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <MyTasksView />
+                    {clientId && <MyTasksView clientId={clientId} />}
                     {clientId && <TeamWorkloadChart clientId={clientId} />}
                 </div>
 

@@ -42,6 +42,23 @@ function tierBadgeVariant(tier: string): "success" | "warning" | "error" | "info
     return "info";
 }
 
+/**
+ * Normalize a user-entered external URL for use in an href. Values without a
+ * scheme (e.g. "microsoft.com") would otherwise resolve as a relative in-app
+ * link; explicit non-web schemes are rejected so file:/javascript: never land
+ * in an anchor.
+ */
+function toExternalHref(url?: string | null): string | undefined {
+    if (!url) return undefined;
+    const trimmed = url.trim();
+    if (!trimmed) return undefined;
+    if (trimmed.startsWith("//")) return `https:${trimmed}`;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^(mailto:|tel:)/i.test(trimmed)) return trimmed;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return undefined;
+    return `https://${trimmed}`;
+}
+
 /** Data-viz score bar color (0–100 residual score, higher = safer). */
 function scoreBarColor(score: number): string {
     if (score >= 70) return "bg-emerald-500";
@@ -253,7 +270,7 @@ export default function VendorDetails() {
         }
     };
 
-    const updateAssessmentMutation = trpc.vendors.update.useMutation({
+    const updateAssessmentMutation = trpc.vendorAssessments.update.useMutation({
         onSuccess: () => {
             toast.success("Assessment updated");
             setIsConductOpen(false);
@@ -775,8 +792,8 @@ export default function VendorDetails() {
                     </div>
                     <p className="text-muted-foreground">{vendor.description}</p>
                     <div className="flex gap-4 text-sm text-muted-foreground">
-                        {vendor.website && (
-                            <a href={vendor.website} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline">
+                        {toExternalHref(vendor.website) && (
+                            <a href={toExternalHref(vendor.website)} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 hover:underline">
                                 {vendor.website} <ExternalLink className="ml-1 h-3 w-3" />
                             </a>
                         )}
@@ -1049,9 +1066,11 @@ export default function VendorDetails() {
                                                     <div className="text-xs text-muted-foreground">{doc.date || 'No date'}</div>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" asChild>
-                                                <a href={doc.url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
-                                            </Button>
+                                            {toExternalHref(doc.url) && (
+                                                <Button variant="ghost" size="sm" asChild>
+                                                    <a href={toExternalHref(doc.url)} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                                                </Button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -1563,9 +1582,9 @@ export default function VendorDetails() {
                                             </div>
                                         </div>
                                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {contract.documentUrl && (
+                                            {toExternalHref(contract.documentUrl) && (
                                                 <Button variant="outline" size="sm" asChild>
-                                                    <a href={contract.documentUrl} target="_blank" rel="noreferrer">
+                                                    <a href={toExternalHref(contract.documentUrl)} target="_blank" rel="noreferrer">
                                                         <ExternalLink className="h-4 w-4" />
                                                     </a>
                                                 </Button>
@@ -2167,9 +2186,9 @@ export default function VendorDetails() {
                                 value={conductForm.documentUrl}
                                 onChange={(e) => setConductForm({ ...conductForm, documentUrl: e.target.value })}
                             />
-                            {conductForm.documentUrl && (
+                            {toExternalHref(conductForm.documentUrl) && (
                                 <Button variant="ghost" size="icon" asChild>
-                                    <a href={conductForm.documentUrl} target="_blank" rel="noreferrer">
+                                    <a href={toExternalHref(conductForm.documentUrl)} target="_blank" rel="noreferrer">
                                         <ExternalLink className="h-4 w-4" />
                                     </a>
                                 </Button>

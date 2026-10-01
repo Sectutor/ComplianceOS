@@ -351,7 +351,7 @@ export function ClientDetailDrawer({ clientId, onClose }: ClientDetailDrawerProp
                     variant="default"
                     size="sm"
                     className="justify-start"
-                    onClick={() => navigate(`/client/${clientId}`)}
+                    onClick={() => navigate(`/clients/${clientId}`)}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Open Dashboard

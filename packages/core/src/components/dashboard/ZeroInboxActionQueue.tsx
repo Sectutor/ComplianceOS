@@ -149,9 +149,15 @@ export function ZeroInboxActionQueue({ clientId }: { clientId?: string }) {
   };
 
   const handleNavigate = (route?: string) => {
-    if (route) {
-      setLocation(clientId ? `/clients/${clientId}${route.startsWith('/') ? route : '/' + route}` : route);
+    if (!route) return;
+    // Live action-center URLs are already absolute and client-scoped; the
+    // fallback items below are relative to the current client.
+    const isAbsolute = route.startsWith('/clients/') || route.startsWith('/settings/');
+    if (isAbsolute || !clientId) {
+      setLocation(route);
+      return;
     }
+    setLocation(`/clients/${clientId}${route.startsWith('/') ? route : '/' + route}`);
   };
 
   const handleSnooze = (item: ActionItem) => {

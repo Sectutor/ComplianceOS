@@ -81,6 +81,7 @@ const IntegrationsPage = lazyLoad(() => import("./pages/settings/IntegrationsPag
 const PersonnelComplianceHub = lazyLoad(() => import("./pages/PersonnelComplianceHub"));
 const ClientActivity = lazyLoad(() => import("./pages/ClientActivity"));
 const Guides = lazyLoad(() => import("./pages/Guides"));
+const AutopilotDashboard = lazyLoad(() => import("./components/autopilot/AutopilotDashboard").then(m => ({ default: m.AutopilotDashboard })));
 
 // Addon pages
 const AddonMarketplace = lazyLoad(() => import("./pages/addons/AddonMarketplace"));
@@ -845,6 +846,9 @@ function Router() {
         <Route path="/clients/new">
           <ProtectedRoute component={ClientOnboarding} />
         </Route>
+        <Route path="/clients/:id/governance">
+          {(params) => <Redirect to={`/clients/${params.id}/governance/overview`} />}
+        </Route>
         <Route path="/clients/:id/governance/overview">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} /></UnifiedClientGuard>}
         </Route>
@@ -1128,6 +1132,15 @@ function Router() {
         </Route>
 
 
+        <Route path="/clients/:id/autopilot">
+          {(params) => (
+            <DashboardLayout>
+              <UnifiedClientGuard requirePremium>
+                <ProtectedRoute component={AutopilotDashboard} clientId={Number(params.id)} />
+              </UnifiedClientGuard>
+            </DashboardLayout>
+          )}
+        </Route>
         <Route path="/clients/:id/implementation">
           {(_params) => <ProtectedRoute component={ImplementationDashboard} />}
         </Route>
@@ -1153,7 +1166,7 @@ function Router() {
           <ProtectedRoute component={ImplementationKanbanPage} />
         </Route>
         <Route path="/clients/:id/implementation/resources">
-          {(_params) => <ProtectedRoute component={ImplementationResources} />}
+          {(_params) => <ProtectedRoute component={ImplementationResources} clientId={Number(_params.id)} />}
         </Route>
         <Route path="/clients/:id/implementation/templates">
           {(_params) => <ProtectedRoute component={TemplateManager} />}
@@ -2104,6 +2117,9 @@ function Router() {
         <Route path="/mappings">
           <ProtectedRoute component={Mappings} />
         </Route>
+        <Route path="/settings">
+          <Redirect to="/settings/security" />
+        </Route>
         <Route path="/settings/:rest*">
           {(_params) => (
             <DashboardLayout>
@@ -2128,9 +2144,6 @@ function Router() {
                 </Route>
                 <Route path="/settings/integrations">
                   <ProtectedRoute component={IntegrationsPage} />
-                </Route>
-                <Route path="/settings">
-                  <Redirect to="/settings/security" />
                 </Route>
                 {/* Default redirect for unmatched settings subroutes */}
                 <Route>
@@ -2186,6 +2199,10 @@ function Router() {
 
 
         {/* Admin Routes */}
+        <Route path="/admin">
+          <Redirect to="/admin/user-management" />
+        </Route>
+
         <Route path="/admin/:rest*">
           <AdminLayout>
             <Switch>
@@ -2200,8 +2217,10 @@ function Router() {
 
               {/* <Route path="/admin/integrations" component={() => <ProtectedRoute component={Integrations} />} /> */}
 
-              {/* Default admin route */}
-              <Route path="/admin" component={() => <ProtectedRoute component={UserManagement} />} />
+              {/* Default admin route - catch-all for unmatched admin subroutes */}
+              <Route>
+                <ProtectedRoute component={UserManagement} />
+              </Route>
             </Switch>
           </AdminLayout>
         </Route>
