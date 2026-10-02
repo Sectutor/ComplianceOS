@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useClientContext } from "@/contexts/ClientContext";
 import { trpc } from "@/lib/trpc";
@@ -52,6 +52,8 @@ import {
   ExternalLink,
   MoreVertical,
   History,
+  Search,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ActionEscalateDialog } from "@/components/action-center/ActionEscalateDialog";
@@ -81,7 +83,12 @@ export default function ActionCenterPage() {
 
   const utils = trpc.useContext();
 
-  const [activeTab, setActiveTab] = useState<string>("all");
+  // Dropdown filter controls
+  const [workflowFilter, setWorkflowFilter] = useState<string>("all");
+  const [domainFilter, setDomainFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   const [selectedActionIds, setSelectedActionIds] = useState<number[]>([]);
   const [showGuideDialog, setShowGuideDialog] = useState<boolean>(false);
   const [inspectingActionId, setInspectingActionId] = useState<number | null>(null);
@@ -287,23 +294,72 @@ export default function ActionCenterPage() {
     );
   };
 
-  // Filter actions by tab
-  const filteredActions = (actions || []).filter((action: any) => {
-    if (activeTab === "all") {
-      return !["executed", "rejected"].includes(action.status);
-    }
-    if (activeTab === "awaiting_review") return action.status === "awaiting_human_review";
-    if (activeTab === "pending") return action.status === "pending";
-    if (activeTab === "delegated") return action.status === "delegated_human" || action.status === "delegated_agent";
-    if (activeTab === "escalated") return action.status === "escalated";
-    if (activeTab === "risk_accepted") return action.status === "risk_accepted";
-    if (activeTab === "executed") return action.status === "executed";
-    if (activeTab === "critical") return action.priority === "critical" && !["executed", "rejected"].includes(action.status);
-    if (activeTab === "policies") return isPolicyAction(action) && !["executed", "rejected"].includes(action.status);
-    if (activeTab === "risks") return isRiskAction(action) && !["executed", "rejected"].includes(action.status);
-    if (activeTab === "slas") return isSlaAction(action) && !["executed", "rejected"].includes(action.status);
-    return true;
-  });
+  // Category & status counts
+  const allList = actions || [];
+  const counts = useMemo(() => ({
+    all: allList.filter((a: any) => !["executed", "rejected"].includes(a.status)).length,
+    awaiting_review: stats?.awaitingReviewCount ?? allList.filter((a: any) => a.status === "awaiting_human_review").length,
+    pending: stats?.totalPending ?? allList.filter((a: any) => a.status === "pending").length,
+    delegated: stats?.delegatedCount ?? allList.filter((a: any) => ["delegated_human", "delegated_agent"].includes(a.status)).length,
+    escalated: stats?.escalatedCount ?? allList.filter((a: any) => a.status === "escalated").length,
+    risk_accepted: stats?.riskAcceptedCount ?? allList.filter((a: any) => a.status === "risk_accepted").length,
+    executed: stats?.executedCount ?? allList.filter((a: any) => a.status === "executed").length,
+    critical: stats?.criticalCount ?? allList.filter((a: any) => a.priority === "critical" && !["executed", "rejected"].includes(a.status)).length,
+    policies: allList.filter((a: any) => isPolicyAction(a) && !["executed", "rejected"].includes(a.status)).length,
+    risks: allList.filter((a: any) => isRiskAction(a) && !["executed", "rejected"].includes(a.status)).length,
+    slas: allList.filter((a: any) => isSlaAction(a) && !["executed", "rejected"].includes(a.status)).length,
+  }), [allList, stats]);
+
+  // Filter actions based on workflow, domain, priority, and search
+  const filteredActions = useMemo(() => {
+    return allList.filter((action: any) => {
+      // 1. Workflow status filter
+      if (workflowFilter === "all") {
+        if (["executed", "rejected"].includes(action.status)) return false;
+      } else if (workflowFilter === "awaiting_review") {
+        if (action.status !== "awaiting_human_review") return false;
+      } else if (workflowFilter === "pending") {
+        if (action.status !== "pending") return false;
+      } else if (workflowFilter === "delegated") {
+        if (action.status !== "delegated_human" && action.status !== "delegated_agent") return false;
+      } else if (workflowFilter === "escalated") {
+        if (action.status !== "escalated") return false;
+      } else if (workflowFilter === "risk_accepted") {
+        if (action.status !== "risk_accepted") return false;
+      } else if (workflowFilter === "executed") {
+        if (action.status !== "executed") return false;
+      }
+
+      // 2. Domain category filter
+      if (domainFilter === "policies" && !isPolicyAction(action)) return false;
+      if (domainFilter === "risks" && !isRiskAction(action)) return false;
+      if (domainFilter === "slas" && !isSlaAction(action)) return false;
+
+      // 3. Priority filter
+      if (priorityFilter !== "all" && action.priority !== priorityFilter) return false;
+
+      // 4. Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = (action.title || "").toLowerCase().includes(q);
+        const matchDesc = (action.description || "").toLowerCase().includes(q);
+        const matchRatio = (action.aiRationale || "").toLowerCase().includes(q);
+        const matchType = (action.type || "").toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchRatio && !matchType) return false;
+      }
+
+      return true;
+    });
+  }, [allList, workflowFilter, domainFilter, priorityFilter, searchQuery]);
+
+  const hasActiveFilters = workflowFilter !== "all" || domainFilter !== "all" || priorityFilter !== "all" || searchQuery.trim() !== "";
+
+  const resetFilters = () => {
+    setWorkflowFilter("all");
+    setDomainFilter("all");
+    setPriorityFilter("all");
+    setSearchQuery("");
+  };
 
   const toggleSelectAction = (id: number) => {
     setSelectedActionIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -402,34 +458,35 @@ export default function ActionCenterPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* Header Banner */}
-      <div className="content-card">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="w-11 h-11 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600">
-                <Bot className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600">
+                <Bot className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                 Proactive Action Center
               </h1>
-              <span className="badge-active">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="w-3.5 h-3.5" />
                 100% Human-in-the-Loop Sign-Off
               </span>
             </div>
-            <p className="text-slate-600 text-sm max-w-2xl leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm max-w-2xl leading-relaxed">
               Autonomous sentinels continuously patrol policies, vendor risks, SLAs, and appetite thresholds. Every proposed remediation requires explicit human review, tiered escalation, or formal risk acceptance.
             </p>
           </div>
 
           {/* Quick Actions / Org & Cadence Control */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Organization Selector */}
             {Array.isArray(clientsList) && clientsList.length > 0 && (
-              <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-2xl px-3 py-1.5">
-                <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
-                <span className="text-xs text-slate-600 font-medium whitespace-nowrap">Org:</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1">
+                <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="text-xs text-slate-500 font-medium">Org:</span>
                 <Select
                   value={String(clientId)}
                   onValueChange={(val) => {
@@ -438,7 +495,7 @@ export default function ActionCenterPage() {
                     setLocation(`/action-center?clientId=${id}`);
                   }}
                 >
-                  <SelectTrigger className="h-7 min-w-[130px] max-w-[190px] bg-transparent border-0 text-slate-900 text-xs font-medium focus:ring-0">
+                  <SelectTrigger className="h-7 min-w-[130px] max-w-[190px] bg-transparent border-0 text-slate-900 dark:text-white text-xs font-semibold focus:ring-0">
                     <SelectValue placeholder="Select org..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800">
@@ -453,14 +510,14 @@ export default function ActionCenterPage() {
             )}
 
             {/* Cadence Selector */}
-            <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-2xl px-3 py-1.5">
-              <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-              <span className="text-xs text-slate-600 font-medium whitespace-nowrap">Cadence:</span>
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1">
+              <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span className="text-xs text-slate-500 font-medium">Cadence:</span>
               <Select
                 value={stats?.cadence || "daily"}
                 onValueChange={(val) => updateCadence.mutate({ clientId, schedule: val })}
               >
-                <SelectTrigger className="h-7 w-[120px] bg-transparent border-0 text-slate-900 text-xs font-medium focus:ring-0">
+                <SelectTrigger className="h-7 w-[120px] bg-transparent border-0 text-slate-900 dark:text-white text-xs font-semibold focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800">
@@ -478,197 +535,325 @@ export default function ActionCenterPage() {
 
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setShowGuideDialog(true)}
-              className="btn-outline rounded-xl px-3.5 py-2 text-xs flex items-center gap-2 cursor-pointer"
+              className="rounded-xl h-8 px-3 text-xs flex items-center gap-1.5 font-semibold cursor-pointer border-slate-300 dark:border-slate-700"
             >
-              <BookOpen className="w-4 h-4 text-blue-600" />
-              How It Works
+              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+              Guide
             </Button>
 
             <Button
+              size="sm"
               onClick={() => runNow.mutate({ clientId })}
               disabled={runNow.isPending}
-              className="btn-primary rounded-xl px-4 py-2 text-xs flex items-center gap-2 cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-8 px-3.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
-              {runNow.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {runNow.isPending ? "Patrolling..." : "Run Proactive Scan Now"}
+              {runNow.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              {runNow.isPending ? "Patrolling..." : "Run Patrol"}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Metrics Row - 5 Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      {/* Metrics Row - 5 Crisp KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* Pending Triage */}
-        <div className="content-card border-l-4 border-l-blue-600 p-4">
+        <div 
+          onClick={() => setWorkflowFilter("pending")}
+          className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 shadow-xs cursor-pointer transition-all ${
+            workflowFilter === "pending" ? "ring-2 ring-blue-500 border-blue-500" : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+          }`}
+        >
           <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600 mb-1">
             Pending Triage
           </div>
-          <div className="text-2xl font-semibold text-blue-950 dark:text-blue-100 flex items-center justify-between">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white flex items-center justify-between">
             {(stats?.totalPending ?? 0).toLocaleString()}
-            <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
               <Inbox className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Awaiting triage &amp; initial routing</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Awaiting triage &amp; routing</div>
         </div>
 
         {/* Awaiting Review (HITL) */}
-        <div className="content-card border-l-4 border-l-amber-500 p-4">
+        <div 
+          onClick={() => setWorkflowFilter("awaiting_review")}
+          className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 shadow-xs cursor-pointer transition-all ${
+            workflowFilter === "awaiting_review" ? "ring-2 ring-amber-500 border-amber-500" : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+          }`}
+        >
           <div className="text-[11px] font-bold uppercase tracking-wider text-amber-600 mb-1">
             Awaiting Review (HITL)
           </div>
-          <div className="text-2xl font-semibold text-amber-950 dark:text-amber-100 flex items-center justify-between">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white flex items-center justify-between">
             {(stats?.awaitingReviewCount ?? 0).toLocaleString()}
-            <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
               <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Staged patches ready for sign-off</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Staged patches ready for sign-off</div>
         </div>
 
         {/* Critical Gaps */}
-        <div className="content-card border-l-4 border-l-rose-600 p-4">
+        <div 
+          onClick={() => setPriorityFilter(priorityFilter === "critical" ? "all" : "critical")}
+          className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 shadow-xs cursor-pointer transition-all ${
+            priorityFilter === "critical" ? "ring-2 ring-rose-500 border-rose-500" : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+          }`}
+        >
           <div className="text-[11px] font-bold uppercase tracking-wider text-rose-600 mb-1">
             Critical Priority
           </div>
-          <div className="text-2xl font-semibold text-rose-600 flex items-center justify-between">
+          <div className="text-2xl font-bold text-rose-600 flex items-center justify-between">
             {(stats?.criticalCount ?? 0).toLocaleString()}
-            <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Appetite &amp; SLA breaches</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Appetite &amp; SLA breaches</div>
         </div>
 
         {/* Escalated & Delegated */}
-        <div className="content-card border-l-4 border-l-indigo-600 p-4">
+        <div 
+          onClick={() => setWorkflowFilter("delegated")}
+          className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 shadow-xs cursor-pointer transition-all ${
+            workflowFilter === "delegated" ? "ring-2 ring-indigo-500 border-indigo-500" : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+          }`}
+        >
           <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 mb-1">
             Active Delegations
           </div>
-          <div className="text-2xl font-semibold text-indigo-950 dark:text-indigo-100 flex items-center justify-between">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white flex items-center justify-between">
             {((stats?.delegatedCount ?? 0) + (stats?.escalatedCount ?? 0)).toLocaleString()}
-            <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center">
               <ArrowUpRight className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Assigned to RACI or DPO/CISO</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Assigned to RACI or DPO/CISO</div>
         </div>
 
         {/* Executed Remediations */}
-        <div className="content-card border-l-4 border-l-emerald-600 p-4">
+        <div 
+          onClick={() => setWorkflowFilter("executed")}
+          className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 shadow-xs cursor-pointer transition-all ${
+            workflowFilter === "executed" ? "ring-2 ring-emerald-500 border-emerald-500" : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+          }`}
+        >
           <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 mb-1">
             Remediated
           </div>
-          <div className="text-2xl font-semibold text-emerald-600 flex items-center justify-between">
+          <div className="text-2xl font-bold text-emerald-600 flex items-center justify-between">
             {(stats?.executedCount ?? 0).toLocaleString()}
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
               <CheckCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Logged with audit sign-off</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Logged with audit sign-off</div>
         </div>
       </div>
 
-      {/* Tabs & Batch Actions Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          {[
-            { key: "all", label: "All Active", count: (actions || []).filter((a: any) => !["executed", "rejected"].includes(a.status)).length },
-            { key: "awaiting_review", label: "Awaiting Review (HITL)", count: stats?.awaitingReviewCount ?? 0, highlight: true },
-            { key: "pending", label: "Pending", count: stats?.totalPending ?? 0 },
-            { key: "delegated", label: "Delegated", count: stats?.delegatedCount ?? 0 },
-            { key: "escalated", label: "Escalated", count: stats?.escalatedCount ?? 0 },
-            { key: "risk_accepted", label: "Risk Accepted", count: stats?.riskAcceptedCount ?? 0 },
-            { key: "critical", label: "Critical", count: stats?.criticalCount ?? 0 },
-            { key: "policies", label: "Policies", count: (actions || []).filter(isPolicyAction).length },
-            { key: "risks", label: "Risks", count: (actions || []).filter(isRiskAction).length },
-            { key: "slas", label: "SLAs", count: (actions || []).filter(isSlaAction).length },
-            { key: "executed", label: "Remediated", count: stats?.executedCount ?? 0 },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                activeTab === tab.key
-                  ? "tab-active shadow-xs"
-                  : "tab-inactive"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[11px] font-bold ${
-                activeTab === tab.key 
-                  ? "bg-white/20 text-white" 
-                  : tab.highlight && tab.count > 0
-                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                  : "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
-              }`}>
-                {tab.count.toLocaleString()}
+      {/* Clean Category & Workflow Dropdown Filter Toolbar */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Dropdown Filters Group */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* 1. Workflow Stage Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Status:
               </span>
-            </button>
-          ))}
-        </div>
+              <Select value={workflowFilter} onValueChange={setWorkflowFilter}>
+                <SelectTrigger className="h-9 min-w-[210px] rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white shadow-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    <Filter className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl text-xs">
+                  <SelectItem value="all">
+                    All Active Findings ({counts.all.toLocaleString()})
+                  </SelectItem>
+                  <SelectItem value="awaiting_review">
+                    <span className="text-amber-600 dark:text-amber-400 font-bold">
+                      Awaiting Review (HITL) ({counts.awaiting_review.toLocaleString()})
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="pending">
+                    Pending Triage ({counts.pending.toLocaleString()})
+                  </SelectItem>
+                  <SelectItem value="delegated">
+                    Delegated (Human &amp; AI) ({counts.delegated.toLocaleString()})
+                  </SelectItem>
+                  <SelectItem value="escalated">
+                    <span className="text-rose-600 dark:text-rose-400 font-bold">
+                      Escalated to DPO / CISO ({counts.escalated.toLocaleString()})
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="risk_accepted">
+                    Risk Accepted (ISO 27005) ({counts.risk_accepted.toLocaleString()})
+                  </SelectItem>
+                  <SelectItem value="executed">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      Remediated / Closed ({counts.executed.toLocaleString()})
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Batch Bar */}
-        {filteredActions.length > 0 && (
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={selectAllFiltered}
-              className="btn-outline text-xs rounded-xl h-8 px-3"
-            >
-              {selectedActionIds.length === filteredActions.length ? "Deselect All" : "Select All"}
-            </Button>
-            {selectedActionIds.length > 0 && (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "approved" })}
-                  disabled={batchReview.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-xl h-8 px-3 font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Check className="w-3.5 h-3.5" /> Approve ({selectedActionIds.length})
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "rejected" })}
-                  disabled={batchReview.isPending}
-                  className="text-rose-700 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950 text-xs rounded-xl h-8 px-3 font-medium flex items-center gap-1.5 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" /> Dismiss ({selectedActionIds.length})
-                </Button>
-              </>
+            {/* 2. Domain Category Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Domain:
+              </span>
+              <Select value={domainFilter} onValueChange={setDomainFilter}>
+                <SelectTrigger className="h-9 min-w-[170px] rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white shadow-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl text-xs">
+                  <SelectItem value="all">All Domains</SelectItem>
+                  <SelectItem value="policies">Policies &amp; Clauses ({counts.policies.toLocaleString()})</SelectItem>
+                  <SelectItem value="risks">Risks &amp; Threats ({counts.risks.toLocaleString()})</SelectItem>
+                  <SelectItem value="slas">SLAs &amp; Evidence ({counts.slas.toLocaleString()})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 3. Priority Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Priority:
+              </span>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="h-9 min-w-[140px] rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white shadow-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl text-xs">
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="critical">Critical ({counts.critical.toLocaleString()})</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-8 px-2.5 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl flex items-center gap-1 cursor-pointer font-medium"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
+              </Button>
             )}
           </div>
-        )}
+
+          {/* Search Box */}
+          <div className="relative min-w-[220px] max-w-sm">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search findings by keyword..."
+              className="h-9 pl-8 pr-7 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-blue-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Batch Bar & Result Counter */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+          <div>
+            Showing <strong className="text-slate-900 dark:text-white">{filteredActions.length.toLocaleString()}</strong> finding{filteredActions.length === 1 ? "" : "s"}
+            {hasActiveFilters && " matching active filters"}
+          </div>
+
+          {filteredActions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllFiltered}
+                className="text-xs rounded-xl h-8 px-3 border-slate-300 dark:border-slate-700 cursor-pointer font-medium"
+              >
+                {selectedActionIds.length === filteredActions.length ? "Deselect All" : `Select All (${filteredActions.length})`}
+              </Button>
+              {selectedActionIds.length > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "approved" })}
+                    disabled={batchReview.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-xl h-8 px-3 font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Approve ({selectedActionIds.length})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => batchReview.mutate({ clientId, actionIds: selectedActionIds, decision: "rejected" })}
+                    disabled={batchReview.isPending}
+                    className="text-rose-700 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950 text-xs rounded-xl h-8 px-3 font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" /> Dismiss ({selectedActionIds.length})
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action Cards Queue */}
       {actionsLoading ? (
-        <div className="flex flex-col items-center justify-center p-16 text-slate-500 gap-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col items-center justify-center p-16 text-slate-500 gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Patrolling and retrieving active recommendations...</p>
         </div>
       ) : filteredActions.length === 0 ? (
-        <Card className="rounded-3xl border-dashed border-2 border-slate-200 dark:border-slate-800 p-12 text-center bg-white dark:bg-slate-900">
+        <div className="rounded-2xl border-dashed border-2 border-slate-200 dark:border-slate-800 p-12 text-center bg-white dark:bg-slate-900">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
             <CheckCheck className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">All Clear — No Items in this View</h3>
-          <p className="text-slate-500 text-xs max-w-md mx-auto mt-1 mb-6">
-            The sentinel bot fleet has not detected any unaddressed compliance breaches, overdue policies, or pending approvals under this filter.
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">All Clear — No Items Found</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-xs max-w-md mx-auto mt-1 mb-5">
+            {hasActiveFilters
+              ? "No compliance findings match your current filter settings. Try adjusting or clearing your filters."
+              : "The sentinel bot fleet has not detected any unaddressed compliance breaches or pending approvals."}
           </p>
-          <Button
-            onClick={() => runNow.mutate({ clientId })}
-            disabled={runNow.isPending}
-            variant="outline"
-            className="rounded-xl font-bold text-xs gap-2 border-slate-300 dark:border-slate-700"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Trigger Patrol Check
-          </Button>
-        </Card>
+          {hasActiveFilters ? (
+            <Button
+              onClick={resetFilters}
+              variant="outline"
+              size="sm"
+              className="rounded-xl font-bold text-xs gap-1.5 border-slate-300 dark:border-slate-700"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
+            </Button>
+          ) : (
+            <Button
+              onClick={() => runNow.mutate({ clientId })}
+              disabled={runNow.isPending}
+              variant="outline"
+              size="sm"
+              className="rounded-xl font-bold text-xs gap-2 border-slate-300 dark:border-slate-700"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Trigger Patrol Check
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="grid gap-4">
           {filteredActions.map((action: any) => {
@@ -686,31 +871,31 @@ export default function ActionCenterPage() {
             let botBadge = { 
               name: "Sentinel Bot", 
               icon: Bot, 
-              color: "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/60 dark:text-blue-200 dark:border-blue-800" 
+              color: "bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/80 dark:text-blue-200 dark:border-blue-800" 
             };
             if (action.type.includes("policy") || (action.title || "").toLowerCase().includes("policy")) {
               botBadge = { 
                 name: "Policy Steward", 
                 icon: Layers, 
-                color: "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-800" 
+                color: "bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-800" 
               };
             } else if (action.type.includes("risk") || (action.title || "").toLowerCase().includes("risk")) {
               botBadge = { 
                 name: "Risk Watchdog", 
                 icon: AlertTriangle, 
-                color: "bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800" 
+                color: "bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/80 dark:text-rose-200 dark:border-rose-800" 
               };
             } else if (action.type.includes("vuln")) {
               botBadge = { 
                 name: "Vuln Sentinel", 
                 icon: ShieldAlert, 
-                color: "bg-indigo-50 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-200 dark:border-indigo-800" 
+                color: "bg-indigo-50 text-indigo-900 border-indigo-200 dark:bg-indigo-950/80 dark:text-indigo-200 dark:border-indigo-800" 
               };
             } else if (action.type.includes("sla") || action.type.includes("questionnaire")) {
               botBadge = { 
                 name: "SLA Hound", 
                 icon: Clock, 
-                color: "bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700" 
+                color: "bg-amber-50 text-amber-950 border-amber-200 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-700" 
               };
             }
 
@@ -719,21 +904,21 @@ export default function ActionCenterPage() {
             return (
               <div
                 key={action.id}
-                className={`content-card transition-all ${
+                className={`bg-white dark:bg-slate-900 border rounded-2xl p-5 shadow-xs transition-all ${
                   isSelected
-                    ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/50"
+                    ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20"
                     : isAwaitingReview
-                    ? "border-l-4 border-l-amber-500 bg-amber-50/20 dark:bg-amber-950/10"
+                    ? "border-l-4 border-l-amber-500 border-slate-200 dark:border-slate-800"
                     : isEscalated
-                    ? "border-l-4 border-l-rose-600 bg-rose-50/20 dark:bg-rose-950/10"
+                    ? "border-l-4 border-l-rose-600 border-slate-200 dark:border-slate-800"
                     : isCritical
-                    ? "border-l-4 border-l-rose-600"
-                    : ""
+                    ? "border-l-4 border-l-rose-600 border-slate-200 dark:border-slate-800"
+                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
               >
                 {/* Status Banners */}
                 {isAwaitingReview && (
-                  <div className="mb-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+                  <div className="mb-3.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-between gap-3 text-xs text-amber-950 dark:text-amber-200 font-medium">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>
@@ -747,7 +932,7 @@ export default function ActionCenterPage() {
                 )}
 
                 {isEscalated && (
-                  <div className="mb-3 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between gap-3 text-xs text-rose-900 dark:text-rose-200">
+                  <div className="mb-3.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-between gap-3 text-xs text-rose-950 dark:text-rose-200 font-medium">
                     <div className="flex items-center gap-2">
                       <ArrowUpRight className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>
@@ -763,7 +948,7 @@ export default function ActionCenterPage() {
                 )}
 
                 {isDelegatedHuman && (
-                  <div className="mb-3 p-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-3 text-xs text-blue-900 dark:text-blue-200">
+                  <div className="mb-3.5 p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-between gap-3 text-xs text-blue-950 dark:text-blue-200 font-medium">
                     <div className="flex items-center gap-2">
                       <UserCheck className="w-4 h-4 text-blue-600 shrink-0" />
                       <span>
@@ -774,7 +959,7 @@ export default function ActionCenterPage() {
                 )}
 
                 {isDelegatedAgent && (
-                  <div className="mb-3 p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between gap-3 text-xs text-indigo-900 dark:text-indigo-200">
+                  <div className="mb-3.5 p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3 text-xs text-indigo-950 dark:text-indigo-200 font-medium">
                     <div className="flex items-center gap-2">
                       <Bot className="w-4 h-4 text-indigo-600 shrink-0" />
                       <span>
@@ -785,7 +970,7 @@ export default function ActionCenterPage() {
                 )}
 
                 {isRiskAccepted && (
-                  <div className="mb-3 p-2.5 rounded-2xl bg-slate-500/10 border border-slate-500/20 flex items-center justify-between gap-3 text-xs text-slate-800 dark:text-slate-200">
+                  <div className="mb-3.5 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 text-xs text-slate-800 dark:text-slate-200 font-medium">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>
@@ -795,265 +980,268 @@ export default function ActionCenterPage() {
                   </div>
                 )}
 
-                {/* Card Top Row */}
-                <div className="pb-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelectAction(action.id)}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4.5 w-4.5 cursor-pointer"
-                      />
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${botBadge.color}`}>
-                        <BotIcon className="w-3.5 h-3.5" />
-                        {botBadge.name}
-                      </span>
-                      <Badge
-                        className={`text-xs uppercase font-medium px-2.5 py-0.5 tracking-wider font-bold ${
-                          isCritical || action.priority === "critical"
-                            ? "bg-red-600 text-white"
-                            : action.priority === "high"
-                            ? "bg-orange-500 text-white"
-                            : action.priority === "medium"
-                            ? "bg-yellow-400 text-yellow-900"
-                            : action.priority === "low"
-                            ? "bg-green-500 text-white"
-                            : "bg-yellow-400 text-yellow-900"
-                        }`}
-                      >
-                        {action.priority || "MEDIUM"}
-                      </Badge>
-                      <span className="text-xs text-slate-500 font-normal">
-                        Detected: {action.createdAt ? new Date(action.createdAt).toLocaleDateString() : "Recently"}
-                      </span>
-                    </div>
+                {/* Card Top Row: Checkbox, Bot Badge, Priority, Detection Date, and Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectAction(action.id)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                    />
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${botBadge.color}`}>
+                      <BotIcon className="w-3.5 h-3.5" />
+                      {botBadge.name}
+                    </span>
+                    <Badge
+                      className={`text-[11px] uppercase font-bold px-2 py-0.2 tracking-wider ${
+                        isCritical || action.priority === "critical"
+                          ? "bg-red-600 text-white"
+                          : action.priority === "high"
+                          ? "bg-amber-600 text-white"
+                          : action.priority === "medium"
+                          ? "bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200"
+                          : action.priority === "low"
+                          ? "bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200"
+                          : "bg-slate-200 text-slate-800"
+                      }`}
+                    >
+                      {action.priority || "MEDIUM"}
+                    </Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Detected: {action.createdAt ? new Date(action.createdAt).toLocaleDateString() : "Recently"}
+                    </span>
+                  </div>
 
-                    {/* Card Actions Bar */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setInspectorTab("details");
-                          setInspectingActionId(action.id);
-                        }}
-                        className="bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-950/80 dark:hover:bg-blue-900 dark:text-blue-200 rounded-xl h-8 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <span>Details</span>
-                      </Button>
+                  {/* Right Action Buttons Toolbar */}
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setInspectorTab("details");
+                        setInspectingActionId(action.id);
+                      }}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Details</span>
+                    </Button>
 
-                      {/* Awaiting Review: HITL approve/reject buttons */}
-                      {isAwaitingReview && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
-                            disabled={reviewAction.isPending}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Review &amp; Approve Patch (HITL)
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => setEscalatingAction(action)}
-                            className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-800 rounded-xl h-8 px-2.5 text-xs font-medium flex items-center gap-1 cursor-pointer"
-                          >
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                            Escalate
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "rejected" })}
-                            disabled={reviewAction.isPending}
-                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl h-8 w-8 p-0 flex items-center justify-center cursor-pointer"
-                            title="Reject staged patch"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
+                    {/* Awaiting Review: HITL approve/reject buttons */}
+                    {isAwaitingReview && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
+                          disabled={reviewAction.isPending}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Approve Patch (HITL)
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => setEscalatingAction(action)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl h-8 px-2.5 text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-xs"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                          Escalate
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "rejected" })}
+                          disabled={reviewAction.isPending}
+                          className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl h-8 w-8 p-0 flex items-center justify-center cursor-pointer"
+                          title="Reject staged patch"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
 
-                      {/* Standard Pending Workflow Buttons */}
-                      {action.status === "pending" && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
-                            disabled={reviewAction.isPending}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Approve Fix
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => openDelegateModal(action)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-8 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          >
-                            <UserCheck className="w-3.5 h-3.5" />
-                            Delegate
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => setEscalatingAction(action)}
-                            className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl h-8 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          >
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                            Escalate
-                          </Button>
+                    {/* Standard Pending Workflow Buttons */}
+                    {action.status === "pending" && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
+                          disabled={reviewAction.isPending}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Approve Fix
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => openDelegateModal(action)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" />
+                          Delegate
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => setEscalatingAction(action)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                          Escalate
+                        </Button>
 
-                          {/* More Options Dropdown */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-xl h-8 w-8 p-0 flex items-center justify-center text-slate-500 hover:text-slate-800 border-slate-300 dark:border-slate-700 cursor-pointer"
-                                title="More actions"
-                              >
-                                <MoreVertical className="w-3.5 h-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-xs">
-                              <DropdownMenuItem
-                                onClick={() => setAcceptingRiskAction(action)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-medium"
-                              >
-                                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                                Accept Risk (ISO 27005)
-                              </DropdownMenuItem>
+                        {/* More Options Dropdown */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl h-8 w-8 p-0 flex items-center justify-center text-slate-500 hover:text-slate-800 border-slate-300 dark:border-slate-700 cursor-pointer"
+                              title="More options"
+                            >
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-xs">
+                            <DropdownMenuItem
+                              onClick={() => setAcceptingRiskAction(action)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-medium"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                              Accept Risk (ISO 27005)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => openPromoteIncidentModal(action)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer font-medium"
+                            >
+                              <AlertTriangle className="w-4 h-4 text-rose-500" />
+                              Promote to Security Incident
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+                            <DropdownMenuItem
+                              onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "rejected" })}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+                            >
+                              <X className="w-4 h-4 text-slate-400" />
+                              Dismiss Recommendation
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    )}
+
+                    {/* Escalated / Delegated / Risk Accepted buttons */}
+                    {(isEscalated || isDelegatedHuman || isRiskAccepted) && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
+                          disabled={reviewAction.isPending}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Sign-Off / Close
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl h-8 w-8 p-0 flex items-center justify-center text-slate-500 hover:text-slate-800 border-slate-300 dark:border-slate-700 cursor-pointer"
+                            >
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-xs">
+                            <DropdownMenuItem
+                              onClick={() => setEscalatingAction(action)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-amber-700 dark:text-amber-400 hover:bg-amber-50 cursor-pointer font-medium"
+                            >
+                              <ArrowUpRight className="w-4 h-4 text-amber-500" />
+                              Escalate to Higher Tier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setAcceptingRiskAction(action)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer font-medium"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                              Accept Risk (ISO 27005)
+                            </DropdownMenuItem>
+                            {!action.incidentId && (
                               <DropdownMenuItem
                                 onClick={() => openPromoteIncidentModal(action)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer font-medium"
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 cursor-pointer font-medium"
                               >
                                 <AlertTriangle className="w-4 h-4 text-rose-500" />
-                                Promote to Security Incident
+                                Promote to Incident
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-                              <DropdownMenuItem
-                                onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "rejected" })}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
-                              >
-                                <X className="w-4 h-4 text-slate-400" />
-                                Dismiss Recommendation
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </>
-                      )}
-
-                      {/* Escalated / Delegated / Risk Accepted buttons */}
-                      {(isEscalated || isDelegatedHuman || isRiskAccepted) && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
-                            disabled={reviewAction.isPending}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Sign-Off / Close
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-xl h-8 w-8 p-0 flex items-center justify-center text-slate-500 hover:text-slate-800 border-slate-300 dark:border-slate-700 cursor-pointer"
-                              >
-                                <MoreVertical className="w-3.5 h-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-xs">
-                              <DropdownMenuItem
-                                onClick={() => setEscalatingAction(action)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-amber-700 dark:text-amber-400 hover:bg-amber-50 cursor-pointer font-medium"
-                              >
-                                <ArrowUpRight className="w-4 h-4 text-amber-500" />
-                                Escalate to Higher Tier
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setAcceptingRiskAction(action)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer font-medium"
-                              >
-                                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                                Accept Risk (ISO 27005)
-                              </DropdownMenuItem>
-                              {!action.incidentId && (
-                                <DropdownMenuItem
-                                  onClick={() => openPromoteIncidentModal(action)}
-                                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 cursor-pointer font-medium"
-                                >
-                                  <AlertTriangle className="w-4 h-4 text-rose-500" />
-                                  Promote to Incident
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-sm sm:text-base font-medium text-slate-800 dark:text-slate-200 mt-2.5 leading-snug cursor-pointer hover:text-blue-600 hover:underline transition-colors flex items-center gap-2.5 group">
-                    <span>{action.title}</span>
-                    <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-600 transition-opacity shrink-0" />
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-3.5 pt-0">
-                  {/* AI Rationale Box */}
-                  <div className="highlight-section">
-                    <div className="flex items-center gap-2 font-medium text-black dark:text-slate-200 mb-2 text-xs sm:text-sm">
-                      <Sparkles className="w-4.5 h-4.5 text-blue-600 shrink-0" />
-                      Sentinel Analysis &amp; Findings:
+                {/* Finding Title - Sharp & Highly Readable */}
+                <div 
+                  onClick={() => {
+                    setInspectorTab("details");
+                    setInspectingActionId(action.id);
+                  }}
+                  className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 leading-snug cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2 group"
+                >
+                  <span>{action.title}</span>
+                  <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-600 dark:text-blue-400 transition-opacity shrink-0" />
+                </div>
+
+                {/* AI Rationale Box - Clean High-Contrast Slate Background */}
+                <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl p-4 mt-3 space-y-1.5">
+                  <div className="flex items-center gap-2 font-bold text-blue-900 dark:text-blue-300 text-xs sm:text-sm">
+                    <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+                    Sentinel Analysis &amp; Findings:
+                  </div>
+                  <div className="text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-relaxed font-normal">
+                    {action.aiRationale || action.description}
+                  </div>
+                </div>
+
+                {/* Fix Preview - High Contrast Diff Card */}
+                {meta.fixType === "policy_clause_addition" && meta.suggestedAddition && (
+                  <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 overflow-hidden shadow-xs mt-3">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/70 border-b border-emerald-200 dark:border-emerald-800/80 px-4 py-2 flex items-center justify-between">
+                      <div className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-xs leading-none">+</span>
+                        Proposed Addition: {meta.clauseTitle || "New Policy Section"}
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/80 px-2 py-0.5 rounded-full">
+                        Ready to Merge
+                      </span>
                     </div>
-                    <div className="text-black dark:text-slate-200 text-sm sm:text-base font-medium leading-relaxed">
-                      {action.aiRationale || action.description}
+                    <pre className="text-xs sm:text-sm font-mono text-emerald-300 bg-slate-950 p-4 whitespace-pre-wrap leading-relaxed shadow-inner overflow-x-auto selection:bg-emerald-800">
+                      {meta.suggestedAddition}
+                    </pre>
+                    <div className="bg-slate-50 dark:bg-slate-900 border-t border-emerald-100 dark:border-emerald-900/40 px-4 py-2 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2 font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      Approving this fix will automatically append this clause into the policy document and generate an audit log entry.
                     </div>
                   </div>
+                )}
 
-                  {/* Fix Preview - High Contrast Diff Card */}
-                  {meta.fixType === "policy_clause_addition" && meta.suggestedAddition && (
-                    <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 overflow-hidden shadow-xs mt-3">
-                      <div className="bg-emerald-50 dark:bg-emerald-950/70 border-b border-emerald-200 dark:border-emerald-800/80 px-4 py-2 flex items-center justify-between">
-                        <div className="font-bold text-sm text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-                          <span className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-xs leading-none">+</span>
-                          Proposed Addition: {meta.clauseTitle || "New Policy Section"}
-                        </div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/80 px-2 py-0.5 rounded-full">
-                          Ready to Merge
-                        </span>
-                      </div>
-                      <pre className="text-xs sm:text-sm font-mono text-emerald-400 bg-slate-950 dark:bg-black p-4 whitespace-pre-wrap leading-relaxed shadow-inner overflow-x-auto selection:bg-emerald-800">
-                        {meta.suggestedAddition}
-                      </pre>
-                      <div className="bg-slate-50 dark:bg-slate-900 border-t border-emerald-100 dark:border-emerald-900/40 px-4 py-2 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        Approving this fix will automatically append this clause into the policy document and generate a non-repudiable audit log entry.
-                      </div>
+                {/* Residual Risk Metrics */}
+                {meta.residualScore && meta.appetite && (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-3 text-xs sm:text-sm mt-3">
+                    <div className="text-slate-700 dark:text-slate-300 font-medium">
+                      Residual Risk: <span className="font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/80 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">{meta.residualScore}</span>
                     </div>
-                  )}
-
-                  {/* Residual Risk Metrics */}
-                  {meta.residualScore && meta.appetite && (
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-3 text-xs sm:text-sm mt-3">
-                      <div className="text-slate-700 dark:text-slate-300 font-medium">
-                        Residual Risk: <span className="font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/80 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">{meta.residualScore}</span>
-                      </div>
-                      <div className="text-slate-700 dark:text-slate-300 font-medium">
-                        Appetite Limit: <span className="font-semibold text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">{meta.appetite}</span>
-                      </div>
-                      <div className="text-rose-700 dark:text-rose-400 text-xs font-semibold ml-auto flex items-center gap-1.5">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        Breaches accepted risk threshold
-                      </div>
+                    <div className="text-slate-700 dark:text-slate-300 font-medium">
+                      Appetite Limit: <span className="font-semibold text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">{meta.appetite}</span>
                     </div>
-                  )}
-                </div>
+                    <div className="text-rose-700 dark:text-rose-400 text-xs font-semibold ml-auto flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      Breaches accepted risk threshold
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1436,7 +1624,7 @@ export default function ActionCenterPage() {
                       )}
                     </div>
 
-                    <DialogTitle className="text-xl font-semibold text-slate-950 dark:text-white leading-tight mt-1">
+                    <DialogTitle className="text-xl font-bold text-slate-950 dark:text-white leading-tight mt-1">
                       {act.title}
                     </DialogTitle>
                     <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 font-medium">
