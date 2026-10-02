@@ -20,7 +20,6 @@ import {
   evidenceRequests,
   evidenceFiles,
   riskAppetite,
-  riskAssessments,
   dsarRequests,
   dataProtImpactAssessments,
   auditFindings,
