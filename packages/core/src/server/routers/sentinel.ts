@@ -11,6 +11,38 @@ import { applyApprovedFix, getProposedFix } from "../../lib/action-center-agent"
 
 const log = (...a: any[]) => console.log("[sentinel-api]", ...a);
 
+async function logActionHistory(db: any, params: {
+  actionId: number;
+  clientId: number;
+  actorType: 'user' | 'agent' | 'system';
+  actorId?: string | number | null;
+  actorName?: string | null;
+  actionType: string;
+  previousStatus?: string | null;
+  newStatus?: string | null;
+  notes?: string | null;
+  patchPayload?: any;
+}) {
+  try {
+    await db.execute(sql`
+      INSERT INTO autopilot_action_history 
+        (action_id, client_id, actor_type, actor_id, actor_name, action_type, previous_status, new_status, notes, patch_payload, created_at)
+      VALUES (
+        ${params.actionId}, ${params.clientId}, ${params.actorType}, 
+        ${params.actorId ? String(params.actorId) : null}, 
+        ${params.actorName || null}, 
+        ${params.actionType}, 
+        ${params.previousStatus || null}, 
+        ${params.newStatus || null}, 
+        ${params.notes || null}, 
+        ${params.patchPayload ? JSON.stringify(params.patchPayload) : null}::jsonb, 
+        now()
+      )`);
+  } catch (err) {
+    console.warn("[logActionHistory] Failed to write history:", err);
+  }
+}
+
 export function createSentinelRouter(t: any, clientProcedure: any, adminProcedure: any) {
   return t.router({
     /** Run all enabled sentinel bots for a client immediately (manual/demo trigger). */
@@ -53,7 +85,10 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
     listActions: clientProcedure
       .input(z.object({
         clientId: z.number(),
-        status: z.enum(["pending", "pending_review", "executed", "rejected", "all"]).default("all"),
+        status: z.enum([
+          "pending", "pending_review", "delegated_human", "delegated_agent",
+          "awaiting_human_review", "escalated", "risk_accepted", "executed", "rejected", "all"
+        ]).default("all"),
         limit: z.number().default(50),
       }))
       .query(async ({ input }: { input: any }) => {
@@ -63,7 +98,22 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         const statusFilter = input.status === "all" ? sql`TRUE` : sql`status = ${statusVal}`;
         const rows = await db.execute(sql`
           SELECT id, type, title, description, priority, status, ai_rationale AS "aiRationale",
-                 metadata, target_entity AS "targetEntity", created_at AS "createdAt"
+                 metadata, target_entity AS "targetEntity", created_at AS "createdAt",
+                 assigned_to_user_id AS "assignedToUserId",
+                 assigned_to_employee_id AS "assignedToEmployeeId",
+                 assigned_agent AS "assignedAgent",
+                 reviewer_user_id AS "reviewerUserId",
+                 delegated_by_user_id AS "delegatedByUserId",
+                 escalation_level AS "escalationLevel",
+                 escalated_to_role AS "escalatedToRole",
+                 escalated_to_name AS "escalatedToName",
+                 escalated_at AS "escalatedAt",
+                 escalation_reason AS "escalationReason",
+                 due_at AS "dueAt",
+                 risk_accepted_until AS "riskAcceptedUntil",
+                 risk_acceptance_rationale AS "riskAcceptanceRationale",
+                 compensating_controls AS "compensatingControls",
+                 incident_id AS "incidentId"
           FROM autopilot_actions
           WHERE client_id = ${input.clientId} AND ${statusFilter}
           ORDER BY created_at DESC
@@ -83,7 +133,22 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
 
         const rows = await db.execute(sql`
           SELECT id, type, title, description, priority, status, ai_rationale AS "aiRationale",
-                 metadata, target_entity AS "targetEntity", created_at AS "createdAt"
+                 metadata, target_entity AS "targetEntity", created_at AS "createdAt",
+                 assigned_to_user_id AS "assignedToUserId",
+                 assigned_to_employee_id AS "assignedToEmployeeId",
+                 assigned_agent AS "assignedAgent",
+                 reviewer_user_id AS "reviewerUserId",
+                 delegated_by_user_id AS "delegatedByUserId",
+                 escalation_level AS "escalationLevel",
+                 escalated_to_role AS "escalatedToRole",
+                 escalated_to_name AS "escalatedToName",
+                 escalated_at AS "escalatedAt",
+                 escalation_reason AS "escalationReason",
+                 due_at AS "dueAt",
+                 risk_accepted_until AS "riskAcceptedUntil",
+                 risk_acceptance_rationale AS "riskAcceptanceRationale",
+                 compensating_controls AS "compensatingControls",
+                 incident_id AS "incidentId"
           FROM autopilot_actions
           WHERE id = ${input.actionId} AND client_id = ${input.clientId}
           LIMIT 1`).then((r: any) => r.rows ?? r);
@@ -280,6 +345,18 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
           await db.execute(sql`
             UPDATE autopilot_actions SET status = 'rejected', reviewed_by = ${reviewerId}, reviewed_at = now()
             WHERE id = ${input.actionId}`);
+
+          await logActionHistory(db, {
+            actionId: input.actionId,
+            clientId: Number(meta.clientId ?? input.clientId ?? 0),
+            actorType: 'user',
+            actorId: reviewerId,
+            actionType: 'rejected',
+            previousStatus: actionRow.status,
+            newStatus: 'rejected',
+            notes: input.customNotes || 'Action dismissed by reviewer',
+          });
+
           return { success: true, executed: false };
         }
         // approved → execute the proposed task creation with delegation
@@ -313,6 +390,18 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
                 reviewed_at = now(),
                 metadata = jsonb_set(coalesce(metadata,'{}'::jsonb), '{fixResult}', ${JSON.stringify(result)}::jsonb)
             WHERE id = ${input.actionId}`);
+
+          await logActionHistory(db, {
+            actionId: input.actionId,
+            clientId: fixClientId,
+            actorType: 'user',
+            actorId: reviewerId,
+            actionType: 'approved_fix',
+            previousStatus: actionRow.status,
+            newStatus: result.success ? 'executed' : 'failed',
+            notes: result.success ? `Fix applied to ${result.applied}.` : `Fix failed: ${result.error}`,
+            patchPayload: fix,
+          });
 
           return {
             success: result.success,
@@ -368,7 +457,309 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         await db.execute(sql`
           UPDATE autopilot_actions SET status = 'executed', reviewed_by = ${reviewerId}, reviewed_at = now()
           WHERE id = ${input.actionId}`);
+
+        await logActionHistory(db, {
+          actionId: input.actionId,
+          clientId: targetClientId,
+          actorType: 'user',
+          actorId: reviewerId,
+          actionType: 'approved_task',
+          previousStatus: actionRow.status,
+          newStatus: 'executed',
+          notes: `Task created: ${title}`,
+        });
+
         return { success: true, executed: true };
+      }),
+
+    /** Delegate finding: to Human team member (creates work item with RACI) or Autonomous Agent (with mandatory HITL reviewer) */
+    delegateAction: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        actionId: z.coerce.number(),
+        delegationType: z.enum(["human", "agent"]),
+        // Human delegation
+        assigneeType: z.enum(["user", "employee", "unassigned"]).optional(),
+        assigneeId: z.number().optional(),
+        assigneeName: z.string().optional(),
+        raciRole: z.enum(["responsible", "accountable", "consulted", "informed"]).default("responsible"),
+        dueInDays: z.number().default(14),
+        customNotes: z.string().optional(),
+        // Agent delegation
+        assignedAgent: z.string().optional(),
+        reviewerUserId: z.number().optional(),
+        reviewerName: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection failed" });
+        const actorId = ctx.user?.id ? Number(ctx.user.id) : null;
+        const actorName = ctx.user?.name || ctx.user?.email || "Reviewer";
+
+        const [actionRow] = await db.execute(sql`
+          SELECT id, title, description, priority, status, metadata, ai_rationale
+          FROM autopilot_actions
+          WHERE id = ${input.actionId} AND client_id = ${input.clientId}
+          LIMIT 1`).then((r: any) => r.rows ?? r);
+
+        if (!actionRow) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Sentinel action not found" });
+        }
+
+        const days = Number(input.dueInDays || 14);
+        const dueDate = new Date(Date.now() + days * 86400000);
+        const dueDateIso = dueDate.toISOString();
+
+        if (input.delegationType === "human") {
+          const assignedUserId = input.assigneeType === "user" && input.assigneeId ? Number(input.assigneeId) : null;
+          const assignedEmployeeId = input.assigneeType === "employee" && input.assigneeId ? Number(input.assigneeId) : null;
+
+          await db.execute(sql`
+            UPDATE autopilot_actions
+            SET status = 'delegated_human',
+                assigned_to_user_id = ${assignedUserId},
+                assigned_to_employee_id = ${assignedEmployeeId},
+                delegated_by_user_id = ${actorId},
+                due_at = ${dueDateIso}::timestamptz
+            WHERE id = ${input.actionId}`);
+
+          // Also create formal task in work_items
+          const noteText = input.customNotes ? `\n\nInstructions: ${input.customNotes}` : "";
+          await db.execute(sql`
+            INSERT INTO work_items
+              (client_id, type, status, priority, title, description, entity_type, due_date, assigned_to_user_id, assigned_to_employee_id, assigned_role, created_at, updated_at)
+            VALUES (
+              ${input.clientId}, 'review'::work_item_type, 'pending'::work_item_status,
+              ${(actionRow.priority || "medium")}::work_item_priority,
+              ${actionRow.title.slice(0, 240)},
+              ${("Delegated to team member.\n\nFINDING RATIONALE:\n" + (actionRow.ai_rationale || actionRow.description || "") + noteText).slice(0, 3900)},
+              'task'::governance_entity_type,
+              ${dueDateIso}::timestamptz, ${assignedUserId}, ${assignedEmployeeId}, ${input.raciRole}, now(), now())`).catch((err: any) => {
+                log(`[delegateAction] work_items insert warning:`, err);
+              });
+
+          await logActionHistory(db, {
+            actionId: input.actionId,
+            clientId: input.clientId,
+            actorType: 'user',
+            actorId,
+            actorName,
+            actionType: 'delegated_human',
+            previousStatus: actionRow.status,
+            newStatus: 'delegated_human',
+            notes: `Delegated to ${input.assigneeName || 'team member'} (Role: ${input.raciRole}, Due: in ${days} days). ${input.customNotes || ''}`.trim(),
+          });
+
+          return { success: true, status: 'delegated_human', target: input.assigneeName };
+        } else {
+          // Agent delegation with HITL gate
+          const meta = typeof actionRow.metadata === "string" ? JSON.parse(actionRow.metadata || "{}") : (actionRow.metadata || {});
+          // If the bot already has a patch or suggested addition, it moves directly to awaiting human review
+          const hasStagedPatch = meta.suggestedAddition || meta.proposedFix;
+          const nextStatus = hasStagedPatch ? 'awaiting_human_review' : 'delegated_agent';
+
+          await db.execute(sql`
+            UPDATE autopilot_actions
+            SET status = ${nextStatus},
+                assigned_agent = ${input.assignedAgent || 'sla_agent'},
+                reviewer_user_id = ${input.reviewerUserId || actorId},
+                delegated_by_user_id = ${actorId},
+                due_at = ${dueDateIso}::timestamptz
+            WHERE id = ${input.actionId}`);
+
+          await logActionHistory(db, {
+            actionId: input.actionId,
+            clientId: input.clientId,
+            actorType: 'user',
+            actorId,
+            actorName,
+            actionType: 'delegated_agent',
+            previousStatus: actionRow.status,
+            newStatus: nextStatus,
+            notes: `Delegated to autonomous agent [${input.assignedAgent}] with HITL Reviewer: ${input.reviewerName || actorName}. ${input.customNotes || ''}`.trim(),
+          });
+
+          return { success: true, status: nextStatus, agent: input.assignedAgent };
+        }
+      }),
+
+    /** Escalate action to higher hierarchy tier (e.g. DPO or CISO) with mandatory justification */
+    escalateAction: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        actionId: z.coerce.number(),
+        targetTier: z.number().min(1).max(4),
+        targetRole: z.string(),
+        targetName: z.string(),
+        reason: z.string().min(3),
+        priority: z.enum(["low", "medium", "high", "critical"]).optional(),
+      }))
+      .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection failed" });
+        const actorId = ctx.user?.id ? Number(ctx.user.id) : null;
+        const actorName = ctx.user?.name || ctx.user?.email || "User";
+
+        const [actionRow] = await db.execute(sql`
+          SELECT id, title, status, priority FROM autopilot_actions
+          WHERE id = ${input.actionId} AND client_id = ${input.clientId} LIMIT 1`).then((r: any) => r.rows ?? r);
+
+        if (!actionRow) throw new TRPCError({ code: "NOT_FOUND", message: "Action not found" });
+
+        const newPriority = input.priority || actionRow.priority || "high";
+
+        await db.execute(sql`
+          UPDATE autopilot_actions
+          SET status = 'escalated',
+              priority = ${newPriority},
+              escalation_level = ${input.targetTier},
+              escalated_to_role = ${input.targetRole},
+              escalated_to_name = ${input.targetName},
+              escalated_at = now(),
+              escalation_reason = ${input.reason}
+          WHERE id = ${input.actionId}`);
+
+        await logActionHistory(db, {
+          actionId: input.actionId,
+          clientId: input.clientId,
+          actorType: 'user',
+          actorId,
+          actorName,
+          actionType: 'escalated',
+          previousStatus: actionRow.status,
+          newStatus: 'escalated',
+          notes: `Escalated to Tier ${input.targetTier} (${input.targetRole}: ${input.targetName}). Reason: ${input.reason}`,
+        });
+
+        return { success: true, escalated: true };
+      }),
+
+    /** Accept risk formally with expiration date and compensating controls (ISO 27005 / NIST CSF) */
+    acceptRiskAction: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        actionId: z.coerce.number(),
+        rationale: z.string().min(5),
+        compensatingControls: z.string().optional(),
+        expiryDays: z.number().default(90),
+      }))
+      .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection failed" });
+        const actorId = ctx.user?.id ? Number(ctx.user.id) : null;
+        const actorName = ctx.user?.name || ctx.user?.email || "Reviewer";
+
+        const [actionRow] = await db.execute(sql`
+          SELECT id, title, status FROM autopilot_actions
+          WHERE id = ${input.actionId} AND client_id = ${input.clientId} LIMIT 1`).then((r: any) => r.rows ?? r);
+
+        if (!actionRow) throw new TRPCError({ code: "NOT_FOUND", message: "Action not found" });
+
+        const expiryDate = new Date(Date.now() + (input.expiryDays || 90) * 86400000);
+        const expiryIso = expiryDate.toISOString();
+
+        await db.execute(sql`
+          UPDATE autopilot_actions
+          SET status = 'risk_accepted',
+              risk_accepted_until = ${expiryIso}::timestamptz,
+              risk_acceptance_rationale = ${input.rationale},
+              compensating_controls = ${input.compensatingControls || null},
+              reviewed_by = ${actorId},
+              reviewed_at = now()
+          WHERE id = ${input.actionId}`);
+
+        await logActionHistory(db, {
+          actionId: input.actionId,
+          clientId: input.clientId,
+          actorType: 'user',
+          actorId,
+          actorName,
+          actionType: 'risk_accepted',
+          previousStatus: actionRow.status,
+          newStatus: 'risk_accepted',
+          notes: `Risk formally accepted until ${expiryDate.toLocaleDateString()}. Rationale: ${input.rationale}. Compensating controls: ${input.compensatingControls || 'None recorded'}.`,
+        });
+
+        return { success: true, acceptedUntil: expiryDate };
+      }),
+
+    /** Promote finding into an official incident with NIS2/GDPR 24h milestone clock */
+    promoteToIncident: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        actionId: z.coerce.number(),
+        title: z.string().min(3),
+        severity: z.enum(["low", "medium", "high", "critical"]).default("high"),
+        description: z.string().optional(),
+        isSignificant: z.boolean().default(false),
+      }))
+      .mutation(async ({ input, ctx }: { input: any; ctx: any }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database connection failed" });
+        const actorId = ctx.user?.id ? Number(ctx.user.id) : null;
+        const actorName = ctx.user?.name || ctx.user?.email || "User";
+
+        const [actionRow] = await db.execute(sql`
+          SELECT id, title, description, status FROM autopilot_actions
+          WHERE id = ${input.actionId} AND client_id = ${input.clientId} LIMIT 1`).then((r: any) => r.rows ?? r);
+
+        if (!actionRow) throw new TRPCError({ code: "NOT_FOUND", message: "Action not found" });
+
+        const [newInc] = await db.execute(sql`
+          INSERT INTO incidents 
+            (client_id, title, severity, is_significant, description, status, detected_at, reporter_name, created_at, updated_at)
+          VALUES (
+            ${input.clientId}, ${input.title}, ${input.severity}::incident_severity, ${input.isSignificant},
+            ${input.description || actionRow.description || "Promoted from Action Center finding"},
+            'open'::incident_status, now(), ${actorName}, now(), now()
+          ) RETURNING id`).then((r: any) => r.rows ?? r);
+
+        const incId = newInc?.id || null;
+
+        await db.execute(sql`
+          UPDATE autopilot_actions
+          SET status = 'escalated',
+              incident_id = ${incId},
+              escalation_level = 3,
+              escalated_to_role = 'Incident Response Team',
+              escalated_to_name = 'SecOps / IRT',
+              escalated_at = now(),
+              escalation_reason = ${`Promoted to official Security Incident #${incId || 'new'}`}
+          WHERE id = ${input.actionId}`);
+
+        await logActionHistory(db, {
+          actionId: input.actionId,
+          clientId: input.clientId,
+          actorType: 'user',
+          actorId,
+          actorName,
+          actionType: 'promoted_to_incident',
+          previousStatus: actionRow.status,
+          newStatus: 'escalated',
+          notes: `Promoted to Security Incident #${incId || ''}: ${input.title} (Severity: ${input.severity.toUpperCase()}).`,
+        });
+
+        return { success: true, incidentId: incId };
+      }),
+
+    /** Get chronological audit history timeline for an action */
+    getActionHistory: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        actionId: z.coerce.number(),
+      }))
+      .query(async ({ input }: { input: { clientId: number; actionId: number } }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const rows = await db.execute(sql`
+          SELECT id, action_id AS "actionId", client_id AS "clientId",
+                 actor_type AS "actorType", actor_id AS "actorId", actor_name AS "actorName",
+                 action_type AS "actionType", previous_status AS "previousStatus", new_status AS "newStatus",
+                 notes, patch_payload AS "patchPayload", created_at AS "createdAt"
+          FROM autopilot_action_history
+          WHERE action_id = ${input.actionId} AND client_id = ${input.clientId}
+          ORDER BY created_at ASC`).then((r: any) => r.rows ?? r);
+        return rows;
       }),
 
     /** Get proactive summary stats for top-bar badge and Action Center overview */
@@ -376,11 +767,18 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }: { input: { clientId: number } }) => {
         const db = await getDb();
-        if (!db) return { totalPending: 0, criticalCount: 0, warningCount: 0, executedCount: 0, rejectedCount: 0, cadence: "daily", lastRunAt: null };
+        if (!db) return { 
+          totalPending: 0, awaitingReviewCount: 0, delegatedCount: 0, escalatedCount: 0, riskAcceptedCount: 0,
+          criticalCount: 0, warningCount: 0, executedCount: 0, rejectedCount: 0, cadence: "daily", lastRunAt: null 
+        };
 
         const [counts] = await db.execute(sql`
           SELECT 
             COUNT(*) FILTER (WHERE status = 'pending') AS "totalPending",
+            COUNT(*) FILTER (WHERE status = 'awaiting_human_review') AS "awaitingReviewCount",
+            COUNT(*) FILTER (WHERE status = 'delegated_human' OR status = 'delegated_agent') AS "delegatedCount",
+            COUNT(*) FILTER (WHERE status = 'escalated') AS "escalatedCount",
+            COUNT(*) FILTER (WHERE status = 'risk_accepted') AS "riskAcceptedCount",
             COUNT(*) FILTER (WHERE status = 'pending' AND priority = 'critical') AS "criticalCount",
             COUNT(*) FILTER (WHERE status = 'pending' AND (priority = 'high' OR priority = 'medium')) AS "warningCount",
             COUNT(*) FILTER (WHERE status = 'executed') AS "executedCount",
@@ -395,6 +793,10 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
 
         return {
           totalPending: parseInt(counts?.totalPending || "0", 10),
+          awaitingReviewCount: parseInt(counts?.awaitingReviewCount || "0", 10),
+          delegatedCount: parseInt(counts?.delegatedCount || "0", 10),
+          escalatedCount: parseInt(counts?.escalatedCount || "0", 10),
+          riskAcceptedCount: parseInt(counts?.riskAcceptedCount || "0", 10),
           criticalCount: parseInt(counts?.criticalCount || "0", 10),
           warningCount: parseInt(counts?.warningCount || "0", 10),
           executedCount: parseInt(counts?.executedCount || "0", 10),

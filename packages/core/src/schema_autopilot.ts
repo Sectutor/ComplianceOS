@@ -56,14 +56,59 @@ export const autopilotActions = pgTable("autopilot_actions", {
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   priority: varchar("priority", { length: 20 }).default("medium"),
-  status: varchar("status", { length: 20 }).default("pending"),
+  status: varchar("status", { length: 30 }).default("pending"),
   targetEntity: jsonb("target_entity"),
   metadata: jsonb("metadata"),
   aiRationale: text("ai_rationale"),
+  
+  // Delegation tracking
+  assignedToUserId: integer("assigned_to_user_id"),
+  assignedToEmployeeId: integer("assigned_to_employee_id"),
+  assignedAgent: varchar("assigned_agent", { length: 50 }),
+  reviewerUserId: integer("reviewer_user_id"), // Mandatory HITL reviewer
+  delegatedByUserId: integer("delegated_by_user_id"),
+
+  // Escalation tracking
+  escalationLevel: integer("escalation_level").default(1),
+  escalatedToRole: varchar("escalated_to_role", { length: 50 }),
+  escalatedToName: varchar("escalated_to_name", { length: 255 }),
+  escalatedAt: timestamp("escalated_at"),
+  escalationReason: text("escalation_reason"),
+
+  // SLA & Due Dates
+  dueAt: timestamp("due_at"),
+  slaBreachAt: timestamp("sla_breach_at"),
+
+  // Risk Acceptance
+  riskAcceptedUntil: timestamp("risk_accepted_until"),
+  riskAcceptanceRationale: text("risk_acceptance_rationale"),
+  compensatingControls: text("compensating_controls"),
+
+  // Formal Incident Linkage
+  incidentId: integer("incident_id"),
+
   createdAt: timestamp("created_at").defaultNow(),
   reviewedAt: timestamp("reviewed_at"),
   reviewedBy: integer("reviewed_by"),
 }, (table) => ({
   runIdx: index("idx_ap_action_run").on(table.runId),
   clientStatusIdx: index("idx_ap_action_client_status").on(table.clientId, table.status),
+}));
+
+export const autopilotActionHistory = pgTable("autopilot_action_history", {
+  id: serial("id").primaryKey(),
+  actionId: integer("action_id").notNull(),
+  clientId: integer("client_id").notNull(),
+  actorType: varchar("actor_type", { length: 20 }).notNull(), // 'user' | 'agent' | 'system'
+  actorId: varchar("actor_id", { length: 100 }),
+  actorName: varchar("actor_name", { length: 255 }),
+  actionType: varchar("action_type", { length: 50 }).notNull(),
+  previousStatus: varchar("previous_status", { length: 30 }),
+  newStatus: varchar("new_status", { length: 30 }),
+  notes: text("notes"),
+  patchPayload: jsonb("patch_payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  actionIdx: index("idx_ap_history_action").on(table.actionId),
+  clientIdx: index("idx_ap_history_client").on(table.clientId),
 }));
