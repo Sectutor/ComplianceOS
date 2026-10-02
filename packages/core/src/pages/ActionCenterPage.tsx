@@ -348,7 +348,7 @@ export default function ActionCenterPage() {
        Pending Approvals
       </div>
       <div className="text-3xl font-semibold text-blue-900 flex items-center justify-between mt-1">
-       {stats?.totalPending ?? 0}
+       {(stats?.totalPending ?? 0).toLocaleString()}
        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
         <Inbox className="w-5 h-5" />
        </div>
@@ -366,7 +366,7 @@ export default function ActionCenterPage() {
        Critical Gaps
       </div>
       <div className="text-3xl font-semibold text-rose-600 flex items-center justify-between mt-1">
-       {stats?.criticalCount ?? 0}
+       {(stats?.criticalCount ?? 0).toLocaleString()}
        <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
         <AlertTriangle className="w-5 h-5" />
        </div>
@@ -384,7 +384,7 @@ export default function ActionCenterPage() {
        Warnings & SLAs
       </div>
       <div className="text-3xl font-semibold text-slate-900 flex items-center justify-between mt-1">
-       {stats?.warningCount ?? 0}
+       {(stats?.warningCount ?? 0).toLocaleString()}
        <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
         <Clock className="w-5 h-5" />
        </div>
@@ -402,7 +402,7 @@ export default function ActionCenterPage() {
        Executed Remediations
       </div>
       <div className="text-3xl font-semibold text-emerald-600 flex items-center justify-between mt-1">
-       {stats?.executedCount ?? 0}
+       {(stats?.executedCount ?? 0).toLocaleString()}
        <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <CheckCheck className="w-5 h-5" />
        </div>
@@ -418,8 +418,8 @@ export default function ActionCenterPage() {
    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
     <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
      {[
-      { key: "all", label: "All Findings", count: actions?.length ?? 0 },
-      { key: "critical", label: "Critical Priority", count: actions?.filter((a: any) => a.priority === "critical").length ?? 0 },
+      { key: "all", label: "All Findings", count: stats?.totalPending ?? (actions?.length ?? 0) },
+      { key: "critical", label: "Critical Priority", count: stats?.criticalCount ?? (actions?.filter((a: any) => a.priority === "critical").length ?? 0) },
       { key: "policies", label: "Policies & Clauses", count: actions?.filter(isPolicyAction).length ?? 0 },
       { key: "risks", label: "Risks & Threats", count: actions?.filter(isRiskAction).length ?? 0 },
       { key: "slas", label: "SLAs & Evidence", count: actions?.filter(isSlaAction).length ?? 0 },
@@ -439,7 +439,7 @@ export default function ActionCenterPage() {
                   ? "bg-white/20 text-white" 
                   : "bg-slate-200 text-slate-800"
               }`}>
-        {tab.count}
+        {tab.count.toLocaleString()}
        </span>
       </button>
      ))}

@@ -81,7 +81,7 @@ const t = initTRPC.context<Context>().create({
         const shouldSanitizeMessage =
             code === "INTERNAL_SERVER_ERROR" && process.env.NODE_ENV === "production";
         const publicMessage = shouldSanitizeMessage
-            ? "An unexpected error occurred. Please try again."
+            ? "An unexpected error occurred. Please try again. If the issue persists, contact support."
             : shape.message;
 
         return {

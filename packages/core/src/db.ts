@@ -2174,6 +2174,12 @@ export async function getClientControls(clientId: number, framework?: string) {
 
       evidenceLocation: clientControls.evidenceLocation,
 
+      dueDate: clientControls.dueDate,
+
+      nextReviewDate: clientControls.nextReviewDate,
+
+      lastReviewedAt: clientControls.lastReviewedAt,
+
       createdAt: clientControls.createdAt,
 
     },

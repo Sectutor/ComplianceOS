@@ -71,7 +71,7 @@ export function RiskEditDialog({ open, onOpenChange, risk, clientId, onSuccess }
             onOpenChange(false);
         } catch (error) {
             console.error('[RiskEditDialog] Failed to update risk', error);
-            toast.error('Failed to update risk');
+            toast.error(`Failed to update risk: ${error instanceof Error ? error.message : 'Please check your connection and try again.'}`);
         } finally {
             setLoading(false);
         }

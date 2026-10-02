@@ -243,7 +243,7 @@ export function RiskAssessmentWizard({ open, onOpenChange, clientId, onSuccess, 
             onOpenChange(false);
         } catch (error: any) {
             console.error("Failed to save risk assessment", error);
-            toast.error("Failed to save risk", { description: error.message || "An unexpected error occurred." });
+            toast.error("Failed to save risk assessment", { description: error.message || "Please complete all required steps and try again." });
         } finally {
             setLoading(false);
         }

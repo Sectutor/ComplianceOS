@@ -145,7 +145,7 @@ export function AddAssetDialog({ open, onOpenChange, clientId, onSuccess, initia
             onOpenChange(false);
         } catch (error) {
             console.error("Failed to save asset", error);
-            toast.error("Failed to save asset");
+            toast.error("Failed to save asset. Please check your connection and try again.");
         } finally {
             setLoading(false);
         }

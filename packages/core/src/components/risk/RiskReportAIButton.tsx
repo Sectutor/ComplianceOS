@@ -33,7 +33,7 @@ export const RiskReportAIButton = ({
             onGenerate(response.answer);
             toast.success(`${sectionName} generated successfully`);
         } catch (error) {
-            toast.error("Failed to generate AI suggestion");
+            toast.error("Failed to generate AI suggestion", { description: "Please check your AI configuration and try again." });
         } finally {
             setGenerating(false);
         }

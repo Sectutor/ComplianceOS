@@ -61,6 +61,12 @@ export default function RiskDashboard(props?: RiskDashboardProps) {
         { enabled: !!clientId }
     );
 
+    // Single-source stats (server-side, one threshold definition)
+    const { data: riskStats } = trpc.risks.getRiskStats.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+
     const handleEditRisk = (riskId: number) => {
         setLocation(`/clients/${clientId}/risks/assessments/${riskId}`);
     };
@@ -82,13 +88,13 @@ export default function RiskDashboard(props?: RiskDashboardProps) {
         </DashboardLayout>
     );
 
-    // Calculate stats from risk assessments
-    const highRisks = riskAssessments?.filter(r => r.inherentRisk === 'High' || r.inherentRisk === 'Very High').length || 0;
-    const treatedRisks = riskAssessments?.filter(r => (r as any).treatmentCount > 0).length || 0;
+    // Stats from the server-side getRiskStats procedure
+    const highRisks = riskStats?.criticalRisks || 0;
+    const treatedRisks = riskStats?.treatedRisks || 0;
     const criticalAssets = assets?.filter(a => (a.valuationC || 0) >= 4 || (a.valuationI || 0) >= 4 || (a.valuationA || 0) >= 4).length || 0;
 
     const stats = [
-        { label: 'Total Risks', value: riskAssessments?.length || 0, icon: Shield, bgColor: 'bg-blue-600', iconColor: 'text-white', containerClass: 'text-white shadow-lg shadow-blue-200 dark:shadow-none' },
+        { label: 'Total Risks', value: riskStats?.totalRisks || 0, icon: Shield, bgColor: 'bg-blue-600', iconColor: 'text-white', containerClass: 'text-white shadow-lg shadow-blue-200 dark:shadow-none' },
         { label: 'High/Critical Risks', value: highRisks, icon: AlertTriangle, bgColor: 'bg-red-600', iconColor: 'text-white', containerClass: 'text-white shadow-lg shadow-red-200 dark:shadow-none' },
         { label: 'With Treatments', value: treatedRisks, icon: CheckCircle, bgColor: 'bg-emerald-600', iconColor: 'text-white', containerClass: 'text-white shadow-lg shadow-emerald-200 dark:shadow-none' },
     ];

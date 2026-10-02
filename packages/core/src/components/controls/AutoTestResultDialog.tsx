@@ -85,7 +85,7 @@ export function AutoTestResultDialog({
       });
       onOpenChange(false);
     },
-    onError: (error: any) => toast.error(`Failed to create task: ${error?.message ?? "unknown error"}`),
+    onError: (error: any) => toast.error(`Failed to create task from test result: ${error?.message ?? "Please check your connection and try again."}`),
   });
 
   if (!run) return null;

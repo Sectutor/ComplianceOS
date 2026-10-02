@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/ta
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { FileText, Upload, Trash2, Download, Calendar, User, ClipboardList, MessageSquare, Info, ShieldCheck, ListChecks, Gavel } from "lucide-react";
+import { FileText, Upload, Trash2, Download, Calendar, User, ClipboardList, MessageSquare, Info, ShieldCheck, ListChecks, Gavel, History } from "lucide-react";
 import { CommentsSection } from "@/components/CommentsSection";
 
 interface ControlDetailsDialogProps {
@@ -89,6 +89,29 @@ export default function ControlDetailsDialog({
   });
   // Filter evidence for this specific control
   const evidenceList = allEvidence?.filter(item => item.evidence?.clientControlId === clientControl.id);
+
+  // Review cycle: history + recertification (only for real register rows,
+  // framework-control rows use negative ids and have no history)
+  const isRegisterControl = !!clientControl?.id && clientControl.id > 0;
+  const { data: reviewHistory, refetch: refetchHistory } = trpc.clientControls.getHistory.useQuery(
+    { clientId, id: clientControl.id },
+    { enabled: isRegisterControl }
+  );
+  const { data: syncPeers } = trpc.clientControls.getSyncPeers.useQuery(
+    { clientId, id: clientControl.id },
+    { enabled: isRegisterControl }
+  );
+  const markReviewedMutation = trpc.clientControls.markReviewed.useMutation({
+    onSuccess: () => {
+      toast.success("Review recorded — next review scheduled in 12 months");
+      refetchHistory();
+      onUpdate?.();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const nextReviewDate = clientControl?.nextReviewDate ? new Date(clientControl.nextReviewDate) : null;
+  const reviewOverdue = nextReviewDate ? nextReviewDate.getTime() < Date.now() : false;
 
   // Get RACI assignments for this control
   const { data: raciSummary, refetch: refetchRaci } = trpc.taskAssignments.summary.useQuery({
@@ -249,7 +272,7 @@ export default function ControlDetailsDialog({
         description={control?.description || "No description available"}
       >
         <Tabs defaultValue="implementation" className="mt-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="implementation">
               <ClipboardList className="mr-2 h-4 w-4" />
               Implementation
@@ -261,6 +284,10 @@ export default function ControlDetailsDialog({
             <TabsTrigger value="evidence">
               <FileText className="mr-2 h-4 w-4" />
               Evidence ({evidenceList?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="review">
+              <History className="mr-2 h-4 w-4" />
+              Review
             </TabsTrigger>
             <TabsTrigger value="related">
               <div className="flex items-center">
@@ -802,6 +829,81 @@ export default function ControlDetailsDialog({
             )}
           </TabsContent>
 
+          <TabsContent value="review" className="space-y-4 mt-4">
+            {/* Recertification status */}
+            <Card>
+              <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Periodic Review</h3>
+                  {isRegisterControl ? (
+                    <p className="text-xs text-muted-foreground">
+                      {nextReviewDate ? (
+                        <>
+                          Next review{" "}
+                          <span className={`font-semibold ${reviewOverdue ? "text-red-600" : "text-foreground"}`}>
+                            {nextReviewDate.toLocaleDateString()}
+                            {reviewOverdue ? " (overdue)" : ""}
+                          </span>
+                          {clientControl.lastReviewedAt && (
+                            <> · last reviewed {new Date(clientControl.lastReviewedAt).toLocaleDateString()}</>
+                          )}
+                        </>
+                      ) : (
+                        "No review scheduled yet — reviews are scheduled automatically when a control is marked implemented."
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Reviews apply to controls in the client register.</p>
+                  )}
+                </div>
+                {isRegisterControl && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => markReviewedMutation.mutate({ clientId, id: clientControl.id })}
+                    disabled={markReviewedMutation.isPending}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {markReviewedMutation.isPending ? "Saving..." : "Mark Reviewed"}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Status history timeline */}
+            <Card>
+              <CardHeader className="pb-2">
+                <h3 className="text-sm font-semibold">Status History</h3>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {!isRegisterControl ? (
+                  <p className="text-xs text-muted-foreground">No history for this control.</p>
+                ) : (reviewHistory?.length || 0) === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No status changes recorded yet — changes made from the Implementation tab will appear here.
+                  </p>
+                ) : (
+                  <ol className="relative border-l ml-2 space-y-3">
+                    {(reviewHistory as any[]).map((h) => (
+                      <li key={h.id} className="ml-4">
+                        <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full bg-slate-300" />
+                        <p className="text-xs font-medium text-foreground">
+                          {h.fromStatus && h.fromStatus !== h.toStatus
+                            ? `${h.fromStatus.replace(/_/g, " ")} → ${h.toStatus.replace(/_/g, " ")}`
+                            : h.toStatus.replace(/_/g, " ")}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {h.changedByName || "User"} · {new Date(h.createdAt).toLocaleString()}
+                          {h.note ? ` · ${h.note}` : ""}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="related" className="space-y-4 mt-4">
             <div className="flex justify-between items-center bg-muted/50 p-4 rounded-lg">
               <div>
@@ -817,6 +919,36 @@ export default function ControlDetailsDialog({
                 {syncMutation.isPending ? "Syncing..." : "Sync Status & Evidence"}
               </Button>
             </div>
+
+            {/* Peers that receive automatic updates from this control */}
+            {isRegisterControl && (
+              <div>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Assigned counterparts in this workspace ({syncPeers?.length || 0})
+                </h4>
+                {(syncPeers?.length || 0) === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No mapped controls are assigned to this client yet — assign them to enable implement-once-comply-twice.
+                  </p>
+                ) : (
+                  <div className="grid gap-2">
+                    {(syncPeers as any[]).map((peer) => (
+                      <div key={peer.id} className="flex items-center justify-between gap-3 border rounded-lg px-3 py-2">
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-primary">{peer.framework}</span>
+                          <p className="text-xs text-foreground truncate">
+                            {peer.controlId} — {peer.name}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-[10px] capitalize">
+                          {String(peer.status).replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid gap-4">
               {mappings?.map((map) => (

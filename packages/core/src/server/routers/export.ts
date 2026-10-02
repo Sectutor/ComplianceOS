@@ -346,6 +346,6 @@ exportRouter.get('/full-project/:clientId', async (req: any, res) => {
 
     } catch (error) {
         console.error('[Export] Full project export error:', error);
-        res.status(500).json({ error: 'Failed to export project data' });
+        res.status(500).json({ error: 'Failed to export project data. Please try again.' });
     }
 });

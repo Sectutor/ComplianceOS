@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClientContext } from "@/contexts/ClientContext";
+import { useParams } from "wouter";
 import { Button } from "@complianceos/ui/ui/button";
-import { Plus, Globe, Shield, ArrowRight, Loader2, Sparkles, Trash2, CheckCircle2, AlertTriangle, ShieldCheck, ShieldAlert, FileText, CheckCircle, ExternalLink } from "lucide-react";
+import { Plus, Globe, Shield, ArrowRight, Loader2, Sparkles, Trash2, CheckCircle2, AlertTriangle, ShieldCheck, ShieldAlert, FileText, CheckCircle } from "lucide-react";
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
@@ -13,51 +14,84 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { cn } from "@/lib/utils";
 
+// Presets carry the display metadata; enum fields map onto the relational
+// international_transfers columns (destination_country char(2), transfer_tool enum).
 const TIA_PRESETS = [
     {
         name: "US Cloud Hosting (AWS / GCP / Azure)",
-        destinationCountry: "USA",
+        destinationCountry: "US",
         importerName: "Amazon Web Services, Inc.",
-        transferTool: "EU-US Data Privacy Framework + SCCs Module 2",
+        transferTool: "scc_2021" as const,
+        sccModule: "c2p" as const,
         dataCategories: "Customer account data, application databases, access logs",
-        surveillanceRisk: "Moderate (Subject to FISA 702 / EO 14086 redress)",
+        surveillanceRisk: "Moderate",
         supplementaryMeasures: "AES-256 Customer-Managed Encryption Keys (CMEK) held in EU",
         recommendedOutcome: "Transfer Permitted with Technical Safeguards"
     },
     {
         name: "Enterprise CRM & Sales Telemetry (Salesforce)",
-        destinationCountry: "USA",
+        destinationCountry: "US",
         importerName: "Salesforce, Inc.",
-        transferTool: "EU-US Data Privacy Framework + Binding Corporate Rules (BCRs)",
+        transferTool: "bcr" as const,
+        sccModule: null,
         dataCategories: "Sales leads, business contacts, deal communications",
-        surveillanceRisk: "Low (Commercial CRM data, DPF certified)",
+        surveillanceRisk: "Low",
         supplementaryMeasures: "Hyperforce EU data residency + TLS 1.3 in transit",
         recommendedOutcome: "Transfer Permitted"
     },
     {
         name: "Offshore 24/7 Engineering & Tier-3 Support (India)",
-        destinationCountry: "India",
+        destinationCountry: "IN",
         importerName: "Global Support Services Pvt Ltd",
-        transferTool: "Standard Contractual Clauses (Module 2 Controller-to-Processor)",
+        transferTool: "scc_2021" as const,
+        sccModule: "c2p" as const,
         dataCategories: "Support tickets, error logs, user IDs (read-only ephemeral access)",
-        surveillanceRisk: "High (No EU adequacy decision, Indian IT Act surveillance)",
+        surveillanceRisk: "High",
         supplementaryMeasures: "Zero data storage locally, ephemeral VDI access, full session recording & pseudonymized IDs",
         recommendedOutcome: "Transfer Permitted with Strict VDI Isolation"
     }
 ];
 
+const COUNTRIES = [
+    { code: "US", label: "United States" },
+    { code: "IN", label: "India" },
+    { code: "CN", label: "China" },
+    { code: "BR", label: "Brazil" },
+    { code: "GB", label: "United Kingdom (Adequate)" },
+    { code: "CH", label: "Switzerland (Adequate)" },
+    { code: "JP", label: "Japan (Adequate)" },
+    { code: "XX", label: "Other Non-Adequate Country" },
+];
+
+const TRANSFER_TOOLS = [
+    { value: "scc_2021", label: "Standard Contractual Clauses (SCCs 2021)" },
+    { value: "bcr", label: "Binding Corporate Rules (BCRs)" },
+    { value: "adequacy", label: "Adequacy Decision (incl. EU-US DPF)" },
+    { value: "derogation", label: "Derogation (e.g. Explicit Consent, Art. 49)" },
+    { value: "ad_hoc", label: "Ad-Hoc / Other Safeguard" },
+];
+
+const SCC_MODULES = [
+    { value: "c2c", label: "Module 1: Controller-to-Controller" },
+    { value: "c2p", label: "Module 2: Controller-to-Processor" },
+    { value: "p2p", label: "Module 3: Processor-to-Processor" },
+    { value: "p2c", label: "Module 4: Processor-to-Controller" },
+];
+
 export default function TIAWorkspace() {
     const { selectedClientId } = useClientContext();
     const clientId = selectedClientId || 0;
+    const params = useParams<{ transferId?: string }>();
     const [createOpen, setCreateOpen] = useState(false);
     const [evalOpen, setEvalOpen] = useState(false);
-    const [selectedTia, setSelectedTia] = useState<any>(null);
+    const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
 
     const [newTiaData, setNewTiaData] = useState({
         transferName: "",
-        destinationCountry: "USA",
+        destinationCountry: "US",
         importerName: "",
-        transferTool: "EU-US Data Privacy Framework + SCCs Module 2",
+        transferTool: "scc_2021",
+        sccModule: "c2p",
         dataCategories: "Customer personal data, transactional telemetry",
         supplementaryMeasures: "End-to-end encryption with EU-held keys (CMEK)",
         surveillanceRisk: "Moderate",
@@ -65,8 +99,8 @@ export default function TIAWorkspace() {
     });
 
     const [evalForm, setEvalForm] = useState({
-        status: "completed" as "in_progress" | "completed",
-        transferTool: "",
+        transferTool: "scc_2021",
+        sccModule: "c2p",
         surveillanceRisk: "Moderate",
         dpfCertified: "yes",
         cmekEnabled: "yes",
@@ -76,37 +110,47 @@ export default function TIAWorkspace() {
     });
 
     const utils = trpc.useUtils();
-    const { data: assessments, isLoading } = trpc.privacy.listAssessments.useQuery({
-        clientId,
-        typePrefix: "TIA:"
-    }, { enabled: !!clientId });
+    const { data: transfers, isLoading } = trpc.transfers.list.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
 
-    const createMutation = trpc.privacy.saveAssessment.useMutation({
+    const createTransferMutation = trpc.transfers.create.useMutation();
+    const saveTiaMutation = trpc.transfers.saveTIA.useMutation();
+    const updateTransferMutation = trpc.transfers.update.useMutation();
+    const deleteMutation = trpc.transfers.delete.useMutation({
         onSuccess: () => {
-            toast.success("Transfer Impact Assessment Created");
-            setCreateOpen(false);
-            setNewTiaData({
-                transferName: "",
-                destinationCountry: "USA",
-                importerName: "",
-                transferTool: "EU-US Data Privacy Framework + SCCs Module 2",
-                dataCategories: "Customer personal data, transactional telemetry",
-                supplementaryMeasures: "End-to-end encryption with EU-held keys (CMEK)",
-                surveillanceRisk: "Moderate",
-                notes: ""
-            });
-            utils.privacy.listAssessments.invalidate();
-        },
-        onError: (err) => toast.error(`Failed to create TIA: ${err.message}`)
-    });
-
-    const deleteMutation = (trpc.privacy as any).deleteAssessment?.useMutation({
-        onSuccess: () => {
-            toast.success("TIA Assessment Deleted");
-            utils.privacy.listAssessments.invalidate();
+            toast.success("Transfer assessment deleted");
+            utils.transfers.list.invalidate({ clientId });
+            utils.privacy.getPrivacyStats.invalidate();
         },
         onError: (err: any) => toast.error(`Failed to delete: ${err.message}`)
     });
+
+    // Deep link /clients/:id/privacy/transfers/:transferId opens the evaluation
+    useEffect(() => {
+        if (transfers && params.transferId && !evalOpen) {
+            const target = transfers.find((t: any) => t.id === parseInt(params.transferId!));
+            if (target) {
+                handleOpenEval(target);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [transfers, params.transferId]);
+
+    const resetNewTiaData = () => {
+        setNewTiaData({
+            transferName: "",
+            destinationCountry: "US",
+            importerName: "",
+            transferTool: "scc_2021",
+            sccModule: "c2p",
+            dataCategories: "Customer personal data, transactional telemetry",
+            supplementaryMeasures: "End-to-end encryption with EU-held keys (CMEK)",
+            surveillanceRisk: "Moderate",
+            notes: ""
+        });
+    };
 
     const handleApplyPreset = (preset: typeof TIA_PRESETS[0]) => {
         setNewTiaData({
@@ -114,46 +158,64 @@ export default function TIAWorkspace() {
             destinationCountry: preset.destinationCountry,
             importerName: preset.importerName,
             transferTool: preset.transferTool,
+            sccModule: preset.sccModule || "c2p",
             dataCategories: preset.dataCategories,
             supplementaryMeasures: preset.supplementaryMeasures,
-            surveillanceRisk: preset.surveillanceRisk.includes("High") ? "High" : preset.surveillanceRisk.includes("Low") ? "Low" : "Moderate",
+            surveillanceRisk: preset.surveillanceRisk,
             notes: `Recommended Outcome: ${preset.recommendedOutcome}`
         });
     };
 
-    const handleCreate = () => {
+    const riskLevelFromUi = (surveillanceRisk: string) =>
+        surveillanceRisk === "High" ? "high" : surveillanceRisk === "Low" ? "low" : "medium";
+
+    const handleCreate = async () => {
         if (!newTiaData.transferName.trim() || !newTiaData.destinationCountry) {
             toast.error("Please provide a transfer name and destination country");
             return;
         }
 
-        const score = newTiaData.surveillanceRisk === "High" ? 80 : newTiaData.surveillanceRisk === "Moderate" ? 45 : 15;
-
-        createMutation.mutate({
-            clientId,
-            type: `TIA: ${newTiaData.transferName.trim()}`,
-            responses: {
+        try {
+            // The transfer record is the Chapter V registry row; the TIA is its
+            // versioned assessment attached via transferId.
+            const transfer = await createTransferMutation.mutateAsync({
+                clientId,
+                title: newTiaData.transferName.trim(),
                 destinationCountry: newTiaData.destinationCountry,
-                importerName: newTiaData.importerName,
-                transferTool: newTiaData.transferTool,
-                dataCategories: newTiaData.dataCategories,
-                supplementaryMeasures: newTiaData.supplementaryMeasures,
-                surveillanceRisk: newTiaData.surveillanceRisk,
-                transferDate: new Date().toISOString(),
-                status: "in_progress",
-                notes: newTiaData.notes
-            },
-            status: "in_progress",
-            score
-        });
+                transferTool: newTiaData.transferTool as any,
+                sccModule: newTiaData.transferTool === "scc_2021" ? (newTiaData.sccModule as any) : undefined,
+            });
+            await saveTiaMutation.mutateAsync({
+                transferId: transfer.id,
+                clientId,
+                responses: {
+                    importerName: newTiaData.importerName,
+                    dataCategories: newTiaData.dataCategories,
+                    supplementaryMeasures: newTiaData.supplementaryMeasures,
+                    surveillanceRisk: newTiaData.surveillanceRisk,
+                    transferDate: new Date().toISOString(),
+                    notes: newTiaData.notes
+                },
+                status: "draft",
+                riskLevel: riskLevelFromUi(newTiaData.surveillanceRisk)
+            });
+            toast.success("Transfer Impact Assessment Created");
+            setCreateOpen(false);
+            resetNewTiaData();
+            utils.transfers.list.invalidate({ clientId });
+            utils.privacy.getPrivacyStats.invalidate();
+        } catch (err: any) {
+            toast.error(`Failed to create TIA: ${err?.message || 'Please try again.'}`);
+        }
     };
 
-    const handleOpenEval = (tia: any) => {
-        setSelectedTia(tia);
-        const resp = tia.responses || {};
+    const handleOpenEval = (transfer: any) => {
+        setSelectedTransfer(transfer);
+        const tia = transfer.latestTia;
+        const resp = tia?.questionnaireData || {};
         setEvalForm({
-            status: tia.status || "in_progress",
-            transferTool: resp.transferTool || "EU-US Data Privacy Framework + SCCs Module 2",
+            transferTool: transfer.transferTool || "scc_2021",
+            sccModule: transfer.sccModule || "c2p",
             surveillanceRisk: resp.surveillanceRisk || "Moderate",
             dpfCertified: resp.dpfCertified || "yes",
             cmekEnabled: resp.cmekEnabled || "yes",
@@ -164,39 +226,54 @@ export default function TIAWorkspace() {
         setEvalOpen(true);
     };
 
-    const handleSaveEval = () => {
-        if (!selectedTia) return;
+    const handleSaveEval = async () => {
+        if (!selectedTransfer) return;
+        const prev = selectedTransfer.latestTia?.questionnaireData || {};
 
-        const score = evalForm.surveillanceRisk === "High" && evalForm.cmekEnabled === "no" ? 85 : evalForm.surveillanceRisk === "Low" ? 15 : 40;
-
-        createMutation.mutate({
-            clientId,
-            type: selectedTia.type,
-            responses: {
-                ...selectedTia.responses,
-                transferTool: evalForm.transferTool,
-                surveillanceRisk: evalForm.surveillanceRisk,
-                dpfCertified: evalForm.dpfCertified,
-                cmekEnabled: evalForm.cmekEnabled,
-                warrantCanary: evalForm.warrantCanary,
-                dpoDetermination: evalForm.dpoDetermination,
-                notes: evalForm.notes,
-                evaluatedAt: new Date().toISOString()
-            },
-            status: evalForm.status,
-            score
-        }, {
-            onSuccess: () => {
-                setEvalOpen(false);
-                setSelectedTia(null);
-            }
-        });
+        try {
+            await saveTiaMutation.mutateAsync({
+                transferId: selectedTransfer.id,
+                clientId,
+                // Re-evaluating a completed TIA creates the next version
+                version: selectedTransfer.latestTia ? (selectedTransfer.latestTia.version || 1) + 1 : 1,
+                responses: {
+                    ...prev,
+                    transferTool: TRANSFER_TOOLS.find(t => t.value === evalForm.transferTool)?.label || evalForm.transferTool,
+                    sccModule: evalForm.sccModule,
+                    surveillanceRisk: evalForm.surveillanceRisk,
+                    dpfCertified: evalForm.dpfCertified,
+                    cmekEnabled: evalForm.cmekEnabled,
+                    warrantCanary: evalForm.warrantCanary,
+                    dpoDetermination: evalForm.dpoDetermination,
+                    notes: evalForm.notes,
+                    evaluatedAt: new Date().toISOString()
+                },
+                status: "completed",
+                riskLevel: riskLevelFromUi(evalForm.surveillanceRisk)
+            });
+            // Move the transfer itself out of 'pending' once its TIA is signed off
+            await updateTransferMutation.mutateAsync({
+                id: selectedTransfer.id,
+                status: evalForm.dpoDetermination.includes("Suspended") ? "risk_flagged" : "active",
+            }).catch(() => undefined);
+            toast.success("Schrems II review completed");
+            setEvalOpen(false);
+            setSelectedTransfer(null);
+            utils.transfers.list.invalidate({ clientId });
+            utils.privacy.getPrivacyStats.invalidate();
+        } catch (err: any) {
+            toast.error(`Failed to save review: ${err?.message || 'Please try again.'}`);
+        }
     };
 
     // Calculate metrics
-    const totalTias = assessments?.length || 0;
-    const completedTias = assessments?.filter(a => a.status === 'completed').length || 0;
-    const highRiskTias = assessments?.filter(a => (a.responses as any)?.surveillanceRisk === 'High' || (a.score && a.score > 70)).length || 0;
+    const totalTias = transfers?.length || 0;
+    const completedTias = transfers?.filter((t: any) => t.latestTia?.status === 'completed').length || 0;
+    const highRiskTias = transfers?.filter((t: any) =>
+        t.latestTia?.riskLevel === 'high' || t.latestTia?.questionnaireData?.surveillanceRisk === 'High'
+    ).length || 0;
+
+    const countryLabel = (code: string) => COUNTRIES.find(c => c.code === code)?.label || code;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -267,11 +344,11 @@ export default function TIAWorkspace() {
                         <Loader2 className="h-8 w-8 animate-spin text-brand-bright" />
                         <span className="text-sm font-medium text-slate-400">Loading international transfers...</span>
                     </div>
-                ) : assessments && assessments.length > 0 ? (
-                    assessments.map(t => {
-                        const responses = (t.responses as any) || {};
-                        const isHighRisk = responses.surveillanceRisk === 'High' || (t.score && t.score > 70);
-                        const isCompleted = t.status === 'completed';
+                ) : transfers && transfers.length > 0 ? (
+                    transfers.map((t: any) => {
+                        const responses = t.latestTia?.questionnaireData || {};
+                        const isHighRisk = t.latestTia?.riskLevel === 'high' || responses.surveillanceRisk === 'High';
+                        const isCompleted = t.latestTia?.status === 'completed';
 
                         return (
                             <Card key={t.id} className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-slate-200 bg-white rounded-2xl overflow-hidden flex flex-col justify-between">
@@ -289,25 +366,23 @@ export default function TIAWorkspace() {
                                                     High Risk
                                                 </Badge>
                                             )}
-                                            {deleteMutation && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => deleteMutation.mutate({ clientId, id: t.id })}
-                                                    className="h-7 w-7 text-slate-300 hover:text-rose-600 rounded-lg"
-                                                    title="Delete TIA"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                            )}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => deleteMutation.mutate({ id: t.id })}
+                                                className="h-7 w-7 text-slate-300 hover:text-rose-600 rounded-lg"
+                                                title="Delete TIA"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
                                         </div>
                                     </div>
                                     <CardTitle className="text-lg font-bold text-slate-900 group-hover:text-brand-bright transition-colors line-clamp-2">
-                                        {t.type.replace("TIA: ", "")}
+                                        {t.title}
                                     </CardTitle>
                                     <CardDescription className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
                                         <Globe className="w-3.5 h-3.5 text-slate-400" />
-                                        Destination: <span className="font-semibold text-slate-700">{responses.destinationCountry || 'Unknown'}</span>
+                                        Destination: <span className="font-semibold text-slate-700">{countryLabel(t.destinationCountry)}</span>
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="pt-0 space-y-4">
@@ -318,7 +393,10 @@ export default function TIAWorkspace() {
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-slate-400">Mechanism:</span>
-                                            <span className="font-semibold text-slate-800 truncate max-w-[170px]">{responses.transferTool?.split('+')[0] || 'SCCs'}</span>
+                                            <span className="font-semibold text-slate-800 truncate max-w-[170px]">
+                                                {TRANSFER_TOOLS.find(tool => tool.value === t.transferTool)?.label.split(' (')[0] || 'SCCs'}
+                                                {t.transferTool === 'scc_2021' && t.sccModule ? ` · ${t.sccModule.toUpperCase()}` : ''}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-slate-400">Surveillance Risk:</span>
@@ -376,10 +454,10 @@ export default function TIAWorkspace() {
                         <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                         <Button
                             onClick={handleCreate}
-                            disabled={createMutation.isPending}
+                            disabled={createTransferMutation.isPending || saveTiaMutation.isPending}
                             className="bg-brand-bright hover:bg-brand text-white font-bold"
                         >
-                            {createMutation.isPending ? "Creating..." : "Save & Start Assessment"}
+                            {(createTransferMutation.isPending || saveTiaMutation.isPending) ? "Creating..." : "Save & Start Assessment"}
                         </Button>
                     </div>
                 }
@@ -425,14 +503,9 @@ export default function TIAWorkspace() {
                             >
                                 <SelectTrigger><SelectValue placeholder="Select country..." /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="USA">United States (USA)</SelectItem>
-                                    <SelectItem value="India">India</SelectItem>
-                                    <SelectItem value="China">China</SelectItem>
-                                    <SelectItem value="Brazil">Brazil</SelectItem>
-                                    <SelectItem value="UK">United Kingdom (Adequate)</SelectItem>
-                                    <SelectItem value="Switzerland">Switzerland (Adequate)</SelectItem>
-                                    <SelectItem value="Japan">Japan (Adequate)</SelectItem>
-                                    <SelectItem value="Other">Other Non-Adequate Country</SelectItem>
+                                    {COUNTRIES.map(c => (
+                                        <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -454,14 +527,29 @@ export default function TIAWorkspace() {
                             >
                                 <SelectTrigger><SelectValue placeholder="Select instrument..." /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="EU-US Data Privacy Framework + SCCs Module 2">EU-US Data Privacy Framework (DPF) + SCCs Module 2</SelectItem>
-                                    <SelectItem value="Standard Contractual Clauses (Module 2 Controller-to-Processor)">Standard Contractual Clauses (SCCs Module 2 C2P)</SelectItem>
-                                    <SelectItem value="Standard Contractual Clauses (Module 1 Controller-to-Controller)">Standard Contractual Clauses (SCCs Module 1 C2C)</SelectItem>
-                                    <SelectItem value="Binding Corporate Rules (BCRs)">Binding Corporate Rules (BCRs)</SelectItem>
-                                    <SelectItem value="Explicit Consent Derogation (Art. 49.1.a)">Explicit Consent Derogation (Art. 49.1.a)</SelectItem>
+                                    {TRANSFER_TOOLS.map(tool => (
+                                        <SelectItem key={tool.value} value={tool.value}>{tool.label}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {newTiaData.transferTool === "scc_2021" && (
+                            <div className="space-y-2 md:col-span-2">
+                                <Label className="font-semibold text-slate-800">SCC Module</Label>
+                                <Select
+                                    value={newTiaData.sccModule}
+                                    onValueChange={(val) => setNewTiaData({ ...newTiaData, sccModule: val })}
+                                >
+                                    <SelectTrigger><SelectValue placeholder="Select module..." /></SelectTrigger>
+                                    <SelectContent>
+                                        {SCC_MODULES.map(m => (
+                                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         <div className="space-y-2 md:col-span-2">
                             <Label className="font-semibold text-slate-800">Categories of Data Transferred</Label>
@@ -485,11 +573,11 @@ export default function TIAWorkspace() {
             </EnhancedDialog>
 
             {/* Detailed TIA Evaluation & Sign-off Dialog */}
-            {selectedTia && (
+            {selectedTransfer && (
                 <EnhancedDialog
                     open={evalOpen}
                     onOpenChange={setEvalOpen}
-                    title={`Schrems II Evaluation: ${selectedTia.type.replace("TIA: ", "")}`}
+                    title={`Schrems II Evaluation: ${selectedTransfer.title}`}
                     description="Comprehensive EDPB Step 1-6 Transfer Impact Assessment Review"
                     size="xl"
                     footer={
@@ -506,10 +594,10 @@ export default function TIAWorkspace() {
                                 <Button variant="outline" onClick={() => setEvalOpen(false)}>Close</Button>
                                 <Button
                                     onClick={handleSaveEval}
-                                    disabled={createMutation.isPending}
+                                    disabled={saveTiaMutation.isPending}
                                     className="bg-brand-bright hover:bg-brand text-white font-bold"
                                 >
-                                    {createMutation.isPending ? "Saving..." : "Save & Complete Review"}
+                                    {saveTiaMutation.isPending ? "Saving..." : "Save & Complete Review"}
                                 </Button>
                             </div>
                         </div>
@@ -525,15 +613,15 @@ export default function TIAWorkspace() {
                             <div className="grid grid-cols-2 gap-4 text-xs">
                                 <div>
                                     <span className="text-slate-400 block">Destination Country:</span>
-                                    <span className="font-semibold text-slate-800">{selectedTia.responses?.destinationCountry || 'USA'}</span>
+                                    <span className="font-semibold text-slate-800">{countryLabel(selectedTransfer.destinationCountry)}</span>
                                 </div>
                                 <div>
                                     <span className="text-slate-400 block">Importer Organization:</span>
-                                    <span className="font-semibold text-slate-800">{selectedTia.responses?.importerName || 'N/A'}</span>
+                                    <span className="font-semibold text-slate-800">{selectedTransfer.latestTia?.questionnaireData?.importerName || 'N/A'}</span>
                                 </div>
                                 <div className="col-span-2">
                                     <span className="text-slate-400 block">Data Transferred:</span>
-                                    <span className="font-semibold text-slate-800">{selectedTia.responses?.dataCategories || 'Standard PII'}</span>
+                                    <span className="font-semibold text-slate-800">{selectedTransfer.latestTia?.questionnaireData?.dataCategories || 'Standard PII'}</span>
                                 </div>
                             </div>
                         </div>
@@ -615,52 +703,36 @@ export default function TIAWorkspace() {
                             </div>
                         </div>
 
-                        {/* Section 4: DPO Determination & Status */}
+                        {/* Section 4: DPO Determination */}
                         <div className="space-y-4 border-t pt-4">
                             <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-brand-bright" />
                                 Step 6: DPO Determination & Sign-off
                             </h4>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-slate-700">Assessment Status</Label>
-                                    <Select
-                                        value={evalForm.status}
-                                        onValueChange={(val: any) => setEvalForm({ ...evalForm, status: val })}
-                                    >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="completed">Completed / Signed Off</SelectItem>
-                                            <SelectItem value="in_progress">In Progress / Pending Safeguards</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-700">DPO Transfer Determination</Label>
+                                <Select
+                                    value={evalForm.dpoDetermination}
+                                    onValueChange={(val) => setEvalForm({ ...evalForm, dpoDetermination: val })}
+                                >
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Transfer Permitted with Supplementary Safeguards">Transfer Permitted with Supplementary Safeguards</SelectItem>
+                                        <SelectItem value="Transfer Permitted (Adequacy / DPF)">Transfer Permitted (Adequacy / DPF)</SelectItem>
+                                        <SelectItem value="Transfer Suspended - Inadequate Redress">Transfer Suspended - Inadequate Redress</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-slate-700">DPO Transfer Determination</Label>
-                                    <Select
-                                        value={evalForm.dpoDetermination}
-                                        onValueChange={(val) => setEvalForm({ ...evalForm, dpoDetermination: val })}
-                                    >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Transfer Permitted with Supplementary Safeguards">Transfer Permitted with Supplementary Safeguards</SelectItem>
-                                            <SelectItem value="Transfer Permitted (Adequacy / DPF)">Transfer Permitted (Adequacy / DPF)</SelectItem>
-                                            <SelectItem value="Transfer Suspended - Inadequate Redress">Transfer Suspended - Inadequate Redress</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label className="text-xs font-bold text-slate-700">Evaluation Notes & Audit Rationale</Label>
-                                    <Textarea
-                                        rows={3}
-                                        placeholder="Record specific legal rationale, audit references, or contractual clauses..."
-                                        value={evalForm.notes}
-                                        onChange={(e) => setEvalForm({ ...evalForm, notes: e.target.value })}
-                                    />
-                                </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-700">Evaluation Notes & Audit Rationale</Label>
+                                <Textarea
+                                    rows={3}
+                                    placeholder="Record specific legal rationale, audit references, or contractual clauses..."
+                                    value={evalForm.notes}
+                                    onChange={(e) => setEvalForm({ ...evalForm, notes: e.target.value })}
+                                />
                             </div>
                         </div>
                     </div>
@@ -669,4 +741,3 @@ export default function TIAWorkspace() {
         </div>
     );
 }
-

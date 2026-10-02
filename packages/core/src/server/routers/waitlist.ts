@@ -273,7 +273,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                     console.error("[Waitlist] Remove failed:", e);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Failed to remove: ${(e as Error).message}`
+                        message: `Failed to remove: ${(e as Error).message || 'Please try again.'}`
                     });
                 }
             }),
@@ -351,7 +351,7 @@ export const createWaitlistRouter = (t: any, publicProcedure: any, adminProcedur
                     if (err instanceof TRPCError) throw err;
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Failed to send invite: ${err?.message || 'Unknown error'}`
+                        message: `Failed to send invite: ${err?.message || 'Please try again.'}`
                     });
                 }
             }),

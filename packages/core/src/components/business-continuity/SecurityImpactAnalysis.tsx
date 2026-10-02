@@ -48,7 +48,7 @@ export function SecurityImpactAnalysis({ biaId }: SecurityImpactAnalysisProps) {
             });
             toast.success("Security impact saved");
         } catch (e) {
-            toast.error("Failed to save");
+            toast.error("Failed to save security impact analysis. Please check your connection and try again.");
         }
     };
 

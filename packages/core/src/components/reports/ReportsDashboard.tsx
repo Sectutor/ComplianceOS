@@ -94,7 +94,7 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
             refetch();
         },
         onError: (err) => {
-            toast.error("Failed to delete report: " + err.message);
+            toast.error("Failed to delete report: " + (err.message || 'Please check your connection and try again.'));
         }
     });
 
@@ -152,7 +152,12 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
         toast.promise(generateReportMutation.mutateAsync({ clientId }), {
             loading: 'Generating compliance intelligence report...',
             success: 'Report generated!',
-            error: 'Failed to generate report'
+            error: (err) => {
+                const errMsg = err.message || '';
+                if (/rate.?limit|too many requests|throttl|429/i.test(errMsg)) return errMsg;
+                if (/insufficient|balance|credit|quota|exceeded/i.test(errMsg)) return errMsg;
+                return 'Failed to generate report. Please try again.';
+            }
         });
     };
 
@@ -175,7 +180,12 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
         }), {
             loading: 'Assembling professional intelligence report...',
             success: 'Report ready for download!',
-            error: 'Failed to assemble report'
+            error: (err) => {
+                const errMsg = err.message || '';
+                if (/rate.?limit|too many requests|throttl|429/i.test(errMsg)) return errMsg;
+                if (/insufficient|balance|credit|quota|exceeded/i.test(errMsg)) return errMsg;
+                return 'Failed to assemble report. Please try again.';
+            }
         });
     };
 

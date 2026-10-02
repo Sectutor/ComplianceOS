@@ -37,7 +37,7 @@ export function GapAnalysis({ clientId, threat, vulnerability, onControlAdopted 
             setGaps(result.gaps);
         } catch (error) {
             console.error("Analysis failed", error);
-            toast.error("Failed to perform gap analysis.");
+            toast.error("Failed to perform gap analysis", { description: "Please ensure threat and vulnerability descriptions are filled in and try again." });
         } finally {
             setIsLoading(false);
         }
@@ -60,7 +60,7 @@ export function GapAnalysis({ clientId, threat, vulnerability, onControlAdopted 
             if (onControlAdopted) onControlAdopted();
         } catch (error) {
             console.error("Adoption failed", error);
-            toast.error("Failed to adopt control.");
+            toast.error("Failed to adopt control", { description: "Please try again. If the issue persists, the control may already exist." });
         } finally {
             setIsAdopting(null);
         }

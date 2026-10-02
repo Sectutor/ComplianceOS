@@ -172,7 +172,7 @@ export function ThreatModelWizard() {
             refetchModel();
             toast.success("Flow updated");
         } catch (error: any) {
-            toast.error("Failed to update flow");
+            toast.error(`Failed to update flow: ${error instanceof Error ? error.message : 'Please check your connection and try again.'}`);
         }
     };
 
@@ -236,7 +236,7 @@ export function ThreatModelWizard() {
 
             toast.success("Threat Model Created");
         } catch (e) {
-            toast.error("Failed to create threat model");
+            toast.error("Failed to create threat model. Please check your connection and try again.");
         }
     };
 
@@ -288,7 +288,7 @@ export function ThreatModelWizard() {
             await updateComponentPosMutation.mutateAsync({ id: componentId, x, y });
             refetchModel(); // Refetch to update positions in state
         } catch (error: any) {
-            toast.error("Failed to update component position");
+            toast.error(`Failed to update component position: ${error instanceof Error ? error.message : 'Please check your connection and try again.'}`);
         }
     };
 
@@ -309,7 +309,7 @@ export function ThreatModelWizard() {
             setConnectingSource(null);
             refetchModel();
         } catch (error: any) {
-            toast.error("Failed to create flow");
+            toast.error(`Failed to create flow: ${error instanceof Error ? error.message : 'Please check your connection and try again.'}`);
         }
     };
 

@@ -8,7 +8,7 @@ import { parsePaginationParams, createPaginatedResponse, encodeCursor } from '..
 import {
   controls,
   evidence,
-  riskScenarios,
+  riskAssessments,
   riskTreatments,
   clients,
   assets,
@@ -271,13 +271,16 @@ apiV1Router.get('/evidence', async (req: Request, res: Response) => {
 });
 
 // ── GET /api/v1/risks ───────────────────────────────────────────────────────
+// Reads risk_assessments — the same table the tRPC UI uses (risk_scenarios is
+// a legacy parallel model; keeping both meant REST-written risks were
+// invisible in the UI and vice versa).
 apiV1Router.get('/risks', async (_req: Request, res: Response) => {
   try {
     const db = await getDb();
     const rows = await db
       .select()
-      .from(riskScenarios)
-      .orderBy(riskScenarios.createdAt);
+      .from(riskAssessments)
+      .orderBy(riskAssessments.createdAt);
 
     res.json({ data: rows, total: rows.length });
   } catch (err: any) {
@@ -313,8 +316,8 @@ apiV1Router.get('/risks/:id', async (req: Request, res: Response) => {
     }
     const [row] = await db
       .select()
-      .from(riskScenarios)
-      .where(eq(riskScenarios.id, id))
+      .from(riskAssessments)
+      .where(eq(riskAssessments.id, id))
       .limit(1);
     if (!row) {
       return res.status(404).json({ error: 'Risk not found', code: 'NOT_FOUND' });
@@ -331,16 +334,18 @@ apiV1Router.post('/treatments', async (req: Request, res: Response) => {
     const db = await getDb();
     const {
       clientId,
-      riskScenarioId,
+      riskAssessmentId,
+      riskScenarioId, // legacy alias — risk_treatments.risk_assessment_id is the live FK
       treatmentType,
       strategy,
       justification,
       controlId,
     } = req.body;
 
-    if (!clientId || !riskScenarioId) {
+    const assessmentId = riskAssessmentId ?? riskScenarioId;
+    if (!clientId || !assessmentId) {
       return res.status(400).json({
-        error: 'Missing required fields: clientId, riskScenarioId',
+        error: 'Missing required fields: clientId, riskAssessmentId',
         code: 'BAD_REQUEST',
       });
     }
@@ -349,7 +354,7 @@ apiV1Router.post('/treatments', async (req: Request, res: Response) => {
       .insert(riskTreatments)
       .values({
         clientId,
-        riskScenarioId,
+        riskAssessmentId: assessmentId,
         treatmentType: treatmentType ?? 'mitigate',
         strategy: strategy ?? null,
         justification: justification ?? null,
@@ -384,14 +389,14 @@ apiV1Router.post('/risks', async (req: Request, res: Response) => {
     }
 
     const [created] = await db
-      .insert(riskScenarios)
+      .insert(riskAssessments)
       .values({
         clientId,
+        assessmentId: `RA-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
         title,
         description: description ?? null,
-        category: category ?? 'General',
-        assessmentType: assessmentType ?? 'asset',
-        assetId: assetId ?? null,
+        category: assessmentType ?? category ?? 'General',
+        contextSnapshot: assetId ? { assetId } : null,
       })
       .returning();
 
@@ -746,13 +751,13 @@ apiV1Router.patch('/risks/:id', async (req: Request, res: Response) => {
 
     const updateFields: any = {};
     if (status !== undefined) updateFields.status = status;
-    if (owner !== undefined) updateFields.owner = owner;
+    if (owner !== undefined) updateFields.riskOwner = owner;
     updateFields.updatedAt = new Date();
 
     const [updated] = await db
-      .update(riskScenarios)
+      .update(riskAssessments)
       .set(updateFields)
-      .where(eq(riskScenarios.id, id))
+      .where(eq(riskAssessments.id, id))
       .returning();
 
     if (!updated) {
@@ -775,8 +780,8 @@ apiV1Router.delete('/risks/:id', async (req: Request, res: Response) => {
     }
 
     const [deleted] = await db
-      .delete(riskScenarios)
-      .where(eq(riskScenarios.id, id))
+      .delete(riskAssessments)
+      .where(eq(riskAssessments.id, id))
       .returning();
 
     if (!deleted) {

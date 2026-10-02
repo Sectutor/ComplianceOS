@@ -10,6 +10,7 @@ import {
     Flame,
     Activity,
     Target,
+    Compass,
     ArrowRight,
     CheckCircle2,
     TrendingUp,
@@ -52,12 +53,17 @@ export default function RiskOverview() {
         { clientId },
         { enabled: !!clientId }
     );
+    // Single-source counts (same procedure as the dashboard)
+    const { data: riskStats } = trpc.risks.getRiskStats.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
 
-    const totalRisks = riskAssessments?.length || 0;
-    const criticalRisks = riskAssessments?.filter((r: any) => r.severity === 'critical' || r.inherentRisk === 'Very High' || r.inherentRisk === 'Critical' || ((r.likelihood || 0) * (r.impact || 0) >= 16)).length || 0;
-    const highRisks = riskAssessments?.filter((r: any) => r.severity === 'high' || r.inherentRisk === 'High' || (((r.likelihood || 0) * (r.impact || 0) >= 10) && ((r.likelihood || 0) * (r.impact || 0) < 16))).length || 0;
-    
-    const implementedTreatments = treatments?.filter((t: any) => t.status === 'implemented' || t.status === 'completed').length || 0;
+    const totalRisks = riskStats?.totalRisks || 0;
+    const criticalRisks = riskStats?.criticalRisks || 0;
+    const highRisks = riskStats?.highRisks || 0;
+
+    const implementedTreatments = treatments?.filter((t: any) => t.status === 'implemented' || t.status === 'verified').length || 0;
     const totalTreatments = treatments?.length || 0;
     const treatmentRate = totalTreatments > 0 ? Math.round((implementedTreatments / totalTreatments) * 100) : 0;
     
@@ -168,6 +174,21 @@ export default function RiskOverview() {
                 "Risk appetite statement builder",
                 "Custom likelihood/impact scales",
                 "Review frequency configuration"
+            ]
+        },
+        {
+            title: "Alignment Guide",
+            headerTitle: "Regulatory Mapping",
+            description: "Map your risk program to ISO 27005, NIST RMF, and other frameworks. See which articles and clauses your controls already satisfy.",
+            icon: Compass,
+            color: "from-slate-500 to-gray-400",
+            textColor: "text-slate-600",
+            bgLight: "bg-slate-50",
+            path: `/clients/${clientId}/risks/alignment-guide`,
+            benefits: [
+                "Article-by-article framework mapping",
+                "Gap analysis per control family",
+                "Audit evidence alignment"
             ]
         }
     ];

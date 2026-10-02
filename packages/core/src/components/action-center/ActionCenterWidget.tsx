@@ -125,7 +125,7 @@ export function ActionCenterWidget({ clientId, compact = false }: ActionCenterWi
           <CardTitle className="text-sm flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             Action Center
-            {counts && <Badge variant="secondary" className="ml-auto text-xs">{counts.total} items</Badge>}
+            {counts && <Badge variant="secondary" className="ml-auto text-xs">{counts.total.toLocaleString()} items</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -154,7 +154,7 @@ export function ActionCenterWidget({ clientId, compact = false }: ActionCenterWi
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3 py-6">
-          <p className="text-sm text-muted-foreground">Failed to load actions</p>
+          <p className="text-sm text-muted-foreground">Failed to load actions. Please check your connection and try again.</p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
         </CardContent>
       </Card>
@@ -186,7 +186,7 @@ export function ActionCenterWidget({ clientId, compact = false }: ActionCenterWi
           <CheckCircle2 className="h-4 w-4 text-primary" />
           Action Center
           <Badge variant="secondary" className="ml-auto text-xs">
-            {counts?.total || actions.length} items
+            {(counts?.total || actions.length).toLocaleString()} items
           </Badge>
         </CardTitle>
       </CardHeader>

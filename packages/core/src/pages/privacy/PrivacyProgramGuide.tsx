@@ -33,20 +33,40 @@ export default function PrivacyProgramGuide() {
     // Fetch live system telemetry
     const { data: inventory } = trpc.privacy.getInventory.useQuery({ clientId }, { enabled: !!clientId });
     const { data: processes } = trpc.businessContinuity.processes.list.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: assessments } = trpc.privacy.listAssessments.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: stats } = trpc.privacy.getPrivacyStats.useQuery({ clientId }, { enabled: !!clientId });
     const { data: dsars } = trpc.privacy.getDsarRequests.useQuery({ clientId }, { enabled: !!clientId });
 
     const safeInventory = Array.isArray(inventory) ? inventory : [];
     const safeProcesses = Array.isArray(processes) ? processes : [];
-    const safeAssessments = Array.isArray(assessments) ? assessments : [];
     const safeDsars = Array.isArray(dsars) ? dsars : [];
 
     const inventoryCount = safeInventory.length;
     const ropaCount = safeProcesses.length;
-    const dpiaCount = safeAssessments.filter((a: any) => a.type?.startsWith('DPIA:')).length;
-    const tiaCount = safeAssessments.filter((a: any) => a.type?.startsWith('TIA:')).length;
+    // Relational counts — same source the dashboard and REST v1 API read
+    const dpiaCount = stats?.dpiaCount ?? 0;
+    const tiaCount = stats?.transferCount ?? 0;
     const dsarCount = safeDsars.length;
-    const breachCount = safeAssessments.filter((a: any) => a.type?.startsWith('BREACH:')).length;
+    const breachCount = stats?.breachCount ?? 0;
+
+    const exportRopaCsv = () => {
+        if (safeProcesses.length === 0) {
+            toast.error("No processing activities to export yet — add one in the ROPA registry first.");
+            setLocation(`/clients/${clientId}/privacy/ropa`);
+            return;
+        }
+        const csvContent = "ID,Activity Name,Department,Criticality,RTO,RPO,Description\n" +
+            safeProcesses.map((p: any) => `"${p.id}","${p.name}","${p.department || 'General'}","${p.criticalityTier || 'N/A'}","${p.rto || 'N/A'}","${p.rpo || 'N/A'}","${(p.description || '').replace(/"/g, '""')}"`).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `ROPA_Article_30_Client_${clientId}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success("Article 30 ROPA CSV exported successfully!");
+    };
 
     const completedPillars = [
         inventoryCount > 0,
@@ -184,7 +204,9 @@ export default function PrivacyProgramGuide() {
             number: 6,
             title: '72-Hour Breach Triage & Incident Center',
             legalRef: 'GDPR Art. 33/34 / NIS2 Directive',
-            status: 'active',
+            // Breach readiness is a standing capability — an empty register is the
+            // goal — so this pillar is excluded from the 5-pillar progress score.
+            status: 'ready' as const,
             countLabel: `${breachCount} Incidents Tracked`,
             isCompleted: true,
             icon: AlertTriangle,
@@ -507,11 +529,20 @@ export default function PrivacyProgramGuide() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setLocation(`/clients/${clientId}/privacy/ropa`)}
+                                    onClick={exportRopaCsv}
                                     className="w-full justify-start text-xs font-bold text-foreground/80"
                                 >
                                     <FileText className="w-3.5 h-3.5 mr-2 text-primary" />
                                     Export Article 30 ROPA (CSV)
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setLocation(`/clients/${clientId}/privacy/documents`)}
+                                    className="w-full justify-start text-xs font-bold text-foreground/80"
+                                >
+                                    <BookOpen className="w-3.5 h-3.5 mr-2 text-indigo-600" />
+                                    Open Privacy Documents Library
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -688,7 +719,7 @@ export default function PrivacyProgramGuide() {
                                 </div>
                                 <Button
                                     variant="outline"
-                                    onClick={() => setLocation(`/clients/${clientId}/privacy/ropa`)}
+                                    onClick={exportRopaCsv}
                                     className="border-border font-bold text-xs"
                                 >
                                     Export CSV / View

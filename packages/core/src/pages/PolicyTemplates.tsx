@@ -1205,7 +1205,12 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
       {
         loading: 'Generating comprehensive policy with AI... This may take a minute.',
         success: 'Policy generated successfully',
-        error: 'Failed to generate policy'
+        error: (err) => {
+          const errMsg = err.message || '';
+          if (/rate.?limit|too many requests|throttl|429/i.test(errMsg)) return errMsg;
+          if (/insufficient|balance|credit|quota|exceeded/i.test(errMsg)) return errMsg;
+          return 'Failed to generate policy. Please try again.';
+        }
       }
     );
   };

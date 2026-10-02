@@ -57,7 +57,7 @@ export function CreateWorkItemDialog({ clientId, onOpenChange }: { clientId: num
             if (onOpenChange) onOpenChange(false);
         },
         onError: (err) => {
-            toast.error(`Failed to create task: ${err.message}`);
+            toast.error(`Failed to create work item: ${err.message || 'Please check your connection and try again.'}`);
         }
     });
 

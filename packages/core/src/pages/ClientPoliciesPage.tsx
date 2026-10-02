@@ -254,10 +254,10 @@ export default function ClientPoliciesPage({ hideLayout = false, clientId: propC
                             id="bulk-generate-btn"
                             variant="outline"
                             onClick={() => setIsBulkGenerateOpen(true)}
-                            className="bg-blue-50/80 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-semibold gap-1.5"
+                            className="bg-white hover:bg-slate-50 text-slate-900 border-slate-300 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 font-medium gap-2 shadow-xs"
                         >
-                            <Layers className="mr-1.5 h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            Build Policies by Framework
+                            <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <span>Build Policies by Framework</span>
                         </Button>
                     )}
                     <Button id="create-policy-btn" onClick={() => setIsAddPolicyOpen(true)} size={hideLayout ? "sm" : "default"} >

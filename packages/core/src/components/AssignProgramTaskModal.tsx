@@ -48,7 +48,7 @@ export function AssignProgramTaskModal({
             onClose();
         },
         onError: (err) => {
-            toast.error(err.message || "Failed to update assignment");
+            toast.error(err.message || "Failed to update program task assignment. Please check your connection and try again.");
         }
     });
 

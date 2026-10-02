@@ -33,7 +33,7 @@ export function RiskAutoTriageButton({
             });
         },
         onError: (err) => {
-            toast.error(`Auto-triage failed: ${err.message}`);
+            toast.error("Auto-triage failed", { description: err.message || "Please check your AI configuration and try again." });
         }
     });
 

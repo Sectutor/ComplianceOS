@@ -53,7 +53,7 @@ export const GapAnalysisAIButton = ({
             }
         } catch (error) {
             console.error(error);
-            toast.error("Failed to generate AI suggestion");
+            toast.error("Failed to generate AI suggestion", { description: "Please check your AI configuration and try again." });
         } finally {
             setAiLoading(false);
         }

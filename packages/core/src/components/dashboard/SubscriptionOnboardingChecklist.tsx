@@ -128,7 +128,7 @@ export function SubscriptionOnboardingChecklist({ clientId, stats }: Subscriptio
                         <p className="text-xs text-emerald-100 mt-1">
                             You've completed Phase 1. Ready to optimize your risks?
                         </p>
-                        <Link href={`/clients/${clientId}/risk/assessments`}>
+                        <Link href={`/clients/${clientId}/risks/assessments`}>
                             <Button size="sm" variant="secondary" className="mt-3 w-full font-bold">
                                 Unlock Phase 2: Optimize
                             </Button>

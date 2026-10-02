@@ -425,18 +425,17 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
 
     const { data: assets } = trpc.risks.getAssets.useQuery({ clientId }, { enabled: !!clientId });
     const { data: threatModels } = trpc.threatModels.list.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: riskAssessments } = trpc.risks.getAll.useQuery({ clientId }, { enabled: !!clientId });
+    // Single-source risk counts (same procedure as the dashboard)
+    const { data: riskStats } = trpc.risks.getRiskStats.useQuery({ clientId }, { enabled: !!clientId });
 
     const safeAssets = Array.isArray(assets) ? assets : [];
     const safeThreats = Array.isArray(threatModels) ? threatModels : [];
-    const safeRisks = Array.isArray(riskAssessments) ? riskAssessments : [];
 
     const hasAssets = safeAssets.length > 0;
     const hasThreats = safeThreats.length > 0;
-    const hasRisks = safeRisks.length > 0;
-    const treatedRisks = safeRisks.filter((r: any) => r.treatmentOption && r.treatmentOption !== 'None').length;
-    const hasTreatments = treatedRisks > 0;
-    const hasMonitored = safeRisks.some((r: any) => r.status === 'approved' || r.status === 'reviewed');
+    const hasRisks = (riskStats?.totalRisks || 0) > 0;
+    const hasTreatments = (riskStats?.treatedRisks || 0) > 0;
+    const hasMonitored = (riskStats?.activeRisks || 0) > 0;
 
     const getStatus = (stepId: string) => {
         switch (stepId) {
@@ -560,7 +559,7 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                             </div>
                             <Progress value={progressPercentage} className="h-2.5 bg-slate-700" />
                             <div className="grid grid-cols-2 gap-2 text-[11px] text-blue-100 pt-1">
-                                <div>Total Risks: <strong className="text-white">{safeRisks.length}</strong></div>
+                                <div>Total Risks: <strong className="text-white">{riskStats?.totalRisks || 0}</strong></div>
                                 <div>Treated Risks: <strong className="text-white">{treatedRisks}</strong></div>
                                 <div>Threat Scenarios: <strong className="text-white">{safeThreats.length}</strong></div>
                                 <div>In-Scope Assets: <strong className="text-white">{safeAssets.length}</strong></div>
@@ -706,15 +705,15 @@ export default function RiskProgramGuide(props?: { id?: string | number; clientI
                                                 </p>
 
                                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                                    <div className="bg-blue-600 p-5 rounded-xl">
-                                                        <h4 className="font-medium text-white mb-3 flex items-center gap-2 text-sm">
-                                                            <CheckCircle2 className="w-4 h-4 text-white" />
+                                                    <div className="bg-blue-50 border border-blue-100 p-5 rounded-xl">
+                                                        <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2 text-sm">
+                                                            <CheckCircle2 className="w-4 h-4 text-blue-600" />
                                                             Key Actions & Best Practices
                                                         </h4>
                                                         <ul className="space-y-2 text-sm">
                                                             {[...step.keyActions, ...step.bestPractices].map((practice, i) => (
-                                                                <li key={i} className="flex items-start gap-3 text-slate-600">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-white mt-2 flex-shrink-0"></div>
+                                                                <li key={i} className="flex items-start gap-3 text-slate-700">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
                                                                     <span className="leading-relaxed">{practice}</span>
                                                                 </li>
                                                             ))}

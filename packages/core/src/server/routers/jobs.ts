@@ -37,7 +37,7 @@ jobRouter.post('/enqueue', express.json(), async (req: any, res) => {
     res.status(202).json({ jobId: job.id, status: job.status });
   } catch (err: any) {
     console.error('[Jobs] Enqueue error:', err);
-    res.status(500).json({ error: 'Failed to enqueue job' });
+    res.status(500).json({ error: 'Failed to enqueue job. Please try again.' });
   }
 });
 
@@ -63,6 +63,6 @@ jobRouter.get('/:id', async (req: any, res) => {
     });
   } catch (err: any) {
     console.error('[Jobs] Poll error:', err);
-    res.status(500).json({ error: 'Failed to get job status' });
+    res.status(500).json({ error: 'Failed to get job status. Please try again.' });
   }
 });

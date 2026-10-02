@@ -444,64 +444,95 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
         };
       }),
 
-    complianceScores: isAuthed.query(async () => {
-      const dbConn = await getDb();
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    complianceScores: isAuthed
+      .input(
+        z.object({
+          clientId: z.union([z.string(), z.number()]).optional(),
+        }).optional()
+      )
+      .query(async ({ input }: any) => {
+        const dbConn = await getDb();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const snapshots = await dbConn
-        .select({
-          snapshotDate: schema.complianceSnapshots.snapshotDate,
-          complianceScore: schema.complianceSnapshots.complianceScore,
-        })
-        .from(schema.complianceSnapshots)
-        .where(gte(schema.complianceSnapshots.snapshotDate, sixMonthsAgo));
+        const clientIdNum = input?.clientId ? Number(input.clientId) : undefined;
+        let clientTarget = 80;
 
-      if (snapshots.length >= 2) {
-        const byMonth = new Map<string, { sum: number; n: number }>();
-        for (const s of snapshots) {
-          const d = new Date(s.snapshotDate);
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          const agg = byMonth.get(key) || { sum: 0, n: 0 };
-          agg.sum += Number((s.complianceScore as any) ?? 0);
-          agg.n += 1;
-          byMonth.set(key, agg);
+        if (clientIdNum) {
+          const [client] = await dbConn
+            .select({ targetScore: schema.clients.targetScore })
+            .from(schema.clients)
+            .where(eq(schema.clients.id, clientIdNum))
+            .limit(1);
+          if (client?.targetScore) {
+            clientTarget = Number(client.targetScore);
+          }
         }
-        return [...byMonth.entries()]
-          .sort((a, b) => a[0].localeCompare(b[0]))
-          .map(([k, v]) => ({
-            date: new Date(`${k}-01T00:00:00`).toLocaleString('en', { month: 'short' }),
-            score: Math.round(v.sum / v.n),
-            target: 80,
-          }));
-      }
 
-      // Fetch live cross-client score from clientControls
-      const [rows] = await dbConn
-        .select({
-          total: sql<number>`count(*)`,
-          implemented: sql<number>`count(*) filter (where ${schema.clientControls.status} = 'implemented')`,
-        })
-        .from(schema.clientControls);
-      const implemented = Number(rows?.implemented ?? 0);
-      const total = Number(rows?.total ?? 0);
-      const currentScore = total > 0 ? Math.round((implemented / total) * 100) : 68;
+        const snapshotConditions = [gte(schema.complianceSnapshots.snapshotDate, sixMonthsAgo)];
+        if (clientIdNum) {
+          snapshotConditions.push(eq(schema.complianceSnapshots.clientId, clientIdNum));
+        }
 
-      // Provide past 6 months timeline ending at current live score for rich chart rendering
-      const months: { date: string; score: number; target: number }[] = [];
-      const now = new Date();
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthName = d.toLocaleString('en', { month: 'short' });
-        const pointScore = i === 0 ? currentScore : Math.max(20, Math.round(currentScore - (i * 3)));
-        months.push({
-          date: monthName,
-          score: pointScore,
-          target: 80,
-        });
-      }
-      return months;
-    }),
+        const snapshots = await dbConn
+          .select({
+            snapshotDate: schema.complianceSnapshots.snapshotDate,
+            complianceScore: schema.complianceSnapshots.complianceScore,
+          })
+          .from(schema.complianceSnapshots)
+          .where(and(...snapshotConditions));
+
+        if (snapshots.length >= 2) {
+          const byMonth = new Map<string, { sum: number; n: number }>();
+          for (const s of snapshots) {
+            const d = new Date(s.snapshotDate);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const agg = byMonth.get(key) || { sum: 0, n: 0 };
+            agg.sum += Number((s.complianceScore as any) ?? 0);
+            agg.n += 1;
+            byMonth.set(key, agg);
+          }
+          return [...byMonth.entries()]
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([k, v]) => ({
+              date: new Date(`${k}-01T00:00:00`).toLocaleString('en', { month: 'short' }),
+              score: Math.round(v.sum / v.n),
+              target: clientTarget,
+            }));
+        }
+
+        // Fetch live score from clientControls
+        const controlQuery = dbConn
+          .select({
+            total: sql<number>`count(*)`,
+            implemented: sql<number>`count(*) filter (where ${schema.clientControls.status} = 'implemented')`,
+          })
+          .from(schema.clientControls);
+
+        if (clientIdNum) {
+          controlQuery.where(eq(schema.clientControls.clientId, clientIdNum));
+        }
+
+        const [rows] = await controlQuery;
+        const implemented = Number(rows?.implemented ?? 0);
+        const total = Number(rows?.total ?? 0);
+        const currentScore = total > 0 ? Math.round((implemented / total) * 100) : 68;
+
+        // Provide past 6 months timeline ending at current live score for rich chart rendering
+        const months: { date: string; score: number; target: number }[] = [];
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthName = d.toLocaleString('en', { month: 'short' });
+          const pointScore = i === 0 ? currentScore : Math.max(20, Math.round(currentScore - (i * 3)));
+          months.push({
+            date: monthName,
+            score: pointScore,
+            target: clientTarget,
+          });
+        }
+        return months;
+      }),
 
     getInsights: isAuthed
       .input(z.any())

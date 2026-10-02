@@ -241,7 +241,7 @@ export function AutopilotDashboard({ clientId }: AutopilotDashboardProps) {
           <div className="text-center">
             <p className="text-lg font-semibold">Failed to load Autopilot</p>
             <p className="text-sm text-muted-foreground mt-1">
-              There was an error loading the autopilot configuration.
+              Failed to load autopilot configuration. Please check your settings and try again.
             </p>
           </div>
           <Button variant="outline" onClick={() => refetchConfig()}>
@@ -404,7 +404,7 @@ export function AutopilotDashboard({ clientId }: AutopilotDashboardProps) {
             </div>
           ) : historyError ? (
             <div className="flex flex-col items-center gap-3 py-6">
-              <p className="text-sm text-muted-foreground">Failed to load run history</p>
+              <p className="text-sm text-muted-foreground">Failed to load run history. Please refresh to try again.</p>
               <Button variant="outline" size="sm" onClick={() => refetchHistory()}>
                 <RefreshCw className="h-3 w-3 mr-1" />
                 Retry
@@ -478,7 +478,7 @@ export function AutopilotDashboard({ clientId }: AutopilotDashboardProps) {
             </div>
           ) : actionsError ? (
             <div className="flex flex-col items-center gap-3 py-6">
-              <p className="text-sm text-muted-foreground">Failed to load pending actions</p>
+              <p className="text-sm text-muted-foreground">Failed to load pending actions. Please refresh to try again.</p>
               <Button variant="outline" size="sm" onClick={() => refetchActions()}>
                 <RefreshCw className="h-3 w-3 mr-1" />
                 Retry

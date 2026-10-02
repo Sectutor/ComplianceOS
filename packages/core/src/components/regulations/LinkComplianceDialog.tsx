@@ -136,7 +136,7 @@ export function LinkComplianceDialog({ isOpen, onClose, clientId, regulationId, 
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[400px] p-0">
+                            <PopoverContent className="w-[min(400px,90vw)] p-0">
                                 <Command>
                                     <CommandInput placeholder={`Search ${linkType}...`} />
                                     <CommandList>

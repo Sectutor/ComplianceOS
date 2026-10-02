@@ -162,7 +162,7 @@ export function RiskTreatmentForm({
 
             onSuccess();
         } catch (error: any) {
-            toast.error(error.message || 'Failed to save treatment plan');
+            toast.error(error.message || 'Failed to save treatment plan', { description: "Please verify all required fields and try again." });
         } finally {
             setLoading(false);
         }

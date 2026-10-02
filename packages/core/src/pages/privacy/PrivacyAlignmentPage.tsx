@@ -17,8 +17,10 @@ import { useClientContext } from '@/contexts/ClientContext';
 
 
 export default function PrivacyAlignmentPage() {
-    const { clientId } = useParams<{ clientId: string }>();
+    // Route declares :id (App.tsx); fall back to the client context for safety
+    const params = useParams<{ id?: string; clientId?: string }>();
     const { selectedClientId } = useClientContext();
+    const clientId = params.id || params.clientId || (selectedClientId != null ? String(selectedClientId) : undefined);
 
     // Filter for privacy regulations only
     const privacyFrameworks = regulations.filter(r => r.type === 'Privacy');

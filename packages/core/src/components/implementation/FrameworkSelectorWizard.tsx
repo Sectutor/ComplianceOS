@@ -42,7 +42,7 @@ export default function FrameworkSelectorWizard({ clientId, onCancel }: Framewor
             setLocation(`/clients/${clientId}/implementation/kanban/${data.planId}`);
         },
         onError: (err) => {
-            toast.error("Failed to create plan", { description: err.message });
+            toast.error("Failed to create implementation plan", { description: err.message || 'Please check your connection and try again.' });
         }
     });
 

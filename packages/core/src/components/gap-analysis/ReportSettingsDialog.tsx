@@ -69,7 +69,7 @@ export function ReportSettingsDialog({ open, onOpenChange, assessmentId, initial
             toast.success("AI Content Generated!");
         } catch (error) {
             console.error(error);
-            toast.error("Failed to generate content");
+            toast.error("Failed to generate content", { description: "Please check your settings and try again." });
         } finally {
             setGenerating(false);
         }
@@ -92,7 +92,7 @@ export function ReportSettingsDialog({ open, onOpenChange, assessmentId, initial
             if (onSave) onSave();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to save settings");
+            toast.error("Failed to save report settings. Please check your connection and try again.");
         }
     };
 

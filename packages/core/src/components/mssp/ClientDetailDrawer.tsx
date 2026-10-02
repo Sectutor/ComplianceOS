@@ -187,7 +187,7 @@ export function ClientDetailDrawer({ clientId, onClose }: ClientDetailDrawerProp
         ) : clientQuery.error ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <XCircle className="h-8 w-8 text-red-400 mb-2" />
-            <p className="text-sm text-slate-500">Failed to load client data</p>
+            <p className="text-sm text-slate-500">Failed to load client data. Please refresh to try again.</p>
             <Button
               variant="outline"
               size="sm"

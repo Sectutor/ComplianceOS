@@ -36,7 +36,7 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
       utils.clients.get.invalidate({ id: clientId });
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to upload logo");
+      toast.error("Failed to upload logo", { description: error.message || "Please check that the file is a valid image (PNG, JPG) and try again." });
     },
   });
 
@@ -48,7 +48,7 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
       utils.clients.get.invalidate({ id: clientId });
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to remove logo");
+      toast.error("Failed to remove logo", { description: error.message || "Please try again." });
     },
   });
 
@@ -93,7 +93,7 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
           });
 
           if (!response.ok) {
-            const errorText = await response.text().catch(() => "Unknown error");
+            const errorText = await response.text().catch(() => "Upload failed. Please check your connection and try again.");
             throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
           }
 
@@ -117,13 +117,13 @@ export default function ClientLogoUpload({ clientId, currentLogoUrl, clientName 
       };
 
       reader.onerror = () => {
-        toast.error("Failed to read file");
+        toast.error("Failed to read file", { description: "The file may be corrupted or too large. Please try a different file." });
         setIsUploading(false);
       };
 
       reader.readAsDataURL(file);
     } catch (error) {
-      toast.error("Failed to initiate upload");
+      toast.error("Failed to initiate upload", { description: "Please check your network connection and try again." });
       setIsUploading(false);
     }
   };

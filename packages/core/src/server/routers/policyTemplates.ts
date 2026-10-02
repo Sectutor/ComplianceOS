@@ -268,7 +268,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     console.error('[PolicyTemplates deploy] Error:', error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: error.message || 'Failed to deploy policy'
+                        message: error.message || 'Failed to deploy policy. Please try again.'
                     });
                 }
             }),
@@ -350,7 +350,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     console.error('[PolicyTemplates bulkDeploy] Error:', error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: error.message || 'Failed to bulk deploy policies'
+                        message: error.message || 'Failed to bulk deploy policies. Please try again.'
                     });
                 }
             }),
@@ -393,7 +393,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     console.error('[PolicyTemplates preview] Error generating policy:', error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: error.message || 'Failed to generate policy preview'
+                        message: error.message || 'Failed to generate policy preview. Please try again.'
                     });
                 }
             }),
@@ -489,7 +489,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     console.error('[streamAiTailoring] Error:', error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: error.message || 'Failed to stream AI response'
+                        message: error.message || 'Failed to stream AI response. Please try again.'
                     });
                 }
             }),

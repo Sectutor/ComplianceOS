@@ -18,7 +18,9 @@ export interface ActionItem {
     | 'connector_failed'
     | 'risk_critical'
     | 'incident_active'
-    | 'cloud_drift';
+    | 'cloud_drift'
+    | 'control_due'
+    | 'control_review_due';
   title: string;
   description: string;
   priority: 'critical' | 'high' | 'medium' | 'low';
@@ -386,6 +388,83 @@ export async function getActionItems(clientId: number, userId: number): Promise<
     }
   } catch (err) {
     console.error('Error fetching critical risk treatments:', err);
+  }
+
+  // 10. Controls past their due date (register-level accountability)
+  try {
+    const overdueControls = await db.select()
+      .from(schema.clientControls)
+      .where(
+        and(
+          eq(schema.clientControls.clientId, clientId),
+          lt(schema.clientControls.dueDate, now),
+          inArray(schema.clientControls.status, ['not_implemented', 'in_progress'])
+        )
+      )
+      .limit(5);
+
+    for (const cc of overdueControls) {
+      const due = cc.dueDate!;
+      const d = daysUntil(due);
+      const priority: ActionItem['priority'] = d <= -30 ? 'high' : 'medium';
+
+      items.push({
+        id: `control-due-${cc.id}`,
+        type: 'control_due',
+        title: `Control #${cc.clientControlId || cc.id} past due`,
+        description: `Due ${due.toLocaleDateString()} (${Math.abs(d)} days overdue) — owner: ${cc.owner || 'unassigned'}`,
+        priority,
+        module: 'Controls',
+        entityId: cc.id,
+        entityType: 'clientControl',
+        dueDate: due,
+        daysUntilDue: d,
+        actionUrl: `/clients/${clientId}/controls`,
+        actionLabel: 'Update Control',
+        frameworks: ['SOC 2 CC7.1', 'ISO 27001'],
+        createdAt: cc.createdAt || now,
+      });
+    }
+  } catch (err) {
+    console.error('Error fetching overdue controls:', err);
+  }
+
+  // 11. Implemented controls due for recertification review
+  try {
+    const reviewsDue = await db.select()
+      .from(schema.clientControls)
+      .where(
+        and(
+          eq(schema.clientControls.clientId, clientId),
+          eq(schema.clientControls.status, 'implemented'),
+          lt(schema.clientControls.nextReviewDate, now)
+        )
+      )
+      .limit(5);
+
+    for (const cc of reviewsDue) {
+      const due = cc.nextReviewDate!;
+      const d = daysUntil(due);
+
+      items.push({
+        id: `control-review-${cc.id}`,
+        type: 'control_review_due',
+        title: `Control review due: #${cc.clientControlId || cc.id}`,
+        description: `Implemented control last reviewed ${cc.lastReviewedAt ? cc.lastReviewedAt.toLocaleDateString() : 'never'} — recertification ${d <= 0 ? `${Math.abs(d)} days overdue` : `in ${d} days`}`,
+        priority: 'medium',
+        module: 'Controls',
+        entityId: cc.id,
+        entityType: 'clientControl',
+        dueDate: due,
+        daysUntilDue: d,
+        actionUrl: `/clients/${clientId}/controls`,
+        actionLabel: 'Review Control',
+        frameworks: ['ISO 27001', 'SOC 2'],
+        createdAt: cc.createdAt || now,
+      });
+    }
+  } catch (err) {
+    console.error('Error fetching control reviews due:', err);
   }
 
   // Sort: critical first, then high, medium, low

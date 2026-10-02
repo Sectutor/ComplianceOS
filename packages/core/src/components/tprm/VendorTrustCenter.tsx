@@ -89,7 +89,7 @@ export const VendorTrustCenter: React.FC<VendorTrustCenterProps> = ({ vendor, on
     },
     onError: (err) => {
       console.error("Failed to update vendor trust center:", err);
-      toast.error("Failed to save: " + (err.message || "Unknown error"));
+      toast.error("Failed to save vendor trust center status: " + (err.message || "Please check your connection and try again."));
       if (vendor?.id) utils.vendors.get.invalidate({ id: vendor.id });
     }
   });

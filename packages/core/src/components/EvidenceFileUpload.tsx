@@ -290,7 +290,7 @@ export default function EvidenceFileUpload({
           };
 
           reader.onerror = () => {
-            const errorMsg = "Failed to read file";
+            const errorMsg = "Failed to read file. The file may be corrupted or too large.";
             setUploadingFiles((prev) =>
               prev.map((f) =>
                 f.id === uploadingFile.id

@@ -43,7 +43,7 @@ export function SystemFeedbackModal() {
             form.reset();
         },
         onError: (e) => {
-            toast.error(`Failed to submit: ${e.message}`);
+            toast.error("Failed to submit feedback", { description: e.message || "Please try again." });
         }
     });
 

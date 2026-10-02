@@ -238,7 +238,7 @@ export default function EvidenceReportBuilder({ clientId }: EvidenceReportBuilde
         },
       });
     } catch (err) {
-      console.error("Failed to save draft:", err);
+      console.error("Failed to save report draft:", err);
     }
   }, [
     title,

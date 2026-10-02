@@ -40,16 +40,20 @@ export function AiRewriteDialog({ open, onOpenChange, onRewrite, isPending }: Ai
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
                         Cancel
                     </Button>
-                    <Button onClick={handleSubmit} disabled={!instruction.trim() || isPending}>
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={!instruction.trim() || isPending}
+                        className="bg-sky-400 hover:bg-sky-500 text-white font-medium shadow-sm gap-2 disabled:bg-sky-400/50 disabled:text-white/70"
+                    >
                         {isPending ? (
                             <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Rewriting...
+                                <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                <span className="text-white font-medium">Rewriting...</span>
                             </>
                         ) : (
                             <>
-                                <Wand2 className="mr-2 h-4 w-4" />
-                                Rewrite Policy
+                                <Wand2 className="h-4 w-4 text-white" />
+                                <span className="text-white font-medium">Rewrite Policy</span>
                             </>
                         )}
                     </Button>

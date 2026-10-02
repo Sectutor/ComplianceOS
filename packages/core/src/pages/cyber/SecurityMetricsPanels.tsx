@@ -66,8 +66,8 @@ import {
   METRIC_SEVERITY_ORDER,
   MTTR_SEVERITY_META,
   POSTURE_STATUS_META,
-  TREND_META,
   trendGlyph,
+  trendMeta,
   useComplianceDrift,
   useExecutiveSummary,
   useMttr,
@@ -163,7 +163,7 @@ const DRIFT_ACCENT: Record<DriftSeverity, string> = {
 
 /** Trend pill for a metric, flipping the arrow when down = good (MTTR). */
 function TrendPill({ trend, inverted = false, pct = null }: { trend: MetricTrend; inverted?: boolean; pct?: number | null }) {
-  const meta = TREND_META[trend];
+  const meta = trendMeta(trend);
   return (
     <Badge variant={meta.badgeVariant} className="gap-1 tabular-nums">
       <span aria-hidden="true">{trendGlyph(trend, inverted)}</span>
@@ -258,14 +258,14 @@ function ExecutiveSummaryPanel({
                 <div
                   className={cn(
                     "mt-0.5 flex items-center gap-1 text-xs font-semibold",
-                    TREND_META[data.postureTrend].textClass
+                    trendMeta(data.postureTrend).textClass
                   )}
                 >
                   <span aria-hidden="true">{trendGlyph(data.postureTrend)}</span>
                   <span className="tabular-nums">
                     {data.postureTrendPct !== null && data.postureTrendPct !== undefined
                       ? `${Math.abs(data.postureTrendPct)}%`
-                      : TREND_META[data.postureTrend].label}
+                      : trendMeta(data.postureTrend).label}
                   </span>
                   vs prior period
                 </div>
@@ -280,14 +280,14 @@ function ExecutiveSummaryPanel({
                 <div
                   className={cn(
                     "mt-0.5 flex items-center gap-1 text-xs font-semibold",
-                    TREND_META[data.mttrTrend].textClass
+                    trendMeta(data.mttrTrend).textClass
                   )}
                 >
                   <span aria-hidden="true">{trendGlyph(data.mttrTrend, true)}</span>
                   <span className="tabular-nums">
                     {data.mttrTrendPct !== null && data.mttrTrendPct !== undefined
                       ? `${Math.abs(data.mttrTrendPct)}%`
-                      : TREND_META[data.mttrTrend].label}
+                      : trendMeta(data.mttrTrend).label}
                   </span>
                   vs prior period
                 </div>
@@ -522,7 +522,7 @@ function VulnerabilityAgePanel({
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 {AGE_BAND_ORDER.map((band) => {
-                  const count = data.ageBands[band] ?? 0;
+                  const count = data.ageBands?.[band] ?? 0;
                   return (
                     <span
                       key={band}
@@ -654,7 +654,7 @@ function ComplianceDriftPanel({
         >
           {data ? (
             <div className="space-y-4">
-              {data.items.length === 0 ? (
+              {(data.items ?? []).length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/10 px-6 py-10 text-center">
                   <CheckCircle2 className="h-8 w-8 text-[var(--success-foreground)]" />
                   <p className="mt-3 text-sm font-semibold text-foreground">No drift alerts</p>
@@ -664,7 +664,7 @@ function ComplianceDriftPanel({
                 </div>
               ) : (
                 <ul className="space-y-3">
-                  {data.items.map((item) => {
+                  {(data.items ?? []).map((item) => {
                     const meta = DRIFT_SEVERITY_META[item.severity] ?? DRIFT_SEVERITY_META.none;
                     return (
                       <li

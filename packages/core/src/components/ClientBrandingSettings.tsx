@@ -64,7 +64,7 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
             setHasChanges(false);
         },
         onError: (error) => {
-            toast.error(error.message || "Failed to save branding settings");
+            toast.error(error.message || "Failed to save client branding settings. Please check your connection and try again.");
         },
     });
 
@@ -96,7 +96,7 @@ export default function ClientBrandingSettings({ clientId, clientName, initialDa
             toast.success("Feature flags saved successfully");
         },
         onError: (error) => {
-            toast.error(error.message || "Failed to save feature flags");
+            toast.error(error.message || "Failed to save feature flags. Please check your connection and try again.");
         }
     });
 

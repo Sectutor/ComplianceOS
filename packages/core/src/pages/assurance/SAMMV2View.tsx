@@ -158,7 +158,12 @@ export default function SAMMV2View() {
                                         setLocation(`/clients/${clientId}/implementation/kanban/${res.planId}`);
                                         return `Generated plan with ${res.taskCount} tasks!`;
                                     },
-                                    error: (err) => `Failed to generate plan: ${err.message}`
+                                    error: (err) => {
+                                        const errMsg = err.message || '';
+                                        if (/rate.?limit|too many requests|throttl|429/i.test(errMsg)) return errMsg;
+                                        if (/insufficient|balance|credit|quota|exceeded/i.test(errMsg)) return errMsg;
+                                        return 'Failed to generate plan. Please try again.';
+                                    }
                                 });
                             }}
                             disabled={generatePlanMutation.isLoading}

@@ -105,13 +105,13 @@ export function FileLibraryPicker({ open, onOpenChange, clientId, onSelect }: Fi
         setIsUploading(false);
       };
       reader.onerror = () => {
-        toast.error("Failed to read file");
+        toast.error("Failed to read file", { description: "The file may be corrupted or too large. Please try a different file." });
         setIsUploading(false);
       };
       reader.readAsDataURL(file);
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred during upload");
+        toast.error("Upload failed", { description: "Please check your network connection and try again." });
       setIsUploading(false);
     }
   };

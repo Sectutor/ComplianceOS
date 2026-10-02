@@ -82,7 +82,7 @@ export function DemoImportDialog({ open, onOpenChange, onImport }: DemoImportDia
             clearInterval(intervalId);
             clearInterval(stepIntervalId);
             setStatus('error');
-            setError(err.message || "An error occurred during import.");
+            setError(err.message || "Import failed. Please check that the demo data file is valid and try again.");
         }
     };
 

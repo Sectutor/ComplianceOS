@@ -206,6 +206,7 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         implementationDate: z.date().nullable().optional(),
         implementationNotes: z.string().optional(),
         evidenceLocation: z.string().optional(),
+        nextReviewDate: z.date().nullable().optional(),
       }))
       .mutation(async ({ input, ctx }: any) => {
         const { id, ...data } = input;
@@ -220,8 +221,54 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
 
         // Fetch previous state for logging
         const previousState = await db.getClientControlById(id);
+        const prevControl = previousState?.clientControl;
+
+        // Validation: "Implemented" must be backed by evidence (attached file
+        // records or at least an evidence location reference).
+        if (data.status === 'implemented') {
+          const dbConn = await db.getDb();
+          const evidenceRows = await dbConn.select({ id: schema.evidence.id })
+            .from(schema.evidence)
+            .where(and(
+              eq(schema.evidence.clientControlId, id),
+              sql`${schema.evidence.status} != 'rejected'`
+            ))
+            .limit(1);
+          const hasEvidence = evidenceRows.length > 0 ||
+            !!(data.evidenceLocation ?? prevControl?.evidenceLocation);
+          if (!hasEvidence) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Attach evidence (a file record or evidence reference) before marking this control as Implemented."
+            });
+          }
+          // Auto-set implementation date and the 12-month recertification date
+          if (!data.implementationDate && !prevControl?.implementationDate) {
+            data.implementationDate = new Date();
+          }
+          if (data.nextReviewDate === undefined && !prevControl?.nextReviewDate) {
+            data.nextReviewDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+          }
+        }
 
         await db.updateClientControl(id, data);
+
+        // --- Status history (primary control) ---
+        if (data.status && prevControl && prevControl.status !== data.status) {
+          try {
+            const dbConn = await db.getDb();
+            await dbConn.insert(schema.clientControlHistory).values({
+              clientControlId: id,
+              fromStatus: prevControl.status,
+              toStatus: data.status,
+              changedByUserId: ctx?.user?.id ?? null,
+              changedByName: ctx?.user?.name || ctx?.user?.email || 'User',
+              note: data.status === 'implemented' ? 'Marked implemented (evidence verified)' : null,
+            });
+          } catch (e) {
+            console.error('[clientControls] failed to write status history:', e);
+          }
+        }
 
         // --- Dynamic Status Propagation (Master Framework Logic) ---
         if (data.status || data.evidenceLocation || data.implementationNotes) {
@@ -277,6 +324,22 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
                         : (peer.implementationNotes || '') + `\n(Synced from ${masterControlInfo.controlId})`,
                       updatedAt: new Date()
                     }).where(eq(clientControls.id, peer.id));
+
+                    // Peers' status changes appear in their own history timelines too
+                    if (shouldUpdateStatus) {
+                      try {
+                        await dbConn.insert(schema.clientControlHistory).values({
+                          clientControlId: peer.id,
+                          fromStatus: peer.status,
+                          toStatus: data.status,
+                          changedByUserId: ctx?.user?.id ?? null,
+                          changedByName: ctx?.user?.name || ctx?.user?.email || 'User',
+                          note: `Cross-framework sync from ${masterControlInfo.framework} ${masterControlInfo.controlId}`,
+                        });
+                      } catch (historyErr) {
+                        console.error('[clientControls] failed to write peer history:', historyErr);
+                      }
+                    }
                   }
                 }
               }
@@ -521,6 +584,168 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         }
 
         return { success: true, updatedCount: existingControls.length };
+      }),
+
+    // ── Review cycles (periodic recertification of implemented controls) ──
+    markReviewed: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        id: z.number(),
+        note: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }: any) => {
+        const dbConn = await db.getDb();
+        const now = new Date();
+        const nextReviewDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+        const cc = await dbConn.select().from(clientControls).where(eq(clientControls.id, input.id)).limit(1);
+        if (!cc.length) throw new TRPCError({ code: "NOT_FOUND" });
+
+        await dbConn.update(clientControls)
+          .set({ lastReviewedAt: now, nextReviewDate, updatedAt: now })
+          .where(eq(clientControls.id, input.id));
+
+        await dbConn.insert(schema.clientControlHistory).values({
+          clientControlId: input.id,
+          fromStatus: cc[0].status,
+          toStatus: cc[0].status,
+          changedByUserId: ctx?.user?.id ?? null,
+          changedByName: ctx?.user?.name || ctx?.user?.email || 'User',
+          note: input.note || 'Control review completed — next review scheduled in 12 months',
+        });
+
+        return { success: true, nextReviewDate };
+      }),
+
+    getHistory: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        id: z.number(),
+        limit: z.number().optional(),
+      }))
+      .query(async ({ input }: any) => {
+        const dbConn = await db.getDb();
+        return await dbConn.select()
+          .from(schema.clientControlHistory)
+          .where(eq(schema.clientControlHistory.clientControlId, input.id))
+          .orderBy(desc(schema.clientControlHistory.createdAt))
+          .limit(input.limit || 10);
+      }),
+
+    // ── Cross-framework peers (visible side of the auto-sync on update) ──
+    getSyncPeers: clientProcedure
+      .input(z.object({ clientId: z.number(), id: z.number() }))
+      .query(async ({ input }: any) => {
+        const dbConn = await db.getDb();
+        const cc = await dbConn.select({ controlId: clientControls.controlId })
+          .from(clientControls).where(eq(clientControls.id, input.id)).limit(1);
+        if (!cc.length) return [];
+
+        const masterId = cc[0].controlId;
+        const asSource = await dbConn.select({ id: schema.controlMappings.targetControlId })
+          .from(schema.controlMappings).where(eq(schema.controlMappings.sourceControlId, masterId));
+        const asTarget = await dbConn.select({ id: schema.controlMappings.sourceControlId })
+          .from(schema.controlMappings).where(eq(schema.controlMappings.targetControlId, masterId));
+        const peerMasterIds = [...new Set([...asSource, ...asTarget].map((m: any) => m.id))]
+          .filter((mid: number) => mid !== masterId);
+        if (!peerMasterIds.length) return [];
+
+        return await dbConn.select({
+          id: clientControls.id,
+          status: clientControls.status,
+          controlId: controls.controlId,
+          name: controls.name,
+          framework: controls.framework,
+        })
+          .from(clientControls)
+          .innerJoin(controls, eq(clientControls.controlId, controls.id))
+          .where(and(
+            eq(clientControls.clientId, input.clientId),
+            inArray(clientControls.controlId, peerMasterIds)
+          ));
+      }),
+
+    // ── Implementation velocity: controls marked implemented per week ──
+    getRegisterTrend: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        weeks: z.number().optional(),
+      }))
+      .query(async ({ input }: any) => {
+        const dbConn = await db.getDb();
+        const res: any = await dbConn.execute(sql`
+          SELECT to_char(date_trunc('week', h.created_at), 'DD Mon') AS week,
+                 count(*)::int AS implemented
+          FROM client_control_history h
+          JOIN client_controls cc ON cc.id = h.client_control_id
+          WHERE cc.client_id = ${input.clientId}
+            AND h.to_status = 'implemented'
+            AND h.created_at >= now() - make_interval(weeks => ${input.weeks || 8})
+          GROUP BY date_trunc('week', h.created_at)
+          ORDER BY date_trunc('week', h.created_at)
+        `);
+        return Array.isArray(res) ? res : res.rows;
+      }),
+
+    // ── Turn failed gap-analysis findings into assigned controls ──
+    assignFromGap: clientEditorProcedure
+      .input(z.object({
+        clientId: z.number(),
+        assessmentId: z.number(),
+      }))
+      .mutation(async ({ input }: any) => {
+        const dbConn = await db.getDb();
+        const assessment = await dbConn.select().from(schema.gapAssessments)
+          .where(and(
+            eq(schema.gapAssessments.id, input.assessmentId),
+            eq(schema.gapAssessments.clientId, input.clientId)
+          ))
+          .limit(1);
+        if (!assessment.length) throw new TRPCError({ code: "NOT_FOUND", message: "Gap assessment not found" });
+
+        const responses = await dbConn.select().from(schema.gapResponses)
+          .where(eq(schema.gapResponses.assessmentId, input.assessmentId));
+        const failed = responses.filter((r: any) =>
+          r.targetStatus !== 'not_required' && r.currentStatus && r.currentStatus !== 'implemented');
+        if (!failed.length) return { assigned: 0, skipped: 0, unresolved: [] as string[] };
+
+        const masterIds: number[] = [];
+        const unresolved: string[] = [];
+        for (const r of failed) {
+          const code = String(r.controlId).trim();
+          let match = await dbConn.select({ id: controls.id })
+            .from(controls)
+            .where(sql`lower(${controls.controlId}) = ${code.toLowerCase()}`)
+            .limit(1);
+          if (!match.length && /^\d+$/.test(code)) {
+            match = await dbConn.select({ id: controls.id })
+              .from(controls).where(eq(controls.id, parseInt(code, 10))).limit(1);
+          }
+          if (match.length) masterIds.push(match[0].id);
+          else unresolved.push(code);
+        }
+        const uniqueMasterIds = [...new Set(masterIds)];
+        if (!uniqueMasterIds.length) return { assigned: 0, skipped: 0, unresolved };
+
+        const existing = await dbConn.select({ controlId: clientControls.controlId })
+          .from(clientControls).where(eq(clientControls.clientId, input.clientId));
+        const existingSet = new Set(existing.map((e: any) => e.controlId));
+        const toAssign = uniqueMasterIds.filter((mid: number) => !existingSet.has(mid));
+        if (!toAssign.length) return { assigned: 0, skipped: uniqueMasterIds.length, unresolved };
+
+        const countRows = await dbConn.select({ n: sql<number>`count(*)::int`.mapWith(Number) })
+          .from(clientControls).where(eq(clientControls.clientId, input.clientId));
+        let counter = countRows[0]?.n ?? 0;
+
+        for (const mid of toAssign) {
+          counter++;
+          await dbConn.insert(clientControls).values({
+            clientId: input.clientId,
+            controlId: mid,
+            clientControlId: `CC-${String(counter).padStart(3, '0')}`,
+            status: 'not_implemented',
+          });
+        }
+        return { assigned: toAssign.length, skipped: uniqueMasterIds.length - toAssign.length, unresolved };
       }),
 
 

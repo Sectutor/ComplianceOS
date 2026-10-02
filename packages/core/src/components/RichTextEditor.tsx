@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 're
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import DOMPurify from 'dompurify';
-import { Sparkles, Wand2, MessageSquare } from 'lucide-react';
+import { Sparkles, Wand2, MessageSquare, AlignLeft } from 'lucide-react';
 import { Button } from '@complianceos/ui/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@complianceos/ui/ui/tooltip';
 import { toast } from 'sonner';
@@ -260,9 +260,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
   }));
 
   return (
-    <div className={`rich-text-editor-wrapper bg-white rounded-lg border border-slate-200 ${className}`}>
-      {(onAiRewrite || onAiFix) && (
-        <div className="flex items-center flex-nowrap overflow-x-auto no-scrollbar justify-start md:justify-end gap-2 mb-2 p-2 bg-white rounded border border-slate-200 shadow-sm w-full">
+    <div className={`rich-text-editor-wrapper bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm ${className}`}>
+      {(onAiRewrite || onAiFix || onCheckCompliance || onComment) && (
+        <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
+          <div className="flex items-center gap-2 flex-wrap">
           {onAiRewrite && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -272,10 +273,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                   size="sm"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleManualAction(onAiRewrite)}
-                  className="text-purple-600 border-purple-200 hover:bg-purple-50 flex-shrink-0"
+                  className="h-8 text-xs font-medium text-purple-700 bg-purple-50/70 border-purple-200 hover:bg-purple-100 hover:text-purple-800 transition-colors shrink-0"
                 >
-                  <Wand2 className="sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Rewrite with AI</span>
+                  <Wand2 className="mr-1.5 h-3.5 w-3.5 text-purple-600" />
+                  Rewrite with AI
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -292,10 +293,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                   size="sm"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleManualAction(onAiFix)}
-                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 flex-shrink-0"
+                  className="h-8 text-xs font-medium text-emerald-700 bg-emerald-50/70 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-800 transition-colors shrink-0"
                 >
-                  <Sparkles className="sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Fix with AI</span>
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+                  Fix with AI
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -303,48 +304,10 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
               </TooltipContent>
             </Tooltip>
           )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  if (!quillRef.current) return;
-                  const raw = quillRef.current.root.innerHTML;
-                  const formatted = ensureEnumerationParagraphs(raw);
-                  quillRef.current.clipboard.dangerouslyPasteHTML(formatted);
-                }}
-                className="flex-shrink-0"
-              >
-                <span className="hidden sm:inline">Format paragraphs</span>
-                <span className="sm:hidden">Format</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Start each numbered clause as a new paragraph</p>
-            </TooltipContent>
-          </Tooltip>
-          {onCheckCompliance && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleManualAction(onCheckCompliance)}
-                  className="text-amber-700 border-amber-200 hover:bg-amber-50 flex-shrink-0"
-                >
-                  <Sparkles className="sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Check Compliance</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Verify policy completeness and scan for issues</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {onComment && (
+          </div>
+
+          {/* Document Utilities */}
+          <div className="flex items-center gap-2 flex-wrap">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -353,23 +316,70 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     if (!quillRef.current) return;
-                    const range = quillRef.current.getSelection(true) || lastSelectionRef.current;
-                    if (range && range.length > 0) {
-                      const text = quillRef.current.getText(range.index, range.length);
-                      onComment({ quote: text, index: range.index, length: range.length });
-                    } else {
-                      toast.info("Highlight text to add a comment");
-                    }
-                  }} className="text-blue-600 border-blue-200 hover:bg-blue-50 flex-shrink-0">
-                  <MessageSquare className="sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Add Comment</span>
+                    const raw = quillRef.current.root.innerHTML;
+                    const formatted = ensureEnumerationParagraphs(raw);
+                    quillRef.current.clipboard.dangerouslyPasteHTML(formatted);
+                  }}
+                  className="h-8 text-xs font-medium text-slate-700 bg-white border-slate-200 hover:bg-slate-100 shrink-0"
+                >
+                  <AlignLeft className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
+                  Format Paragraphs
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Highlight text to leave feedback on a specific section</p>
+                <p>Start each numbered clause as a new paragraph</p>
               </TooltipContent>
             </Tooltip>
-          )}
+
+            {onCheckCompliance && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleManualAction(onCheckCompliance)}
+                    className="h-8 text-xs font-medium text-amber-800 bg-amber-50/70 border-amber-200 hover:bg-amber-100 shrink-0"
+                  >
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5 text-amber-600" />
+                    Check Compliance
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Verify policy completeness and scan for issues</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {onComment && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      if (!quillRef.current) return;
+                      const range = quillRef.current.getSelection(true) || lastSelectionRef.current;
+                      if (range && range.length > 0) {
+                        const text = quillRef.current.getText(range.index, range.length);
+                        onComment({ quote: text, index: range.index, length: range.length });
+                      } else {
+                        toast.info("Highlight text to add a comment");
+                      }
+                    }}
+                    className="h-8 text-xs font-medium text-blue-700 bg-blue-50/70 border-blue-200 hover:bg-blue-100 shrink-0"
+                  >
+                    <MessageSquare className="mr-1.5 h-3.5 w-3.5 text-blue-600" />
+                    Add Comment
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Highlight text to leave feedback on a specific section</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
       )}
 
@@ -410,22 +420,17 @@ const RichTextEditor = forwardRef<RichTextEditorRef, {
 
       <style>{`
         .rich-text-editor-wrapper .ql-toolbar {
-            border: 1px solid #e2e8f0;
-            border-bottom: none;
-            border-top-left-radius: 0.5rem;
-            border-top-right-radius: 0.5rem;
+            border: none;
+            border-bottom: 1px solid #e2e8f0;
             background: #ffffff;
-            padding: 8px;
+            padding: 8px 12px;
         }
         .rich-text-editor-wrapper .ql-container {
-            border: 1px solid #e2e8f0;
-            border-bottom-left-radius: 0.5rem;
-            border-bottom-right-radius: 0.5rem;
+            border: none;
             background: #ffffff;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             font-size: 0.95rem;
             min-height: var(--min-height, 500px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             position: relative;
         }
         .rich-text-editor-wrapper .ql-editor {

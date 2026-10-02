@@ -64,7 +64,7 @@ export function RecoveryRequirementsEditor({ biaId }: Props) {
             refetch();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to save");
+            toast.error("Failed to save recovery requirements. Please check your connection and try again.");
         }
     };
 

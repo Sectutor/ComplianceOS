@@ -54,7 +54,7 @@ export function CommentsSection({ clientId, entityType, entityId, initialContext
             refetch();
         },
         onError: (err) => {
-            toast.error(err.message || "Failed to add comment");
+            toast.error("Failed to add comment", { description: err.message || "Please check that your comment is not empty and try again." });
         }
     });
 
@@ -64,7 +64,7 @@ export function CommentsSection({ clientId, entityType, entityId, initialContext
             refetch();
         },
         onError: (err) => {
-            toast.error(err.message || "Failed to update status");
+            toast.error(err.message || "Failed to update comment status. Please check your connection and try again.");
         }
     });
 
@@ -74,7 +74,7 @@ export function CommentsSection({ clientId, entityType, entityId, initialContext
             refetch();
         },
         onError: (err) => {
-            toast.error(err.message || "Failed to delete comment");
+            toast.error("Failed to delete comment", { description: err.message || "Please try again." });
         }
     });
 

@@ -8,11 +8,15 @@ import {
     employees,
     privacyAssessments,
     remediationTasks,
+    dataProtImpactAssessments,
+    internationalTransfers,
+    dataBreaches,
     InsertProcessDataFlow
 } from "../../schema";
 import { getDb } from "../../db";
 import { eq, and, desc, count, sql, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { logActivity } from "../../lib/audit";
 
 export const createPrivacyRouter = (t: any, clientProcedure: any) => {
     return t.router({
@@ -461,7 +465,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                     console.error("[PrivacyRouter] createDsarRequest error:", error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: `Failed to create DSAR request: ${error.message}`
+                        message: `Failed to create DSAR request: ${error.message || 'Please try again.'}`
                     });
                 }
             }),
@@ -473,6 +477,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                 verificationStatus: z.string().optional(),
                 resolutionNotes: z.string().optional(),
                 assignedTo: z.any().optional(), // Can be string or number depending on UI
+                purgeChecklist: z.array(z.number()).optional(), // Asset ids confirmed extracted/erased
             }))
             .mutation(async ({ ctx, input }: any) => {
                 const db = await getDb();
@@ -508,6 +513,12 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
 
                 if (input.resolutionNotes !== undefined) {
                     updateData.resolutionNotes = input.resolutionNotes;
+                    auditEntry.details += 'Resolution notes updated. ';
+                }
+
+                if (input.purgeChecklist !== undefined) {
+                    updateData.purgeChecklist = input.purgeChecklist;
+                    auditEntry.details += `Purge checklist updated (${input.purgeChecklist.length} assets confirmed). `;
                 }
 
                 if (input.assignedTo !== undefined) {
@@ -559,6 +570,27 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                 return { success: true };
             }),
 
+        deleteDsarRequest: clientProcedure
+            .input(z.object({ id: z.number() }))
+            .mutation(async ({ ctx, input }: any) => {
+                const db = await getDb();
+                const existing = await db.query.dsarRequests.findFirst({
+                    where: and(eq(dsarRequests.id, input.id), eq(dsarRequests.clientId, ctx.clientId))
+                });
+                if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
+
+                await db.delete(dsarRequests).where(eq(dsarRequests.id, input.id));
+                await logActivity({
+                    userId: ctx.user?.id,
+                    clientId: ctx.clientId,
+                    action: "delete",
+                    entityType: "dsar",
+                    entityId: input.id,
+                    details: { requestId: existing.requestId }
+                });
+                return { success: true };
+            }),
+
         // Stats for Dashboard
         getPrivacyStats: clientProcedure
             .input(z.object({ clientId: z.number().optional() }))
@@ -581,9 +613,38 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                     .from(dsarRequests)
                     .where(and(eq(dsarRequests.clientId, clientId), sql`status NOT IN ('Completed', 'Rejected')`));
 
+                // Counts from the relational privacy tables (single source of truth
+                // for DPIA / transfers / breaches — mirrors the REST v1 API)
+                const [dpiaTotal] = await db
+                    .select({ count: count() })
+                    .from(dataProtImpactAssessments)
+                    .where(eq(dataProtImpactAssessments.clientId, clientId));
+
+                const [openDpia] = await db
+                    .select({ count: count() })
+                    .from(dataProtImpactAssessments)
+                    .where(and(
+                        eq(dataProtImpactAssessments.clientId, clientId),
+                        sql`status IN ('draft', 'in_progress', 'under_review')`
+                    ));
+
+                const [transferCount] = await db
+                    .select({ count: count() })
+                    .from(internationalTransfers)
+                    .where(eq(internationalTransfers.clientId, clientId));
+
+                const [breachCount] = await db
+                    .select({ count: count() })
+                    .from(dataBreaches)
+                    .where(and(eq(dataBreaches.clientId, clientId), sql`status != 'closed'`));
+
                 return {
                     piiAssetCount: piiAssets?.count ?? 0,
-                    activeDsarCount: activeDsar?.count ?? 0
+                    activeDsarCount: activeDsar?.count ?? 0,
+                    dpiaCount: dpiaTotal?.count ?? 0,
+                    openDpiaCount: openDpia?.count ?? 0,
+                    transferCount: transferCount?.count ?? 0,
+                    breachCount: breachCount?.count ?? 0
                 };
             }),
         // ==================== ASSESSMENTS ====================
@@ -686,10 +747,11 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
 
                     // --- TASK INTEGRATION ---
                     // Automatically create remediation tasks for "No" or "Partial" answers
+                    // (case-insensitive: UI checklists save lowercase values)
                     console.log("[PrivacyRouter] Checking for gaps to create tasks...");
                     if (input.responses && typeof input.responses === 'object') {
                         const gapEntries = Object.entries(input.responses).filter(
-                            ([_, res]: [string, any]) => res && typeof res === 'object' && (res.answer === "No" || res.answer === "Partial")
+                            ([_, res]: [string, any]) => res && typeof res === 'object' && ['no', 'partial'].includes(String(res.answer || '').toLowerCase())
                         );
 
                         if (gapEntries.length > 0) {
@@ -710,7 +772,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                                         clientId: assessmentClientId,
                                         title: taskTitle,
                                         description: `Privacy gap identified in ${input.type} assessment for question ${qId}.\n\nNotes: ${res.notes || 'No notes provided'}.`,
-                                        priority: res.answer === "No" ? "high" : "medium",
+                                        priority: String(res.answer).toLowerCase() === 'no' ? "high" : "medium",
                                         status: "open",
                                         dueDate: res.dueDate ? new Date(res.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
                                     });
@@ -724,7 +786,7 @@ export const createPrivacyRouter = (t: any, clientProcedure: any) => {
                     console.error("Error saving assessment:", e);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: `Failed to save: ${e.message}`
+                        message: `Failed to save privacy assessment: ${e.message || 'Please try again.'}`
                     });
                 }
             }),

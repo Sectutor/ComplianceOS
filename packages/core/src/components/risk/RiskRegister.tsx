@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination';
 import { trpc } from '@/lib/trpc';
-import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowRight, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@complianceos/ui/ui/input';
 import { Button } from '@complianceos/ui/ui/button';
@@ -67,6 +67,8 @@ const statusColors: Record<string, string> = {
     'draft': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
     'reviewed': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
     'approved': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    'treated': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+    'accepted': 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
     'closed': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
 };
 
@@ -108,6 +110,39 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
 
     const selectedAssetId = propAssetId !== undefined ? propAssetId : internalAssetId;
     const setSelectedAssetId = onAssetChange || setInternalAssetId;
+
+    const tableContainerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState<number | undefined>(undefined);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const checkScrollState = () => {
+        const el = tableContainerRef.current;
+        if (!el) return;
+        setContainerWidth(el.clientWidth);
+        const hasOverflow = el.scrollWidth > el.clientWidth + 2;
+        setCanScrollLeft(el.scrollLeft > 6);
+        setCanScrollRight(hasOverflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 6);
+    };
+
+    useEffect(() => {
+        if (!tableContainerRef.current) return;
+        checkScrollState();
+        const observer = new ResizeObserver(checkScrollState);
+        observer.observe(tableContainerRef.current);
+        window.addEventListener('resize', checkScrollState);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', checkScrollState);
+        };
+    }, []);
+
+    const scrollTable = (direction: 'left' | 'right') => {
+        const el = tableContainerRef.current;
+        if (!el) return;
+        const delta = direction === 'right' ? 260 : -260;
+        el.scrollBy({ left: delta, behavior: 'smooth' });
+    };
 
 
     // Sorting state
@@ -231,7 +266,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
         'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1
     };
     const statusOrder: Record<string, number> = {
-        'draft': 1, 'reviewed': 2, 'approved': 3, 'closed': 4
+        'draft': 1, 'reviewed': 2, 'approved': 3, 'treated': 4, 'accepted': 5, 'closed': 6
     };
 
     // Filter and sort risks
@@ -441,6 +476,8 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             <SelectItem value="draft">Draft</SelectItem>
                             <SelectItem value="reviewed">Reviewed</SelectItem>
                             <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="treated">Treated</SelectItem>
+                            <SelectItem value="accepted">Accepted</SelectItem>
                             <SelectItem value="closed">Closed</SelectItem>
                         </SelectContent>
                     </Select>
@@ -555,42 +592,102 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             </div>
 
             {/* Table Container */}
-            <div className="rounded-xl border border-slate-200 shadow-xs overflow-hidden bg-white m-4 min-w-0">
-                <div className="w-full overflow-x-auto">
+            <div className="rounded-xl border border-slate-200 shadow-xs overflow-clip bg-white m-4 min-w-0">
+                {/* Table Top Controls & Scroll Strip */}
+                {(canScrollLeft || canScrollRight) && (
+                    <div className="px-4 py-2.5 bg-gradient-to-r from-slate-50 via-blue-50/40 to-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-700 text-xs tracking-wide">Table Navigation</span>
+                            {canScrollRight ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/80">
+                                    <ArrowRight className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                    <span>More columns available to the right (Residual Risk, Treatment)</span>
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>All columns currently in view</span>
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Direct Table Slide Buttons with Color Accents */}
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => scrollTable('left')}
+                                disabled={!canScrollLeft}
+                                className={`h-8 px-3 gap-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    canScrollLeft
+                                        ? 'bg-white text-blue-700 border-blue-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 shadow-xs active:scale-95'
+                                        : 'bg-white/50 text-slate-300 border-slate-200/60 cursor-not-allowed opacity-40'
+                                }`}
+                                title="Slide table left"
+                            >
+                                <ChevronLeft className="w-4 h-4 text-blue-600" />
+                                <span>Slide Left</span>
+                            </Button>
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => scrollTable('right')}
+                                disabled={!canScrollRight}
+                                className={`h-8 px-3.5 gap-2 rounded-lg text-xs font-bold transition-all ${
+                                    canScrollRight
+                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm shadow-blue-500/25 active:scale-95 ring-2 ring-blue-500/20'
+                                        : 'bg-slate-200/70 text-slate-400 border-transparent cursor-not-allowed opacity-40'
+                                }`}
+                                title="Slide table right for more columns"
+                            >
+                                <span>Slide table right for more columns</span>
+                                <ChevronRight className="w-4 h-4 text-white" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                <div
+                    ref={tableContainerRef}
+                    onScroll={checkScrollState}
+                    className="w-full overflow-x-auto scrollbar-thin [scrollbar-color:#94a3b8_#f1f5f9] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400"
+                >
                     <table className="w-full min-w-[760px] border-collapse text-left">
                         <thead>
                             <tr className="bg-brand border-b border-brand text-white text-xs">
                                 <th className="px-3 py-3.5 text-center text-white w-10 shrink-0"></th>
                                 {visibleColumns.assessmentId && (
-                                    <SortableHeader field="assessmentId" className="text-left text-white whitespace-nowrap min-w-[100px]">Risk ID</SortableHeader>
+                                    <SortableHeader field="assessmentId" className="text-left text-white whitespace-nowrap min-w-[90px]">Risk ID</SortableHeader>
                                 )}
                                 {visibleColumns.threatDescription && (
-                                    <SortableHeader field="threatDescription" className="text-left text-white min-w-[220px]">Description</SortableHeader>
+                                    <SortableHeader field="threatDescription" className="text-left text-white min-w-[200px]">Description</SortableHeader>
                                 )}
                                 {visibleColumns.likelihood && (
-                                    <SortableHeader field="likelihood" className="text-center text-white whitespace-nowrap w-24">Likelihood</SortableHeader>
+                                    <SortableHeader field="likelihood" className="text-center text-white whitespace-nowrap w-20">Likelihood</SortableHeader>
                                 )}
                                 {visibleColumns.impact && (
-                                    <SortableHeader field="impact" className="text-center text-white whitespace-nowrap w-24">Impact</SortableHeader>
+                                    <SortableHeader field="impact" className="text-center text-white whitespace-nowrap w-16">Impact</SortableHeader>
                                 )}
                                 {visibleColumns.inherentRisk && (
-                                    <SortableHeader field="inherentRisk" className="text-center text-white whitespace-nowrap w-28">Inherent</SortableHeader>
+                                    <SortableHeader field="inherentRisk" className="text-center text-white whitespace-nowrap w-20">Inherent</SortableHeader>
                                 )}
                                 {visibleColumns.residualRisk && (
-                                    <SortableHeader field="residualRisk" className="text-center text-white whitespace-nowrap w-28">Residual</SortableHeader>
+                                    <SortableHeader field="residualRisk" className="text-center text-white whitespace-nowrap w-20">Residual</SortableHeader>
                                 )}
                                 {visibleColumns.treatmentOption && (
-                                    <SortableHeader field="treatmentOption" className="text-left text-white whitespace-nowrap min-w-[130px]">Treatment</SortableHeader>
+                                    <SortableHeader field="treatmentOption" className="text-left text-white whitespace-nowrap min-w-[110px]">Treatment</SortableHeader>
                                 )}
                                 {/* Sticky Status Header */}
                                 <SortableHeader
                                     field="status"
-                                    className="text-center text-white whitespace-nowrap sticky right-[84px] z-20 bg-brand shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.15)] w-28 min-w-[100px]"
+                                    className={`text-center text-white whitespace-nowrap sticky right-[76px] z-20 bg-brand w-24 min-w-[90px] transition-shadow ${
+                                        canScrollRight ? 'shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.15)]'
+                                    }`}
                                 >
                                     Status
                                 </SortableHeader>
                                 {/* Sticky Actions Header */}
-                                <th className="px-3 py-3.5 text-center text-xs font-semibold text-white uppercase tracking-wider sticky right-0 z-20 bg-brand w-[84px] min-w-[84px]">
+                                <th className="px-2 py-3.5 text-center text-xs font-semibold text-white uppercase tracking-wider sticky right-0 z-20 bg-brand w-[76px] min-w-[76px]">
                                     Actions
                                 </th>
                             </tr>
@@ -719,7 +816,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                             )}
 
                                             {/* Sticky Status Column */}
-                                            <td className="px-3 py-3 text-center whitespace-nowrap sticky right-[84px] z-10 bg-white group-hover:bg-slate-50 transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] border-l border-slate-100">
+                                            <td className={`px-2 py-3 text-center whitespace-nowrap sticky right-[76px] z-10 bg-white group-hover:bg-slate-50 transition-colors border-l border-slate-100 ${
+                                                canScrollRight ? 'shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.14)]' : 'shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]'
+                                            }`}>
                                                 <Badge
                                                     variant={
                                                         risk.status === 'approved' ? 'success' :
@@ -734,7 +833,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                             </td>
 
                                             {/* Sticky Actions Column */}
-                                            <td className="px-2 py-3 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors">
+                                            <td className="px-2 py-3 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors w-[76px] min-w-[76px]">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Button
                                                         variant="ghost"
@@ -786,7 +885,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                         toast.success('Task created in Action Center');
                                                                         setCreatedTaskIds(prev => new Set([...prev, risk.id]));
                                                                     } catch (err: any) {
-                                                                        toast.error(`Failed: ${err.message}`);
+                                                                        toast.error("Failed to create task from risk", { description: err.message || "Please try again." });
                                                                     }
                                                                 }}
                                                                 className="gap-2 cursor-pointer text-xs"
@@ -826,83 +925,91 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                         {
                                             expandedRows.has(risk.id) && (
                                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <td colSpan={10} className="px-8 py-5">
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Vulnerability</h4>
-                                                                <p className="text-gray-600 text-xs leading-relaxed">{risk.vulnerabilityDescription || 'Not specified'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Existing Controls</h4>
-                                                                <p className="text-gray-600 text-xs leading-relaxed">{risk.existingControls || 'None documented'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Recommended Actions</h4>
-                                                                <p className="text-gray-600 text-xs leading-relaxed">{risk.recommendedActions || 'None specified'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Control Effectiveness</h4>
-                                                                <p className="text-gray-600 text-xs capitalize">{risk.controlEffectiveness || 'Not evaluated'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Assessment Date</h4>
-                                                                <p className="text-gray-600 text-xs">
-                                                                    {risk.assessmentDate ? new Date(risk.assessmentDate).toLocaleDateString() : 'Not set'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Next Review</h4>
-                                                                <p className="text-gray-600 text-xs">
-                                                                    {risk.nextReviewDate ? new Date(risk.nextReviewDate).toLocaleDateString() : 'Not scheduled'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Source</h4>
-                                                                <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
-                                                                    {risk.contextSnapshot?.source || 'Manual'}
-                                                                </Badge>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Asset</h4>
-                                                                <div className="text-gray-600 text-xs">
-                                                                    {(() => {
-                                                                        const assetId = risk.contextSnapshot?.assetId || (risk as any).assetId;
-                                                                        if (assetId && assets) {
-                                                                            const asset = assets.find((a: any) => a.id === Number(assetId));
-                                                                            if (asset) {
+                                                    <td colSpan={10} className="p-0">
+                                                        <div
+                                                            className="sticky left-0 px-8 py-5 transition-all"
+                                                            style={{
+                                                                maxWidth: containerWidth ? `${containerWidth}px` : '100%',
+                                                                width: containerWidth ? `${containerWidth}px` : '100%',
+                                                            }}
+                                                        >
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Vulnerability</h4>
+                                                                    <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.vulnerabilityDescription || 'Not specified'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Existing Controls</h4>
+                                                                    <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.existingControls || 'None documented'}</p>
+                                                                </div>
+                                                                <div className="pr-8">
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Recommended Actions</h4>
+                                                                    <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.recommendedActions || 'None specified'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Control Effectiveness</h4>
+                                                                    <p className="text-gray-600 text-xs capitalize">{risk.controlEffectiveness || 'Not evaluated'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Assessment Date</h4>
+                                                                    <p className="text-gray-600 text-xs">
+                                                                        {risk.assessmentDate ? new Date(risk.assessmentDate).toLocaleDateString() : 'Not set'}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="pr-8">
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Next Review</h4>
+                                                                    <p className="text-gray-600 text-xs">
+                                                                        {risk.nextReviewDate ? new Date(risk.nextReviewDate).toLocaleDateString() : 'Not scheduled'}
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Source</h4>
+                                                                    <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+                                                                        {risk.contextSnapshot?.source || 'Manual'}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Asset</h4>
+                                                                    <div className="text-gray-600 text-xs">
+                                                                        {(() => {
+                                                                            const assetId = risk.contextSnapshot?.assetId || (risk as any).assetId;
+                                                                            if (assetId && assets) {
+                                                                                const asset = assets.find((a: any) => a.id === Number(assetId));
+                                                                                if (asset) {
+                                                                                    return (
+                                                                                        <Badge variant="outline" className="text-xs font-medium bg-white">
+                                                                                            {asset.name}
+                                                                                        </Badge>
+                                                                                    );
+                                                                                }
+                                                                            }
+                                                                            const manualAssets = parseAffectedAssets(risk.affectedAssets);
+                                                                            if (manualAssets.length > 0) {
                                                                                 return (
-                                                                                    <Badge variant="outline" className="text-xs font-medium bg-white">
-                                                                                        {asset.name}
-                                                                                    </Badge>
+                                                                                    <div className="flex flex-wrap gap-1">
+                                                                                        {manualAssets.map((asset, i) => (
+                                                                                            <Badge key={i} variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
+                                                                                                {asset}
+                                                                                            </Badge>
+                                                                                        ))}
+                                                                                    </div>
                                                                                 );
                                                                             }
-                                                                        }
-                                                                        const manualAssets = parseAffectedAssets(risk.affectedAssets);
-                                                                        if (manualAssets.length > 0) {
-                                                                            return (
-                                                                                <div className="flex flex-wrap gap-1">
-                                                                                    {manualAssets.map((asset, i) => (
-                                                                                        <Badge key={i} variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
-                                                                                            {asset}
-                                                                                        </Badge>
-                                                                                    ))}
-                                                                                </div>
-                                                                            );
-                                                                        }
-                                                                        return 'None specified';
-                                                                    })()}
+                                                                            return 'None specified';
+                                                                        })()}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Owner</h4>
-                                                                <p className="text-gray-600 text-xs">{risk.contextSnapshot?.riskOwner || risk.riskOwner || 'Unassigned'}</p>
-                                                            </div>
-                                                            {risk.notes && (
-                                                                <div className="md:col-span-3">
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Notes</h4>
-                                                                    <p className="text-gray-600 text-xs leading-relaxed">{risk.notes}</p>
+                                                                <div className="pr-8">
+                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Owner</h4>
+                                                                    <p className="text-gray-600 text-xs">{risk.contextSnapshot?.riskOwner || risk.riskOwner || 'Unassigned'}</p>
                                                                 </div>
-                                                            )}
+                                                                {risk.notes && (
+                                                                    <div className="md:col-span-3 pr-8">
+                                                                        <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Notes</h4>
+                                                                        <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.notes}</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -914,6 +1021,24 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                         </tbody>
                     </table>
                 </div>
+
+                {/* Horizontal Scroll Guidance Banner */}
+                {canScrollRight && (
+                    <div className="px-4 py-2.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/90 to-blue-50/90 border-t border-blue-100 flex items-center justify-between text-xs text-blue-900 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2">
+                            <ArrowRight className="w-4 h-4 text-blue-600 animate-pulse shrink-0" />
+                            <span className="font-medium">More columns are available (Residual Risk, Treatment). Slide table or use arrows to view all columns.</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => scrollTable('right')}
+                            className="font-bold text-blue-700 hover:text-blue-950 underline decoration-blue-400 hover:decoration-blue-700 cursor-pointer ml-3 shrink-0 flex items-center gap-1"
+                        >
+                            <span>Slide to view</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                )}
 
                 {/* Pagination outside horizontal scroll */}
                 {totalRisks > 0 && (

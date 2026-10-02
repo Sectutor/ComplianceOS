@@ -154,7 +154,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     console.error("[Integrations] Error in getMarketplace:", error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to fetch marketplace"
+                        message: "Failed to fetch marketplace. Please try again."
                     });
                 }
             }),
@@ -251,7 +251,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     const isDev = process.env.NODE_ENV === 'development';
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: isDev && error instanceof Error ? `Failed to save credentials: ${error.message}` : "Failed to save credentials"
+                        message: isDev && error instanceof Error ? `Failed to save credentials: ${error.message}` : "Failed to save credentials. Please check your input and try again."
                     });
                 }
             }),
@@ -362,7 +362,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     const isDev = process.env.NODE_ENV === 'development';
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: isDev && error instanceof Error ? `Failed to generate OAuth URL: ${error.message}` : "Failed to generate OAuth URL"
+                        message: isDev && error instanceof Error ? `Failed to generate OAuth URL: ${error.message}` : "Failed to generate OAuth URL. Please try again."
                     });
                 }
             }),
@@ -570,7 +570,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     const isDev = process.env.NODE_ENV === 'development';
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: isDev && error instanceof Error ? `Failed to exchange OAuth code: ${error.message}` : "Failed to exchange OAuth code"
+                        message: isDev && error instanceof Error ? `Failed to exchange OAuth code: ${error.message}` : "Failed to exchange OAuth code. Please try again."
                     });
                 }
             }),
@@ -624,7 +624,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     console.error("[Integrations] Error in getConnections:", error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to fetch active connections"
+                        message: "Failed to fetch active connections. Please try again."
                     });
                 }
             }),
@@ -671,7 +671,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     }
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: error?.message || "Failed to disconnect integration"
+                        message: error?.message || "Failed to disconnect integration. Please try again."
                     });
                 }
             }),
@@ -743,7 +743,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     if (error instanceof TRPCError) throw error;
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to list Google Drive files"
+                        message: "Failed to list Google Drive files. Please check your connection and try again."
                     });
                 }
             }),
@@ -826,7 +826,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     if (!uploadResponse.ok) {
                         throw new TRPCError({
                             code: "INTERNAL_SERVER_ERROR",
-                            message: "Failed to upload file to storage"
+                            message: "Failed to upload file to storage. Please try again."
                         });
                     }
 
@@ -851,7 +851,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     if (error instanceof TRPCError) throw error;
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to import file from Google Drive"
+                        message: "Failed to import file from Google Drive. Please check your connection and try again."
                     });
                 }
             }),
@@ -905,7 +905,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     console.error("[Integrations] Error in get:", error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to fetch integration"
+                        message: "Failed to fetch integration. Please try again."
                     });
                 }
             }),
@@ -964,7 +964,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     console.error("[Integrations] Error in update:", error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to update integration"
+                        message: "Failed to update integration. Please try again."
                     });
                 }
             }),
@@ -997,7 +997,7 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     console.error("[Integrations] Error in testConnection:", error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to test connection"
+                        message: "Failed to test connection. Please check your credentials and try again."
                     });
                 }
             })

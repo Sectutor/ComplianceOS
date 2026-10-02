@@ -242,7 +242,7 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-red-900">NIS2 Article 21 Controls</h3>
-                        <p className="text-sm text-red-600">Failed to load compliance data</p>
+                        <p className="text-sm text-red-600">Failed to load NIS2 compliance data. Please check your connection and try again.</p>
                     </div>
                 </div>
                 <p className="text-xs text-red-500">{error.message}</p>

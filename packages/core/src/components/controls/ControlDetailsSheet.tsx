@@ -64,7 +64,7 @@ export function ControlDetailsSheet({ open, onOpenChange, control: initialContro
         },
         onError: (err) => {
             const isConfigError = /placeholder|not configured|No LLM provider|Settings > AI Providers/i.test(err.message || '');
-            toast.error("Failed to generate guidance: " + err.message, {
+            toast.error("Failed to generate control guidance", { description: err.message || "Please try again.",
                 duration: 10000,
                 ...(isConfigError
                     ? { action: { label: "AI Settings", onClick: () => setLocation("/admin/llm") } }
@@ -85,7 +85,7 @@ export function ControlDetailsSheet({ open, onOpenChange, control: initialContro
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-[500px] sm:w-[600px] sm:max-w-[700px] p-0 flex flex-col bg-white">
+            <SheetContent className="w-full sm:w-[600px] sm:max-w-[700px] p-0 flex flex-col bg-background">
                 {/* ... Header ... */}
                 <div className="p-6 pb-2 border-b border-slate-100 flex flex-col gap-4">
                     <div className="flex items-center justify-between">

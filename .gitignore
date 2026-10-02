@@ -28,6 +28,7 @@ pnpm-debug.log*
 # OS/system
 .DS_Store
 Thumbs.db
+.~lock.*
 
 # Cache
 .cache/

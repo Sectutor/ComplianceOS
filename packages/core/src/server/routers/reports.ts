@@ -85,7 +85,7 @@ export const createReportsRouter = (t: any, adminProcedure: any, clientProcedure
                     return reports;
                 } catch (error: any) {
                     console.error("[Reports] getReportHistory error:", error.message, error);
-                    throw new Error(`Failed to fetch report history: ${error.message}`);
+                    throw new Error(`Failed to fetch report history: ${error.message || 'Please try again.'}`);
                 }
             }),
 

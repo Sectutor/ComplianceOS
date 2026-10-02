@@ -101,7 +101,7 @@ export default function PolicyReviewDialog({ clientId, open, onOpenChange }: Pol
                 setStep("results");
                 toast.success("Analysis complete!");
             } catch (error: any) {
-                toast.error(error.message || "Failed to analyze policy");
+                toast.error("Failed to analyze policy", { description: error.message || "Please check that the policy document is valid and try again." });
                 setStep("requirements");
             }
         }
@@ -123,7 +123,7 @@ export default function PolicyReviewDialog({ clientId, open, onOpenChange }: Pol
             handleReset();
             onOpenChange(false);
         } catch (error: any) {
-            toast.error(error.message || "Failed to apply changes");
+            toast.error("Failed to apply policy changes", { description: error.message || "Please try again." });
         }
     };
 

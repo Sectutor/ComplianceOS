@@ -79,7 +79,7 @@ export function PageGuide({
                 toast.success("Training completion recorded as audit evidence.");
             },
             onError: (err: Error) => {
-                toast.error("Failed to record training: " + err.message);
+                toast.error("Failed to record training", { description: err.message || "Please try again." });
             }
         })
         : null;

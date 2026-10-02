@@ -977,6 +977,16 @@
   scrollbar-color: var(--border) transparent;
 }
 
+/* Horizontal nav strips stay scrollable but show no scrollbar.
+   Used by TPRM/Privacy navigation to hold a single row on narrow viewports. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ========================================
    APP-WIDE DESIGN SYSTEM
    Use these classes on every page
@@ -1293,9 +1303,13 @@ div[role="dialog"] [class*="bg-slate-800"] {
   color: #334155 !important;
 }
 
-div[role="dialog"] [class*="bg-white"] *,
-div[role="dialog"] [class*="bg-slate-50"] *,
-div[role="dialog"] [class*="bg-blue-50"] * {
+/* Same exclusions as the rule above: a button label must keep the contrast its
+   variant declares (white on the primary fill), and an element with its own
+   background keeps its paired text colour. Without these, a dialog footer
+   carrying bg-slate-50 repainted every button label slate-700. */
+div[role="dialog"] [class*="bg-white"] *:not(button):not(button *):not([class*="bg-"]),
+div[role="dialog"] [class*="bg-slate-50"] *:not(button):not(button *):not([class*="bg-"]),
+div[role="dialog"] [class*="bg-blue-50"] *:not(button):not(button *):not([class*="bg-"]) {
   color: #334155 !important;
 }
 

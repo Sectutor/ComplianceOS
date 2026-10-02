@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useClientContext } from "@/contexts/ClientContext";
 import { Button } from "@complianceos/ui/ui/button";
-import { Plus, Users, Loader2 } from "lucide-react";
+import { Plus, Users, Loader2, Trash2 } from "lucide-react";
 import { trpc } from '@/lib/trpc';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@complianceos/ui/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@complianceos/ui/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Badge } from "@complianceos/ui/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@complianceos/ui/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -30,6 +31,18 @@ export default function DSARManager() {
 
     const utils = trpc.useUtils();
     const { data: requests, isLoading } = trpc.privacy.getDsarRequests.useQuery({ clientId }, { enabled: !!clientId });
+
+    // Delete case state + mutation
+    const [deleteTarget, setDeleteTarget] = useState<{ id: number; requestId: string } | null>(null);
+    const deleteMutation = trpc.privacy.deleteDsarRequest.useMutation({
+        onSuccess: () => {
+            toast.success("DSAR case deleted");
+            setDeleteTarget(null);
+            utils.privacy.getDsarRequests.invalidate();
+            utils.privacy.getPrivacyStats.invalidate();
+        },
+        onError: (err: any) => toast.error(`Failed to delete: ${err.message}`)
+    });
 
     const createMutation = trpc.privacy.createDsarRequest.useMutation({
         onSuccess: () => {
@@ -137,7 +150,8 @@ export default function DSARManager() {
                                             <Badge className={cn(
                                                 "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
                                                 req.status === 'Completed' ? "bg-emerald-100 text-emerald-700" :
-                                                    req.status === 'New' ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700"
+                                                    req.status === 'Rejected' ? "bg-rose-100 text-rose-700" :
+                                                        req.status === 'New' ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700"
                                             )}>
                                                 {req.status}
                                             </Badge>
@@ -154,11 +168,22 @@ export default function DSARManager() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right py-5 px-6">
-                                            <Link href={`/clients/${clientId}/privacy/dsar/${req.id}`}>
-                                                <Button variant="ghost" size="sm" className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all">
-                                                    Manage Case
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Link href={`/clients/${clientId}/privacy/dsar/${req.id}`}>
+                                                    <Button variant="ghost" size="sm" className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all">
+                                                        Manage Case
+                                                    </Button>
+                                                </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                                                    title="Delete case"
+                                                    onClick={() => setDeleteTarget({ id: req.id, requestId: req.requestId })}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
-                                            </Link>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -277,6 +302,33 @@ export default function DSARManager() {
                     </div>
                 </div>
             </EnhancedDialog>
+
+            {/* Delete Case Confirmation */}
+            <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete DSAR Case</DialogTitle>
+                        <DialogDescription>
+                            This permanently removes the case and its audit log. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 text-sm">
+                        <p className="font-medium text-rose-800">You are about to delete:</p>
+                        <p className="text-rose-600 mt-1">{deleteTarget?.requestId}</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+                        <Button
+                            variant="destructive"
+                            className="bg-rose-600 hover:bg-rose-700"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}
+                        >
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete Case'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

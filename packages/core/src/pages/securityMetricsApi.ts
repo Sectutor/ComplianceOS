@@ -559,13 +559,19 @@ export const TREND_META: Record<MetricTrend, TrendMeta> = {
   },
 };
 
+/** Trend meta with a safe fallback: an unrecognised trend value from a newer
+ *  payload must degrade to "N/A" rather than throw on `.textClass`. */
+export function trendMeta(trend: MetricTrend): TrendMeta {
+  return TREND_META[trend] ?? TREND_META["n-a"];
+}
+
 /**
  * Arrow glyph for a trend. Pass `inverted` when the metric improves by
  * decreasing (MTTR hours, overdue counts): an "improved" MTTR trend then
  * renders a down arrow while keeping the success coloring.
  */
 export function trendGlyph(trend: MetricTrend, inverted = false): "↑" | "↓" | "→" | "–" {
-  const glyph = TREND_META[trend].glyph;
+  const glyph = trendMeta(trend).glyph;
   if (inverted) {
     if (glyph === "↑") return "↓";
     if (glyph === "↓") return "↑";

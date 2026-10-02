@@ -168,7 +168,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
             toast.success('Security feeds refreshed with latest intelligence');
             refetchFeeds();
         },
-        onError: (err: any) => toast.error(`Failed to refresh feeds: ${err.message}`),
+        onError: (err: any) => toast.error("Failed to refresh security feeds", { description: err.message || "Please check your network connection and try again." }),
     });
 
     // Fetch MITRE data
@@ -207,7 +207,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
             toast.success('Alert settings saved');
             refetchAlertSettings();
         },
-        onError: (err: any) => toast.error(`Failed to save settings: ${err.message}`),
+        onError: (err: any) => toast.error(`Failed to save alert settings: ${err.message || 'Please check your connection and try again.'}`),
     });
 
     // Test alert settings mutation
@@ -222,7 +222,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
                 toast.error(`${failed} channel(s) failed`);
             }
         },
-        onError: (err: any) => toast.error(`Test failed: ${err.message}`),
+        onError: (err: any) => toast.error("Test alert failed", { description: err.message || "Please check your alert channel configuration and try again." }),
     });
 
     // Generate report mutation
@@ -231,7 +231,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
             setGeneratedReport(data);
             toast.success('Report generated');
         },
-        onError: (err: any) => toast.error(`Failed to generate report: ${err.message}`),
+        onError: (err: any) => toast.error("Failed to generate report", { description: err.message || "Please try again. If the issue persists, contact support." }),
     });
 
     // Toggle bookmark function
@@ -264,7 +264,7 @@ export function AdversaryIntelPanel({ clientId, onRiskCreated }: AdversaryIntelP
             setSelectedTechnique(null);
             onRiskCreated?.(data);
         },
-        onError: (err: any) => toast.error(`Failed to create threat: ${err.message}`),
+        onError: (err: any) => toast.error(`Failed to create threat from intel feed: ${err.message || 'Please check your connection and try again.'}`),
     });
 
     // Filter and sort feeds

@@ -296,7 +296,7 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                 } catch (e: any) {
                     console.error('[CyberRouter saveAssessment] Error:', e);
                     // Return error as serializable object
-                    return { success: false, error: e.message || 'Unknown error' };
+                    return { success: false, error: e.message || 'Operation failed. Please try again.' };
                 }
 
                 // Return success - ensure it's serializable
@@ -545,7 +545,7 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                     console.error("Failed to report incident:", e);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to submit incident report"
+                        message: "Failed to submit incident report. Please try again."
                     });
                 }
             }),

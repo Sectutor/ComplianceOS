@@ -61,7 +61,7 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
         },
         onError: (error: any) => {
             toast.error(`Orchestration Failed`, {
-                description: error.message || "An unexpected error occurred."
+                description: error.message || "Failed to decompose requirements into PDCA tasks. Please check your connection and try again."
             });
         }
     });
@@ -74,8 +74,8 @@ export default function MultiFrameworkPlanView({ planId, clientId }: MultiFramew
             toast.success("Task created successfully");
         },
         onError: (error: any) => {
-            toast.error("Failed to create task", {
-                description: error.message
+            toast.error("Failed to create PDCA task", {
+                description: error.message || 'Please check your connection and try again.'
             });
         }
     });

@@ -66,7 +66,7 @@ export default function ImplementationDashboard() {
             setPlanToDelete(null);
         },
         onError: (err) => {
-            toast.error("Failed to delete plan", { description: err.message });
+            toast.error("Failed to delete implementation plan", { description: err.message || 'Please check your connection and try again.' });
         }
     });
 

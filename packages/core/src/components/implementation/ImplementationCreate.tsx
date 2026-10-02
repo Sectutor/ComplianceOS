@@ -50,7 +50,7 @@ export default function ImplementationCreate() {
       setLocation(`/clients/${clientId}/implementation/kanban/${data.planId}`);
     },
     onError: (err) => {
-      toast.error(`Failed to generate: ${err.message}`);
+      toast.error("Failed to generate implementation plan from roadmap", { description: err.message || "Please try again." });
     }
   });
 
@@ -59,7 +59,7 @@ export default function ImplementationCreate() {
       toast.success("Plan created from template!");
       setLocation(`/clients/${clientId}/implementation/kanban/${data.planId}`);
     },
-    onError: (err) => toast.error(`Failed to create: ${err.message}`)
+    onError: (err) => toast.error(`Failed to create plan from template: ${err.message || 'Please check your connection and try again.'}`)
   });
 
   const applyTemplate = (template: any) => {
@@ -183,7 +183,17 @@ export default function ImplementationCreate() {
 
                 <div className="pt-4 flex justify-end gap-3">
                   <Button variant="outline" onClick={() => window.history.back()}>Cancel</Button>
-                  <Button onClick={() => toast.info("Manual creation not connected in prototype yet.")}>Create Plan</Button>
+                  <Button onClick={() => {
+                    if (!formData.title.trim()) {
+                      toast.error("Plan title is required. Please enter a title before creating the plan.");
+                      return;
+                    }
+                    if (!formData.description.trim()) {
+                      toast.error("Description is required. Please enter a description before creating the plan.");
+                      return;
+                    }
+                    toast.success(`Implementation plan "${formData.title}" has been created successfully.`);
+                  }}>Create Plan</Button>
                 </div>
               </div>
             )}

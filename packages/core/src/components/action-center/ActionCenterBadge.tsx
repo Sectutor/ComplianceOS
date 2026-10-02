@@ -17,7 +17,7 @@ export function ActionCenterBadge({ clientId }: ActionCenterBadgeProps) {
 
   return (
     <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white ml-auto">
-      {data.total > 99 ? '99+' : data.total}
+      {data.total.toLocaleString()}
     </span>
   );
 }

@@ -205,7 +205,7 @@ export default function ClientWorkspace() {
                 </CardHeader>
                 <CardContent className="space-y-4 relative z-10">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Link href={`/clients/${clientId}/risk/assessments`}>
+                    <Link href={`/clients/${clientId}/risks/assessments`}>
                       <div className="group flex items-center justify-between p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition-all cursor-pointer">
                         <div className="flex flex-col">
                           <div className="font-bold text-white group-hover:text-teal-100">Run Risk Assessment</div>

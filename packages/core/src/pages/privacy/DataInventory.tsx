@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useClientContext } from "@/contexts/ClientContext";
 import { Button } from "@complianceos/ui/ui/button";
 import { Database, Plus, Search, Loader2, AlertTriangle, RefreshCw, Pencil, Trash2 } from "lucide-react";
@@ -141,15 +141,8 @@ export default function DataInventory() {
         setDeleteOpen(true);
     };
 
-    // Auto-seed on mount if no data
-    useEffect(() => {
-        if (!isLoading && inventory && inventory.length === 0 && !seedMutation.isPending) {
-            seedMutation.mutate();
-        }
-    }, [isLoading, inventory]);
-
     const filteredInventory = inventory?.filter(asset =>
-        asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (asset.name && asset.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (asset.type && asset.type.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
@@ -280,15 +273,24 @@ export default function DataInventory() {
                                                 <p className="font-bold text-slate-900 text-lg">No assets found</p>
                                                 <p className="max-w-xs mx-auto">Start cataloging your personal data assets to build a compliant inventory.</p>
                                             </div>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setCreateOpen(true)}
-                                                disabled={seedMutation.isPending}
-                                                className="border-slate-200 hover:bg-slate-50 font-bold rounded-xl"
-                                            >
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                Add Data Asset
-                                            </Button>
+                                            <div className="flex items-center gap-3">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => setCreateOpen(true)}
+                                                    className="border-slate-200 hover:bg-slate-50 font-bold rounded-xl"
+                                                >
+                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    Add Data Asset
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => seedMutation.mutate()}
+                                                    disabled={seedMutation.isPending}
+                                                    className="text-slate-400 hover:text-brand-bright font-semibold rounded-xl text-sm"
+                                                >
+                                                    {seedMutation.isPending ? "Loading samples..." : "Load sample data"}
+                                                </Button>
+                                            </div>
                                         </div>
                                     </TableCell>
                                 </TableRow>

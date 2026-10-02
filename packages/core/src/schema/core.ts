@@ -894,7 +894,7 @@ export const privacyAssessments = pgTable("privacy_assessments", {
 
   clientId: integer("client_id").notNull(),
 
-  type: varchar("type", { length: 50 }).notNull(), // 'gdpr', 'ccpa'
+  type: text("type").notNull(), // 'gdpr', 'ccpa', or prefixed record titles like 'DPIA: <name>'
 
   responses: json("responses").$type<Record<string, { answer: string; notes?: string; owner?: string; dueDate?: string; lastReviewed?: string }>>(),
 
@@ -3076,6 +3076,10 @@ export const dsarRequests = pgTable("dsar_requests", {
     details?: string;
 
   }[]>().default([]),
+
+  // Cross-asset discovery & purge checklist (asset ids confirmed extracted/erased)
+
+  purgeChecklist: jsonb("purge_checklist").$type<number[]>(),
 
   createdAt: timestamp("created_at").defaultNow(),
 

@@ -29,7 +29,7 @@ export function ReadinessWizard({ questions, onComplete, regulationId, clientId 
 
     // Save mutation
     const saveMutation = trpc.regulations.saveReadinessResponse.useMutation({
-        onError: (err) => toast.error("Failed to save progress: " + err.message)
+        onError: (err) => toast.error("Failed to save readiness response: " + (err.message || 'Please check your connection and try again.'))
     });
 
     // Load saved answers on mount

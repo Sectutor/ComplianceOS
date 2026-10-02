@@ -94,7 +94,7 @@ export function KanbanBoard({ clientId }: KanbanBoardProps) {
                 setTaskToDelete(null);
                 refetch();
             } catch (e) {
-                toast.error("Failed to delete task");
+                toast.error("Failed to delete task. Please check your connection and try again.");
             }
         }
     };

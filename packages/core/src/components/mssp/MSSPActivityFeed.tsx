@@ -163,7 +163,7 @@ export function MSSPActivityFeed({ limit = 10 }: MSSPActivityFeedProps) {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <AlertTriangle className="h-8 w-8 text-red-400 mb-2" />
             <p className="text-sm text-slate-500 mb-4">
-              Failed to load activity feed
+              Failed to load activity feed. Please refresh to try again.
             </p>
             <button
               onClick={() => refetch()}

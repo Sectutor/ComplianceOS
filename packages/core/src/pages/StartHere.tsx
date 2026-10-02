@@ -519,7 +519,7 @@ export default function StartHere() {
         } else if (titleLower.includes('hipaa') || frameworkLower.includes('hipaa')) {
             destination = `/clients/${clientId}/hipaa/program-guide?tab=roadmap`;
         } else if (titleLower.includes('risk') || frameworkLower.includes('31000') || frameworkLower.includes('rmf')) {
-            destination = `/clients/${clientId}/risks/program-guide?tab=roadmap`;
+            destination = `/clients/select/risks/program-guide?tab=roadmap`;
         } else if (titleLower.includes('incident') || titleLower.includes('csirt')) {
             destination = `/clients/${clientId}/cyber/incidents`;
         }

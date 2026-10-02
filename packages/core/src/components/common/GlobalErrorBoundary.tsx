@@ -67,7 +67,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-extrabold text-white">Something went wrong</h2>
+              <h2 className="text-2xl font-extrabold text-white">Application Error</h2>
               <p className="text-sm text-slate-400">
                 ComplianceOS encountered a temporary application state issue. The system automatically saved your progress.
               </p>

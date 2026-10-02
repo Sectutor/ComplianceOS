@@ -64,7 +64,7 @@ export const vulnerabilityStatusEnum = pgEnum("vulnerability_status", ["open", "
 
 export const threatStatusEnum = pgEnum("threat_status", ["active", "dormant", "monitored"]);
 
-export const riskAssessmentStatusEnum = pgEnum("risk_assessment_status", ["draft", "approved", "reviewed"]);
+export const riskAssessmentStatusEnum = pgEnum("risk_assessment_status", ["draft", "approved", "reviewed", "treated", "accepted"]);
 
 export const workItemTypeEnum = pgEnum("work_item_type", ["review", "approval", "evidence_collection", "raci_assignment", "risk_treatment", "vendor_assessment", "bcp_approval", "policy_review", "control_implementation", "risk_review", "control_assessment"]);
 

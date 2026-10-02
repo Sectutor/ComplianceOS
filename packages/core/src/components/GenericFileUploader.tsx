@@ -125,12 +125,12 @@ export default function GenericFileUploader({
                             resolve();
 
                         } catch (error) {
-                            const msg = error instanceof Error ? error.message : 'Unknown error';
+                            const msg = error instanceof Error ? error.message : 'File upload failed. Please check your connection and try again.';
                             setUploadingFiles(prev => prev.map(f => f.id === uploadingFile.id ? { ...f, status: 'error', error: msg } : f));
                             reject(error);
                         }
                     };
-                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.onerror = () => reject(new Error('Failed to read file. The file may be corrupted or too large.'));
                     reader.readAsDataURL(file);
                 });
 

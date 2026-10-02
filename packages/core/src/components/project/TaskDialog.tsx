@@ -83,7 +83,7 @@ export function TaskDialog({ open, onOpenChange, clientId, task, onSuccess, init
             form.reset();
         },
         onError: (err) => {
-            toast.error("Failed to create task: " + err.message);
+            toast.error("Failed to create project task: " + (err.message || 'Please check your connection and try again.'));
         }
     });
 
@@ -95,7 +95,7 @@ export function TaskDialog({ open, onOpenChange, clientId, task, onSuccess, init
             onSuccess?.();
         },
         onError: (err) => {
-            toast.error("Failed to update task: " + err.message);
+            toast.error("Failed to update project task: " + (err.message || 'Please check your connection and try again.'));
         }
     });
 

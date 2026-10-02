@@ -84,7 +84,7 @@ export const createSsoRouter = (t: any, publicProcedure: any) => {
         const authorizationUrl = await buildAuthorizationUrl(state, nonce);
         return { authorizationUrl };
       } catch (err) {
-        return ssoError(err, 'could not build the SSO authorization URL');
+        return ssoError(err, 'Could not build the SSO authorization URL. Please try again.');
       }
     }),
 
@@ -135,7 +135,7 @@ export const createSsoRouter = (t: any, publicProcedure: any) => {
           if (!dbUser) {
             throw new TRPCError({
               code: 'INTERNAL_SERVER_ERROR',
-              message: 'SSO sign-in could not create a user record.',
+              message: 'SSO sign-in could not create a user record. Please contact support.',
             });
           }
 

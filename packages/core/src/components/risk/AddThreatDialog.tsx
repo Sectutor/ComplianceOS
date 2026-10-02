@@ -132,7 +132,7 @@ export function AddThreatDialog({ open, onOpenChange, clientId, onSuccess, initi
             onOpenChange(false);
         } catch (error) {
             console.error("Failed to save threat", error);
-            toast.error("Failed to save threat");
+            toast.error("Failed to save threat. Please check your connection and try again.");
         } finally {
             setLoading(false);
         }

@@ -48,7 +48,7 @@ export const RiskReportGenerateAllButton = ({
         if (failCount === 0) {
             toast.success(`All sections generated successfully!`);
         } else {
-            toast.warning(`Generated ${successCount} sections, ${failCount} failed`);
+            toast.warning(`Generated ${successCount} of ${sections.length} sections`, { description: `${failCount} section(s) failed to generate. You can retry individual sections.` });
         }
     };
 

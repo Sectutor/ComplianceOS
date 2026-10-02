@@ -286,7 +286,7 @@ export const createTrustCenterRouter = (t: any, publicProcedure: any, protectedP
                 try {
                     return await dbConn.insert(schema.trustDocuments).values(input).returning();
                 } catch {
-                    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to add trust document" });
+                    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to add trust document. Please try again." });
                 }
             }),
 

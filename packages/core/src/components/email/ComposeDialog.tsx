@@ -204,7 +204,7 @@ export function ComposeDialog({ clientId, isOpen, onClose }: ComposeDialogProps)
 
                                     {/* Dropdown for suggestions - positioned absolutely */}
                                     {openCombobox && (recipientQuery.length > 0 || suggestions.length > 0) && (
-                                        <div className="absolute top-full left-0 mt-1 w-[400px] z-50 max-h-[300px] overflow-auto shadow-xl border border-slate-200 bg-white rounded-md">
+                                        <div className="absolute top-full left-0 mt-1 w-[min(400px,90vw)] z-50 max-h-[300px] overflow-auto shadow-xl border border-slate-200 bg-white rounded-md">
                                             <Command shouldFilter={false}>
                                                 <CommandList>
                                                     {suggestions.length === 0 && recipientQuery.length > 0 && recipientQuery.includes('@') ? (

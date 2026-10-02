@@ -435,7 +435,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 } catch (err: any) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
-                        message: `Failed to populate Excel workbook: ${err.message}`,
+                        message: `Failed to populate Excel workbook: ${err.message || 'Please try again.'}`,
                     });
                 }
             }),

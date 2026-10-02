@@ -389,7 +389,7 @@ export const pluginRouter = router({
                 console.error('[Plugin Install Error]:', error);
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Failed to install plugin. Please try again later.',
+                    message: 'Failed to install plugin. Please check your license and try again.',
                     cause: error,
                 });
             }
@@ -466,7 +466,7 @@ export const pluginRouter = router({
                 console.error('[Plugin Uninstall Error]:', error);
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Failed to uninstall plugin. Please try again later.',
+                    message: 'Failed to uninstall plugin. Please try again.',
                 });
             }
         }),
@@ -526,7 +526,7 @@ export const pluginRouter = router({
                 console.error('[Plugin Toggle Error]:', error);
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
-                    message: `Failed to ${input.enabled ? 'enable' : 'disable'} plugin.`,
+                    message: `Failed to ${input.enabled ? 'enable' : 'disable'} plugin. Please try again.`,
                 });
             }
         }),
@@ -583,7 +583,7 @@ export const pluginRouter = router({
                 console.error('[Plugin Settings Update Error]:', error);
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Failed to update plugin settings.',
+                    message: 'Failed to update plugin settings. Please try again.',
                 });
             }
         }),
@@ -615,7 +615,7 @@ export const pluginRouter = router({
                 console.error('[Plugin Settings Fetch Error]:', error);
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Failed to retrieve plugin settings.',
+                    message: 'Failed to retrieve plugin settings. Please try again.',
                 });
             }
         }),

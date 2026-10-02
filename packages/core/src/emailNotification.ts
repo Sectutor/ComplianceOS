@@ -573,7 +573,7 @@ export async function sendThreatAlert(clientId: number, threats: any[]): Promise
     content += `### ${t.cveId} (Score: ${t.score})\n`;
     content += `**Asset:** ${t.assetName}\n`;
     content += `**Description:** ${t.description.substring(0, 200)}...\n`;
-    content += `[View Details](${process.env.NEXT_PUBLIC_APP_URL}/clients/${clientId}/risks/vuln-workbench)\n\n`;
+    content += `[View Details](${process.env.NEXT_PUBLIC_APP_URL}/clients/${clientId}/risks/vulnerability-workbench)\n\n`;
   });
 
   content += `\n---\n*Immediate investigation is recommended.*`;
@@ -600,7 +600,7 @@ export async function sendThreatAlert(clientId: number, threats: any[]): Promise
       `).join('')}
 
       <div style="margin-top: 20px;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL}/clients/${clientId}/risks/vuln-workbench" 
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/clients/${clientId}/risks/vulnerability-workbench" 
            style="background-color: #dc2626; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">
            View Vulnerability Workbench
         </a>
@@ -619,7 +619,7 @@ export async function sendThreatAlert(clientId: number, threats: any[]): Promise
     type: "threat_alert",
     title: "🚨 Critical Vulnerability Alert",
     message: `${threats.length} critical vulnerabilities detected. Immediate action required.`,
-    link: `/clients/${clientId}/risks/vuln-workbench`
+    link: `/clients/${clientId}/risks/vulnerability-workbench`
   });
 
   return { success: true, count: threats.length };

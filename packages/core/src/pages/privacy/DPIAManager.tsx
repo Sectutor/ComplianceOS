@@ -44,14 +44,50 @@ export default function DPIAManager() {
         { enabled: !!clientId }
     );
 
-    // Fetch past assessments
-    const { data: pastAssessments, isLoading: assessmentsLoading } = trpc.privacy.listAssessments.useQuery(
-        {
-            clientId,
-            typePrefix: "DPIA:"
-        },
+    // Fetch past assessments from the relational DPIA registry
+    const { data: pastAssessments, isLoading: assessmentsLoading } = trpc.dpia.list.useQuery(
+        { clientId },
         { enabled: !!clientId }
     );
+
+    // Linked ROPA activities (for the activity column)
+    const { data: processes } = trpc.businessContinuity.processes.list.useQuery(
+        { clientId },
+        { enabled: !!clientId }
+    );
+
+    // Delete assessment mutation
+    const deleteAssessmentMutation = trpc.dpia.delete.useMutation({
+        onSuccess: () => {
+            toast.success("DPIA assessment deleted");
+            utils.dpia.list.invalidate({ clientId });
+            utils.privacy.getPrivacyStats.invalidate();
+        },
+        onError: (err: any) => toast.error("Failed to delete assessment: " + err.message)
+    });
+
+    const activityName = (activityId: number | null | undefined) => {
+        if (!activityId || !processes) return null;
+        return processes.find((p: any) => p.id === activityId)?.name || null;
+    };
+
+    const statusBadge = (status: string | null | undefined) => {
+        switch (status) {
+            case 'completed': return "bg-emerald-100 text-emerald-700";
+            case 'under_review': return "bg-amber-100 text-amber-700";
+            case 'in_progress': return "bg-brand/10 text-brand";
+            default: return "bg-slate-100 text-slate-600";
+        }
+    };
+
+    const statusLabel = (status: string | null | undefined) => {
+        switch (status) {
+            case 'completed': return "DPO Approved";
+            case 'under_review': return "DPO Review";
+            case 'in_progress': return "In Progress";
+            default: return "Draft";
+        }
+    };
 
     // Seed Standard Templates Mutation
     const seedMutation = trpc.privacyEnhancements.dpiaTemplates.seedStandardTemplates.useMutation({
@@ -239,77 +275,102 @@ export default function DPIAManager() {
                     <h2 className="text-xl font-bold text-slate-900">Assessment History</h2>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 overflow-hidden">
-                    <Table>
-                        <TableHeader className="bg-slate-50/50">
-                            <TableRow className="hover:bg-transparent border-0">
-                                <TableHead className="font-bold text-slate-700 h-14">Assessment Name</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Risk Level</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Status</TableHead>
-                                <TableHead className="font-bold text-slate-700 h-14">Last Updated</TableHead>
-                                <TableHead className="text-right font-bold text-slate-700 h-14 px-6">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {assessmentsLoading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center">
-                                        <div className="flex flex-col items-center justify-center gap-2">
-                                            <Loader2 className="h-8 w-8 animate-spin text-brand-bright" />
-                                            <span className="text-sm font-medium text-slate-400">Loading history...</span>
-                                        </div>
-                                    </TableCell>
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow className="hover:bg-transparent border-0">
+                                    <TableHead className="font-bold text-slate-700 h-14">Assessment Name</TableHead>
+                                    <TableHead className="font-bold text-slate-700 h-14">Linked Activity (ROPA)</TableHead>
+                                    <TableHead className="font-bold text-slate-700 h-14">Risk Level</TableHead>
+                                    <TableHead className="font-bold text-slate-700 h-14">Status</TableHead>
+                                    <TableHead className="font-bold text-slate-700 h-14">Last Updated</TableHead>
+                                    <TableHead className="text-right font-bold text-slate-700 h-14 px-6">Actions</TableHead>
                                 </TableRow>
-                            ) : pastAssessments && pastAssessments.length > 0 ? (
-                                pastAssessments.map((a, idx) => (
-                                    <TableRow
-                                        key={a.id}
-                                        className="hover:bg-slate-50/80 transition-colors group border-b border-slate-100 last:border-0"
-                                        style={{ animationDelay: `${idx * 50}ms` }}
-                                    >
-                                        <TableCell className="py-5 font-bold text-slate-900">{a.type.replace("DPIA: ", "")}</TableCell>
-                                        <TableCell className="py-5">
-                                            <Badge className={cn(
-                                                "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
-                                                a.score && parseFloat(a.score) > 70 ? "bg-rose-100 text-rose-700" : "bg-blue-100 text-blue-700"
-                                            )}>
-                                                {a.score ? `Risk Score: ${a.score}` : 'Evaluation Pending'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="py-5">
-                                            <Badge className={cn(
-                                                "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
-                                                a.status === 'completed' ? "bg-green-100 text-green-700" : "bg-brand/10 text-brand"
-                                            )}>
-                                                {a.status || 'Not Started'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="py-5 text-slate-500 font-medium">{new Date(a.updatedAt).toLocaleDateString()}</TableCell>
-                                        <TableCell className="text-right py-5 px-6">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
-                                                onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/${a.id}/questionnaire`)}
-                                            >
-                                                View Review
-                                            </Button>
+                            </TableHeader>
+                            <TableBody>
+                                {assessmentsLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-32 text-center">
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <Loader2 className="h-8 w-8 animate-spin text-brand-bright" />
+                                                <span className="text-sm font-medium text-slate-400">Loading history...</span>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-48 text-center text-slate-400">
-                                        <div className="flex flex-col items-center justify-center space-y-2">
-                                            <p className="font-bold text-slate-900">No Assessment History</p>
-                                            <p className="max-w-xs mx-auto">Initialize your first Data Protection Impact Assessment using the templates above.</p>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                ) : pastAssessments && pastAssessments.length > 0 ? (
+                                    pastAssessments.map((a, idx) => {
+                                        const linkedActivity = activityName((a as any).activityId);
+                                        const riskScore = ((a as any).questionnaireData as any)?.score;
+                                        return (
+                                            <TableRow
+                                                key={a.id}
+                                                className="hover:bg-slate-50/80 transition-colors group border-b border-slate-100 last:border-0"
+                                                style={{ animationDelay: `${idx * 50}ms` }}
+                                            >
+                                                <TableCell className="py-5 font-bold text-slate-900">{a.title}</TableCell>
+                                                <TableCell className="py-5">
+                                                    {linkedActivity ? (
+                                                        <Badge variant="outline" className="bg-sky-50 border-sky-200 text-sky-700 font-semibold text-[11px] max-w-[220px] truncate block">
+                                                            {linkedActivity}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-slate-300 text-xs italic">—</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="py-5">
+                                                    <Badge className={cn(
+                                                        "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
+                                                        riskScore && riskScore > 70 ? "bg-rose-100 text-rose-700" : "bg-blue-100 text-blue-700"
+                                                    )}>
+                                                        {riskScore != null ? `Risk Score: ${riskScore}` : 'Evaluation Pending'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="py-5">
+                                                    <Badge className={cn(
+                                                        "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
+                                                        statusBadge(a.status)
+                                                    )}>
+                                                        {statusLabel(a.status)}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="py-5 text-slate-500 font-medium">{new Date(a.updatedAt).toLocaleDateString()}</TableCell>
+                                                <TableCell className="text-right py-5 px-6">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-brand-bright hover:text-brand hover:bg-sky-50 font-bold rounded-lg transition-all"
+                                                            onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/${a.id}/questionnaire`)}
+                                                        >
+                                                            View Review
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                                                            title="Delete assessment"
+                                                            onClick={() => deleteAssessmentMutation.mutate({ id: a.id })}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-48 text-center text-slate-400">
+                                            <div className="flex flex-col items-center justify-center space-y-2">
+                                                <p className="font-bold text-slate-900">No Assessment History</p>
+                                                <p className="max-w-xs mx-auto">Initialize your first Data Protection Impact Assessment using the templates above.</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
             </section>
 
             {/* Create Custom Template Dialog */}

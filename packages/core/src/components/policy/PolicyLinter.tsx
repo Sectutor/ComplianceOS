@@ -195,7 +195,14 @@ export function PolicyLinter({
       }
     },
     onError: (error) => {
-      toast.error(`AI fix failed: ${error.message}`);
+      const errMsg = error.message || '';
+      if (/insufficient|balance|credit|quota|exceeded|out of tokens|no tokens|token limit/i.test(errMsg)) {
+        toast.error("AI token credits exhausted", { description: "Your AI provider account has insufficient balance. Please add credits or switch providers in Settings > AI Providers." });
+      } else if (/rate.?limit|too many requests|throttl/i.test(errMsg)) {
+        toast.error("AI rate limit reached", { description: "Please wait a moment and try again." });
+      } else {
+        toast.error("AI fix failed", { description: errMsg || "Please try again." });
+      }
     }
   });
 

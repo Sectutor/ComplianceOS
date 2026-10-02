@@ -71,7 +71,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
         toast.info('Checkout opened in a new tab. Enter your license key once completed!');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to initialize checkout');
+      toast.error("Failed to initialize checkout", { description: err.message || "Please try again. If the issue persists, contact support." });
     }
   };
 
@@ -90,7 +90,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
       setOpen(false);
       refetchLicense();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to activate license');
+      toast.error("Failed to activate license", { description: err.message || "Please check your license key and try again." });
     }
   };
 
@@ -110,7 +110,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
         setOpen(false);
         refetchLicense();
       } catch (err: any) {
-        toast.error(err.message || 'Failed to verify license file');
+        toast.error("Failed to verify license file", { description: err.message || "Please check that the license file is valid and try again." });
       }
     };
     reader.readAsText(file);

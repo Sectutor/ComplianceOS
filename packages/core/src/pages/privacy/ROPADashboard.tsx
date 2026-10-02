@@ -312,7 +312,7 @@ export default function ROPADashboard() {
                     </Button>
                     <Button
                         variant="outline"
-                        onClick={() => setLocation(`/clients/${clientId}/subprocessors`)}
+                        onClick={() => setLocation(`/clients/${clientId}/evaluations/subprocessors`)}
                         className="border-border/70 text-foreground hover:bg-muted font-medium h-10 px-4 rounded-xl shadow-xs transition-all"
                     >
                         <Shield className="mr-2 h-4 w-4 text-primary" />
@@ -406,7 +406,7 @@ export default function ROPADashboard() {
                                                     size="sm"
                                                     className="h-8 px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg"
                                                     title="Launch DPIA for this activity"
-                                                    onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/new`)}
+                                                    onClick={() => setLocation(`/clients/${clientId}/privacy/dpia/new?activityId=${proc.id}&activityName=${encodeURIComponent(proc.name)}`)}
                                                 >
                                                     ⚡ DPIA
                                                 </Button>

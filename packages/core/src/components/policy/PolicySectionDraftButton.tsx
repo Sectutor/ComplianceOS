@@ -64,7 +64,7 @@ export default function PolicySectionDraftButton({
       toast.success("Section drafted");
     } catch (err: any) {
       console.error("[PolicySectionDraftButton] failed:", err);
-      toast.error(err.message || "Failed to draft section");
+      toast.error("Failed to draft policy section", { description: err.message || "Please try again." });
     }
   };
 

@@ -44,7 +44,7 @@ export function ResourceDependencyEditor({ processId, dependencies, onUpdate }: 
             setForm({ ...form, name: '', notes: '' });
             onUpdate();
         } catch (e) {
-            toast.error("Failed to add dependency");
+            toast.error("Failed to add dependency", { description: "Please try again." });
         } finally {
             setIsAdding(false);
         }
@@ -56,7 +56,7 @@ export function ResourceDependencyEditor({ processId, dependencies, onUpdate }: 
             toast.success("Dependency removed");
             onUpdate();
         } catch (e) {
-            toast.error("Failed to remove dependency");
+            toast.error("Failed to remove dependency", { description: "Please try again." });
         }
     };
 

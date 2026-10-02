@@ -157,6 +157,10 @@ export const clientControls = pgTable("client_controls", {
 
   evidenceLocation: text("evidence_location"),
 
+  nextReviewDate: timestamp("next_review_date"), // Recertification: when this control must be reviewed again
+
+  lastReviewedAt: timestamp("last_reviewed_at"),
+
   status: clientControlStatusEnum("status").default("not_implemented"),
 
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -170,6 +174,34 @@ export const clientControls = pgTable("client_controls", {
     clientIdIdx: index("idx_cc_client").on(table.clientId),
 
     clientStatusIdx: index("idx_cc_client_status").on(table.clientId, table.status),
+
+  };
+
+});
+
+export const clientControlHistory = pgTable("client_control_history", {
+
+  id: serial("id").primaryKey(),
+
+  clientControlId: integer("client_control_id").notNull(), // FK to client_controls.id
+
+  fromStatus: varchar("from_status", { length: 50 }), // null when the first state is recorded
+
+  toStatus: varchar("to_status", { length: 50 }).notNull(),
+
+  changedByUserId: integer("changed_by_user_id"),
+
+  changedByName: varchar("changed_by_name", { length: 255 }),
+
+  note: text("note"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+
+}, (table) => {
+
+  return {
+
+    controlIdx: index("idx_cch_client_control").on(table.clientControlId),
 
   };
 

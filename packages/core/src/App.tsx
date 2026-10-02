@@ -227,10 +227,6 @@ const RiskHeatmapPage = lazyLoad(() => import("./pages/risk/RiskHeatmapPage"));
 const RiskAlignmentPage = lazyLoad(() => import("./pages/risk/RiskAlignmentPage"));
 const AdversaryIntelPage = lazyLoad(() => import("./pages/risk/AdversaryIntelPage"));
 const VulnerabilityWorkbench = lazyLoad(() => import("./pages/risk/VulnerabilityWorkbench"));
-const VulnerabilityScannerPage = lazyLoad(() => import("./pages/risk/VulnerabilityScanner"));
-const SIEMDashboard = lazyLoad(() => import("./pages/risk/SIEMDashboard"));
-const SOARDashboard = lazyLoad(() => import("./pages/risk/SOARDashboard"));
-const ThreatIntelDashboard = lazyLoad(() => import("./pages/risk/ThreatIntelDashboard"));
 
 const TPRMLayout = lazyLoad(() => import("./pages/tprm/TPRMLayout").then(module => ({ default: module.TPRMLayout })));
 const VendorList = lazyLoad(() => import("./pages/tprm/VendorList"));
@@ -259,7 +255,6 @@ const VendorContractTemplates = lazyLoad(() => import("./pages/tprm/VendorContra
 const BusinessContinuityDashboard = lazyLoad(() => import("./pages/business-continuity/BusinessContinuityDashboard"));
 
 const GdprAssessmentPage = lazyLoad(() => import("./pages/privacy/assessments/GdprAssessmentPage"));
-const CcpaAssessmentPage = lazyLoad(() => import("./pages/privacy/assessments/CcpaAssessmentPage"));
 const DynamicPrivacyAssessmentPage = lazyLoad(() => import("./pages/privacy/assessments/DynamicPrivacyAssessmentPage"));
 const ROPADashboard = lazyLoad(() => import("./pages/privacy/ROPADashboard"));
 const PrivacyDocsDashboard = lazyLoad(() => import("./pages/privacy/PrivacyDocsDashboard"));
@@ -318,14 +313,12 @@ const AuditHub = lazyLoad(() => import("./pages/AuditHub"));
 
 const PrivacyDashboard = lazyLoad(() => import("./pages/privacy/PrivacyDashboard"));
 const DataInventory = lazyLoad(() => import("./pages/privacy/DataInventory"));
-const ROPA = lazyLoad(() => import("./pages/privacy/ROPA"));
 const DSARManager = lazyLoad(() => import("./pages/privacy/DSARManager"));
 const DsarDetail = lazyLoad(() => import("./pages/privacy/DsarDetail"));
 const DPIAManager = lazyLoad(() => import("./pages/privacy/DPIAManager"));
 const DPIAQuestionnaire = lazyLoad(() => import("./pages/privacy/DPIAQuestionnaire"));
 const TransferDashboard = lazyLoad(() => import("./pages/privacy/TransferDashboard"));
 const TIAWorkspace = lazyLoad(() => import("./pages/privacy/TIAWorkspace"));
-const PrivacyOverview = lazyLoad(() => import("./pages/privacy/PrivacyOverview"));
 const PrivacyAlignmentPage = lazyLoad(() => import("./pages/privacy/PrivacyAlignmentPage"));
 const PrivacyLayout = lazyLoad(() => import("./pages/privacy/PrivacyLayout").then(module => ({ default: module.PrivacyLayout })));
 const KnowledgeBase = lazyLoad(() => import("./pages/KnowledgeBase"));
@@ -882,8 +875,8 @@ function Router() {
         <Route path="/clients/:id/privacy">
           {(params) => (
             <UnifiedClientGuard requirePremium>
-              <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
-                <PrivacyProgramGuide {...params} />
+              <PrivacyLayout clientId={parseInt(params.id)}>
+                <PrivacyDashboard />
               </PrivacyLayout>
             </UnifiedClientGuard>
           )}
@@ -1318,6 +1311,9 @@ function Router() {
         <Route path="/clients/:id/risks/report">
           {(params) => <ProtectedRoute component={RiskReportList} {...params} />}
         </Route>
+        <Route path="/clients/:id/risks/report/new">
+          {(params) => <ProtectedRoute component={RiskReportEditor} {...params} />}
+        </Route>
         <Route path="/clients/:id/risks/report/:reportId">
           {(params) => <ProtectedRoute component={RiskReportEditor} {...params} />}
         </Route>
@@ -1553,18 +1549,6 @@ function Router() {
         <Route path="/clients/:id/risks/vulnerabilities">
           {(_params) => <ProtectedRoute component={RiskVulnerabilitiesPage} />}
         </Route>
-        <Route path="/clients/:id/risk/vulnerability-scanner">
-          {(_params) => <ProtectedRoute component={VulnerabilityScannerPage} />}
-        </Route>
-        <Route path="/clients/:id/risk/siem">
-          {(_params) => <ProtectedRoute component={SIEMDashboard} />}
-        </Route>
-        <Route path="/clients/:id/risk/soar">
-          {(_params) => <ProtectedRoute component={SOARDashboard} />}
-        </Route>
-        <Route path="/clients/:id/risk/threat-intel">
-          {(_params) => <ProtectedRoute component={ThreatIntelDashboard} />}
-        </Route>
         <Route path="/clients/:id/risks/assessments">
           {(_params) => <ProtectedRoute component={RiskAssessmentsPage} />}
         </Route>
@@ -1739,35 +1723,8 @@ function Router() {
           {(_params) => <ProtectedRoute component={FederalAlignmentPage} />}
         </Route>
 
-        {/* Privacy Routes */}
-        <Route path="/clients/:id/privacy">
-          {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)} fullWidth>
-              <PrivacyDashboard />
-            </PrivacyLayout>
-          )}
-        </Route>
-        <Route path="/clients/:id/privacy/overview">
-          {(_params) => (
-            <PrivacyLayout clientId={parseInt(_params.id)}>
-              <PrivacyOverview />
-            </PrivacyLayout>
-          )}
-        </Route>
-        <Route path="/clients/:id/privacy/guide">
-          {(params) => (
-            <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
-              <PrivacyProgramGuide {...params} />
-            </PrivacyLayout>
-          )}
-        </Route>
-        <Route path="/clients/:id/privacy/program-guide">
-          {(params) => (
-            <PrivacyLayout clientId={parseInt(params.id)} fullWidth>
-              <PrivacyProgramGuide {...params} />
-            </PrivacyLayout>
-          )}
-        </Route>
+        {/* Privacy Routes — /privacy and /gdpr are declared earlier in this Switch;
+            this block only holds the sub-pages */}
         <Route path="/clients/:clientId/privacy/alignment-guide">
           {(_params) => (
             <PrivacyLayout clientId={parseInt(_params.clientId)}>

@@ -539,6 +539,26 @@ export class LLMService {
                 'Add a real API key (OpenAI, Anthropic, or Gemini) under Settings > AI Providers, then try again.'
             );
         }
+
+        // Detect token/credit exhaustion from any provider error
+        const reportMsg = reportError?.message || '';
+        const reportStatus = (reportError as any)?.status || (reportError as any)?.statusCode;
+        if (reportStatus === 402 || /insufficient|balance|credit|quota|exceeded|out of tokens|no tokens|token limit/i.test(reportMsg)) {
+            throw new Error(
+                'AI token credits have been exhausted. Your AI provider account has insufficient balance to process this request. ' +
+                'Please add credits to your AI provider account (e.g., OpenAI, Anthropic, or OpenRouter) or switch to a provider with available credits. ' +
+                'Go to Settings > AI Providers to manage your providers.'
+            );
+        }
+
+        // Detect rate limiting
+        if (reportStatus === 429 || /rate.?limit|too many requests|throttl/i.test(reportMsg)) {
+            throw new Error(
+                'AI rate limit reached. Your AI provider is throttling requests. ' +
+                'Please wait a moment and try again, or upgrade your provider plan for higher limits.'
+            );
+        }
+
         throw new Error(`All LLM providers failed. ${reportError?.message || 'No provider responded.'}`);
     }
 

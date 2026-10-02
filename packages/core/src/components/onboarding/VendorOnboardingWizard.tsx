@@ -43,7 +43,7 @@ export function VendorOnboardingWizard({ clientId, onComplete, onCancel }: Vendo
             setStep(2);
             toast.success("Vendor profile created");
         },
-        onError: (err) => toast.error("Failed to create vendor: " + err.message)
+        onError: (err) => toast.error("Failed to create vendor profile: " + (err.message || 'Please check your connection and try again.'))
     });
 
     const initiateAuthMutation = trpc.vendorAuthorizations.initiate.useMutation({
@@ -51,14 +51,14 @@ export function VendorOnboardingWizard({ clientId, onComplete, onCancel }: Vendo
             setStep(4);
             toast.success("Authorization workflow started");
         },
-        onError: (err) => toast.error("Failed to start workflow: " + err.message)
+        onError: (err) => toast.error("Failed to start vendor authorization workflow", { description: err.message || "Please try again." })
     });
 
     const createDpaMutation = trpc.vendorDpas.createFromTemplate.useMutation({
         onSuccess: () => {
             toast.success("DPA generated from template");
         },
-        onError: (err) => toast.error("Failed to generate DPA: " + err.message)
+        onError: (err) => toast.error("Failed to generate DPA from template", { description: err.message || "Please try again." })
     });
 
     const { data: dpaTemplates } = trpc.dpaTemplates.list.useQuery();

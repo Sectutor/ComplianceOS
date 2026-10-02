@@ -89,7 +89,7 @@ export function RoadmapExportModal({
       URL.revokeObjectURL(url);
       toast.success('CSV exported successfully');
     } catch (e) {
-      toast.error('Failed to export CSV');
+      toast.error("Failed to export CSV", { description: "Please try again. If the issue persists, contact support." });
     }
   };
 

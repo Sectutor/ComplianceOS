@@ -149,7 +149,7 @@ export const createReadinessRouter = (t: any, clientProcedure: any) => {
                 } catch (error: any) {
                     console.error("Failed to createOrUpdate readiness assessment:", error);
                     // Ensure we return a clean error message that TRPC can display
-                    throw new Error(error.message || "Failed to save progress");
+                    throw new Error(error.message || "Failed to save progress. Please try again.");
                 }
             }),
 
@@ -197,7 +197,7 @@ export const createReadinessRouter = (t: any, clientProcedure: any) => {
                     return { success: true, framework };
                 } catch (error: any) {
                     console.error("Failed to complete baseline assessment:", error);
-                    throw new Error(`Failed to complete baseline: ${error.message}`);
+                    throw new Error(`Failed to complete baseline: ${error.message || 'Please try again.'}`);
                 }
             }),
 

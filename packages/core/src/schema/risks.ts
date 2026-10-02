@@ -376,6 +376,10 @@ export const dataBreaches = pgTable("data_breaches", {
 
   isNotifiableToSubjects: boolean("is_notifiable_to_subjects").default(false),
 
+  // Structured incident fields without dedicated columns (title, severity,
+  // affected categories, estimated subjects, containment status)
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+
   createdBy: integer("created_by"),
 
   updatedAt: timestamp("updated_at").defaultNow(),

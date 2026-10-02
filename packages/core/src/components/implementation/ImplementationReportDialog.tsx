@@ -81,7 +81,7 @@ export default function ImplementationReportDialog({ open, onOpenChange, clientI
         onError: (error: any) => {
             setGenerationProgress(0);
             setCurrentStep("Generation failed");
-            toast.error(`Failed to generate report: ${error.message}`, {
+            toast.error("Failed to generate implementation report", { description: error.message || "Please try again.",
                 duration: 5000,
             });
         },

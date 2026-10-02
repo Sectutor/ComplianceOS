@@ -46,7 +46,7 @@ export function BCCommentsSection({ entityType, entityId }: BCCommentsSectionPro
             refetch();
         },
         onError: (err) => {
-            toast.error(err.message || "Failed to add comment");
+            toast.error("Failed to add comment", { description: err.message || "Please check that your comment is not empty and try again." });
         }
     });
 

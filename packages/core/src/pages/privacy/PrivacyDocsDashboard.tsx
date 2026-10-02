@@ -77,7 +77,7 @@ export default function PrivacyDocsDashboard() {
                     />
                     <Button
                         id="privacy-docs-add-btn"
-                        onClick={() => setLocation(`/clients/${clientId}/policies/new?module=privacy`)}
+                        onClick={() => setLocation(`/clients/${clientId}/policies`)}
                         className="bg-brand-bright hover:bg-brand text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-sky-100 transition-all active:scale-95"
                     >
                         <Plus className="mr-2 h-5 w-5" /> Add Document
@@ -201,7 +201,7 @@ export default function PrivacyDocsDashboard() {
                                                 </div>
                                                 <Button
                                                     variant="outline"
-                                                    onClick={() => setLocation(`/clients/${clientId}/policies/new?module=privacy`)}
+                                                    onClick={() => setLocation(`/clients/${clientId}/policies`)}
                                                     className="border-slate-200 hover:bg-slate-50 font-bold rounded-xl"
                                                 >
                                                     Initialize Document Library

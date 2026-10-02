@@ -58,7 +58,7 @@ export function Framework90DayRoadmap({
             refetchProgress();
         },
         onError: () => {
-            toast.error('Failed to save progress. Changes saved locally.');
+            toast.error('Failed to save roadmap progress. Changes have been saved locally and will sync when connection is restored.');
         }
     });
 
@@ -68,7 +68,7 @@ export function Framework90DayRoadmap({
             toast.success('Target audit date saved.');
         },
         onError: () => {
-            toast.error('Failed to save audit date.');
+            toast.error('Failed to save target audit date. Please check your connection and try again.');
         }
     });
 

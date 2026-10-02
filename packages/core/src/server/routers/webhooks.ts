@@ -47,7 +47,7 @@ export const createWebhooksRouter = (t: any, clientProcedure: any) => {
           console.error("[Webhooks] Failed to create subscription:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to create webhook subscription",
+            message: "Failed to create webhook subscription. Please try again.",
           });
         }
       }),
@@ -99,7 +99,7 @@ export const createWebhooksRouter = (t: any, clientProcedure: any) => {
           console.error("[Webhooks] Failed to update subscription:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to update webhook subscription",
+            message: "Failed to update webhook subscription. Please try again.",
           });
         }
       }),
@@ -121,7 +121,7 @@ export const createWebhooksRouter = (t: any, clientProcedure: any) => {
           console.error("[Webhooks] Failed to delete subscription:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to delete webhook subscription",
+            message: "Failed to delete webhook subscription. Please try again.",
           });
         }
       }),

@@ -20,6 +20,7 @@ import { EvidenceSuggestionsPopover } from "@/components/controls/EvidenceSugges
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
+import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { PageGuide } from "@/components/PageGuide";
 import {
@@ -56,6 +57,10 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
         { enabled: clientId > 0 }
     );
     const { data: rawMasterControls } = trpc.controls.list.useQuery();
+    const { data: registerTrend } = trpc.clientControls.getRegisterTrend.useQuery(
+        { clientId },
+        { enabled: clientId > 0 }
+    );
 
     if (controlsError) {
         console.error("Error loading client controls:", controlsError);
@@ -74,6 +79,7 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
 
     const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
     const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
+    const [quickFilter, setQuickFilter] = useState<string>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const PAGE_SIZE = 50;
     const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<number>>(new Set());
@@ -89,13 +95,60 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
     const availableFrameworks = ["NIS2", "ISO 27001", "SOC 2", "GDPR", "HIPAA", "NIST CSF", "OWASP LLM Top 10", "OWASP ASI", "NIST AI RMF", "EU AI Act"];
 
     // Memoized filtered controls
+    // Quick filters (audit-prep work queues) — counts are computed over the whole
+    // register so chips stay meaningful even while another filter is active.
+    const nowMs = Date.now();
+    const matchesQuickFilter = useCallback((c: any, filter: string) => {
+        const cc = c.clientControl || {};
+        switch (filter) {
+            case 'overdue':
+                return !!cc.dueDate && new Date(cc.dueDate).getTime() < nowMs &&
+                    cc.status !== 'implemented' && cc.status !== 'not_applicable';
+            case 'reviews_due':
+                return cc.status === 'implemented' &&
+                    !!cc.nextReviewDate && new Date(cc.nextReviewDate).getTime() < nowMs;
+            case 'no_evidence':
+                return cc.status !== 'not_implemented' && cc.status !== 'not_applicable' &&
+                    !cc.evidenceLocation && (!c.evidenceCount || c.evidenceCount === 0);
+            case 'no_owner':
+                return cc.status !== 'not_applicable' && !cc.owner;
+            case 'not_started':
+                return cc.status === 'not_implemented';
+            case 'na_justification':
+                return cc.applicability === 'not_applicable' && !cc.justification;
+            default:
+                return true;
+        }
+    }, [nowMs]);
+
+    const quickFilterCounts = useMemo(() => {
+        const counts: Record<string, number> = { all: (clientControls || []).length };
+        for (const key of ['overdue', 'reviews_due', 'no_evidence', 'no_owner', 'not_started', 'na_justification']) {
+            counts[key] = (clientControls || []).filter((c: any) => matchesQuickFilter(c, key)).length;
+        }
+        return counts;
+    }, [clientControls, matchesQuickFilter]);
+
     const filteredClientControls = useMemo(() =>
         (clientControls || []).filter((c: any) => {
             if (frameworkFilter !== 'all' && (c.control?.framework || 'Uncategorized') !== frameworkFilter) return false;
-            return true;
+            return matchesQuickFilter(c, quickFilter);
         }),
-        [clientControls, frameworkFilter]
+        [clientControls, frameworkFilter, quickFilter, matchesQuickFilter]
     );
+
+    // Implementation progress per framework (whole register, not just the page)
+    const frameworkProgress = useMemo(() => {
+        const prog: Record<string, { total: number; implemented: number; inProgress: number }> = {};
+        for (const c of clientControls || []) {
+            const fw = c.control?.framework || 'Uncategorized';
+            if (!prog[fw]) prog[fw] = { total: 0, implemented: 0, inProgress: 0 };
+            prog[fw].total++;
+            if (c.clientControl.status === 'implemented') prog[fw].implemented++;
+            else if (c.clientControl.status === 'in_progress') prog[fw].inProgress++;
+        }
+        return prog;
+    }, [clientControls]);
 
     // Pagination logic
     const totalPages = Math.ceil(filteredClientControls.length / PAGE_SIZE);
@@ -164,20 +217,36 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
     const [selectedControlIds, setSelectedControlIds] = useState<string[]>([]);
     const [controlSearch, setControlSearch] = useState("");
     const [bulkFrameworks, setBulkFrameworks] = useState<string[]>([]);
+    const [isAssigning, setIsAssigning] = useState(false);
     const [selectedControl, setSelectedControl] = useState<any>(null);
     const [deleteControlId, setDeleteControlId] = useState<number | null>(null);
     const [excludeControl, setExcludeControl] = useState<{ id: number, justification: string } | null>(null);
     const [justificationError, setJustificationError] = useState<number | null>(null);
 
+    // Catalog ids already in this client's register — used to grey out rows
+    // in the Assign Controls dialog and to count assignments per framework.
+    const assignedCatalogIds = useMemo(() => {
+        const ids = new Set<number>();
+        (clientControls || []).forEach((c: any) => { if (c.control?.id) ids.add(c.control.id); });
+        return ids;
+    }, [clientControls]);
 
-    const addControlMutation = trpc.clientControls.create.useMutation({
-        onSuccess: () => {
-            toast.success("Control assigned to client");
-            setIsAddControlOpen(false);
-            refetchControls();
-        },
-        onError: (error) => toast.error(error.message),
-    });
+    const catalogStats = useMemo(() => {
+        const stats: Record<string, { total: number; assigned: number }> = {};
+        for (const c of masterControls) {
+            const fw = c.framework || 'Uncategorized';
+            if (!stats[fw]) stats[fw] = { total: 0, assigned: 0 };
+            stats[fw].total++;
+            if (assignedCatalogIds.has(c.id)) stats[fw].assigned++;
+        }
+        return stats;
+    }, [masterControls, assignedCatalogIds]);
+
+
+    // Toasts, dialog state and refetching are handled centrally in handleAssignFromDialog
+    // so one "Assign Selected" click can combine framework and individual assignments.
+    const addControlMutation = trpc.clientControls.create.useMutation();
+    const bulkAssignMutation = trpc.clientControls.bulkAssign.useMutation();
 
     const deleteControlMutation = trpc.clientControls.delete.useMutation({
         onSuccess: () => {
@@ -216,14 +285,6 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
         },
     });
 
-    const bulkAssignMutation = trpc.clientControls.bulkAssign.useMutation({
-        onSuccess: (result) => {
-            toast.success(result.message);
-            refetchControls();
-        },
-        onError: (error) => toast.error(error.message),
-    });
-
     // Memoized handlers (must be after mutations)
     const handleSelectControl = useCallback((item: any) => setSelectedControl(item), []);
     const handleUpdateControl = useCallback((id: number, data: any) => {
@@ -231,33 +292,52 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
     }, [updateControlMutation]);
     const handleDeleteControl = useCallback((id: number) => setDeleteControlId(id), []);
 
-    const handleBulkAssignInDialog = async () => {
-        if (bulkFrameworks.length === 0) {
-            toast.error("Please select at least one framework");
+    // Single assign action for the dialog: applies the ticked frameworks (bulk,
+    // already-assigned controls skipped server-side) plus any individually ticked
+    // controls that are not in the register yet.
+    const handleAssignFromDialog = async () => {
+        const individualIds = selectedControlIds.filter((id) => !assignedCatalogIds.has(parseInt(id)));
+        const hasFrameworks = bulkFrameworks.length > 0;
+        if (!hasFrameworks && individualIds.length === 0) {
+            toast.error("Select at least one framework or control to assign");
             return;
         }
 
-        // Pass the array directly, assuming backend accepts string[]
-        // Wait, backend signature in clientControls.ts was updated to z.array(z.string()).
-        // Need to cast or unsure TS will catch it if trpc types aren't updated.
-        await bulkAssignMutation.mutateAsync({ clientId, framework: bulkFrameworks as any });
-        setIsAddControlOpen(false);
-        setBulkFrameworks([]);
-    };
+        setIsAssigning(true);
+        try {
+            let viaFramework = 0;
+            if (hasFrameworks) {
+                const res: any = await bulkAssignMutation.mutateAsync({ clientId, frameworks: bulkFrameworks });
+                viaFramework = res?.assigned ?? 0;
+            }
 
-    const handleAssignSelected = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (selectedControlIds.length === 0) {
-            toast.error("Please select at least one control");
-            return;
+            let individual = 0;
+            for (const idStr of individualIds) {
+                await addControlMutation.mutateAsync({ clientId, controlId: parseInt(idStr), status: 'not_implemented' });
+                individual++;
+            }
+
+            const total = viaFramework + individual;
+            if (total === 0) {
+                toast.info("Nothing new to assign — everything selected is already in this client's register");
+            } else {
+                const detail = [
+                    viaFramework > 0 ? `${viaFramework} from ${bulkFrameworks.join(', ')}` : null,
+                    individual > 0 ? `${individual} individual control${individual === 1 ? '' : 's'}` : null,
+                ].filter(Boolean).join(" + ");
+                toast.success(`Assigned ${total} control${total === 1 ? '' : 's'} (${detail})`);
+            }
+
+            setIsAddControlOpen(false);
+            setBulkFrameworks([]);
+            setSelectedControlIds([]);
+            setControlSearch("");
+            refetchControls();
+        } catch (err: any) {
+            toast.error(err?.message || "Assignment failed");
+        } finally {
+            setIsAssigning(false);
         }
-        selectedControlIds.forEach((id) => {
-            addControlMutation.mutate({
-                clientId,
-                controlId: parseInt(id),
-                status: 'not_implemented',
-            });
-        });
     };
 
     // ... (rendering logic unchanged until dialog)
@@ -296,13 +376,28 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                         <CardContent className="p-6">
                             <p className="text-muted-foreground text-sm font-medium mb-1 uppercase tracking-wider">Total Coverage</p>
                             <h3 className="text-4xl font-bold">{stats.total}</h3>
-                            <div className="mt-4 flex items-center gap-2">
-                                <span className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
-                                    <span
-                                        className="h-full bg-blue-500 transition-all duration-1000"
-                                        style={{ width: `${stats.total > 0 ? 100 : 0}%` }}
-                                    />
-                                </span>
+                            <div className="mt-3 h-8 -mx-1">
+                                {(registerTrend as any)?.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={registerTrend as any[]} margin={{ top: 2, right: 2, bottom: 0, left: 2 }}>
+                                            <RechartsTooltip
+                                                formatter={(value: any) => [`${value} implemented`, 'This week']}
+                                                labelFormatter={(label: any) => `Week of ${label}`}
+                                                contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e2e8f0' }}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="implemented"
+                                                stroke="#3b82f6"
+                                                strokeWidth={2}
+                                                fill="#3b82f6"
+                                                fillOpacity={0.12}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground leading-8">Implementation history appears here as you make progress</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -354,46 +449,50 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                     <AlertCircle className="h-5 w-5 text-red-500 animate-pulse" />
                                 )}
                             </div>
-                            <p className="mt-4 text-xs text-muted-foreground uppercase tracking-tighter">
-                                Critical for readiness score
+                            <p className="mt-4 text-xs text-muted-foreground">
+                                Implemented or in-progress controls without any evidence on file
                             </p>
                         </CardContent>
                     </Card>
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="space-y-4 border-b border-slate-200 pb-5">
+                    {/* Section header: title, live count, contextual help */}
                     <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-bold text-foreground">Assigned Controls</h2>
-                        <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-bold bg-muted text-muted-foreground border-border">
-                            {filteredClientControls.length} displayed
-                        </Badge>
-                        <PageGuide
-                            title="Client Control Implementation"
-                            description="Manage and validate the implementation of security controls for this client."
-                            rationale="Controls are the operational reality of compliance. This dashboard allows you to move beyond 'check-box compliance' by documenting implementation, assigning accountability, and syncing evidence across frameworks."
-                            howToUse={[
-                                { step: "1. Build Your Baseline", description: "Import controls from the Global Library or use the 'Select Baseline' wizard to bulk-add industry standards like NIST or SOC 2." },
-                                { step: "2. Determine Applicability", description: "Mark controls as 'Applicable' or 'Not Applicable'. If excluded, you MUST provide a professional justification for auditors." },
-                                { step: "3. Document Implementation", description: "Click the 'Edit' icon to describe the operational reality of the control and set its Monitoring Frequency (e.g., Monthly/Continuous)." },
-                                { step: "4. Assign Accountability (RACI)", description: "Use the RACI Grid to assign specific team members as Responsible or Accountable, ensuring clear ownership." },
-                                { step: "5. Gather Evidence", description: "Upload proof (PDFs, Screenshots) or use 'Evidence Requests' to task teammates for information without them needing deep platform access." },
-                                { step: "6. Cross-Framework Sync", description: "Implement once, comply twice. Use the sync feature to propagate status and evidence to related controls in other frameworks." }
-                            ]}
-                            integrations={[
-                                { name: "Audit Trail", description: "Every implementation note and status change is logged for professional audit review." },
-                                { name: "Evidence Repository", description: "Uploaded files are automatically linked to the client's central evidence library for future reuse." },
-                                { name: "Situation Awareness", description: "The top metrics bar reflects your real-time compliance health and readiness score." }
-                            ]}
-                        />
+                        <h2 className="text-lg font-semibold text-slate-900">Assigned Controls</h2>
+                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                            {filteredClientControls.length}
+                        </span>
+                        <div className="ml-auto">
+                            <PageGuide
+                                title="Client Control Implementation"
+                                description="Manage and validate the implementation of security controls for this client."
+                                rationale="Controls are the operational reality of compliance. This dashboard allows you to move beyond 'check-box compliance' by documenting implementation, assigning accountability, and syncing evidence across frameworks."
+                                howToUse={[
+                                    { step: "1. Build Your Baseline", description: "Import controls from the Global Library or use the 'Select Baseline' wizard to bulk-add industry standards like NIST or SOC 2." },
+                                    { step: "2. Determine Applicability", description: "Mark controls as 'Applicable' or 'Not Applicable'. If excluded, you MUST provide a professional justification for auditors." },
+                                    { step: "3. Document Implementation", description: "Click the 'Edit' icon to describe the operational reality of the control and set its Monitoring Frequency (e.g., Monthly/Continuous)." },
+                                    { step: "4. Assign Accountability (RACI)", description: "Use the RACI Grid to assign specific team members as Responsible or Accountable, ensuring clear ownership." },
+                                    { step: "5. Gather Evidence", description: "Upload proof (PDFs, Screenshots) or use 'Evidence Requests' to task teammates for information without them needing deep platform access." },
+                                    { step: "6. Cross-Framework Sync", description: "Implement once, comply twice. Use the sync feature to propagate status and evidence to related controls in other frameworks." }
+                                ]}
+                                integrations={[
+                                    { name: "Audit Trail", description: "Every implementation note and status change is logged for professional audit review." },
+                                    { name: "Evidence Repository", description: "Uploaded files are automatically linked to the client's central evidence library for future reuse." },
+                                    { name: "Situation Awareness", description: "The top metrics bar reflects your real-time compliance health and readiness score." }
+                                ]}
+                            />
+                        </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        {/* View Toggles & Export buttons (unchanged) */}
-                        <div className="flex bg-muted rounded-md p-1 items-center">
+
+                    {/* Toolbar: filters on the left, actions on the right */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
                             <Button
                                 variant={viewMode === 'card' ? 'secondary' : 'ghost'}
                                 size="sm"
                                 onClick={() => setViewMode('card')}
-                                className="h-8 px-2"
+                                className="h-8 px-2.5"
                                 title="Card View"
                             >
                                 <LayoutGrid className="h-4 w-4" />
@@ -402,71 +501,99 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                 variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                                 size="sm"
                                 onClick={() => setViewMode('table')}
-                                className="h-8 px-2"
+                                className="h-8 px-2.5"
                                 title="Statement of Applicability (Table)"
                             >
                                 <List className="h-4 w-4" />
                             </Button>
                         </div>
+
                         <Button
                             variant={isBulkMode ? "default" : "outline"}
                             size="sm"
+                            className="h-9"
                             onClick={() => { setIsBulkMode(!isBulkMode); setBulkSelectedIds(new Set()); setBulkStatus(''); }}
                         >
                             {isBulkMode ? 'Exit Bulk Edit' : 'Bulk Edit'}
                         </Button>
 
-                        <div className="w-[200px]">
-                            <Select
-                                value={frameworkFilter}
-                                onValueChange={(val) => {
-                                    setFrameworkFilter(val);
-                                    const params = new URLSearchParams(window.location.search);
-                                    if (val === 'all') params.delete('framework');
-                                    else params.set('framework', val);
-                                    const search = params.toString();
-                                    setLocation(`${location}${search ? '?' + search : ''}`);
-                                }}
-                            >
-                                <SelectTrigger className="h-8">
-                                    <SelectValue placeholder="Filter Framework" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Frameworks</SelectItem>
-                                    {uniqueFrameworks.map(fw => (
-                                        <SelectItem key={fw} value={fw}>{fw}</SelectItem>
-                                    ))}
-                                    {availableFrameworks.filter(f => !uniqueFrameworks.includes(f)).map(fw => (
-                                        <SelectItem key={fw} value={fw} disabled className="opacity-50">{fw} (Not Assigned)</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Select
+                            value={frameworkFilter}
+                            onValueChange={(val) => {
+                                setFrameworkFilter(val);
+                                const params = new URLSearchParams(window.location.search);
+                                if (val === 'all') params.delete('framework');
+                                else params.set('framework', val);
+                                const search = params.toString();
+                                setLocation(`${location}${search ? '?' + search : ''}`);
+                            }}
+                        >
+                            <SelectTrigger className="h-9 w-[190px] bg-white">
+                                <SelectValue placeholder="Filter Framework" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Frameworks</SelectItem>
+                                {uniqueFrameworks.map(fw => (
+                                    <SelectItem key={fw} value={fw}>{fw}</SelectItem>
+                                ))}
+                                {availableFrameworks.filter(f => !uniqueFrameworks.includes(f)).map(fw => (
+                                    <SelectItem key={fw} value={fw} disabled className="opacity-50">{fw} (Not Assigned)</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                        {false && (
+                        <div className="ml-auto flex items-center gap-2">
                             <Button
                                 variant="outline"
-                                onClick={() => {
-                                    window.location.assign(`/api/export/soa/${client?.id}`);
-                                }}
-                                title="Export SoA to Word"
+                                size="sm"
+                                className="h-9 border-slate-300 text-slate-700 hover:bg-slate-50"
+                                onClick={() => setIsBaselineWizardOpen(true)}
                             >
-                                <Download className="mr-2 h-4 w-4" />
-                                Export SoA
+                                <Shield className="mr-2 h-4 w-4" />
+                                Select Baseline
                             </Button>
-                        )}
+                            <Button size="sm" className="h-9" onClick={() => setIsAddControlOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Assign Control
+                            </Button>
+                        </div>
+                    </div>
 
-                        <Button
-                            className="bg-green-600 hover:bg-green-700 text-white border-green-700"
-                            onClick={() => setIsBaselineWizardOpen(true)}
-                        >
-                            <Shield className="mr-2 h-4 w-4" />
-                            Select Baseline
-                        </Button>
-                        <Button onClick={() => setIsAddControlOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Assign Control
-                        </Button>
+                    {/* Quick-filter work queues */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {[
+                            { key: 'all', label: 'All' },
+                            { key: 'overdue', label: 'Overdue' },
+                            { key: 'reviews_due', label: 'Review due' },
+                            { key: 'no_evidence', label: 'No evidence' },
+                            { key: 'no_owner', label: 'No owner' },
+                            { key: 'not_started', label: 'Not started' },
+                            { key: 'na_justification', label: 'N/A without justification' },
+                        ].map(chip => {
+                            const count = quickFilterCounts[chip.key] ?? 0;
+                            const active = quickFilter === chip.key;
+                            return (
+                                <button
+                                    key={chip.key}
+                                    onClick={() => { setQuickFilter(chip.key); setCurrentPage(1); }}
+                                    disabled={chip.key !== 'all' && count === 0}
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                                        active
+                                            ? 'border-slate-900 bg-slate-900 text-white'
+                                            : chip.key !== 'all' && count === 0
+                                                ? 'border-slate-200 bg-white text-slate-300 cursor-default'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    {chip.label}
+                                    <span className={`rounded-full px-1.5 text-[10px] font-semibold ${
+                                        active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                                    }`}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -482,7 +609,7 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                     open={isAddControlOpen}
                     onOpenChange={setIsAddControlOpen}
                     title="Assign Controls"
-                    description="Select individual controls or bulk assign standard frameworks."
+                    description="Tick frameworks and/or individual controls from the catalog, then assign them in one action."
                     size="xl"
                     footer={
                         <div className="flex justify-end gap-2 w-full">
@@ -490,13 +617,10 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                 Cancel
                             </Button>
                             <Button
-                                onClick={() => {
-                                    const form = document.getElementById('assign-control-form') as HTMLFormElement;
-                                    if (form) form.requestSubmit();
-                                }}
-                                disabled={addControlMutation.isPending}
+                                onClick={handleAssignFromDialog}
+                                disabled={isAssigning}
                             >
-                                {addControlMutation.isPending ? "Assigning..." : "Assign Selected"}
+                                {isAssigning ? "Assigning..." : "Assign Selected"}
                             </Button>
                         </div>
                     }
@@ -505,36 +629,36 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                         {/* Bulk Assignment Section */}
                         <div className="bg-muted/30 p-4 rounded-lg border">
                             <Label className="text-base font-semibold mb-2 block">Bulk Assignment</Label>
-                            <p className="text-sm text-muted-foreground mb-4">Select frameworks to automatically assign all their standard controls.</p>
-                            <div className="flex flex-wrap gap-4 mb-4">
-                                {availableFrameworks.map(fw => (
-                                    <div key={fw} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`bulk-${fw}`}
-                                            checked={bulkFrameworks.includes(fw)}
-                                            onCheckedChange={(checked) => {
-                                                if (checked) setBulkFrameworks([...bulkFrameworks, fw]);
-                                                else setBulkFrameworks(bulkFrameworks.filter(f => f !== fw));
-                                            }}
-                                        />
-                                        <label
-                                            htmlFor={`bulk-${fw}`}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                            {fw}
-                                        </label>
-                                    </div>
-                                ))}
+                            <p className="text-sm text-muted-foreground mb-4">
+                                Tick the frameworks whose full standard control set you want to add — controls already
+                                assigned are skipped. Then press "Assign Selected" below.
+                            </p>
+                            <div className="flex flex-wrap gap-4 mb-2">
+                                {availableFrameworks.map(fw => {
+                                    const stat = catalogStats[fw] || { total: 0, assigned: 0 };
+                                    return (
+                                        <div key={fw} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`bulk-${fw}`}
+                                                checked={bulkFrameworks.includes(fw)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) setBulkFrameworks([...bulkFrameworks, fw]);
+                                                    else setBulkFrameworks(bulkFrameworks.filter(f => f !== fw));
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor={`bulk-${fw}`}
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                                {fw}{" "}
+                                                <span className="text-xs font-normal text-muted-foreground">
+                                                    ({stat.total}, {stat.assigned} assigned)
+                                                </span>
+                                            </label>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                onClick={handleBulkAssignInDialog}
-                                disabled={bulkAssignMutation.isPending || bulkFrameworks.length === 0}
-                            >
-                                {bulkAssignMutation.isPending ? "Assigning..." : "Assign Selected Frameworks"}
-                            </Button>
                         </div>
 
                         <div className="relative">
@@ -547,7 +671,7 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                         </div>
 
                         {/* Individual Selection (Original Form) */}
-                        <form id="assign-control-form" onSubmit={handleAssignSelected} className="grid gap-2">
+                        <div className="grid gap-2">
                             <Label htmlFor="controlSearch">Search Controls</Label>
                             <Input id="controlSearch" value={controlSearch} onChange={(e) => setControlSearch(e.target.value)} placeholder="Type to filter controls..." />
                             <div className="mt-2 max-h-[40vh] overflow-auto rounded border">
@@ -576,18 +700,24 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                                     {controls.map((control) => {
                                                         const idStr = control.id.toString();
                                                         const checked = selectedControlIds.includes(idStr);
+                                                        const isAssigned = assignedCatalogIds.has(control.id);
                                                         return (
-                                                            <label key={control.id} className="flex items-start gap-2 px-3 py-2 hover:bg-muted/30 cursor-pointer">
+                                                            <label key={control.id} className={`flex items-start gap-2 px-3 py-2 hover:bg-muted/30 cursor-pointer ${isAssigned ? "opacity-60 cursor-default" : ""}`}>
                                                                 <Checkbox
-                                                                    checked={checked}
+                                                                    checked={isAssigned || checked}
+                                                                    disabled={isAssigned}
                                                                     onCheckedChange={(val) => {
+                                                                        if (isAssigned) return;
                                                                         const isChecked = !!val;
                                                                         setSelectedControlIds((prev) => isChecked ? [...prev, idStr] : prev.filter((x) => x !== idStr));
                                                                     }}
                                                                 />
-                                                                <div className="flex-1">
-                                                                    <div className="font-medium text-sm text-foreground">{control.controlId} - {control.name}</div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className={`font-medium text-sm ${isAssigned ? "text-muted-foreground" : "text-foreground"}`}>{control.controlId} - {control.name}</div>
                                                                 </div>
+                                                                {isAssigned && (
+                                                                    <Badge variant="outline" className="shrink-0 text-[10px] border-emerald-300 bg-emerald-50 text-emerald-700">Assigned</Badge>
+                                                                )}
                                                             </label>
                                                         );
                                                     })}
@@ -601,12 +731,13 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                     const filtered = (masterControls || [])
                                         .filter((c) => (c.controlId + " " + c.name + " " + (c.description || ""))
                                             .toLowerCase().includes(controlSearch.toLowerCase()))
+                                        .filter((c) => !assignedCatalogIds.has(c.id))
                                         .map((c) => c.id.toString());
                                     setSelectedControlIds(filtered);
                                 }}>Select All Filtered</Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => setSelectedControlIds([])}>Clear Selection</Button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </EnhancedDialog>
 
@@ -742,12 +873,31 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                 ) : clientControls && clientControls.length > 0 ? (
                     viewMode === 'card' ? (
                         <div className="space-y-6">
-                            {groupedControls.map(([framework, categories]) => (
+                            {groupedControls.map(([framework, categories]) => {
+                                const prog = frameworkProgress[framework];
+                                const pct = prog && prog.total > 0 ? Math.round((prog.implemented / prog.total) * 100) : 0;
+                                return (
                                 <div key={framework} className="space-y-3">
-                                    <h3 className="text-lg font-bold flex items-center gap-2">
-                                        <Shield className="h-5 w-5 text-primary" />
-                                        {framework}
-                                    </h3>
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            <Shield className="h-5 w-5 text-primary" />
+                                            {framework}
+                                        </h3>
+                                        {prog && (
+                                            <div className="flex items-center gap-2 min-w-[220px] flex-1 max-w-md">
+                                                <div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">
+                                                    {prog.implemented}/{prog.total} implemented
+                                                    {prog.inProgress > 0 ? ` · ${prog.inProgress} in progress` : ''}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                     {Object.entries(categories).map(([category, items]) => (
                                         <div key={`${framework}-${category}`} className="pl-2 border-l-2 border-muted">
                                             <h4 className="text-sm font-semibold text-muted-foreground mb-3 pl-2">{category}</h4>
@@ -814,7 +964,8 @@ export default function ClientControlsPage(props?: ClientControlsPageProps) {
                                         </div>
                                     ))}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="rounded-xl border border-border shadow-xl overflow-hidden bg-card">

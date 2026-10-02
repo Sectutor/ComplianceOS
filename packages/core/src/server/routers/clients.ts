@@ -376,7 +376,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     if (error instanceof TRPCError) throw error;
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Failed to create client: ${error.message || 'Unknown error'}`
+                        message: `Failed to create client: ${error.message || 'Please check your input and try again.'}`
                     });
                 }
             }),
@@ -441,7 +441,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     if (error instanceof TRPCError) throw error;
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Failed to onboard client: ${error.message || 'Unknown error'}`
+                        message: `Failed to onboard client: ${error.message || 'Please check your input and try again.'}`
                     });
                 }
             }),
@@ -559,7 +559,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     if (error instanceof TRPCError) throw error;
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Auto-setup failed: ${error?.message || 'Unknown error'}`
+                        message: `Auto-setup failed: ${error?.message || 'Please try again or contact support.'}`
                     });
                 }
             }),
@@ -596,7 +596,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     console.error(`[Clients] Demo data import failed for client ${input.clientId}:`, error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Import failed: ${error.message || 'Unknown error'}`
+                        message: `Import failed: ${error.message || 'Please check the import file and try again.'}`
                     });
                 }
             }),

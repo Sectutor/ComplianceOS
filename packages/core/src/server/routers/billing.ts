@@ -58,7 +58,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
                     console.error('[Billing] Checkout Session Error:', error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: error.message || 'Failed to create checkout session'
+                        message: error.message || 'Failed to create checkout session. Please try again.'
                     });
                 }
             }),
@@ -137,7 +137,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
 
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Checkout failed: ${error.message || 'Unknown error'}`
+                        message: `Checkout failed: ${error.message || 'Please try again or contact support.'}`
                     });
                 }
             }),
@@ -165,7 +165,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
                     console.error('[Billing] Portal Session Error:', error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: error.message || 'Failed to create portal session'
+                        message: error.message || 'Failed to create billing portal session. Please try again.'
                     });
                 }
             }),
@@ -240,7 +240,7 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
 
                 } catch (err) {
                     console.error("[Billing] Failed to sync subscription:", err);
-                    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to sync with Stripe' });
+                    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to sync billing with Stripe. Please try again later.' });
                 }
             }),
     });

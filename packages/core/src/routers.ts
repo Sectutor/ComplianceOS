@@ -4400,6 +4400,7 @@ ONLY return the JSON. No Markdown formatting.
         isNotifiableToDpa: z.boolean().default(false),
         isNotifiableToSubjects: z.boolean().default(false),
         status: z.enum(['open', 'investigating', 'closed', 'reported']).default('open'),
+        metadata: z.any().optional(), // Structured extras: title, severity, categories, subjects, containment
       }))
       .mutation(async ({ input, ctx }) => {
         const dbConn = await getDb();
@@ -4411,6 +4412,7 @@ ONLY return the JSON. No Markdown formatting.
             createdBy: ctx.user?.id,
           })
           .returning();
+        await logActivity({ userId: ctx.user.id, clientId: input.clientId, action: "create", entityType: "data_breach", entityId: breach.id, details: { description: input.description } });
         return breach;
       }),
 
@@ -4423,11 +4425,14 @@ ONLY return the JSON. No Markdown formatting.
         remedialActions: z.string().optional(),
         dateOccurred: z.string().optional(),
         dateDetected: z.string().optional(),
+        dateReportedToDpa: z.string().optional(),
+        dateReportedToDataSubjects: z.string().optional(),
         isNotifiableToDpa: z.boolean().optional(),
         isNotifiableToSubjects: z.boolean().optional(),
         status: z.enum(['open', 'investigating', 'closed', 'reported']).optional(),
+        metadata: z.any().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { id, clientId, ...updates } = input;
         const dbConn = await getDb();
         const [breach] = await dbConn.update(schema.dataBreaches)
@@ -4435,6 +4440,8 @@ ONLY return the JSON. No Markdown formatting.
             ...updates,
             dateOccurred: updates.dateOccurred ? new Date(updates.dateOccurred) : undefined,
             dateDetected: updates.dateDetected ? new Date(updates.dateDetected) : undefined,
+            dateReportedToDpa: updates.dateReportedToDpa ? new Date(updates.dateReportedToDpa) : undefined,
+            dateReportedToDataSubjects: updates.dateReportedToDataSubjects ? new Date(updates.dateReportedToDataSubjects) : undefined,
             updatedAt: new Date(),
           })
           .where(and(
@@ -4570,11 +4577,23 @@ ONLY return the JSON. No Markdown formatting.
       .input(z.object({ clientId: z.number() }))
       .query(async ({ input }) => {
         const dbConn = await getDb();
-        return await dbConn
+        const transferRows = await dbConn
           .select()
           .from(schema.internationalTransfers)
           .where(eq(schema.internationalTransfers.clientId, input.clientId))
           .orderBy(desc(schema.internationalTransfers.createdAt));
+
+        // Attach each transfer's TIAs so grids can show status/risk without N+1 gets
+        const transfersWithTias = await Promise.all(transferRows.map(async (transfer) => {
+          const tias = await dbConn
+            .select()
+            .from(schema.transferImpactAssessments)
+            .where(eq(schema.transferImpactAssessments.transferId, transfer.id))
+            .orderBy(desc(schema.transferImpactAssessments.createdAt));
+          return { ...transfer, tias, latestTia: tias[0] || null };
+        }));
+
+        return transfersWithTias;
       }),
 
     get: clientProcedure

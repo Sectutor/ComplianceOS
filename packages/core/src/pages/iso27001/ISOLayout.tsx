@@ -1,7 +1,6 @@
 import React from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Link, useLocation, useParams } from "wouter";
-import { cn } from "@/lib/utils";
+import { useLocation, useParams } from "wouter";
 import { Button } from "@complianceos/ui/ui/button";
 import { useClientContext } from "@/contexts/ClientContext";
 import {
@@ -14,19 +13,21 @@ import {
     Users,
     Key,
     Database,
-    Home,
-    ChevronRight,
     ArrowLeft
 } from "lucide-react";
-import { trpc } from "@/lib/trpc";
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@complianceos/ui/ui/breadcrumb";
+import { NavTabsWithMore } from "@/components/NavTabsWithMore";
+
+/**
+ * Tabs that stay on the bar; every other tab folds into the "More" menu so the
+ * bar keeps a predictable width. Reorder or extend to change the split.
+ */
+const PRIMARY_TAB_PATHS = [
+    '/iso27001',
+    '/iso27001/soa',
+    '/iso27001/risks',
+    '/iso27001/assets',
+    '/iso27001/audit',
+];
 
 interface ISOLayoutProps {
     clientId?: number;
@@ -136,111 +137,40 @@ export function ISOLayout({ clientId: propClientId, children, fullWidth = false 
         }
     ];
 
-    const { data: client } = trpc.clients.get.useQuery({ id: clientId }, { enabled: clientId > 0 });
-
     const isActive = (href: string) => {
         if (location === href) return true;
         if (href !== `/clients/${clientId}/iso27001` && location.startsWith(href)) return true;
         return false;
     };
 
-    const activeItem = navItems.find(item => isActive(item.href));
-
-    const breadcrumbItems = [
-        { label: "Dashboard", href: "/dashboard", icon: Home },
-        { label: "Clients", href: "/clients" },
-        { label: client?.name || "Client", href: `/clients/${clientId}` },
-        { label: "ISO 27001", href: `/clients/${clientId}/iso27001` }
-    ];
-
-    if (activeItem && activeItem.label !== "Dashboard") {
-        breadcrumbItems.push({ label: activeItem.label, href: activeItem.href });
-    }
-
     return (
         <DashboardLayout fullWidth={fullWidth}>
             <div className="flex flex-col min-h-screen bg-transparent">
-                <div className="bg-transparent border-b border-border/70 pb-4 mb-4 space-y-3">
-                    {/* Breadcrumb & Navigation Actions */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <Breadcrumb className="mb-0">
-                            <BreadcrumbList>
-                                {breadcrumbItems.map((item, idx) => {
-                                    const isLast = idx === breadcrumbItems.length - 1;
-                                    return (
-                                        <React.Fragment key={idx}>
-                                            <BreadcrumbItem>
-                                                {isLast ? (
-                                                    <BreadcrumbPage className="font-bold text-foreground">
-                                                        {item.label}
-                                                    </BreadcrumbPage>
-                                                ) : (
-                                                    <BreadcrumbLink asChild>
-                                                        <Link href={item.href || "#"} className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                                                            {item.icon && <item.icon className="h-3.5 w-3.5" />}
-                                                            {item.label}
-                                                        </Link>
-                                                    </BreadcrumbLink>
-                                                )}
-                                            </BreadcrumbItem>
-                                            {!isLast && (
-                                                <BreadcrumbSeparator>
-                                                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                                                </BreadcrumbSeparator>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </BreadcrumbList>
-                        </Breadcrumb>
+                {/* One navigation line: the tab strip. The breadcrumb was removed —
+                    the chrome bar names the section, the client switcher names the
+                    client, and the active tab shows where you are. */}
+                <div className="bg-muted border-b border-border py-3 mb-4">
+                    <div className="flex items-center gap-3">
+                        <NavTabsWithMore
+                            ariaLabel="ISO 27001 Navigation"
+                            tabs={navItems.map((i) => ({ label: i.label, path: i.href, icon: i.icon, badge: i.badge }))}
+                            primaryPaths={PRIMARY_TAB_PATHS}
+                            isActive={isActive}
+                            className="min-w-0 flex-1"
+                        />
 
                         {startHereOrigin && (
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={handleReturnToStartHere}
-                                className="h-8 px-3 text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs gap-1.5 shrink-0 self-start sm:self-auto"
+                                className="h-8 px-3 text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs gap-1.5 shrink-0"
                             >
                                 <ArrowLeft className="w-3.5 h-3.5" />
                                 Back to Start Here
                             </Button>
                         )}
                     </div>
-
-                    {/* Navigation Pills */}
-                    <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2 py-1" aria-label="ISO 27001 Navigation">
-                        {navItems.map((item) => {
-                            const active = isActive(item.href);
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={cn(
-                                        "px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all flex items-center whitespace-nowrap text-xs sm:text-sm font-semibold shadow-xs shrink-0 cursor-pointer",
-                                        active
-                                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 ring-1 ring-primary/20 font-bold"
-                                            : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 font-medium"
-                                    )}
-                                >
-                                    <item.icon className={cn(
-                                        "mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-200",
-                                        active ? "scale-105 text-primary-foreground" : "text-muted-foreground"
-                                    )} />
-                                    <span>{item.label}</span>
-                                    {item.badge && (
-                                        <span className={cn(
-                                            "ml-2 px-1.5 py-0.2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-md border shrink-0",
-                                            active
-                                                ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30"
-                                                : "bg-muted text-muted-foreground border-border"
-                                        )}>
-                                            {item.badge}
-                                        </span>
-                                    )}
-                                </Link>
-                            );
-                        })}
-                    </nav>
                 </div>
                 <div className="flex-1 w-full min-w-0 max-w-full py-2 px-0">
                     {children}

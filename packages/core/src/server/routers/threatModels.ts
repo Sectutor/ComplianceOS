@@ -1212,7 +1212,7 @@ export const createThreatModelsRouter = (t: any, clientProcedure: any) => {
                     console.error("Error generating risks (STACK TRACE):", error);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Failed to generate risks: ${error.message}`
+                        message: `Failed to generate risks: ${error.message || 'Please try again.'}`
                     });
                 }
             }),

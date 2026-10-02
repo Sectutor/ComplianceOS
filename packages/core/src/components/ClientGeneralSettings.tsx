@@ -75,7 +75,7 @@ export default function ClientGeneralSettings({ clientId, initialData }: ClientG
             setHasChanges(false);
         },
         onError: (error) => {
-            toast.error(error.message || "Failed to update client settings");
+            toast.error(error.message || "Failed to update client settings. Please check your connection and try again.");
         },
     });
 

@@ -322,7 +322,7 @@ export const createAiFeaturesRouter = (t: any, publicProcedure: any, isAuthed: a
       .mutation(async ({ input, ctx }: any) => {
         const userId = ctx?.user?.id;
         const result = await answerComplianceQuery(input.clientId, input.query, userId);
-        return result || { error: "Query unavailable", query: input.query, answer: "Please try again." };
+        return result || { error: "Query unavailable", query: input.query, answer: "The AI service is temporarily unavailable. Please try again in a few moments." };
       }),
 
     // ═══════════════════════════════════════════════════════════════════════

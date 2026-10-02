@@ -4,7 +4,7 @@ import { Link, useParams } from "wouter";
 import { Button } from "@complianceos/ui/ui/button";
 import {
     ArrowLeft, Users, Clock, CheckCircle2, ShieldCheck,
-    Database, Copy, FileText, Loader2, AlertTriangle, Send
+    Database, Copy, FileText, Loader2, AlertTriangle, Send, Save
 } from "lucide-react";
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -13,6 +13,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Checkbox } from "@complianceos/ui/ui/checkbox";
 import { toast } from "sonner";
+
+// Status vocabulary mirrors dsar_requests.status (schema/core.ts) and the
+// server-side completedDate trigger in updateDsarStatus (privacy.ts).
+const DSAR_STATUSES = [
+    { value: "New", label: "New Request" },
+    { value: "Verifying Identity", label: "Verifying Identity" },
+    { value: "In Progress", label: "In Progress (Discovery)" },
+    { value: "Review", label: "DPO Review" },
+    { value: "Completed", label: "Completed & Dispatched" },
+    { value: "Rejected", label: "Rejected / Exempt" },
+] as const;
 
 export default function DsarDetail() {
     const { selectedClientId } = useClientContext();
@@ -35,7 +46,17 @@ export default function DsarDetail() {
     const [resolutionNotes, setResolutionNotes] = useState("");
     const [status, setStatus] = useState<string>("");
 
-    // Update status mutation
+    // Hydrate local state from the record once loaded
+    React.useEffect(() => {
+        if (dsar) {
+            const checklist: number[] = (dsar as any).purgeChecklist || [];
+            setCheckedAssets(Object.fromEntries(checklist.map(id => [id, true])));
+            setResolutionNotes(dsar.resolutionNotes || "");
+            setStatus(dsar.status || "New");
+        }
+    }, [dsar?.id]);
+
+    // Status / notes mutation (user-visible feedback)
     const updateStatusMutation = trpc.privacy.updateDsarStatus.useMutation({
         onSuccess: () => {
             toast.success("DSAR case updated successfully");
@@ -45,11 +66,25 @@ export default function DsarDetail() {
         onError: (err: any) => toast.error(`Failed: ${err.message}`)
     });
 
+    // Checklist mutation (persisted silently on every toggle)
+    const checklistMutation = trpc.privacy.updateDsarStatus.useMutation({
+        onSuccess: () => {
+            utils.privacy.getDsarRequest.invalidate({ clientId, id: dsarId });
+        },
+        onError: (err: any) => toast.error(`Failed to save checklist: ${err.message}`)
+    });
+
     const toggleAsset = (assetId: number) => {
-        setCheckedAssets(prev => ({
-            ...prev,
-            [assetId]: !prev[assetId]
-        }));
+        const next: Record<number, boolean> = {
+            ...checkedAssets,
+            [assetId]: !checkedAssets[assetId]
+        };
+        setCheckedAssets(next);
+        checklistMutation.mutate({
+            clientId,
+            id: dsarId,
+            purgeChecklist: Object.keys(next).filter(id => next[Number(id)]).map(Number)
+        });
     };
 
     const handleStatusChange = (newStatus: string) => {
@@ -57,8 +92,15 @@ export default function DsarDetail() {
         updateStatusMutation.mutate({
             clientId,
             id: dsarId,
-            status: newStatus as any,
-            rejectionReason: resolutionNotes || undefined
+            status: newStatus as any
+        });
+    };
+
+    const handleSaveNotes = () => {
+        updateStatusMutation.mutate({
+            clientId,
+            id: dsarId,
+            resolutionNotes: resolutionNotes
         });
     };
 
@@ -110,8 +152,10 @@ export default function DsarDetail() {
 
     const currentStatus = status || dsar.status || 'New';
     const requestDate = dsar.requestDate ? new Date(dsar.requestDate) : new Date();
-    const deadlineDate = new Date(requestDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    // Use the stored regulatory due date when set; otherwise derive the statutory +30d window
+    const deadlineDate = dsar.dueDate ? new Date(dsar.dueDate) : new Date(requestDate.getTime() + 30 * 24 * 60 * 60 * 1000);
     const daysLeft = Math.round((deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const confirmedCount = Object.values(checkedAssets).filter(Boolean).length;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -166,6 +210,7 @@ export default function DsarDetail() {
                         <h4 className="font-bold text-amber-950 text-base">GDPR Article 12(3) 30-Day Response Window</h4>
                         <p className="text-xs text-amber-800">
                             Filed on {requestDate.toLocaleDateString()} • Statutory deadline: {deadlineDate.toLocaleDateString()}
+                            {!dsar.dueDate && " (derived from filing date — set a custom due date in the portal)"}
                         </p>
                     </div>
                 </div>
@@ -185,6 +230,9 @@ export default function DsarDetail() {
                             </CardTitle>
                             <CardDescription>
                                 Verify that subject records have been extracted or erased across all active organizational data repositories.
+                                {inventory && inventory.length > 0 && (
+                                    <span className="font-semibold text-slate-600"> {confirmedCount}/{inventory.length} confirmed — saved automatically.</span>
+                                )}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-6 space-y-4">
@@ -254,11 +302,9 @@ export default function DsarDetail() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="New">New Request</SelectItem>
-                                        <SelectItem value="In Progress">In Progress (Discovery)</SelectItem>
-                                        <SelectItem value="Pending Approval">Pending DPO Approval</SelectItem>
-                                        <SelectItem value="Completed">Completed & Dispatched</SelectItem>
-                                        <SelectItem value="Rejected">Rejected / Exempt</SelectItem>
+                                        {DSAR_STATUSES.map(s => (
+                                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -272,6 +318,16 @@ export default function DsarDetail() {
                                     onChange={(e) => setResolutionNotes(e.target.value)}
                                     className="rounded-xl text-xs"
                                 />
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleSaveNotes}
+                                    disabled={updateStatusMutation.isLoading || resolutionNotes === (dsar.resolutionNotes || "")}
+                                    className="w-full font-bold rounded-lg"
+                                >
+                                    <Save className="mr-2 h-3.5 w-3.5" />
+                                    Save Notes
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -280,4 +336,3 @@ export default function DsarDetail() {
         </div>
     );
 }
-

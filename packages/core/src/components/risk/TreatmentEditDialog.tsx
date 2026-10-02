@@ -68,7 +68,7 @@ export function TreatmentEditDialog({ open, onOpenChange, treatment, clientId, o
             onOpenChange(false);
         } catch (error) {
             console.error('Failed to update treatment', error);
-            toast.error('Failed to update treatment');
+            toast.error('Failed to update treatment', { description: "Your changes were not saved. Please verify all fields and try again." });
         } finally {
             setLoading(false);
         }

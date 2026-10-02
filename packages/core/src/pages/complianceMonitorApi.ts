@@ -435,7 +435,9 @@ export const POSTURE_STATUS_ORDER: CompliancePostureStatus[] = [
 
 /** Token-based class for the posture number per band. */
 export function postureBandClass(status: CompliancePostureStatus): string {
-  return POSTURE_STATUS_META[status].textClass;
+  // A band the client does not recognise can arrive from a newer payload; fall
+  // back to the neutral band rather than throwing on `.textClass` of undefined.
+  return (POSTURE_STATUS_META[status] ?? POSTURE_STATUS_META["No Data"]).textClass;
 }
 
 export interface ComplianceEvidenceMeta {
@@ -484,7 +486,7 @@ export const EVIDENCE_STATUS_META: Record<
 
 /** Token-based text class for an evidence expiry state. */
 export function evidenceExpiryClass(expiry: EvidenceExpiry): string {
-  return EVIDENCE_STATUS_META[expiry].textClass;
+  return (EVIDENCE_STATUS_META[expiry] ?? EVIDENCE_STATUS_META["n-a"]).textClass;
 }
 
 export interface ComplianceTrendMeta {

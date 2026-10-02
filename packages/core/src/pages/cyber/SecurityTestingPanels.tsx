@@ -375,7 +375,7 @@ function KillChainStep({
   const meta = RED_TEAM_PHASE_META[step.name] ?? { label: step.name, badgeVariant: "outline" as const, tacticCodes: step.tacticCodes };
   const status = phase?.status ?? "pending";
   const statusMeta = PHASE_STATUS_META[status] ?? PHASE_STATUS_META.pending;
-  const tacticCodes = phase && phase.tacticCodes.length > 0 ? phase.tacticCodes : meta.tacticCodes;
+  const tacticCodes = phase?.tacticCodes?.length ? phase.tacticCodes : (meta.tacticCodes ?? []);
 
   return (
     <div
@@ -648,13 +648,13 @@ function BenchmarkCompliancePanel({
                 })}
               </div>
 
-              {data.topGaps.length > 0 ? (
+              {(data.topGaps ?? []).length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Top remediation gaps
                   </h4>
                   <ul className="space-y-2">
-                    {data.topGaps.map((gap, index) => {
+                    {(data.topGaps ?? []).map((gap, index) => {
                       const categoryMeta = BENCHMARK_CATEGORY_META[gap.category];
                       return (
                         <li

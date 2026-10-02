@@ -215,7 +215,12 @@ export default function RegulationsDashboard() {
         document.body.removeChild(link);
         return 'Regulatory Gap Analysis downloaded successfully!';
       },
-      error: 'Failed to generate report',
+      error: (err) => {
+        const errMsg = err.message || '';
+        if (/rate.?limit|too many requests|throttl|429/i.test(errMsg)) return errMsg;
+        if (/insufficient|balance|credit|quota|exceeded/i.test(errMsg)) return errMsg;
+        return 'Failed to generate report. Please try again.';
+      },
     });
   };
 

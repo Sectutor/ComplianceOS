@@ -77,7 +77,7 @@ export function ComplianceDebtWidget({ clientId }: ComplianceDebtWidgetProps) {
         <CardContent className="flex flex-col items-center gap-3 py-8">
           <AlertTriangle className="h-8 w-8 text-destructive" />
           <p className="text-sm text-muted-foreground">
-            Failed to load compliance data
+            Failed to load compliance debt data. Please check your connection and try again.
           </p>
           <Button variant="outline" size="sm" onClick={handleRetry}>
             Retry

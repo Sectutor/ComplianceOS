@@ -122,7 +122,7 @@ export function AutopilotSetupWizard({ clientId, onComplete }: AutopilotSetupWiz
     },
     onError: (err) => {
       setIsSubmitting(false);
-      toast.error(err.message || "Failed to enable autopilot");
+      toast.error("Failed to enable autopilot", { description: err.message || "Please check your configuration and try again." });
     },
   });
 

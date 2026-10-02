@@ -235,151 +235,144 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
         );
     };
 
-    const getPageTitle = () => {
-        switch (mode) {
-            case 'discovery': return { title: 'Discovery Hub', desc: 'Review and classify newly discovered vendors.' };
-            case 'reviews': return { title: 'Security Reviews', desc: 'Manage active security assessments.' };
-            default: return { title: 'All Vendors', desc: 'Complete inventory of third-party vendors.' };
-        }
-    };
-
     return (
         <div className="space-y-6 page-transition">
-            <div className="flex justify-between items-start animate-slide-down">
-                <PageGuide
-                    {...useMemo(() => {
-                        switch (mode) {
-                            case 'discovery': return {
-                                title: 'Discovery Hub',
-                                description: 'Review and classify newly discovered vendors.',
-                                rationale: 'Identify shadow IT and bring unmanaged vendors under governance.',
-                                howToUse: [
-                                    { step: "Review", description: "Examine detected apps and services." },
-                                    { step: "Classify", description: "Assign ownership and criticality." },
-                                    { step: "Onboard", description: "Convert to active vendor inventory." }
-                                ],
-                                scenarios: [
-                                    {
-                                        title: "Identifying Shadow IT",
-                                        example: "An automated scan has detected multiple instances of unauthorized AI tools being used by the marketing team.",
-                                        auditTip: "Instead of just deleting them, 'Classify' them here to decide if they should be approved with security guardrails or moved to a 'Restricted' status to prove oversight."
-                                    }
-                                ]
-                            };
-                            case 'reviews': return {
-                                title: 'Security Reviews',
-                                description: 'Manage active security assessments.',
-                                rationale: 'Ensure vendors meet your security standards before onboarding.',
-                                howToUse: [
-                                    { step: "Track", description: "Monitor progress of sent questionnaires." },
-                                    { step: "Analyze", description: "Review responses and identified gaps." },
-                                    { step: "Approve", description: "Sign off on vendor security posture." }
-                                ],
-                                scenarios: [
-                                    {
-                                        title: "Urgent Vendor Security Questionnaire (VSQ)",
-                                        example: "A new critical vendor needs to be onboarded by end-of-day for a board meeting project.",
-                                        auditTip: "Use the 'Details' link to jump to the individual vendor assessment. You can see exactly which security questions are still 'Pending' and call the vendor contact to speed them up."
-                                    }
-                                ]
-                            };
-                            default: return {
-                                title: 'All Vendors',
-                                description: 'Complete inventory of third-party vendors.',
-                                rationale: 'Centralized view of all external relationships. ISO 27001 Annex A.15 requires maintaining a list of all suppliers that may access your assets.',
-                                howToUse: [
-                                    {
-                                        step: "Quick Search",
-                                        description: "Find vendors by name, category, or business owner.",
-                                        targetId: "vendor-search-input"
-                                    },
-                                    {
-                                        step: "Request Review",
-                                        description: "Allow employees to submit new vendors for security sign-off.",
-                                        targetId: "vendor-request-btn"
-                                    },
-                                    {
-                                        step: "Direct Entry",
-                                        description: "Manually add a confirmed vendor to your active inventory.",
-                                        targetId: "vendor-add-direct"
-                                    }
-                                ],
-                                scenarios: [
-                                    {
-                                        title: "Supply Chain Rationalization",
-                                        example: "You want to reduce costs by consolidating multiple SaaS tools that do the same thing.",
-                                        auditTip: "Filter by 'Category' (e.g., 'Project Management'). This gives you a side-by-side view of all vendors in that space, allowing you to see which has the highest 'Trust Score' for consolidation."
-                                    },
-                                    {
-                                        title: "Annual High-Criticality Audit",
-                                        example: "Regulation requires you to perform a deep-dive security review of your top 10 most critical vendors every year.",
-                                        auditTip: "Sort the list by 'Criticality'. Focus your internal audit resources on vendors marked as 'High' risk to maximize compliance coverage with minimal effort."
-                                    }
-                                ]
-                            };
-                        }
-                    }, [mode])}
-                />
-                {mode === 'all' && (
-                    <div className="flex gap-2">
-                        {/* 
-                            Logic: If Admin, show both "Add Vendor" (Fast) and "Review Requests".
-                            If Non-Admin (simulated), "Request Vendor" is primary.
-                            For now, we show both for demo.
-                        */}
-                        <Button id="vendor-request-btn" variant="outline" onClick={() => setIsRequestOpen(true)}>
-                            <BriefcaseIcon className="w-4 h-4 mr-2" /> Request Vendor
-                        </Button>
-                        <Link href={`/clients/${clientId}/vendors/onboard`}>
-                            <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
-                                <Plus className="w-4 h-4 mr-2" /> Subprocessor Onboarding
-                            </Button>
-                        </Link>
-                        <Button id="vendor-add-direct" onClick={() => setIsAddOpen(true)}>
-                            <Plus className="w-4 h-4 mr-2" /> Add Directly
-                        </Button>
-                    </div>
-                )}
-
-            </div>
-
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <TabsList className="bg-primary/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 border border-primary/20 rounded-xl">
-                        <TabsTrigger
-                            value="active"
-                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-6 py-2.5 rounded-lg font-bold"
-                        >
-                            Active Vendors
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="requests"
-                            className="relative data-[state=active]:bg-primary data-[state=active]:text-primary-foreground bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-6 py-2.5 rounded-lg font-bold"
-                        >
-                            Pending Requests
-                            {requests?.filter((r: any) => r.status === 'pending').length > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                </span>
-                            )}
-                        </TabsTrigger>
-                    </TabsList>
-
-                    {activeTab === 'active' && (
-                        <div className="flex gap-4">
-                            <div className="relative w-64" id="vendor-search-input">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search vendors..."
-                                    className="pl-9 bg-card"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-6">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <TabsList className="bg-muted p-1 h-auto flex flex-wrap justify-start gap-1 rounded-lg border border-border">
+                            <TabsTrigger
+                                value="active"
+                                className="px-4 py-2 rounded-md text-sm font-semibold text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                            >
+                                Active Vendors
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="requests"
+                                className="relative px-4 py-2 rounded-md text-sm font-semibold text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                            >
+                                Pending Requests
+                                {requests?.filter((r: any) => r.status === 'pending').length > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                    </span>
+                                )}
+                            </TabsTrigger>
+                        </TabsList>
+                        {activeTab === 'active' && (
+                            <div className="flex items-center gap-2">
+                                <div className="relative w-56" id="vendor-search-input">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search vendors..."
+                                        className="pl-9 bg-card"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <Button variant="outline" size="icon"><Filter className="w-4 h-4" /></Button>
                             </div>
-                            <Button variant="outline" size="icon"><Filter className="w-4 h-4" /></Button>
-                        </div>
-                    )}
+                        )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <PageGuide
+                            {...useMemo(() => {
+                                switch (mode) {
+                                    case 'discovery': return {
+                                        title: 'Discovery Hub',
+                                        description: 'Review and classify newly discovered vendors.',
+                                        rationale: 'Identify shadow IT and bring unmanaged vendors under governance.',
+                                        howToUse: [
+                                            { step: "Review", description: "Examine detected apps and services." },
+                                            { step: "Classify", description: "Assign ownership and criticality." },
+                                            { step: "Onboard", description: "Convert to active vendor inventory." }
+                                        ],
+                                        scenarios: [
+                                            {
+                                                title: "Identifying Shadow IT",
+                                                example: "An automated scan has detected multiple instances of unauthorized AI tools being used by the marketing team.",
+                                                auditTip: "Instead of just deleting them, 'Classify' them here to decide if they should be approved with security guardrails or moved to a 'Restricted' status to prove oversight."
+                                            }
+                                        ]
+                                    };
+                                    case 'reviews': return {
+                                        title: 'Security Reviews',
+                                        description: 'Manage active security assessments.',
+                                        rationale: 'Ensure vendors meet your security standards before onboarding.',
+                                        howToUse: [
+                                            { step: "Track", description: "Monitor progress of sent questionnaires." },
+                                            { step: "Analyze", description: "Review responses and identified gaps." },
+                                            { step: "Approve", description: "Sign off on vendor security posture." }
+                                        ],
+                                        scenarios: [
+                                            {
+                                                title: "Urgent Vendor Security Questionnaire (VSQ)",
+                                                example: "A new critical vendor needs to be onboarded by end-of-day for a board meeting project.",
+                                                auditTip: "Use the 'Details' link to jump to the individual vendor assessment. You can see exactly which security questions are still 'Pending' and call the vendor contact to speed them up."
+                                            }
+                                        ]
+                                    };
+                                    default: return {
+                                        title: 'All Vendors',
+                                        description: 'Complete inventory of third-party vendors.',
+                                        rationale: 'Centralized view of all external relationships. ISO 27001 Annex A.15 requires maintaining a list of all suppliers that may access your assets.',
+                                        howToUse: [
+                                            {
+                                                step: "Quick Search",
+                                                description: "Find vendors by name, category, or business owner.",
+                                                targetId: "vendor-search-input"
+                                            },
+                                            {
+                                                step: "Request Review",
+                                                description: "Allow employees to submit new vendors for security sign-off.",
+                                                targetId: "vendor-request-btn"
+                                            },
+                                            {
+                                                step: "Direct Entry",
+                                                description: "Manually add a confirmed vendor to your active inventory.",
+                                                targetId: "vendor-add-direct"
+                                            }
+                                        ],
+                                        scenarios: [
+                                            {
+                                                title: "Supply Chain Rationalization",
+                                                example: "You want to reduce costs by consolidating multiple SaaS tools that do the same thing.",
+                                                auditTip: "Filter by 'Category' (e.g., 'Project Management'). This gives you a side-by-side view of all vendors in that space, allowing you to see which has the highest 'Trust Score' for consolidation."
+                                            },
+                                            {
+                                                title: "Annual High-Criticality Audit",
+                                                example: "Regulation requires you to perform a deep-dive security review of your top 10 most critical vendors every year.",
+                                                auditTip: "Sort the list by 'Criticality'. Focus your internal audit resources on vendors marked as 'High' risk to maximize compliance coverage with minimal effort."
+                                            }
+                                        ]
+                                    };
+                                }
+                            }, [mode])}
+                        />
+                        {mode === 'all' && (
+                            <div className="flex gap-2">
+                                {/* 
+                                    Logic: If Admin, show both "Add Vendor" (Fast) and "Review Requests".
+                                    If Non-Admin (simulated), "Request Vendor" is primary.
+                                    For now, we show both for demo.
+                                */}
+                                <Button id="vendor-request-btn" variant="outline" onClick={() => setIsRequestOpen(true)}>
+                                    <BriefcaseIcon className="w-4 h-4 mr-2" /> Request Vendor
+                                </Button>
+                                <Link href={`/clients/${clientId}/vendors/onboard`}>
+                                    <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
+                                        <Plus className="w-4 h-4 mr-2" /> Subprocessor Onboarding
+                                    </Button>
+                                </Link>
+                                <Button id="vendor-add-direct" onClick={() => setIsAddOpen(true)}>
+                                    <Plus className="w-4 h-4 mr-2" /> Add Directly
+                                </Button>
+                            </div>
+                        )}
+
+                    </div>
+
                 </div>
 
                 <TabsContent value="active" className="space-y-4">

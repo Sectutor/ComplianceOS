@@ -119,7 +119,7 @@ export default function AuditorPortalManager({ clientId }: AuditorPortalManagerP
       toast.success("Link copied to clipboard");
       setTimeout(() => setCopiedToken(null), 2000);
     }).catch(() => {
-      toast.error("Failed to copy link");
+      toast.error("Failed to copy link", { description: "Please copy the link manually from the address bar." });
     });
   };
 

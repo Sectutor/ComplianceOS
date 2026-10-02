@@ -767,7 +767,14 @@ export function PASTAStages({ onComplete, initialData, components }: PASTAStages
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => { }}>
+                <Button variant="outline" onClick={() => {
+                    try {
+                        localStorage.setItem('pasta-stages-progress', JSON.stringify(data));
+                        alert('Progress saved successfully. You can resume later.');
+                    } catch {
+                        alert('Unable to save progress. Your browser may be blocking local storage.');
+                    }
+                }}>
                     Save Progress
                 </Button>
                 <Button

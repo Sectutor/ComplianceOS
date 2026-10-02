@@ -320,12 +320,12 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-white font-bold text-sm tracking-wide">AI THREAT INTELLIGENCE</h3>
+                                        <h3 className="text-white font-bold text-sm tracking-wide">THREAT INTELLIGENCE <span className="text-amber-400/90 font-semibold normal-case">(Sample Data)</span></h3>
                                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
                                             {pendingThreats.length} PENDING ACTION
                                         </span>
                                     </div>
-                                    <p className="text-slate-300 text-sm mt-0.5">Monitoring global CISA alerts. <span className="text-white font-semibold">{pendingThreats.length} unhandled critical CVE{pendingThreats.length > 1 ? 's' : ''}</span> identified matching your tech stack.</p>
+                                    <p className="text-slate-300 text-sm mt-0.5">Sample CISA-style alerts for evaluation. <span className="text-white font-semibold">{pendingThreats.length} unhandled critical CVE{pendingThreats.length > 1 ? 's' : ''}</span> identified matching your tech stack. Connect a live threat-intel feed to replace these samples.</p>
                                 </div>
                             </div>
                             <button 
@@ -346,10 +346,10 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-white font-bold text-sm tracking-wide">AI THREAT INTELLIGENCE</h3>
+                                        <h3 className="text-white font-bold text-sm tracking-wide">THREAT INTELLIGENCE <span className="text-amber-400/90 font-semibold normal-case">(Sample Data)</span></h3>
                                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ALL THREATS LOGGED</span>
                                     </div>
-                                    <p className="text-slate-300 text-sm mt-0.5">All identified CISA alerts and CVE threats have been incorporated into your Risk Register and treatment pipeline.</p>
+                                    <p className="text-slate-300 text-sm mt-0.5">All sample CISA alerts and CVE threats have been incorporated into your Risk Register and treatment pipeline.</p>
                                 </div>
                             </div>
                             <button 
@@ -540,12 +540,12 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                     </div>
                 </EnhancedDialog>
 
-                {/* AI Threat Intelligence & Asset Scanner Modal */}
+                {/* Threat Intelligence (Sample Data) Modal */}
                 <EnhancedDialog
                     open={threatIntelModalOpen}
                     onOpenChange={setThreatIntelModalOpen}
-                    title="AI Threat Intelligence & Cloud Asset Scanner"
-                    description="Real-time CISA KEV alerts and NIST vulnerability correlations matched against your active tech stack."
+                    title="Threat Intelligence & Cloud Asset Scanner (Sample Data)"
+                    description="Sample CISA KEV alerts and NIST vulnerability correlations matched against your active tech stack. Connect a live threat-intel feed to replace these samples."
                     size="3xl"
                 >
                     <div className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">

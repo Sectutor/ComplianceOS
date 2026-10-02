@@ -160,7 +160,7 @@ export const createGapAnalysisRouter = (t: any, clientProcedure: any) => {
                     console.error('[gapAnalysis.calculatePriorities] Error:', err?.message || err);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: err?.message || 'Failed to calculate priorities',
+                        message: err?.message || 'Failed to calculate priorities. Please try again.',
                     });
                 }
             }),

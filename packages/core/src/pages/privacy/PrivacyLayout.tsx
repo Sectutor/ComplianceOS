@@ -1,7 +1,6 @@
 import React from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 import {
     LayoutDashboard,
     Database,
@@ -10,19 +9,21 @@ import {
     Globe,
     AlertTriangle,
     ShieldCheck,
-    Users,
-    Home,
-    ChevronRight
+    Users
 } from "lucide-react";
-import { trpc } from "@/lib/trpc";
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@complianceos/ui/ui/breadcrumb";
+import { NavTabsWithMore } from "@/components/NavTabsWithMore";
+
+/**
+ * Tabs that stay on the bar; every other tab folds into the "More" menu so the
+ * bar keeps a predictable width. Reorder or extend to change the split.
+ */
+const PRIMARY_TAB_PATHS = [
+    '/privacy',
+    '/privacy/ropa',
+    '/privacy/inventory',
+    '/privacy/dsar',
+    '/privacy/breaches',
+];
 
 interface PrivacyLayoutProps {
     clientId: number;
@@ -32,12 +33,11 @@ interface PrivacyLayoutProps {
 
 export function PrivacyLayout({ clientId, children, fullWidth = false }: PrivacyLayoutProps) {
     const [location] = useLocation();
-    const { data: client } = trpc.clients.get.useQuery({ id: clientId }, { enabled: clientId > 0 });
 
     const navItems = [
         {
             label: "Overview",
-            href: `/clients/${clientId}/privacy/overview`,
+            href: `/clients/${clientId}/privacy`,
             icon: ShieldCheck,
             badge: null
         },
@@ -92,98 +92,31 @@ export function PrivacyLayout({ clientId, children, fullWidth = false }: Privacy
     ];
 
     const isActive = (href: string) => {
+        // Module root (the dashboard) and the /gdpr alias
+        if (location === `/clients/${clientId}/privacy` || location === `/clients/${clientId}/gdpr`) {
+            return href.endsWith('/privacy');
+        }
         if (location === href) return true;
         if (href.endsWith('/privacy/guide') && location.includes('/privacy/program-guide')) return true;
-        if (href.endsWith('/privacy/program-guide') && location.includes('/privacy/guide')) return true;
-        if (!href.endsWith('/privacy/overview') && location.startsWith(href)) return true;
+        // Overview's href ('/privacy') is a prefix of every page — exact-match only for it
+        if (!href.endsWith('/privacy') && location.startsWith(href)) return true;
         return false;
     };
-
-    const activeItem = navItems.find(item => isActive(item.href));
-
-    const breadcrumbItems = [
-        { label: "Dashboard", href: "/dashboard", icon: Home },
-        { label: "Clients", href: "/clients" },
-        { label: client?.name || "Client", href: `/clients/${clientId}` },
-        { label: "Privacy Program", href: `/clients/${clientId}/privacy/overview` }
-    ];
-
-    if (activeItem && activeItem.label !== "Overview") {
-        breadcrumbItems.push({ label: activeItem.label, href: activeItem.href });
-    }
 
     return (
         <DashboardLayout fullWidth={fullWidth}>
             <div className="flex flex-col min-h-screen bg-transparent">
-                <div className="bg-background/80 backdrop-blur-md border-b border-border/60 py-3 sticky top-0 z-30 space-y-3">
-                    {/* Breadcrumb Section */}
-                    <Breadcrumb className="mb-0">
-                        <BreadcrumbList>
-                            {breadcrumbItems.map((item, idx) => {
-                                const isLast = idx === breadcrumbItems.length - 1;
-                                return (
-                                    <React.Fragment key={idx}>
-                                        <BreadcrumbItem>
-                                            {isLast ? (
-                                                <BreadcrumbPage className="font-semibold text-foreground">
-                                                    {item.label}
-                                                </BreadcrumbPage>
-                                            ) : (
-                                                <BreadcrumbLink asChild>
-                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                                                        {item.icon && <item.icon className="h-3.5 w-3.5" />}
-                                                        {item.label}
-                                                    </Link>
-                                                </BreadcrumbLink>
-                                            )}
-                                        </BreadcrumbItem>
-                                        {!isLast && (
-                                            <BreadcrumbSeparator>
-                                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
-                                            </BreadcrumbSeparator>
-                                        )}
-                                    </React.Fragment>
-                                );
-                            })}
-                        </BreadcrumbList>
-                    </Breadcrumb>
-
-                    {/* Navigation Bar / Tabs */}
-                    <div className="w-full overflow-x-auto pb-0.5 no-scrollbar">
-                        <nav className="inline-flex items-center gap-1 p-1 bg-muted/60 dark:bg-muted/40 backdrop-blur-sm border border-border/60 rounded-xl" aria-label="Privacy Navigation Tabs">
-                            {navItems.map((item) => {
-                                const active = isActive(item.href);
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={cn(
-                                            "relative px-3.5 py-1.5 rounded-lg transition-all duration-200 flex items-center whitespace-nowrap text-xs sm:text-sm font-medium shrink-0 cursor-pointer select-none",
-                                            active
-                                                ? "bg-card text-foreground font-semibold shadow-xs border border-border/60 dark:bg-card/95"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-card/50 border border-transparent"
-                                        )}
-                                    >
-                                        <item.icon className={cn(
-                                            "mr-2 h-4 w-4 shrink-0 transition-colors",
-                                            active ? "text-primary" : "text-muted-foreground"
-                                        )} />
-                                        <span>{item.label}</span>
-                                        {!!item.badge && (
-                                            <span className={cn(
-                                                "ml-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border shrink-0",
-                                                active
-                                                    ? "bg-primary/10 text-primary border-primary/20"
-                                                    : "bg-background/80 text-muted-foreground border-border/60"
-                                            )}>
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-                    </div>
+                {/* One navigation line: the tab strip. The breadcrumb was removed —
+                    the chrome bar names the section, the client switcher names the
+                    client, and the active tab shows where you are. */}
+                <div className="bg-muted border-b border-border py-3 sticky top-14 z-30">
+                    <NavTabsWithMore
+                        ariaLabel="Privacy Navigation Tabs"
+                        tabs={navItems.map((i) => ({ label: i.label, path: i.href, icon: i.icon, badge: i.badge }))}
+                        primaryPaths={PRIMARY_TAB_PATHS}
+                        isActive={isActive}
+                        className="min-w-0"
+                    />
                 </div>
 
                 <div className="flex-1 w-full py-6">

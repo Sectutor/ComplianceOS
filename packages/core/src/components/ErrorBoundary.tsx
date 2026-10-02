@@ -46,10 +46,10 @@ class ErrorBoundary extends Component<Props, State> {
                     <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
                         <div className="flex items-center gap-3 text-red-600 mb-4">
                             <AlertCircle className="h-6 w-6" />
-                            <h2 className="text-lg font-semibold">Something went wrong</h2>
+                            <h2 className="text-lg font-semibold">Application Error</h2>
                         </div>
                         <p className="text-gray-600 mb-4">
-                            {this.state.error?.message || "An unexpected error occurred."}
+                            {this.state.error?.message || "An unexpected error occurred while loading this page. Your data has been preserved. Try reloading the page, or contact support if the problem persists."}
                         </p>
                         <button
                             onClick={() => window.location.reload()}

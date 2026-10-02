@@ -5,7 +5,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Loader2, ArrowLeft, Download, Sparkles, Mail, FileText, History, CheckCircle } from "lucide-react"; // Kept Sparkles for button icon
+import { Loader2, ArrowLeft, Download, Sparkles, Mail, FileText, History, CheckCircle, Plus } from "lucide-react"; // Kept Sparkles for button icon
 import { PageGuide } from "@/components/PageGuide";
 import { toast } from "sonner";
 import { Progress } from "@complianceos/ui/ui/progress";
@@ -31,6 +31,16 @@ export default function GapAnalysisEditor() {
 
     const updateResponseMutation = trpc.gapAnalysis.updateResponse.useMutation();
     const completeMutation = trpc.gapAnalysis.complete.useMutation();
+    const assignToRegisterMutation = trpc.clientControls.assignFromGap.useMutation({
+        onSuccess: (res: any) => {
+            const unresolvedNote = res?.unresolved?.length
+                ? ` — ${res.unresolved.length} finding(s) couldn't be matched to the catalog`
+                : "";
+            toast.success(`Assigned ${res?.assigned ?? 0} control(s) to the register${unresolvedNote}`);
+        },
+        onError: (err: any) => toast.error(err.message),
+    });
+    const [assigningToRegister, setAssigningToRegister] = useState(false);
 
     const [filterDomain, setFilterDomain] = useState<string>("All");
     const [searchTerm, setSearchTerm] = useState("");
@@ -427,6 +437,23 @@ export default function GapAnalysisEditor() {
                                     >
                                         {dispatchingTasks ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2 text-rose-600" />}
                                         Dispatch Remediation Tasks
+                                    </Button>
+
+                                    <Button
+                                        onClick={async () => {
+                                            setAssigningToRegister(true);
+                                            try {
+                                                await assignToRegisterMutation.mutateAsync({ clientId: assessment?.clientId, assessmentId });
+                                            } finally {
+                                                setAssigningToRegister(false);
+                                            }
+                                        }}
+                                        disabled={assigningToRegister || !assessment?.clientId}
+                                        variant="outline"
+                                        className="h-11 border-emerald-300 text-emerald-800 bg-emerald-50/50 hover:bg-emerald-100 font-bold shadow-sm transition-all"
+                                    >
+                                        {assigningToRegister ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2 text-emerald-600" />}
+                                        Assign Failed Controls to Register
                                     </Button>
 
                                     {assessment.status !== 'completed' && (

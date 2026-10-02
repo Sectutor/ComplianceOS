@@ -52,7 +52,7 @@ export default function ClientContactInfo({
       setHasChanges(false);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to save contact information");
+      toast.error(error.message || "Failed to save contact information. Please check your connection and try again.");
     },
   });
 

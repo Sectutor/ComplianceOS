@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useClientContext } from "@/contexts/ClientContext";
 import { Button } from "@complianceos/ui/ui/button";
-import { Plus, AlertTriangle, Loader2, Clock, ShieldAlert, CheckCircle2, FileText, Copy, Database, Trash2, ArrowRight } from "lucide-react";
+import { Plus, AlertTriangle, Loader2, Clock, ShieldAlert, CheckCircle2, FileText, Copy, Trash2, ArrowRight } from "lucide-react";
 import { trpc } from '@/lib/trpc';
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
@@ -12,6 +12,14 @@ import { toast } from "sonner";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { cn } from "@/lib/utils";
+
+// data_breaches.status enum (schema/common.ts): open | investigating | reported | closed
+const BREACH_STATUSES = [
+    { value: "open", label: "Logged / Open" },
+    { value: "investigating", label: "Under Active Triage" },
+    { value: "reported", label: "DPA Notified (Art. 33)" },
+    { value: "closed", label: "Investigation Closed & Remediated" },
+];
 
 export default function DataBreachRegister() {
     const { selectedClientId } = useClientContext();
@@ -31,7 +39,7 @@ export default function DataBreachRegister() {
     });
 
     const [triageForm, setTriageForm] = useState({
-        status: "in_progress",
+        status: "investigating",
         dpaNotified: "no",
         subjectsNotified: "no",
         rootCause: "",
@@ -40,14 +48,14 @@ export default function DataBreachRegister() {
     });
 
     const utils = trpc.useUtils();
-    const { data: breaches, isLoading } = (trpc.privacy as any).listAssessments.useQuery({
-        clientId,
-        typePrefix: "BREACH:"
-    }, { enabled: !!clientId });
+    const { data: breaches, isLoading } = trpc.dataBreaches.list.useQuery({ clientId }, { enabled: !!clientId });
 
-    const { data: inventory } = trpc.privacy.getInventory.useQuery({ clientId }, { enabled: !!clientId });
+    const invalidate = () => {
+        utils.dataBreaches.list.invalidate({ clientId });
+        utils.privacy.getPrivacyStats.invalidate();
+    };
 
-    const createMutation = (trpc.privacy as any).saveAssessment.useMutation({
+    const createMutation = trpc.dataBreaches.create.useMutation({
         onSuccess: () => {
             toast.success("Incident Logged Successfully");
             setCreateOpen(false);
@@ -60,87 +68,88 @@ export default function DataBreachRegister() {
                 estimatedSubjects: "50-500",
                 containmentStatus: "contained"
             });
-            (utils.privacy as any).listAssessments.invalidate();
+            invalidate();
         },
         onError: (err: any) => toast.error(`Failed to log breach: ${err.message}`)
     });
 
-    const updateMutation = (trpc.privacy as any).saveAssessment.useMutation({
+    const updateMutation = trpc.dataBreaches.update.useMutation({
         onSuccess: () => {
             toast.success("Breach Triage & Assessment Updated");
             setTriageOpen(false);
             setSelectedBreach(null);
-            (utils.privacy as any).listAssessments.invalidate();
+            invalidate();
         },
         onError: (err: any) => toast.error(`Failed to update: ${err.message}`)
     });
 
-    const deleteMutation = (trpc.privacy as any).deleteAssessment?.useMutation({
+    const deleteMutation = trpc.dataBreaches.delete.useMutation({
         onSuccess: () => {
             toast.success("Incident Archived");
-            (utils.privacy as any).listAssessments.invalidate();
+            invalidate();
         },
         onError: (err: any) => toast.error(`Failed to delete: ${err.message}`)
     });
 
     const handleCreate = () => {
-        if (!formData.title || !formData.occurredAt) {
+        if (!formData.title.trim() || !formData.occurredAt) {
             toast.error("Title and Date are required");
             return;
         }
 
-        const score = formData.severity === "critical" ? 95 : formData.severity === "high" ? 75 : formData.severity === "medium" ? 45 : 15;
-
+        // Structured fields without dedicated columns ride in `metadata`; the
+        // required text columns carry the narrative (description/effects/remediation).
         createMutation.mutate({
             clientId,
-            type: `BREACH: ${formData.title}`,
-            responses: {
-                occurredAt: formData.occurredAt,
+            description: formData.description || formData.title,
+            effects: `${formData.affectedCategories} — approx. ${formData.estimatedSubjects} data subjects affected`,
+            remedialActions: `Initial containment: ${formData.containmentStatus.replace('_', ' ')}`,
+            dateOccurred: formData.occurredAt,
+            dateDetected: formData.occurredAt,
+            isNotifiableToDpa: formData.severity === "critical" || formData.severity === "high",
+            isNotifiableToSubjects: false,
+            status: "open",
+            metadata: {
+                title: formData.title.trim(),
                 severity: formData.severity,
-                description: formData.description,
                 affectedCategories: formData.affectedCategories,
                 estimatedSubjects: formData.estimatedSubjects,
-                containmentStatus: formData.containmentStatus,
-                loggedAt: new Date().toISOString(),
-                dpaMandatory: formData.severity === "critical" || formData.severity === "high" ? "yes" : "no"
-            },
-            status: "in_progress",
-            score
+                containmentStatus: formData.containmentStatus
+            }
         });
     };
 
     const handleOpenTriage = (breach: any) => {
         setSelectedBreach(breach);
-        const resp = breach.responses || {};
+        const meta = breach.metadata || {};
         setTriageForm({
-            status: breach.status || "in_progress",
-            dpaNotified: resp.dpaNotified || "no",
-            subjectsNotified: resp.subjectsNotified || "no",
-            rootCause: resp.rootCause || "",
-            mitigationActions: resp.mitigationActions || "Rotated API keys, isolated affected endpoint, revoked active session tokens",
-            dpaNotificationText: resp.dpaNotificationText || `FORMAL GDPR ARTICLE 33 DATA BREACH NOTIFICATION\n\nOrganization: Client #${clientId}\nIncident: ${breach.type.replace('BREACH: ', '')}\nDate Detected: ${resp.occurredAt || 'N/A'}\n\n1. Nature of the Personal Data Breach:\n${resp.description || 'Suspected unauthorized access to personal data.'}\n\n2. Categories & Approximate Number of Data Subjects:\nCategories: ${resp.affectedCategories || 'General PII'}\nEstimated Subjects: ${resp.estimatedSubjects || 'Under investigation'}\n\n3. Measures Taken to Address the Breach:\n${resp.mitigationActions || 'Immediate containment and system hardening.'}\n\n4. Contact Point for Data Protection Officer (DPO):\ndpo@complianceos-client.internal`
+            status: breach.status || "investigating",
+            dpaNotified: breach.dateReportedToDpa || breach.isNotifiableToDpa && breach.status === 'reported' ? "yes" : "no",
+            subjectsNotified: breach.dateReportedToDataSubjects ? "yes" : "no",
+            rootCause: meta.rootCause || "",
+            mitigationActions: breach.remedialActions || "Rotated API keys, isolated affected endpoint, revoked active session tokens",
+            dpaNotificationText: `FORMAL GDPR ARTICLE 33 DATA BREACH NOTIFICATION\n\nOrganization: Client #${clientId}\nIncident: ${meta.title || 'Data Breach'}\nDate Detected: ${breach.dateDetected ? new Date(breach.dateDetected).toLocaleDateString() : 'N/A'}\n\n1. Nature of the Personal Data Breach:\n${breach.description || 'Suspected unauthorized access to personal data.'}\n\n2. Categories & Approximate Number of Data Subjects:\nCategories: ${meta.affectedCategories || 'General PII'}\nEstimated Subjects: ${meta.estimatedSubjects || 'Under investigation'}\n\n3. Measures Taken to Address the Breach:\n${breach.remedialActions || 'Immediate containment and system hardening.'}\n\n4. Contact Point for Data Protection Officer (DPO):\ndpo@complianceos-client.internal`
         });
         setTriageOpen(true);
     };
 
     const handleSaveTriage = () => {
         if (!selectedBreach) return;
+        const meta = selectedBreach.metadata || {};
+        const wasReportedToDpa = !!selectedBreach.dateReportedToDpa;
+        const wasReportedToSubjects = !!selectedBreach.dateReportedToDataSubjects;
 
         updateMutation.mutate({
+            id: selectedBreach.id,
             clientId,
-            type: selectedBreach.type,
-            responses: {
-                ...selectedBreach.responses,
-                status: triageForm.status,
-                dpaNotified: triageForm.dpaNotified,
-                subjectsNotified: triageForm.subjectsNotified,
-                rootCause: triageForm.rootCause,
-                mitigationActions: triageForm.mitigationActions,
-                dpaNotificationText: triageForm.dpaNotificationText,
-                triagedAt: new Date().toISOString()
-            },
             status: triageForm.status as any,
-            score: selectedBreach.score || 50
+            remedialActions: triageForm.mitigationActions,
+            isNotifiableToDpa: triageForm.dpaNotified === "yes",
+            isNotifiableToSubjects: triageForm.subjectsNotified === "yes",
+            // Stamp notification timestamps the first time each notification is confirmed
+            ...(triageForm.dpaNotified === "yes" && !wasReportedToDpa ? { dateReportedToDpa: new Date().toISOString() } : {}),
+            ...(triageForm.subjectsNotified === "yes" && !wasReportedToSubjects ? { dateReportedToDataSubjects: new Date().toISOString() } : {}),
+            metadata: { ...meta, rootCause: triageForm.rootCause }
         });
     };
 
@@ -149,8 +158,9 @@ export default function DataBreachRegister() {
         toast.success("GDPR Art. 33 Notification Letter copied to clipboard!");
     };
 
-    // Calculate 72h status
-    const calculateTimeRemaining = (dateStr: string) => {
+    // 72h clock runs from the persisted detection timestamp
+    const calculateTimeRemaining = (breach: any) => {
+        const dateStr = breach?.dateDetected || breach?.dateOccurred;
         if (!dateStr) return { label: "72h Deadline Pending", isOverdue: false, hoursLeft: 72 };
         const eventTime = new Date(dateStr).getTime();
         const deadline = eventTime + (72 * 60 * 60 * 1000);
@@ -162,6 +172,18 @@ export default function DataBreachRegister() {
         }
         return { label: `${hoursLeft} hours remaining to notify DPA`, isOverdue: false, hoursLeft };
     };
+
+    const statusBadge = (status: string) => {
+        switch (status) {
+            case 'closed': return "bg-emerald-100 text-emerald-700";
+            case 'reported': return "bg-indigo-100 text-indigo-700";
+            case 'investigating': return "bg-sky-100 text-sky-800";
+            default: return "bg-amber-100 text-amber-700";
+        }
+    };
+
+    const statusLabel = (status: string) =>
+        BREACH_STATUSES.find(s => s.value === status)?.label || status;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -217,9 +239,9 @@ export default function DataBreachRegister() {
                             </TableRow>
                         ) : breaches && breaches.length > 0 ? (
                             (breaches as any[]).map((b, idx) => {
-                                const resp = b.responses || {};
-                                const clock = calculateTimeRemaining(resp.occurredAt);
-                                const isCritical = resp.severity === 'critical' || resp.severity === 'high';
+                                const meta = b.metadata || {};
+                                const clock = calculateTimeRemaining(b);
+                                const isCritical = meta.severity === 'critical' || meta.severity === 'high';
 
                                 return (
                                     <TableRow
@@ -237,10 +259,10 @@ export default function DataBreachRegister() {
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-slate-900 group-hover:text-brand-bright transition-colors">
-                                                        {b.type.replace("BREACH: ", "")}
+                                                        {meta.title || b.description?.split('\n')[0] || 'Data Breach'}
                                                     </p>
                                                     <p className="text-xs text-slate-400 font-normal">
-                                                        Detected: {resp.occurredAt || 'N/A'}
+                                                        Detected: {b.dateDetected ? new Date(b.dateDetected).toLocaleDateString() : 'N/A'}
                                                     </p>
                                                 </div>
                                             </div>
@@ -248,11 +270,11 @@ export default function DataBreachRegister() {
                                         <TableCell className="py-5">
                                             <Badge className={cn(
                                                 "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
-                                                resp.severity === 'critical' ? "bg-rose-600 text-white" :
-                                                resp.severity === 'high' ? "bg-rose-100 text-rose-700" :
-                                                resp.severity === 'medium' ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"
+                                                meta.severity === 'critical' ? "bg-rose-600 text-white" :
+                                                meta.severity === 'high' ? "bg-rose-100 text-rose-700" :
+                                                meta.severity === 'medium' ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"
                                             )}>
-                                                {resp.severity || 'UNKNOWN'}
+                                                {meta.severity || 'UNKNOWN'}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="py-5 text-xs font-semibold">
@@ -267,9 +289,9 @@ export default function DataBreachRegister() {
                                         <TableCell className="py-5">
                                             <Badge className={cn(
                                                 "border-none font-bold uppercase text-[10px] tracking-wider px-2.5 py-1",
-                                                b.status === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-800"
+                                                statusBadge(b.status)
                                             )}>
-                                                {b.status === 'completed' ? 'Resolved & Closed' : 'Under Triage'}
+                                                {statusLabel(b.status)}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right py-5 px-6 space-x-2">
@@ -282,17 +304,15 @@ export default function DataBreachRegister() {
                                                 Open 72h Triage
                                                 <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                                             </Button>
-                                            {deleteMutation && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => deleteMutation.mutate({ clientId, id: b.id })}
-                                                    className="h-8 w-8 text-slate-300 hover:text-rose-600 rounded-lg"
-                                                    title="Archive"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                            )}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => deleteMutation.mutate({ id: b.id, clientId })}
+                                                className="h-8 w-8 text-slate-300 hover:text-rose-600 rounded-lg"
+                                                title="Archive"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -331,9 +351,9 @@ export default function DataBreachRegister() {
                         <Button
                             className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
                             onClick={handleCreate}
-                            disabled={createMutation.isLoading}
+                            disabled={createMutation.isPending}
                         >
-                            {createMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Log Security Incident
                         </Button>
                     </div>
@@ -432,7 +452,7 @@ export default function DataBreachRegister() {
                 <EnhancedDialog
                     open={triageOpen}
                     onOpenChange={setTriageOpen}
-                    title={`Incident Triage: ${selectedBreach.type.replace('BREACH: ', '')}`}
+                    title={`Incident Triage: ${selectedBreach.metadata?.title || 'Data Breach'}`}
                     description="GDPR Article 33/34 Incident Response Protocol & Formal Notification Generator"
                     size="xl"
                     footer={
@@ -445,10 +465,10 @@ export default function DataBreachRegister() {
                                 <Button variant="ghost" onClick={() => setTriageOpen(false)}>Close</Button>
                                 <Button
                                     onClick={handleSaveTriage}
-                                    disabled={updateMutation.isLoading}
+                                    disabled={updateMutation.isPending}
                                     className="bg-brand-bright hover:bg-brand text-white font-bold"
                                 >
-                                    {updateMutation.isLoading ? "Saving..." : "Save Triage Record"}
+                                    {updateMutation.isPending ? "Saving..." : "Save Triage Record"}
                                 </Button>
                             </div>
                         </div>
@@ -462,12 +482,12 @@ export default function DataBreachRegister() {
                                 <div>
                                     <h4 className="font-bold text-amber-900 text-sm">GDPR Article 33 72-Hour Notification Timeline</h4>
                                     <p className="text-xs text-amber-700">
-                                        {calculateTimeRemaining(selectedBreach.responses?.occurredAt).label}
+                                        {calculateTimeRemaining(selectedBreach).label}
                                     </p>
                                 </div>
                             </div>
                             <Badge className="bg-rose-600 text-white font-bold uppercase text-[10px]">
-                                Risk Level: {selectedBreach.responses?.severity?.toUpperCase() || 'HIGH'}
+                                Risk Level: {(selectedBreach.metadata?.severity || 'HIGH').toUpperCase()}
                             </Badge>
                         </div>
 
@@ -480,8 +500,9 @@ export default function DataBreachRegister() {
                                 >
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="in_progress">Under Active Triage</SelectItem>
-                                        <SelectItem value="completed">Investigation Closed & Remediated</SelectItem>
+                                        {BREACH_STATUSES.map(s => (
+                                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -498,6 +519,39 @@ export default function DataBreachRegister() {
                                         <SelectItem value="no">No - Unlikely Risk / Internal Documentation Only</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                {selectedBreach.dateReportedToDpa && (
+                                    <p className="text-[11px] text-emerald-600 font-semibold">
+                                        Reported to DPA on {new Date(selectedBreach.dateReportedToDpa).toLocaleString()}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="font-semibold text-xs text-slate-700">Data Subjects Notified (Art. 34)?</Label>
+                                <Select
+                                    value={triageForm.subjectsNotified}
+                                    onValueChange={(val) => setTriageForm({ ...triageForm, subjectsNotified: val })}
+                                >
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="yes">Yes - Subjects Informed</SelectItem>
+                                        <SelectItem value="no">No - Not Required / Pending</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {selectedBreach.dateReportedToDataSubjects && (
+                                    <p className="text-[11px] text-emerald-600 font-semibold">
+                                        Subjects notified on {new Date(selectedBreach.dateReportedToDataSubjects).toLocaleString()}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="font-semibold text-xs text-slate-700">Root Cause (Post-Mortem)</Label>
+                                <Input
+                                    value={triageForm.rootCause}
+                                    onChange={(e) => setTriageForm({ ...triageForm, rootCause: e.target.value })}
+                                    placeholder="e.g. Misconfigured storage bucket policy / credential phishing"
+                                />
                             </div>
                         </div>
 
@@ -533,4 +587,3 @@ export default function DataBreachRegister() {
         </div>
     );
 }
-

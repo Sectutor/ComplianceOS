@@ -27,7 +27,7 @@ export function ScheduledRoutinesView() {
       refetch();
     },
     onError: (err) => {
-      toast.error(`Failed to update routine: ${err.message}`);
+      toast.error(`Failed to update routine: ${err.message || 'Please check your connection and try again.'}`);
     }
   });
 

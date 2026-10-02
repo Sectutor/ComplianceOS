@@ -71,7 +71,7 @@ export default function EvidenceExpiryWidget({ clientId }: EvidenceExpiryWidgetP
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-red-500">
             <AlertTriangle className="h-12 w-12 mb-3" />
-            <p className="text-sm">Failed to load evidence expiry data</p>
+            <p className="text-sm">Failed to load evidence expiry data. Please check your connection and try again.</p>
             <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
               Retry
             </Button>

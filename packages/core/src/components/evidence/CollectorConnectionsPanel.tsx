@@ -354,7 +354,7 @@ export default function CollectorConnectionsPanel({ clientId }: CollectorConnect
       setCredentialValues({});
       connectionsQuery.refetch();
     } catch (err) {
-      toast.error((err as { message?: string })?.message || "Failed to connect source");
+      toast.error("Failed to connect source", { description: (err as { message?: string })?.message || "Please check your credentials and try again." });
     } finally {
       setBusyKey(null);
     }
@@ -399,7 +399,7 @@ export default function CollectorConnectionsPanel({ clientId }: CollectorConnect
       setConnectionToDelete(null);
       connectionsQuery.refetch();
     } catch (err) {
-      toast.error((err as { message?: string })?.message || "Failed to remove source");
+      toast.error("Failed to remove source", { description: (err as { message?: string })?.message || "Please try again." });
     } finally {
       setBusyKey(null);
     }

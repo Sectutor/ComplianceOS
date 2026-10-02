@@ -36,7 +36,7 @@ export default function TemplateManager() {
             setFormData({ title: '', description: '', tasksText: '' });
             utils.implementation.listTemplates.invalidate();
         },
-        onError: (err) => toast.error(`Failed to create: ${err.message}`)
+        onError: (err) => toast.error(`Failed to create template: ${err.message || 'Please check your connection and try again.'}`)
     });
 
     const updateMutation = trpc.implementation.updateTemplate.useMutation({
@@ -47,7 +47,7 @@ export default function TemplateManager() {
             setFormData({ title: '', description: '', tasksText: '' });
             utils.implementation.listTemplates.invalidate();
         },
-        onError: (err) => toast.error(`Failed to update: ${err.message}`)
+        onError: (err) => toast.error(`Failed to update template: ${err.message || 'Please check your connection and try again.'}`)
     });
 
     const cloneMutation = trpc.implementation.cloneTemplate.useMutation({

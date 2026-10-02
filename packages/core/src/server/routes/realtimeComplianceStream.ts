@@ -50,7 +50,7 @@ export async function realtimeComplianceStreamHandler(req: Request, res: Respons
       connectedAt: new Date().toISOString(),
     });
   } catch (err: any) {
-    sendSSE("error", { message: "Failed to load initial compliance health state", error: err.message });
+    sendSSE("error", { message: "Failed to load initial compliance health state. Please refresh the page.", error: err.message });
   }
 
   // 2. Event Listener for Live Updates

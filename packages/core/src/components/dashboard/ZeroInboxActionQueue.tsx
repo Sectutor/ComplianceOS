@@ -15,6 +15,7 @@ import { Badge } from "@complianceos/ui/ui/badge";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useClientContext } from "@/contexts/ClientContext";
 
 export interface ActionItem {
   id: string;
@@ -29,84 +30,23 @@ export interface ActionItem {
   targetRoute?: string;
 }
 
-const FALLBACK_ITEMS: ActionItem[] = [
-  {
-    id: "act-1",
-    title: "AWS S3 Public Read Access Detected in Production",
-    description: "Bucket 'compliance-artifacts-prod' has public read ACL enabled, violating SOC 2 CC6.1 and ISO 27001 A.9.4.",
-    severity: "critical",
-    frameworks: ["SOC 2 CC6.1", "ISO 27001 A.9.4", "NIS2"],
-    category: "cloud",
-    source: "AWS Continuous Scanner",
-    dueDate: "Immediate",
-    actionLabel: "Enforce Block Public Access",
-    targetRoute: "/cloud-security",
-  },
-  {
-    id: "act-2",
-    title: "Annual Penetration Testing Report Overdue",
-    description: "Last external gray-box pentest was completed 13 months ago. Required for SOC 2 Type II and HIPAA audit readiness.",
-    severity: "critical",
-    frameworks: ["SOC 2 CC7.1", "HIPAA 164.308"],
-    category: "evidence",
-    source: "Audit Readiness Engine",
-    dueDate: "2 days left",
-    actionLabel: "Upload Pentest Artifact",
-    targetRoute: "/evidence",
-  },
-  {
-    id: "act-3",
-    title: "3 Contractors Missing MFA on Google Workspace",
-    description: "Active Directory sync identified accounts without Hardware/App MFA enforcement enabled.",
-    severity: "warning",
-    frameworks: ["SOC 2 CC6.2", "NIST AC-7", "ISO A.9.2"],
-    category: "access",
-    source: "Identity Collector (Okta / GSuite)",
-    dueDate: "Today",
-    actionLabel: "Enforce MFA via SSO",
-    targetRoute: "/access-reviews",
-  },
-  {
-    id: "act-4",
-    title: "Critical Subprocessor Risk Review: OpenAI & Datadog",
-    description: "Annual SOC 2 / DPA compliance re-evaluation due for Tier-1 AI & Logging sub-processors.",
-    severity: "warning",
-    frameworks: ["GDPR Art. 28", "ISO 27001 A.15.1"],
-    category: "vendor",
-    source: "Vendor Risk Module",
-    dueDate: "5 days left",
-    actionLabel: "Launch Vendor Review",
-    targetRoute: "/vendors",
-  },
-  {
-    id: "act-5",
-    title: "Information Security Policy v2.4 Pending Acknowledgement",
-    description: "42 team members have not signed the updated Acceptable Use and Cryptography policy.",
-    severity: "info",
-    frameworks: ["SOC 2 CC2.1", "ISO 27001 A.5.1"],
-    category: "policy",
-    source: "Policy Center",
-    dueDate: "Next week",
-    actionLabel: "Send Automated Slack Reminders",
-    targetRoute: "/policies",
-  },
-];
-
 export function ZeroInboxActionQueue({ clientId }: { clientId?: string }) {
   const [, setLocation] = useLocation();
+  const { selectedClientId } = useClientContext();
+  const effectiveId = clientId ? parseInt(clientId, 10) : selectedClientId ? Number(selectedClientId) : undefined;
+
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | "critical" | "warning" | "info">("all");
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-  const parsedClientId = clientId ? parseInt(clientId, 10) : undefined;
-  const { data: dbActions, refetch } = trpc.actionCenter.getActions.useQuery(
-    { clientId: parsedClientId! },
-    { enabled: !!parsedClientId && parsedClientId > 0 }
+  const { data: dbActions, isLoading, refetch } = trpc.actionCenter.getActions.useQuery(
+    { clientId: effectiveId! },
+    { enabled: !!effectiveId && effectiveId > 0 }
   );
 
   const dismissMutation = trpc.actionCenter.dismissAction.useMutation();
 
-  // Map live DB actions or use fallback
+  // Map live DB actions without mock fixtures
   const items: ActionItem[] = useMemo(() => {
     if (dbActions && dbActions.length > 0) {
       return dbActions.map((a: any) => ({
@@ -122,7 +62,7 @@ export function ZeroInboxActionQueue({ clientId }: { clientId?: string }) {
         targetRoute: a.actionUrl || '/evidence',
       }));
     }
-    return FALLBACK_ITEMS;
+    return [];
   }, [dbActions]);
 
   const activeItems = items.filter((item) => !resolvedIds.has(item.id));
@@ -240,7 +180,13 @@ export function ZeroInboxActionQueue({ clientId }: { clientId?: string }) {
       </CardHeader>
 
       <CardContent className="pt-4 space-y-3">
-        {filteredItems.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3 py-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 rounded-lg bg-muted/40 animate-pulse border border-border/40" />
+            ))}
+          </div>
+        ) : filteredItems.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}

@@ -101,7 +101,7 @@ export default function MFAChallengeModal({ open, onOpenChange, factorId: initia
       toast.success("MFA verified correctly. Welcome back!");
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(e.message || "An unexpected error occurred.");
+      toast.error("MFA verification failed", { description: e.message || "Please check your verification code and try again." });
     } finally {
       setLoading(false);
     }

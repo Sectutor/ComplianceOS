@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@complianceos/ui/ui/table';
 import { trpc } from '@/lib/trpc';
 import {
-    ArrowLeft, Search, Filter, Calendar, User, Shield, AlertTriangle, CheckCircle, Ban, ArrowRight, DollarSign, Trash2, Edit
+    ArrowLeft, Search, Filter, Calendar, User, Shield, AlertTriangle, CheckCircle, Ban, ArrowRight, DollarSign, Trash2, Edit, Plus
 } from 'lucide-react';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { PageGuide } from '@/components/PageGuide';
+import { AddTreatmentDialog } from '@/components/risk/AddTreatmentDialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
@@ -40,10 +41,13 @@ export default function RiskTreatmentPlanPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 50;
 
-    const { data: treatments, isLoading } = trpc.risks.getAllTreatments.useQuery(
+    const { data: treatments, isLoading, refetch: refetchTreatments } = trpc.risks.getAllTreatments.useQuery(
         { clientId },
         { enabled: !!clientId }
     );
+
+    // Add Treatment dialog state
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     // Delete mutation and state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -147,20 +151,26 @@ export default function RiskTreatmentPlanPage() {
                             Track and manage risk mitigation strategies, action plans, and remediation efforts.
                         </p>
                     </div>
-                    <PageGuide
-                        title="Risk Treatment Plan"
-                        description="Manage the actions required to reduce risk to an acceptable level."
-                        rationale="Identifying risk is useless without action. This plan tracks who is doing what by when."
-                        howToUse={[
-                            { step: "Filter by Status", description: "check 'In Progress' or 'Overdue' items during weekly meetings." },
-                            { step: "Review Strategy", description: "Ensure high-priority risks are being 'Mitigated' or 'Avoided' rather than just 'Accepted'." },
-                            { step: "Track Costs", description: "Use the cost field to budget for security improvements." }
-                        ]}
-                        integrations={[
-                            { name: "Risk Assessments", description: "Treatments are created directly within the Risk Assessment workflow." },
-                            { name: "Tasks", description: "Treatment actions can be synced to the main task manager." }
-                        ]}
-                    />
+                    <div className="flex items-center gap-2">
+                        <PageGuide
+                            title="Risk Treatment Plan"
+                            description="Manage the actions required to reduce risk to an acceptable level."
+                            rationale="Identifying risk is useless without action. This plan tracks who is doing what by when."
+                            howToUse={[
+                                { step: "Filter by Status", description: "check 'In Progress' or 'Overdue' items during weekly meetings." },
+                                { step: "Review Strategy", description: "Ensure high-priority risks are being 'Mitigated' or 'Avoided' rather than just 'Accepted'." },
+                                { step: "Track Costs", description: "Use the cost field to budget for security improvements." }
+                            ]}
+                            integrations={[
+                                { name: "Risk Assessments", description: "Every treatment is linked to a risk; you can also treat risks directly from the Risk Register." },
+                                { name: "Tasks", description: "Treatment actions can be synced to the main task manager." }
+                            ]}
+                        />
+                        <Button onClick={() => setIsAddDialogOpen(true)}>
+                            <Plus className="w-4 h-4 mr-1.5" />
+                            Add Treatment
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -224,8 +234,31 @@ export default function RiskTreatmentPlanPage() {
                                 </TableRow>
                             ) : paginatedTreatments.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                                        No treatments found matching your criteria.
+                                    <TableCell colSpan={7} className="h-40 text-center">
+                                        <div className="flex flex-col items-center gap-3 max-w-md mx-auto">
+                                            <div className="p-3 rounded-full bg-slate-100">
+                                                <Shield className="w-6 h-6 text-slate-400" />
+                                            </div>
+                                            {treatments?.length === 0 ? (
+                                                <>
+                                                    <div>
+                                                        <p className="font-medium text-slate-900">No treatments yet</p>
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            Treatments are action plans attached to risks. Add one here, or use the
+                                                            "Treat Risk" action on any risk in your register.
+                                                        </p>
+                                                    </div>
+                                                    <Button size="sm" onClick={() => setIsAddDialogOpen(true)}>
+                                                        <Plus className="w-4 h-4 mr-1.5" />
+                                                        Add Treatment
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <p className="text-muted-foreground">
+                                                    No treatments found matching your criteria. Try adjusting the search or filters.
+                                                </p>
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -319,6 +352,14 @@ export default function RiskTreatmentPlanPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Add Treatment Dialog */}
+            <AddTreatmentDialog
+                open={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                clientId={clientId}
+                onSuccess={() => refetchTreatments()}
+            />
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

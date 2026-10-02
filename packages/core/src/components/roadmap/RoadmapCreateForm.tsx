@@ -225,7 +225,7 @@ export default function RoadmapCreateForm({ clientId, initialData, onSuccess, on
             if (onSuccess) onSuccess(data);
         },
         onError: (err) => {
-            toast.error("Failed to create roadmap: " + err.message);
+            toast.error("Failed to save strategic roadmap: " + (err.message || 'Please check your connection and try again.'));
         }
     });
 

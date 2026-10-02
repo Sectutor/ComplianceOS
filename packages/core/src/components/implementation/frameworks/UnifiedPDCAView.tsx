@@ -128,7 +128,7 @@ export const UnifiedPDCAView = ({ planId, frameworkName, tasks, phases, isLoadin
             utils.implementation.getPlan.invalidate();
         },
         onError: (err: any) => {
-            toast.error("Failed to update task", { description: err.message });
+            toast.error("Failed to update task status", { description: err.message || 'Please check your connection and try again.' });
         }
     });
 

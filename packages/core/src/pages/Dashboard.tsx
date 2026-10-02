@@ -18,7 +18,7 @@ import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { Input } from "@complianceos/ui/ui/input";
 import { Label } from "@complianceos/ui/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { PageGuide } from "@/components/PageGuide";
@@ -27,9 +27,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { AnimatedMetricCard } from "@complianceos/ui/ui/AnimatedMetricCard";
 import { useClientContext } from "@/contexts/ClientContext";
 import { resolveNavigationPath } from "@/lib/navigation";
-import { NIS2ControlHealth } from "@/components/dashboard/NIS2ControlHealth";
 import { SecurityDomainGrid } from "@/components/dashboard/SecurityDomainGrid";
-import { NIS2IncidentClock } from "@/components/dashboard/NIS2IncidentClock";
 import { NIS2Assistant } from "@/components/dashboard/NIS2Assistant";
 import { PostureSummary } from "@/pages/dashboard/PostureSummary";
 import { useDashboardStats } from "@/pages/dashboard/postureStatsApi";
@@ -144,9 +142,32 @@ export default function Dashboard() {
   const { data: clients, isLoading: clientsLoading } = trpc.clients.list.useQuery(undefined, {
     enabled: !!user
   });
-  const { data: complianceScores, isLoading: scoresLoading } = trpc.dashboard.complianceScores.useQuery(undefined, {
-    enabled: !!user
-  });
+  const { data: complianceScores, isLoading: scoresLoading } = trpc.dashboard.complianceScores.useQuery(
+    { clientId: effectiveClientId },
+    { enabled: !!user }
+  );
+
+  const complianceTrend = useMemo(() => {
+    if (complianceScores && complianceScores.length >= 2) {
+      const last = complianceScores[complianceScores.length - 1]?.score ?? 0;
+      const prev = complianceScores[complianceScores.length - 2]?.score ?? 0;
+      const delta = last - prev;
+      return {
+        direction: delta >= 0 ? ("up" as const) : ("down" as const),
+        label: `${Math.abs(delta)}%`,
+      };
+    }
+    return {
+      direction: undefined,
+      label: undefined,
+    };
+  }, [complianceScores]);
+
+  const availableFrameworks = useMemo(() => {
+    const fromStats = Object.keys(enhancedStats?.controlsByFramework || {});
+    const common = ["ISO 27001", "SOC 2", "NIS2", "NIST CSF", "HIPAA", "GDPR", "PCI DSS"];
+    return Array.from(new Set([...fromStats, ...common]));
+  }, [enhancedStats]);
   const { data: overdueAssessments, isLoading: overdueLoading } = trpc.vendorAnalytics.getOverdueAssessments.useQuery(undefined, {
     enabled: !!user
   });
@@ -538,8 +559,11 @@ export default function Dashboard() {
                   onChange={(e) => setFramework(e.target.value || undefined)}
                 >
                   <option value="" className="bg-card">{t("dashboard.allProtocols", "All Protocols")}</option>
-                  <option value="ISO 27001" className="bg-card text-foreground">ISO 27001</option>
-                  <option value="SOC 2" className="bg-card text-foreground">SOC 2</option>
+                  {availableFrameworks.map((fw) => (
+                    <option key={fw} value={fw} className="bg-card text-foreground">
+                      {fw}
+                    </option>
+                  ))}
                 </select>
                 <div className="ml-[-1.5rem] pointer-events-none text-muted-foreground group-hover:text-foreground transition-colors">
                   <ChevronDown className="w-4 h-4" />
@@ -573,7 +597,7 @@ export default function Dashboard() {
                 className="space-y-8"
               >
                 {/* 1. Continuous Compliance Pulse Telemetry */}
-                <ContinuousCompliancePulse />
+                <ContinuousCompliancePulse clientId={effectiveClientId} />
 
                 {/* 2. Zero-Inbox Action Queue */}
                 <ZeroInboxActionQueue clientId={effectiveClientId} />
@@ -587,8 +611,8 @@ export default function Dashboard() {
                     title={t("dashboard.complianceScore", "Overall Compliance")}
                     value={`${overallComplianceRate}%`}
                     icon={<Shield className="w-5 h-5" />}
-                    trend="up"
-                    trendLabel="12%"
+                    trend={complianceTrend.direction}
+                    trendLabel={complianceTrend.label}
                     variant="success"
                   />
                   <AnimatedMetricCard
@@ -620,8 +644,8 @@ export default function Dashboard() {
                     title={t("dashboard.complianceScore", "Overall Compliance")}
                     value={`${overallComplianceRate}%`}
                     icon={<Shield className="w-5 h-5" />}
-                    trend="up"
-                    trendLabel="12%"
+                    trend={complianceTrend.direction}
+                    trendLabel={complianceTrend.label}
                     variant="success"
                   />
                   <AnimatedMetricCard
@@ -1170,10 +1194,7 @@ export default function Dashboard() {
                 {effectiveClientId && (
                   <>
                     <SecurityDomainGrid clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
-                    <NIS2ControlHealth clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
-                    {/* NIS2 Incident Clock - 24h/72h/1-month reporting deadlines */}
-                    <NIS2IncidentClock clientId={effectiveClientId ? parseInt(effectiveClientId) : undefined} />
-                    {/* NIS2 Security Command - Article 21 control health command center (cycle 38, additive) */}
+                    {/* NIS2 Security Command - Article 21 control health, heatmap, domains & incident clock */}
                     <Nis2DashboardPanels clientId={parseInt(effectiveClientId)} />
                   </>
                 )}

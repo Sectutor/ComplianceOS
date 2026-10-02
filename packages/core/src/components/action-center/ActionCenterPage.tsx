@@ -182,7 +182,7 @@ export function ActionCenterPage({ clientId }: ActionCenterPageProps) {
     return (
       <div className="flex flex-col items-center gap-4 py-16">
         <AlertTriangle className="h-10 w-10 text-destructive" />
-        <p className="text-lg font-medium">Failed to load action center</p>
+        <p className="text-lg font-medium">Failed to load action center. Please check your connection and try again.</p>
         <Button variant="outline" onClick={() => refetch()}>Retry</Button>
       </div>
     );

@@ -314,7 +314,7 @@ export function ControlMeshVisualization({
       <Card>
         <CardContent className="flex items-center justify-center" style={{ height }}>
           <div className="text-center space-y-3">
-            <p className="text-destructive text-sm">Failed to load control mesh</p>
+            <p className="text-destructive text-sm">Failed to load control mesh visualization. Please check your connection and try again.</p>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4 mr-2" /> Retry
             </Button>
@@ -541,7 +541,21 @@ export function ControlMeshVisualization({
               connection{filteredData.edges.filter((e: MeshEdge) => e.source === selectedNode.id || e.target === selectedNode.id).length !== 1 ? 's' : ''}
             </p>
 
-            <Button variant="outline" size="sm" className="w-full text-[10px] h-7" onClick={() => {}}>
+            <Button variant="outline" size="sm" className="w-full text-[10px] h-7" onClick={() => {
+              const edges = filteredData.edges.filter(
+                (e: MeshEdge) => e.source === selectedNode.id || e.target === selectedNode.id
+              );
+              const edgeLabels = edges.map(e => `${e.label} (${e.type})`).join(', ');
+              alert(
+                `Node: ${selectedNode.label}\n` +
+                `ID: ${selectedNode.id}\n` +
+                `Type: ${selectedNode.type}\n` +
+                `Framework: ${FRAMEWORK_NAMES[selectedNode.framework] || selectedNode.framework}\n` +
+                `Status: ${selectedNode.status || 'N/A'}\n` +
+                `Connections: ${edges.length}\n` +
+                `Edges: ${edgeLabels || 'None'}`
+              );
+            }}>
               <Share2 className="w-3 h-3 mr-1" /> View Details
             </Button>
           </div>

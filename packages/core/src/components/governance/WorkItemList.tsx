@@ -66,7 +66,7 @@ export function WorkItemList({ clientId }: WorkItemListProps) {
             refetch();
         },
         onError: (err) => {
-            toast.error("Failed to update task");
+            toast.error(`Failed to update task: ${err.message || 'Please check your connection and try again.'}`);
         }
     });
 
@@ -126,7 +126,7 @@ export function WorkItemList({ clientId }: WorkItemListProps) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <Tabs value={activeTab} onValueChange={onTabChange} className="w-[400px]">
+                <Tabs value={activeTab} onValueChange={onTabChange} className="w-full sm:w-[400px]">
                     <TabsList className="bg-slate-100">
                         <TabsTrigger
                             value="all"

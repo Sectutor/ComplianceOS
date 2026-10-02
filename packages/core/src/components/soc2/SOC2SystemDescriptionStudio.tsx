@@ -233,7 +233,7 @@ export function SOC2SystemDescriptionStudio({
             toast.success("Section III System Description saved and audit-synchronized!");
         },
         onError: (err) => {
-            toast.error("Failed to save: " + err.message);
+            toast.error("Failed to save SOC 2 System Description: " + (err.message || 'Please check your connection and try again.'));
         }
     });
 

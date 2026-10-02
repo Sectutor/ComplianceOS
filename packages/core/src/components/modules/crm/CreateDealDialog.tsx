@@ -45,7 +45,7 @@ export function CreateDealDialog({ trigger, onSuccess }: CreateDealDialogProps) 
             onSuccess?.();
         },
         onError: (err) => {
-            toast.error(`Failed to create deal: ${err.message}`);
+            toast.error(`Failed to create deal: ${err.message || 'Please check your connection and try again.'}`);
         }
     });
 

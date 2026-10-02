@@ -364,7 +364,7 @@ export const createStudioRouter = (t: any, protectedProcedure: any) => {
                     if (!extractedText || extractedText.trim().length < 10) {
                         throw new TRPCError({
                             code: "BAD_REQUEST",
-                            message: "Could not extract sufficient text from the file."
+                            message: "Could not extract sufficient text from the file. Please try a different file."
                         });
                     }
 

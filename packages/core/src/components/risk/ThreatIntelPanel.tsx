@@ -58,7 +58,7 @@ export function ThreatIntelPanel({
             toast.success(`Found ${data.suggestions.length} potential vulnerabilities`);
             refetch();
         },
-        onError: (err) => toast.error(`Scan failed: ${err.message}`),
+        onError: (err) => toast.error("NVD scan failed", { description: err.message || "Please ensure vendor and product name are configured and try again." }),
     });
 
     // Update status mutation
@@ -75,7 +75,7 @@ export function ThreatIntelPanel({
             refetch();
             onVulnerabilityImported?.();
         },
-        onError: (err) => toast.error(`Import failed: ${err.message}`),
+        onError: (err) => toast.error("Failed to import CVE as vulnerability", { description: err.message || "Please try again. The CVE may already exist in your vulnerability list." }),
     });
 
     const handleScan = async () => {

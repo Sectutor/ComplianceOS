@@ -584,7 +584,7 @@ ${reportData.conclusion}
                 clientId: z.coerce.number(),
                 page: z.number().default(1),
                 limit: z.number().default(20),
-                status: z.enum(["draft", "approved", "reviewed"]).optional(),
+                status: z.enum(["draft", "approved", "reviewed", "treated", "accepted"]).optional(),
                 search: z.string().optional(),
                 sortBy: z.enum(["inherentScore", "residualScore", "createdAt", "updatedAt"]).default("updatedAt"),
                 sortOrder: z.enum(["asc", "desc"]).default("desc"),
@@ -677,7 +677,7 @@ ${reportData.conclusion}
                 vulnerabilityId: z.coerce.number().optional(),
                 likelihood: z.union([z.number(), z.string()]).transform(v => typeof v === 'string' ? parseInt(v) || 3 : v),
                 impact: z.union([z.number(), z.string()]).transform(v => typeof v === 'string' ? parseInt(v) || 3 : v),
-                status: z.enum(["draft", "approved", "reviewed"]).default("draft"),
+                status: z.enum(["draft", "approved", "reviewed", "treated", "accepted"]).default("draft"),
                 contextSnapshot: z.any().optional(),
                 riskOwner: z.string().optional(),
                 treatmentOption: z.string().optional(),
@@ -896,7 +896,7 @@ ${reportData.conclusion}
                     .where(and(
                         eq(riskAssessments.clientId, input.clientId),
                         sql`${riskTreatments.dueDate} < CURRENT_DATE`,
-                        sql`${riskTreatments.status} NOT IN ('implemented', 'completed')`
+                        sql`${riskTreatments.status} NOT IN ('implemented', 'verified')`
                     ))
                     .limit(10);
 
@@ -952,7 +952,7 @@ ${reportData.conclusion}
                         eq(riskAssessments.clientId, input.clientId),
                         sql`${riskTreatments.dueDate} >= CURRENT_DATE`,
                         sql`${riskTreatments.dueDate} <= CURRENT_DATE + INTERVAL '${sql.raw(input.days.toString())} days'`,
-                        sql`${riskTreatments.status} NOT IN ('implemented', 'completed')`
+                        sql`${riskTreatments.status} NOT IN ('implemented', 'verified')`
                     ))
                     .limit(10);
 
@@ -992,8 +992,8 @@ ${reportData.conclusion}
                         eq(riskAssessments.status, 'approved')
                     ));
 
-                // 2. Unmitigated Critical Risks (High/Critical/Extreme inherent risk with NO treatments)
-                // We find risks that match criteria and have 0 treatments
+                // 2. Unmitigated Critical Risks (High+ inherent risk with NO treatments)
+                // Threshold 9 = High per getMatrixScoreLevel — matches getRiskStats
                 const unmitigatedRisks = await db.select({
                     id: riskAssessments.id
                 })
@@ -1001,7 +1001,7 @@ ${reportData.conclusion}
                     .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
                     .where(and(
                         clientWhere,
-                        sql`${riskAssessments.inherentScore} >= 15` // High/Critical threshold
+                        sql`${riskAssessments.inherentScore} >= 9`
                     ))
                     .groupBy(riskAssessments.id)
                     .having(sql`count(${riskTreatments.id}) = 0`);
@@ -1034,7 +1034,7 @@ ${reportData.conclusion}
                     .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
                     .where(and(
                         clientWhere,
-                        sql`${riskTreatments.status} IN ('implemented', 'completed')`
+                        sql`${riskTreatments.status} IN ('implemented', 'verified')`
                     ));
 
                 const implementationRate = totalTreatments?.count > 0
@@ -1052,6 +1052,70 @@ ${reportData.conclusion}
                     avgResidualScore: 0, // Deprecating or calculate if UI still needs it
                     linkedControlsCount: 0,
                     treatmentProgress: implementationRate
+                };
+            }),
+
+        // Single source of truth for risk dashboard cards.
+        // One threshold definition: critical = inherentScore >= 9, which matches
+        // getMatrixScoreLevel (9-14 = High, 15+ = Very High) and the dashboard's
+        // previous string filter (inherentRisk IN ('High', 'Very High')).
+        getRiskStats: procedure
+            .input(z.object({ clientId: z.coerce.number() }))
+            .query(async ({ input }) => {
+                const db = await getDb();
+                const clientWhere = eq(riskAssessments.clientId, input.clientId);
+
+                const [totals] = await db.select({
+                    total: sql<number>`count(*)`,
+                    critical: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 9)`,
+                    high: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 9 and ${riskAssessments.inherentScore} < 15)`,
+                    medium: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 4 and ${riskAssessments.inherentScore} < 9)`,
+                    low: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} < 4)`,
+                    treated: sql<number>`count(*) filter (where ${riskAssessments.status} in ('treated', 'accepted'))`,
+                    active: sql<number>`count(*) filter (where ${riskAssessments.status} in ('approved', 'reviewed'))`,
+                    draft: sql<number>`count(*) filter (where ${riskAssessments.status} = 'draft')`,
+                }).from(riskAssessments).where(clientWhere);
+
+                const [overdueReviews] = await db.select({ count: sql<number>`count(*)` })
+                    .from(riskAssessments)
+                    .where(and(
+                        clientWhere,
+                        sql`${riskAssessments.nextReviewDate} < CURRENT_DATE`,
+                        eq(riskAssessments.status, 'approved')
+                    ));
+
+                // Unmitigated critical: score >= 9 with no treatment rows at all
+                const unmitigatedRows = await db.select({ id: riskAssessments.id })
+                    .from(riskAssessments)
+                    .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(and(clientWhere, sql`${riskAssessments.inherentScore} >= 9`))
+                    .groupBy(riskAssessments.id)
+                    .having(sql`count(${riskTreatments.id}) = 0`);
+
+                const [treatments] = await db.select({
+                    total: sql<number>`count(*)`,
+                    open: sql<number>`count(*) filter (where ${riskTreatments.status} in ('planned', 'in_progress'))`,
+                    done: sql<number>`count(*) filter (where ${riskTreatments.status} in ('implemented', 'verified'))`,
+                    overdue: sql<number>`count(*) filter (where ${riskTreatments.dueDate} < CURRENT_DATE and ${riskTreatments.status} not in ('implemented', 'verified'))`,
+                }).from(riskTreatments)
+                    .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+                    .where(clientWhere);
+
+                return {
+                    totalRisks: Number(totals?.total || 0),
+                    criticalRisks: Number(totals?.critical || 0),
+                    highRisks: Number(totals?.high || 0),
+                    mediumRisks: Number(totals?.medium || 0),
+                    lowRisks: Number(totals?.low || 0),
+                    treatedRisks: Number(totals?.treated || 0),
+                    activeRisks: Number(totals?.active || 0),
+                    draftRisks: Number(totals?.draft || 0),
+                    overdueReviews: Number(overdueReviews?.count || 0),
+                    unmitigatedCriticalRisks: unmitigatedRows.length,
+                    totalTreatments: Number(treatments?.total || 0),
+                    openTreatments: Number(treatments?.open || 0),
+                    completedTreatments: Number(treatments?.done || 0),
+                    overdueTreatments: Number(treatments?.overdue || 0),
                 };
             }),
 
@@ -1339,7 +1403,7 @@ ${reportData.conclusion}
                     const num = typeof v === 'string' ? parseInt(v) || 3 : v;
                     return Math.max(1, Math.min(5, num)); // Clamp to 1-5
                 }),
-                status: z.enum(["draft", "approved", "reviewed"]).default("draft"),
+                status: z.enum(["draft", "approved", "reviewed", "treated", "accepted"]).default("draft"),
                 contextSnapshot: z.any().optional(),
                 assessmentId: z.string().optional(),
                 threatDescription: z.string().optional(),
@@ -1405,7 +1469,7 @@ ${reportData.conclusion}
                     const num = typeof v === 'string' ? parseInt(v) || 3 : v;
                     return Math.max(1, Math.min(5, num)); // Clamp to 1-5
                 }).optional(),
-                status: z.enum(["draft", "approved", "reviewed"]).optional(),
+                status: z.enum(["draft", "approved", "reviewed", "treated", "accepted"]).optional(),
                 contextSnapshot: z.any().optional(),
             }))
             .mutation(async ({ input, ctx }: any) => {

@@ -50,7 +50,7 @@ export function NISTBaselineWizard({ open, onOpenChange, clientId, onSuccess }: 
             if (onSuccess) onSuccess();
         },
         onError: (err) => {
-            toast.error("Failed to apply baseline: " + err.message);
+            toast.error("Failed to apply NIST baseline", { description: err.message || "Please try again." });
         }
     });
 

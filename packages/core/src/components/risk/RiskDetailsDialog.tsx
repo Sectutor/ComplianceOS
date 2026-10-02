@@ -51,7 +51,7 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
             onOpenChange(false);
         },
         onError: (err) => {
-            toast.error("Failed to declare incident", { description: err.message });
+            toast.error("Failed to declare incident", { description: err.message || "Please try again. If the issue persists, contact your system administrator." });
         }
     });
 
@@ -77,7 +77,7 @@ export function RiskDetailsDialog({ open, onOpenChange, risk, clientId, assets }
             });
             utils.risks.getRiskTreatments.invalidate({ riskAssessmentId: risk?.id });
         },
-        onError: (err: any) => toast.error("Failed to attach control: " + err.message)
+        onError: (err: any) => toast.error("Failed to attach control", { description: err.message || "Please select at least one control and try again." })
     });
 
     const parseAffectedAssets = (assets: any): string[] => {

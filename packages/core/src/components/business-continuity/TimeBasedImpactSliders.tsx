@@ -77,7 +77,7 @@ export function TimeBasedImpactSliders({ biaId }: { biaId: number }) {
             toast.success(`Saved impact for ${interval}`);
             refetch();
         } catch (e) {
-            toast.error("Failed to save");
+            toast.error(`Failed to save impact for ${interval}. Please check your connection and try again.`);
         } finally {
             setIsSaving(false);
         }

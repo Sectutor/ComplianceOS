@@ -134,6 +134,18 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
     { enabled: !!clientId }
   );
 
+  // Business Continuity
+  const { data: bcpData, isLoading: bcpLoading } = trpc.businessContinuity.getDashboardMetrics.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId }
+  );
+
+  // Policies
+  const { data: policiesData, isLoading: policiesLoading } = trpc.clientPolicies.list.useQuery(
+    { clientId: clientId || 0 },
+    { enabled: !!clientId }
+  );
+
   // Compute domain data from real queries
   const domainData = useMemo(() => {
     if (!clientId) {
@@ -165,6 +177,16 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
     const totalControls = clientControlsData?.length || 0;
     const accessStatus = totalControls > 0 ? "good" : "neutral";
 
+    // Business Continuity
+    const totalPlans = bcpData?.totalPlans || 0;
+    const approvedPlans = bcpData?.approvedPlans || 0;
+    const bcpStatus = approvedPlans > 0 ? "good" : totalPlans > 0 ? "warning" : "neutral";
+
+    // Policies
+    const totalPolicies = policiesData?.length || 0;
+    const approvedPolicies = policiesData?.filter((p: any) => p.status === 'approved').length || 0;
+    const policyStatus = approvedPolicies > 0 ? "good" : totalPolicies > 0 ? "warning" : "neutral";
+
     return {
       risk: {
         status: riskStatus,
@@ -174,7 +196,10 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
         status: incidentStatus,
         metrics: [{ label: "Open", value: openIncidents }, { label: "Total", value: incidentsData?.length || 0 }]
       },
-      bcp: DEFAULT_DOMAIN_DATA.bcp,
+      bcp: {
+        status: bcpStatus,
+        metrics: [{ label: "Approved Plans", value: approvedPlans }, { label: "Total", value: totalPlans }]
+      },
       supply_chain: {
         status: supplyChainStatus,
         metrics: [{ label: "Vendors", value: totalVendors }, { label: "Status", value: totalVendors > 0 ? "Active" : "None" }]
@@ -191,11 +216,14 @@ export function SecurityDomainGrid({ clientId }: SecurityDomainGridProps) {
         status: accessStatus,
         metrics: [{ label: "Controls", value: totalControls }, { label: "Status", value: totalControls > 0 ? "Active" : "None" }]
       },
-      policy: DEFAULT_DOMAIN_DATA.policy,
+      policy: {
+        status: policyStatus,
+        metrics: [{ label: "Approved", value: approvedPolicies }, { label: "Total", value: totalPolicies }]
+      },
     };
-  }, [clientId, trainingData, vendorsData, risksData, incidentsData, assetsData, clientControlsData]);
+  }, [clientId, trainingData, vendorsData, risksData, incidentsData, assetsData, clientControlsData, bcpData, policiesData]);
 
-  const isLoading = trainingLoading || vendorsLoading || risksLoading || incidentsLoading || assetsLoading || controlsLoading;
+  const isLoading = trainingLoading || vendorsLoading || risksLoading || incidentsLoading || assetsLoading || controlsLoading || bcpLoading || policiesLoading;
 
   const handleDomainClick = (domainId: string, route: string) => {
     // Only navigate if we have a valid clientId

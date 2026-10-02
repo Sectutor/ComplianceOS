@@ -58,7 +58,7 @@ export function TeammatesFleetView() {
       setOpenBotModal(false);
     },
     onError: (err) => {
-      toast.error(`Failed to create teammate: ${err.message}`);
+      toast.error(`Failed to create teammate: ${err.message || 'Please check your connection and try again.'}`);
     }
   });
 
@@ -69,7 +69,7 @@ export function TeammatesFleetView() {
       setOpenBotModal(false);
     },
     onError: (err) => {
-      toast.error(`Failed to update teammate: ${err.message}`);
+      toast.error(`Failed to update teammate: ${err.message || 'Please check your connection and try again.'}`);
     }
   });
 
@@ -79,7 +79,7 @@ export function TeammatesFleetView() {
       refetchTeammates();
     },
     onError: (err) => {
-      toast.error(`Failed to delete teammate: ${err.message}`);
+      toast.error(`Failed to delete teammate: ${err.message || 'Please check your connection and try again.'}`);
     }
   });
 

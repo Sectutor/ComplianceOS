@@ -172,7 +172,7 @@ export function AddRiskAssessmentDialog({ open, onOpenChange, clientId, onSucces
             setLoading(false);
         },
         onError: (err) => {
-            toast.error(`Failed to save assessment: ${err.message}`);
+            toast.error(`Failed to save risk assessment: ${err.message || 'Please check your connection and try again.'}`);
             setLoading(false);
         }
     });
@@ -267,7 +267,7 @@ export function AddRiskAssessmentDialog({ open, onOpenChange, clientId, onSucces
             refetchTreatments();
         },
         onError: (err) => {
-            toast.error(`Failed to delete treatment: ${err.message}`);
+            toast.error(`Failed to delete risk treatment: ${err.message || 'Please check your connection and try again.'}`);
         }
     });
 

@@ -206,7 +206,9 @@ export default function CyberDashboard() {
             color: "from-rose-500 to-rose-700",
             textColor: "text-rose-600",
             bgLight: "bg-rose-50",
-            path: `/clients/${selectedClientId}/cyber/testing`,
+            // Security testing has no standalone route; the panels live inside
+            // Continuous Monitoring, so that is where this card has to point.
+            path: `/clients/${selectedClientId}/cyber/monitoring`,
             benefits: [
                 "Pentest tracking",
                 "Automated scan logs",

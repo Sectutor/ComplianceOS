@@ -18,10 +18,29 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
 
     const { data: stats, isLoading: statsLoading } = trpc.privacy.getPrivacyStats.useQuery({ clientId }, { enabled: !!clientId });
     const { data: dsars, isLoading: dsarLoading } = trpc.privacy.getDsarRequests.useQuery({ clientId }, { enabled: !!clientId });
-    const { data: assessments } = trpc.privacy.listAssessments.useQuery({ clientId }, { enabled: !!clientId });
+    // Relational privacy registries (same source as the REST v1 API)
+    const { data: dpias } = trpc.dpia.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: transfers } = trpc.transfers.list.useQuery({ clientId }, { enabled: !!clientId });
+    const { data: breaches } = trpc.dataBreaches.list.useQuery({ clientId }, { enabled: !!clientId });
 
     // Calculate pending DSARs
     const pendingDsars = dsars?.filter(d => d.status !== 'Completed' && d.status !== 'Rejected').length || 0;
+
+    // Recent privacy records merged across the DPIA / TIA / breach registries
+    const recentRecords = [
+        ...(dpias || []).map((d: any) => ({
+            key: `dpia-${d.id}`, kind: 'DPIA', title: d.title, status: d.status, updatedAt: d.updatedAt,
+            href: `/clients/${clientId}/privacy/dpia/${d.id}/questionnaire`
+        })),
+        ...(transfers || []).map((t: any) => ({
+            key: `tia-${t.id}`, kind: 'TIA', title: t.title, status: t.latestTia?.status === 'completed' ? 'completed' : 'in_progress', updatedAt: t.updatedAt,
+            href: `/clients/${clientId}/privacy/transfers/${t.id}`
+        })),
+        ...(breaches || []).map((b: any) => ({
+            key: `breach-${b.id}`, kind: 'BREACH', title: b.metadata?.title || 'Data Breach', status: b.status === 'closed' ? 'completed' : 'in_progress', updatedAt: b.updatedAt,
+            href: `/clients/${clientId}/privacy/breaches`
+        })),
+    ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 5);
 
     return (
         <div className="space-y-10 animate-in fade-in duration-500">
@@ -144,7 +163,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-slate-900 mb-1">{assessments?.filter((a: any) => a.status === 'in_progress').length || 0}</div>
+                            <div className="text-3xl font-bold text-slate-900 mb-1">{stats?.openDpiaCount || 0}</div>
                             <p className="text-xs font-medium text-slate-400">Open DPIA / TIA in queue &rarr;</p>
                         </CardContent>
                     </Card>
@@ -162,7 +181,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-slate-900 mb-1">
-                                {assessments?.filter((a: any) => a.type?.startsWith('TIA:')).length || 0}
+                                {stats?.transferCount || 0}
                             </div>
                             <p className="text-xs font-medium text-slate-400">International data transfers &rarr;</p>
                         </CardContent>
@@ -274,27 +293,17 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                 <Card id="privacy-recent-assessments" className="border-slate-200 shadow-xl shadow-slate-200/30 rounded-2xl overflow-hidden bg-white">
                     <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-6">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-slate-900">Recent Assessments</CardTitle>
+                            <CardTitle className="text-lg font-bold text-slate-900">Recent Privacy Records</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                        {assessments && assessments.length > 0 ? (
+                        {recentRecords.length > 0 ? (
                             <div className="divide-y divide-slate-100">
-                                {assessments.slice(0, 5).map(assessment => (
+                                {recentRecords.map(record => (
                                     <div
-                                        key={assessment.id}
+                                        key={record.key}
                                         className="flex items-center justify-between p-5 hover:bg-slate-50/80 transition-all cursor-pointer group"
-                                        onClick={() => {
-                                            if (assessment.type.startsWith("DPIA:")) {
-                                                setLocation(`/clients/${clientId}/privacy/dpia`);
-                                            } else if (assessment.type.startsWith("TIA:")) {
-                                                setLocation(`/clients/${clientId}/privacy/transfers`);
-                                            } else if (assessment.type.startsWith("BREACH:")) {
-                                                setLocation(`/clients/${clientId}/privacy/breaches`);
-                                            } else {
-                                                setLocation(`/clients/${clientId}/privacy/dpia`);
-                                            }
-                                        }}
+                                        onClick={() => setLocation(record.href)}
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
@@ -302,24 +311,24 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                                             </div>
                                             <div>
                                                 <p className="font-bold text-slate-900 group-hover:text-brand transition-colors truncate max-w-[200px]">
-                                                    {assessment.type.replace(/^(DPIA:|TIA:|BREACH:)\s*/, '')}
+                                                    {record.title}
                                                 </p>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-brand-bright">
-                                                        {assessment.type.split(':')[0]}
+                                                        {record.kind}
                                                     </span>
                                                     <span className="text-[10px] font-bold text-slate-300">•</span>
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                        {new Date(assessment.updatedAt).toLocaleDateString()}
+                                                        {new Date(record.updatedAt).toLocaleDateString()}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <Badge className={`border-none font-bold uppercase text-[10px] tracking-widest px-2.5 py-1 ${assessment.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                            assessment.status === 'in_progress' ? 'bg-amber-100 text-amber-700' :
+                                        <Badge className={`border-none font-bold uppercase text-[10px] tracking-widest px-2.5 py-1 ${record.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                            record.status === 'in_progress' ? 'bg-amber-100 text-amber-700' :
                                                 'bg-slate-100 text-slate-600'
-                                            }`}>
-                                            {assessment.status === 'in_progress' ? 'Active' : assessment.status}
+                                        }`}>
+                                            {record.status === 'in_progress' ? 'Active' : record.status === 'completed' ? 'Completed' : record.status}
                                         </Badge>
                                     </div>
                                 ))}
@@ -327,7 +336,7 @@ export default function PrivacyDashboard({ fullWidth }: { fullWidth?: boolean })
                         ) : (
                             <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-4">
                                 <FileText className="h-12 w-12 text-slate-200" />
-                                <p className="text-slate-400 font-medium italic">No recent compliance assessments found.</p>
+                                <p className="text-slate-400 font-medium italic">No DPIAs, transfer assessments, or breach records yet.</p>
                             </div>
                         )}
                     </CardContent>
