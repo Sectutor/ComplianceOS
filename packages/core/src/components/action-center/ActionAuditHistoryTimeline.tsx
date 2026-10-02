@@ -38,6 +38,8 @@ export function ActionAuditHistoryTimeline({ actionId, clientId, initialCreatedA
       case "approved_task":
       case "approved":
         return { label: "Approved & Resolved", icon: CheckCircle2, color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" };
+      case "compliance_signoff":
+        return { label: "Compliance Sign-Off", icon: ShieldCheck, color: "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300" };
       case "rejected":
         return { label: "Dismissed / Rejected", icon: XCircle, color: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300" };
       case "promoted_to_incident":

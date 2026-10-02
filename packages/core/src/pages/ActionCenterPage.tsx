@@ -982,6 +982,39 @@ export default function ActionCenterPage() {
                   </div>
                 )}
 
+                {action.status === "executed" && (
+                  <div className="mb-3.5 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200 font-medium">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>
+                        <strong>Remediated &amp; Closed:</strong> {action.metadata?.fixResult?.resolutionName || action.title}
+                        {action.reviewedAt && ` • Approved on ${new Date(action.reviewedAt).toLocaleDateString()}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {action.metadata?.fixResult?.workItemId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setLocation(`/clients/${clientId}/governance/workbench`)}
+                          className="h-6 px-2 text-[11px] font-bold text-blue-700 dark:text-blue-300 hover:text-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Open Workbench</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Button>
+                      )}
+                      {action.metadata?.fixResult?.destination && !action.metadata?.fixResult?.workItemId && (
+                        <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                          {action.metadata.fixResult.destination}
+                        </span>
+                      )}
+                      <Badge className="bg-emerald-600 text-white font-bold text-[10px] shrink-0">
+                        Remediated
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
                 {/* Card Top Row: Checkbox, Bot Badge, Priority, Detection Date, and Actions */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1491,10 +1524,15 @@ export default function ActionCenterPage() {
         onSuccess={(result) => {
           toast.success(`Remediation logged: "${result.resolutionName}"`, {
             description: `Routed to: ${result.destination}. Visible under Remediated view.`,
-            action: {
-              label: "View in Remediated",
-              onClick: () => setWorkflowFilter("executed"),
-            },
+            action: result.workItemId
+              ? {
+                  label: "Open in Workbench",
+                  onClick: () => setLocation(`/clients/${clientId}/governance/workbench`),
+                }
+              : {
+                  label: "View in Remediated",
+                  onClick: () => setWorkflowFilter("executed"),
+                },
           });
           utils.sentinel.listActions.invalidate({ clientId });
           utils.sentinel.getStats.invalidate({ clientId });

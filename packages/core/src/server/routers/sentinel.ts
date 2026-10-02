@@ -423,8 +423,13 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         // 2. Pure Compliance Sign-Off path (marked resolved without generating an open task)
         if (input.resolutionMode === "compliance_signoff") {
           const targetClientId = Number(meta.clientId ?? input.clientId);
+          const destination = "Archived in Remediated Findings & Compliance Audit Trail";
           await db.execute(sql`
-            UPDATE autopilot_actions SET status = 'executed', reviewed_by = ${reviewerId}, reviewed_at = now()
+            UPDATE autopilot_actions
+            SET status = 'executed',
+                reviewed_by = ${reviewerId},
+                reviewed_at = now(),
+                metadata = jsonb_set(coalesce(metadata,'{}'::jsonb), '{fixResult}', ${JSON.stringify({ resolutionName: effectiveTitle, destination, mode: 'compliance_signoff' })}::jsonb)
             WHERE id = ${input.actionId}`);
 
           await logActionHistory(db, {
@@ -490,8 +495,13 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
             ${dueDateIso}::timestamptz, ${assignedUserId}, ${assignedEmployeeId}, false, now(), now())
           RETURNING id`).then((r: any) => r.rows ?? r);
 
+        const destination = `Work Items Inbox (Task #${newWorkItem?.id || ''})`;
         await db.execute(sql`
-          UPDATE autopilot_actions SET status = 'executed', reviewed_by = ${reviewerId}, reviewed_at = now()
+          UPDATE autopilot_actions
+          SET status = 'executed',
+              reviewed_by = ${reviewerId},
+              reviewed_at = now(),
+              metadata = jsonb_set(coalesce(metadata,'{}'::jsonb), '{fixResult}', ${JSON.stringify({ resolutionName: effectiveTitle, destination, workItemId: newWorkItem?.id, mode: 'create_task' })}::jsonb)
           WHERE id = ${input.actionId}`);
 
         await logActionHistory(db, {
