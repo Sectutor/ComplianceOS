@@ -321,6 +321,8 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         clientId: z.number().optional(),
         actionId: z.coerce.number(),
         decision: z.enum(["approved", "rejected"]),
+        resolutionName: z.string().optional(),
+        resolutionMode: z.enum(["direct_patch", "create_task", "compliance_signoff"]).optional(),
         assigneeType: z.enum(["user", "employee", "agent", "unassigned"]).optional(),
         assigneeId: z.number().optional(),
         assignedAgent: z.string().optional(),
@@ -331,11 +333,12 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         const db = await getDb();
         if (!db) return { success: false };
         const reviewerId = ctx.user?.id ? Number(ctx.user.id) : null;
+        const reviewerName = ctx.user?.name || ctx.user?.email || "Reviewer";
 
         // Fetch the action row FIRST for both decisions: unknown ids must fail loudly
         // instead of fabricating an empty row and marking a ghost action executed.
         const rows = await db.execute(sql`
-          SELECT metadata, title, ai_rationale, priority FROM autopilot_actions WHERE id = ${input.actionId} LIMIT 1`).then((r: any) => r.rows ?? r);
+          SELECT metadata, title, ai_rationale, priority, status FROM autopilot_actions WHERE id = ${input.actionId} LIMIT 1`).then((r: any) => r.rows ?? r);
         if (!rows.length) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Sentinel action not found" });
         }
@@ -348,9 +351,10 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
 
           await logActionHistory(db, {
             actionId: input.actionId,
-            clientId: Number(meta.clientId ?? input.clientId ?? 0),
+            clientId: Number(input.clientId ?? 0),
             actorType: 'user',
             actorId: reviewerId,
+            actorName: reviewerName,
             actionType: 'rejected',
             previousStatus: actionRow.status,
             newStatus: 'rejected',
@@ -359,16 +363,16 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
 
           return { success: true, executed: false };
         }
-        // approved → execute the proposed task creation with delegation
+
+        // approved → execute the proposed task creation, patch application, or compliance sign-off
         const meta = actionRow?.metadata ? (typeof actionRow.metadata === "string" ? JSON.parse(actionRow.metadata) : actionRow.metadata) : {};
         const pa = meta.proposedAction || {};
         const proposedFix = meta.proposedFix || null;
+        const effectiveTitle = (input.resolutionName || actionRow?.title || "Remediation Task").trim();
 
-        // Agent-fix path: a drafted patch (policy content, control status, …)
-        // staged by the War Room agent. Apply it directly to the live entity.
-        if (proposedFix && typeof proposedFix === "object" && Object.keys(proposedFix).length > 0) {
+        // 1. Direct Entity Patch path (if user chose direct_patch or concrete fix exists and not overridden to create_task)
+        if (input.resolutionMode !== "create_task" && input.resolutionMode !== "compliance_signoff" && proposedFix && typeof proposedFix === "object" && Object.keys(proposedFix).length > 0) {
           const fix = proposedFix as Record<string, unknown>;
-          // Ensure entity context: prefer the fix's own, fall back to targetEntity.
           if (!fix.entityType && meta.targetEntity) fix.entityType = (meta.targetEntity as any)?.entityType;
           if (!fix.entityId && meta.targetEntity) fix.entityId = (meta.targetEntity as any)?.entityId;
 
@@ -388,7 +392,7 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
             SET status = ${result.success ? 'executed' : 'failed'},
                 reviewed_by = ${reviewerId},
                 reviewed_at = now(),
-                metadata = jsonb_set(coalesce(metadata,'{}'::jsonb), '{fixResult}', ${JSON.stringify(result)}::jsonb)
+                metadata = jsonb_set(coalesce(metadata,'{}'::jsonb), '{fixResult}', ${JSON.stringify({ ...result, resolutionName: effectiveTitle })}::jsonb)
             WHERE id = ${input.actionId}`);
 
           await logActionHistory(db, {
@@ -396,10 +400,11 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
             clientId: fixClientId,
             actorType: 'user',
             actorId: reviewerId,
+            actorName: reviewerName,
             actionType: 'approved_fix',
             previousStatus: actionRow.status,
             newStatus: result.success ? 'executed' : 'failed',
-            notes: result.success ? `Fix applied to ${result.applied}.` : `Fix failed: ${result.error}`,
+            notes: `Applied as "${effectiveTitle}". ${input.customNotes || (result.success ? `Fix applied to ${result.applied}.` : `Fix failed: ${result.error}`)}`,
             patchPayload: fix,
           });
 
@@ -407,12 +412,43 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
             success: result.success,
             executed: result.success,
             applied: result.applied,
+            resolutionName: effectiveTitle,
+            destination: `Updated ${result.applied}`,
             detail: result.success
-              ? `Fix applied to ${result.applied}.`
+              ? `Remediation applied to ${result.applied} as "${effectiveTitle}".`
               : `Fix failed: ${result.error}`,
           };
         }
 
+        // 2. Pure Compliance Sign-Off path (marked resolved without generating an open task)
+        if (input.resolutionMode === "compliance_signoff") {
+          const targetClientId = Number(meta.clientId ?? input.clientId);
+          await db.execute(sql`
+            UPDATE autopilot_actions SET status = 'executed', reviewed_by = ${reviewerId}, reviewed_at = now()
+            WHERE id = ${input.actionId}`);
+
+          await logActionHistory(db, {
+            actionId: input.actionId,
+            clientId: targetClientId,
+            actorType: 'user',
+            actorId: reviewerId,
+            actorName: reviewerName,
+            actionType: 'compliance_signoff',
+            previousStatus: actionRow.status,
+            newStatus: 'executed',
+            notes: `Remediation signed off as "${effectiveTitle}". Notes: ${input.customNotes || 'Attested by compliance reviewer.'}`,
+          });
+
+          return {
+            success: true,
+            executed: true,
+            resolutionName: effectiveTitle,
+            destination: "Archived in Remediated Findings & Compliance Audit Trail",
+            detail: `Finding signed off as "${effectiveTitle}".`,
+          };
+        }
+
+        // 3. Governance Work Item Creation path (default)
         const validTypes = new Set([
           "review", "approval", "evidence_collection", "raci_assignment", "risk_treatment",
           "vendor_assessment", "bcp_approval", "policy_review", "control_implementation",
@@ -422,13 +458,12 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
         const days = Number(input.dueInDays ?? pa.dueInDays ?? 14) || 14;
         const dueDate = new Date(Date.now() + days * 86400000);
         const dueDateIso = dueDate.toISOString();
-        const title = actionRow?.title || "Bot finding";
         const rationale = actionRow?.ai_rationale || "";
         const targetClientId = Number(meta.clientId ?? input.clientId);
         if (!Number.isInteger(targetClientId) || targetClientId <= 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `Cannot execute sentinel action ${input.actionId}: no resolvable clientId. A valid clientId (from action metadata or the request) is required to execute this action.`,
+            message: `Cannot execute sentinel action ${input.actionId}: no resolvable clientId. A valid clientId is required.`,
           });
         }
 
@@ -437,22 +472,23 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
           delegationNote = `\n\n🤖 Delegated to Autonomous Agent: ${String(input.assignedAgent).toUpperCase()}`;
         }
         if (input.customNotes) {
-          delegationNote += `\n\nReviewer Instructions:\n${String(input.customNotes)}`;
+          delegationNote += `\n\nReviewer Implementation Notes:\n${String(input.customNotes)}`;
         }
 
         const assignedUserId = input.assigneeType === "user" && input.assigneeId ? Number(input.assigneeId) : null;
         const assignedEmployeeId = input.assigneeType === "employee" && input.assigneeId ? Number(input.assigneeId) : null;
 
-        await db.execute(sql`
+        const [newWorkItem] = await db.execute(sql`
           INSERT INTO work_items
             (client_id, type, status, priority, title, description, entity_type, due_date, assigned_to_user_id, assigned_to_employee_id, is_escalated, created_at, updated_at)
           VALUES (
             ${targetClientId}, ${taskType}::work_item_type, 'pending'::work_item_status,
             ${(pa.priority || actionRow.priority || "medium")}::work_item_priority,
-            ${("[Bot] " + title).slice(0, 240)},
-            ${("Approved by human reviewer.\n\nRATIONALE:\n" + rationale + delegationNote).slice(0, 3900)},
+            ${effectiveTitle.slice(0, 240)},
+            ${("Approved by human reviewer.\n\nFINDING RATIONALE:\n" + rationale + delegationNote).slice(0, 3900)},
             'task'::governance_entity_type,
-            ${dueDateIso}::timestamptz, ${assignedUserId}, ${assignedEmployeeId}, false, now(), now())`);
+            ${dueDateIso}::timestamptz, ${assignedUserId}, ${assignedEmployeeId}, false, now(), now())
+          RETURNING id`).then((r: any) => r.rows ?? r);
 
         await db.execute(sql`
           UPDATE autopilot_actions SET status = 'executed', reviewed_by = ${reviewerId}, reviewed_at = now()
@@ -463,13 +499,21 @@ export function createSentinelRouter(t: any, clientProcedure: any, adminProcedur
           clientId: targetClientId,
           actorType: 'user',
           actorId: reviewerId,
+          actorName: reviewerName,
           actionType: 'approved_task',
           previousStatus: actionRow.status,
           newStatus: 'executed',
-          notes: `Task created: ${title}`,
+          notes: `Created Work Item #${newWorkItem?.id || ''}: "${effectiveTitle}". ${input.customNotes || ''}`.trim(),
         });
 
-        return { success: true, executed: true };
+        return {
+          success: true,
+          executed: true,
+          resolutionName: effectiveTitle,
+          workItemId: newWorkItem?.id || null,
+          destination: `Work Items Inbox (Task #${newWorkItem?.id || ''})`,
+          detail: `Created task "${effectiveTitle}" in Work Items backlog.`,
+        };
       }),
 
     /** Delegate finding: to Human team member (creates work item with RACI) or Autonomous Agent (with mandatory HITL reviewer) */

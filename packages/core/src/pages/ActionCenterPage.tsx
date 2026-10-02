@@ -58,6 +58,7 @@ import {
 import { toast } from "sonner";
 import { ActionEscalateDialog } from "@/components/action-center/ActionEscalateDialog";
 import { ActionAcceptRiskDialog } from "@/components/action-center/ActionAcceptRiskDialog";
+import { ActionApproveDialog } from "@/components/action-center/ActionApproveDialog";
 import { ActionAuditHistoryTimeline } from "@/components/action-center/ActionAuditHistoryTimeline";
 
 export default function ActionCenterPage() {
@@ -97,6 +98,7 @@ export default function ActionCenterPage() {
   // Escalation & Risk Acceptance Dialog States
   const [escalatingAction, setEscalatingAction] = useState<any | null>(null);
   const [acceptingRiskAction, setAcceptingRiskAction] = useState<any | null>(null);
+  const [approvingAction, setApprovingAction] = useState<any | null>(null);
 
   // Delegation Modal States (Human vs Agent with HITL Reviewer)
   const [delegateDialogAction, setDelegateDialogAction] = useState<any | null>(null);
@@ -1032,8 +1034,7 @@ export default function ActionCenterPage() {
                       <>
                         <Button
                           size="sm"
-                          onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
-                          disabled={reviewAction.isPending}
+                          onClick={() => setApprovingAction(action)}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1065,8 +1066,7 @@ export default function ActionCenterPage() {
                       <>
                         <Button
                           size="sm"
-                          onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
-                          disabled={reviewAction.isPending}
+                          onClick={() => setApprovingAction(action)}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -1134,8 +1134,7 @@ export default function ActionCenterPage() {
                       <>
                         <Button
                           size="sm"
-                          onClick={() => reviewAction.mutate({ clientId, actionId: action.id, decision: "approved" })}
-                          disabled={reviewAction.isPending}
+                          onClick={() => setApprovingAction(action)}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-8 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -1483,6 +1482,26 @@ export default function ActionCenterPage() {
         }}
       />
 
+      {/* Approve & Apply Remediation Dialog Component */}
+      <ActionApproveDialog
+        action={approvingAction}
+        clientId={clientId}
+        open={!!approvingAction}
+        onOpenChange={(open) => !open && setApprovingAction(null)}
+        onSuccess={(result) => {
+          toast.success(`Remediation logged: "${result.resolutionName}"`, {
+            description: `Routed to: ${result.destination}. Visible under Remediated view.`,
+            action: {
+              label: "View in Remediated",
+              onClick: () => setWorkflowFilter("executed"),
+            },
+          });
+          utils.sentinel.listActions.invalidate({ clientId });
+          utils.sentinel.getStats.invalidate({ clientId });
+          setApprovingAction(null);
+        }}
+      />
+
       {/* Promote to Incident Dialog */}
       <Dialog open={!!promoteIncidentAction} onOpenChange={(open) => !open && setPromoteIncidentAction(null)}>
         <DialogContent className="max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-xl">
@@ -1784,13 +1803,13 @@ export default function ActionCenterPage() {
                       <Button
                         size="sm"
                         onClick={() => {
-                          reviewAction.mutate({ clientId, actionId: act.id, decision: "approved" });
+                          const target = act;
                           setInspectingActionId(null);
+                          setApprovingAction(target);
                         }}
-                        disabled={reviewAction.isPending}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-9 px-3.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
                       >
-                        <Check className="w-3.5 h-3.5" /> Approve Fix
+                        <Check className="w-3.5 h-3.5" /> Approve Fix...
                       </Button>
                     </div>
                   </DialogFooter>
