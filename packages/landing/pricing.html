@@ -1055,13 +1055,11 @@
 
         function updateCalc() {
             const proData = PRICING_DATA.pro;
-            const lifeData = PRICING_DATA.lifetime;
             const hasInstall = document.getElementById('calc-add-install').checked;
             const hasSprint = document.getElementById('calc-add-sprint').checked;
 
-            const baseData = calcTier === 'pro' ? proData : lifeData;
-            const baseStandard = baseData.standard;
-            const discount = isFounding ? baseData.discount : 0;
+            const baseStandard = proData.standard;
+            const discount = isFounding ? proData.discount : 0;
             const baseFinal = baseStandard - discount;
 
             let addOnsTotal = 0;
@@ -1113,8 +1111,9 @@
             if (hasSprint) services.push('sprint');
             const servicesParam = services.length > 0 ? `&services=${services.join(',')}` : '';
 
+            const billingParam = calcTier === 'lifetime' ? 'lifetime' : 'yearly';
             document.getElementById('calc-checkout-btn').href =
-                `https://app.grcompliance.com/signup?tier=business&billing=${calcTier}${codeParam}${servicesParam}`;
+                `https://app.grcompliance.com/signup?tier=business&billing=${billingParam}${codeParam}${servicesParam}`;
         }
 
         // Initialize state on load
