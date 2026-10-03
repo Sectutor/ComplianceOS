@@ -113,14 +113,11 @@ read_report.ts
 index.ts
 db.ts
 routers.ts
-addon-init.ts
-env-loader.ts
 emailNotification.ts
 policyExport.ts
 policyZipExport.ts
 drizzle.license.config.ts
 start.bat
-server_entry.ts
 server-enterprise.ts
 
 # Local Netlify folder

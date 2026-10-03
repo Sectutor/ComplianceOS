@@ -1,0 +1,1065 @@
+// CRITICAL: Polyfill MUST run before any other code is evaluated
+(function polyfill() {
+    const g: any = typeof globalThis !== 'undefined' ? globalThis : typeof global !== 'undefined' ? global : {};
+
+    // Core Graphics
+    if (typeof g.DOMMatrix === 'undefined') {
+        g.DOMMatrix = class DOMMatrix {
+            constructor() { }
+            static fromFloat32Array() { return new DOMMatrix(); }
+            static fromFloat64Array() { return new DOMMatrix(); }
+            static fromMatrix() { return new DOMMatrix(); }
+        };
+        if (typeof global !== 'undefined') (global as any).DOMMatrix = g.DOMMatrix;
+    }
+
+    // Minimal Location for libraries that expect it
+    if (typeof (g as any).location === 'undefined') {
+        (g as any).location = {
+            href: 'https://app.grcompliance.com/',
+            origin: 'https://app.grcompliance.com',
+            protocol: 'https:',
+            host: 'app.grcompliance.com',
+            hostname: 'app.grcompliance.com',
+            pathname: '/',
+            search: '',
+            hash: '',
+            toString: () => 'https://app.grcompliance.com/',
+        };
+    }
+})();
+
+import './env-loader';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import { appRouter } from './packages/core/src/routers';
+import { createContext } from './packages/core/src/server/context';
+import { authMiddleware } from './packages/core/src/authMiddleware';
+import { getDb, resetDb, ensureDefaultDataSeeded } from './packages/core/src/db';
+import { sql } from 'drizzle-orm';
+import { exportRouter } from './packages/core/src/server/routers/export';
+import { uploadRouter } from './packages/core/src/server/routers/upload';
+import { aiRouter } from './packages/core/src/server/routers/ai';
+import { gumroadWebhookRouter } from './packages/core/src/server/webhooks/gumroad';
+import { purchaseWebhookRouter } from './packages/core/src/server/webhooks/purchase';
+import * as threatScheduler from './packages/core/src/server/services/threatScheduler';
+import * as licenseRenewalScheduler from './packages/core/src/server/services/licenseRenewalScheduler';
+import * as policyReviewScheduler from './packages/core/src/server/services/policyReviewScheduler';
+import * as evidenceRenewalScheduler from './packages/core/src/server/services/evidenceRenewalScheduler';
+import * as policyAckReminderScheduler from './packages/core/src/server/services/policyAckReminderScheduler';
+import * as evidenceExpirationScheduler from './packages/core/src/server/services/evidenceExpirationScheduler';
+import * as controlAutoTestScheduler from './packages/core/src/server/services/controlAutoTestScheduler';
+import * as accessReviewScheduler from './packages/core/src/server/services/accessReviewScheduler';
+import { startEvidenceScheduler } from './packages/core/src/lib/evidenceScheduler';
+import { startVfsAutoSyncScheduler } from './packages/core/src/lib/memory/vfsAutoSyncScheduler';
+
+import redis from './packages/core/src/lib/redis';
+import * as crypto from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
+import { rateLimit } from 'express-rate-limit';
+import { validateSecrets } from './packages/core/src/lib/secrets';
+import { logTelemetryStatus, isTelemetryAllowed } from './packages/core/src/lib/telemetry';
+import { readCachedLicense, enforceLicense } from './packages/core/src/lib/license/local-license-cache';
+import { jobRouter } from './packages/core/src/server/routers/jobs';
+import { localAuth } from './packages/core/src/lib/auth/local-auth';
+import { apiV1Router } from './packages/core/src/server/routers/api-v1';
+import { clients, riskAssessments, controls, clientControls, evidence, vendors, clientPolicies } from './packages/core/src/schema';
+import { llmService } from './packages/core/src/lib/llm/service';
+
+// V14.1.2: Strict production secrets validation (AL 3)
+validateSecrets();
+import helmet from 'helmet';
+
+// Sourced from package.json so health/version always report the real release.
+const APP_VERSION = (() => {
+    try {
+        const pkg = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'));
+        return pkg.version || '0.0.0';
+    } catch {
+        return '0.0.0';
+    }
+})();
+
+import compression from 'compression';
+
+export const app = express();
+
+// Proxy trust for req.ip / rate-limit identity. Default 'loopback' trusts a
+// local reverse proxy (the standard self-host topology: Traefik/Nginx in
+// front on the same host) while ignoring client-supplied X-Forwarded-For on
+// direct connections — so rate-limit buckets cannot be reset by spoofing the
+// header. Override with TRUST_PROXY=<comma-separated IPs|loopback|number|false>
+// when the proxy is not on loopback.
+const trustProxy = process.env.TRUST_PROXY || 'loopback';
+if (trustProxy === 'false') {
+    app.set('trust proxy', false);
+} else if (trustProxy === 'true' || /^-?\d+$/.test(trustProxy)) {
+    app.set('trust proxy', trustProxy === 'true' ? true : Number(trustProxy));
+} else {
+    app.set('trust proxy', trustProxy.split(',').map((s) => s.trim()).filter(Boolean));
+}
+console.log(`[Express] trust proxy: ${trustProxy}`);
+
+// High-Performance Gzip/Deflate compression for all API payloads and static transfers
+app.use(compression({
+    level: 6,
+    threshold: 1024, // Compress any response larger than 1KB
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
+
+// Health Check - Moving to top to bypass potential middleware issues
+app.get(['/health', '/api/health'], async (req, res) => {
+    try {
+        const dbConn = await getDb();
+        await dbConn.execute(sql`SELECT 1`);
+
+        // License status
+        const cached = readCachedLicense();
+        const enforcement = enforceLicense();
+        const license = cached ? {
+            tier: cached.tier,
+            status: cached.status,
+            expiresAt: cached.expiresAt,
+            graceDaysRemaining: enforcement.graceDaysRemaining,
+        } : {
+            tier: enforcement.tier,
+            status: enforcement.status,
+            expiresAt: null,
+            graceDaysRemaining: 0,
+        };
+
+        res.status(200).json({
+            status: 'ok',
+            database: 'connected',
+            timestamp: new Date().toISOString(),
+            license,
+            edition: process.env.VITE_ENABLE_PREMIUM === 'false' ? 'community' : 'premium',
+            version: APP_VERSION,
+        });
+    } catch (e: any) {
+        console.error('[Health] Database connection check failed:', e);
+        res.status(503).json({ status: 'error', database: 'disconnected', details: e.message });
+    }
+});
+
+// Version endpoint for ops/monitoring and support diagnostics
+app.get(['/version', '/api/version'], (_req, res) => {
+    res.status(200).json({
+        name: 'compliance-os',
+        version: APP_VERSION,
+        node: process.version,
+        env: process.env.NODE_ENV || 'development',
+        buildType: process.env.BUILD_TYPE || 'AGPLv3',
+        uptimeSeconds: Math.floor(process.uptime()),
+    });
+});
+const port = process.env.PORT || 3002;
+// Force restart
+console.log(`[Server] Initializing... Last update: ${new Date().toISOString()}`);
+
+// Auto-seed default data
+ensureDefaultDataSeeded().then(() => {
+    console.log('[Server] Default data seeding check completed.');
+}).catch(err => {
+    console.error('[Server] Default data seeding failed:', err);
+});
+
+process.on('uncaughtException', (err: any) => {
+    console.error('[FATAL] Uncaught Exception:', {
+        message: err?.message,
+        code: err?.code,
+        stack: err?.stack,
+        details: err
+    });
+    // Reset DB pool on connection-related errors to allow recovery
+    if (err?.code === 'ERR_INVALID_ARG_TYPE' || err?.message?.includes('connect') || err?.message?.includes('address')) {
+        console.warn('[DB] Resetting DB pool due to uncaughtException...');
+        resetDb().catch(() => { });
+    }
+    // Do NOT exit — let the server recover gracefully
+});
+
+process.on('unhandledRejection', (reason: any, promise) => {
+    console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+    // Reset DB pool on connection-related errors so the next request reconnects cleanly
+    if (reason?.code === 'ERR_INVALID_ARG_TYPE' || reason?.message?.includes('connect') || reason?.message?.includes('address') || reason?.code === 'ECONNRESET' || reason?.code === 'ECONNREFUSED' || reason?.message?.includes('db.select')) {
+        console.warn('[DB] Resetting DB pool due to unhandledRejection...');
+        resetDb().catch(() => { });
+    }
+    // Do NOT exit — TRPC and Express will surface the error as a 500
+});
+
+console.log('[Server Start] Environment Check:');
+console.log(`- DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'MISSING'}`);
+console.log(`- SUPABASE_URL: ${process.env.VITE_SUPABASE_URL ? 'Set' : 'MISSING'}`);
+console.log(`- EDITION: ${process.env.VITE_ENABLE_PREMIUM === 'false' ? 'CORE (Open Source)' : 'PREMIUM (Full Access)'}`);
+console.log(`- REDIS: ${process.env.REDIS_HOST ? 'Configured' : 'Disabled'}`);
+console.log(`- NO_TELEMETRY: ${process.env.NO_TELEMETRY === 'true' ? 'ON (outbound blocked)' : 'OFF'}`);
+console.log(`- ENABLE_AI: ${process.env.ENABLE_AI === 'true' ? 'ON' : 'OFF'}`);
+console.log(`- APP_ENCRYPTION_KEY: ${process.env.APP_ENCRYPTION_KEY ? 'Set' : 'MISSING - single-user mode'}`);
+logTelemetryStatus();
+
+
+// Add request logging for ALL routes BEFORE anything else
+app.use((req, res, next) => {
+    // SECURITY: Only log path, not query params (may contain tokens)
+    const pathOnly = req.path;
+    console.log(`[Incoming] ${req.method} ${pathOnly}`);
+    next();
+});
+
+// HTTPS enforcement in production
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+        return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+});
+
+// Security headers — relaxed for local dev, strict in production
+
+const isLocalDev = process.env.NODE_ENV === 'development' || process.env.AUTH_MODE === 'local';
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+            scriptSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "*"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+        },
+    },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: isLocalDev ? false : { maxAge: 31536000, includeSubDomains: true, preload: true },
+    xContentTypeOptions: true,
+    xFrameOptions: { action: "deny" },
+    xPermittedCrossDomainPolicies: { permittedPolicies: "none" },
+}));
+
+// Additional OWASP Security Headers
+app.use((req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+});
+
+
+// Configure CORS
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
+console.log('[CORS] Allowed Origins:', allowedOrigins);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Strict origin validation
+        const isLocal = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
+        const isAllowedProd =
+            allowedOrigins.indexOf(origin) !== -1 ||
+            origin.endsWith('.netlify.app') ||
+            origin === 'https://grcompliance.netlify.app' ||
+            origin === 'https://grcompliance.com' ||
+            origin === 'https://www.grcompliance.com' ||
+            origin === 'https://app.grcompliance.com' ||
+            origin.endsWith('.grcompliance.com');
+
+        // Always allow localhost/127.0.0.1 for local development ease, regardless of NODE_ENV
+        // This unblocks local testing where ports might vary (e.g., landing on 5174, app on 5173)
+        if (isAllowedProd || isLocal) {
+            callback(null, true);
+        } else {
+            console.error(`[CORS] Rejected origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
+// Parse JSON bodies (though TRPC handles its own, auth middleware might need it if used for other routes)
+// Parse JSON bodies with increased limit for uploads
+// IMPORTANT: Skip body parsing for tRPC routes - tRPC handles its own body parsing
+// and double-consumption of the body stream causes requests to hang forever.
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/trpc')) return next();
+    express.json({ limit: '50mb' })(req, res, next);
+});
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/trpc')) return next();
+    express.urlencoded({ limit: '50mb', extended: true })(req, res, next);
+});
+
+// Local auth fallback: init default admin + fast login endpoints (before sessions/rate limits)
+if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
+  const adminEmail = process.env.COMPLIANCE_ADMIN_EMAIL || 'admin@complianceos.local';
+  const dataDir = process.env.COMPLIANCEOS_DATA_DIR
+    || path.join(process.env.HOME || process.env.USERPROFILE || '/tmp', '.complianceos');
+  const passwordPath = path.join(dataDir, '.admin-password');
+  let adminPassword = process.env.COMPLIANCE_ADMIN_PASSWORD || '';
+  let generatedPassword = false;
+
+  if (!adminPassword) {
+    if (process.env.NODE_ENV === 'production') {
+      // Never fall back to a publicly-known default in production: generate a
+      // strong password, persist it 0600, and point the operator at the file.
+      // (docker-entrypoint.sh does the same for the container path.)
+      try {
+        if (existsSync(passwordPath)) {
+          adminPassword = readFileSync(passwordPath, 'utf-8').trim();
+        }
+        if (!adminPassword) {
+          adminPassword = randomBytes(12).toString('base64url');
+          mkdirSync(dataDir, { recursive: true });
+          writeFileSync(passwordPath, adminPassword, { mode: 0o600 });
+          generatedPassword = true;
+        }
+      } catch (e) {
+        console.error('[LocalAuth] Could not persist a generated admin password — refusing to start with a known default.', e);
+        process.exit(1);
+      }
+    } else {
+      // Dev convenience only.
+      adminPassword = 'Admin@ComplianceOS1';
+      generatedPassword = true;
+    }
+  }
+  localAuth.initDefaultAdmin(adminEmail, adminPassword);
+  console.log(`[LocalAuth] Local authentication active — admin: ${adminEmail}`);
+  if (generatedPassword && !process.env.COMPLIANCE_ADMIN_PASSWORD) {
+    console.log(`╔══════════════════════════════════════════════════════╗`);
+    console.log(`║  🔑 Admin login: ${adminEmail}                         ║`);
+    console.log(`║  🔑 Password stored at: ${passwordPath}`);
+    console.log(`║     (retrieve it from the file — never logged here)    ║`);
+    console.log(`╚══════════════════════════════════════════════════════╝`);
+  }
+}
+
+// Strict per-IP limiter for credential endpoints. These routes deliberately
+// sit ahead of the general /api limiter, so brute-force protection must be
+// mounted here — only failed attempts count against the budget.
+if (process.env.RATE_LIMITING_ENABLED !== 'false') {
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { status: 429, error: 'Too many login attempts. Please try again in 15 minutes.' },
+  });
+  app.use('/api/auth/local-login', authLimiter);
+  app.use('/api/auth/local-register', authLimiter);
+  console.log('[RateLimit] Auth endpoints: 10 failed attempts / 15min per IP');
+}
+
+// Local login endpoint (fast-path: evaluated before session/rate-limits/auth-guards)
+app.post('/api/auth/local-login', async (req: any, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const result = localAuth.login(email, password);
+  if (!result.success) {
+    return res.status(401).json({ error: result.error || 'Invalid credentials' });
+  }
+
+  // Sync user to database — best-effort only: the login response must never
+  // wait on a slow or wedged DB, so the sync is raced against a hard timeout.
+  try {
+    const DB_SYNC_TIMEOUT_MS = 3000;
+    const dbSync = (async () => {
+      const { getDb } = await import('./packages/core/src/db');
+      const { users } = await import('./packages/core/src/schema');
+      const { eq } = await import('drizzle-orm');
+      const dbConn = await getDb();
+
+      // Check if user exists in database
+      let dbUser = await dbConn.query.users.findFirst({
+        where: eq(users.email, email)
+      });
+
+      if (!dbUser) {
+        // Create user in database
+        const [newUser] = await dbConn.insert(users).values({
+          email,
+          name: result.user?.name || email.split('@')[0],
+          role: result.user?.role === 'admin' ? 'owner' : 'editor',
+          openId: `local-${result.user?.id || Date.now()}`,
+          loginMethod: 'local',
+          lastSignedIn: new Date(),
+        }).returning();
+        dbUser = newUser;
+      }
+
+      return dbUser;
+    })();
+
+    const dbUser = await Promise.race([
+      dbSync,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`DB sync timed out after ${DB_SYNC_TIMEOUT_MS}ms`)), DB_SYNC_TIMEOUT_MS)
+      ),
+    ]);
+
+    // Return user with database ID
+    res.json({
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        role: dbUser.role,
+      },
+      token: result.token,
+    });
+  } catch (dbErr) {
+    console.error('[LocalLogin] DB sync notice (continuing with local token):', dbErr);
+    res.json({
+      user: result.user,
+      token: result.token,
+    });
+  }
+});
+
+// Local registration endpoint
+app.post('/api/auth/local-register', (req: any, res) => {
+  // Production self-host deployments run invite-only: open registration would
+  // let anyone create an account on an internet-exposed server.
+  if (process.env.AUTH_DISABLE_REGISTRATION === 'true') {
+    return res.status(403).json({ error: 'Registration is disabled on this server. Please contact your administrator.' });
+  }
+  const { email, password, name } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const result = localAuth.register(email, password, name || undefined);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error || 'Registration failed' });
+  }
+
+  res.json({
+    user: result.user,
+    token: result.token,
+  });
+});
+
+import session from 'express-session';
+
+// Session Security Management (Item #44)
+app.use(session({
+    secret: process.env.SESSION_SECRET || process.env.APP_ENCRYPTION_KEY || 'complianceos-session-secret-key-32chars',
+    resave: false,
+    saveUninitialized: false,
+    name: '__Host-complianceos.sid',
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 12 * 60 * 60 * 1000, // 12 hours max session duration
+    }
+}));
+
+// Rate Limiting — ON by default (opt-out with RATE_LIMITING_ENABLED=false)
+if (process.env.RATE_LIMITING_ENABLED !== 'false') {
+    const limiter = rateLimit({
+        windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+        max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 300,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { status: 429, message: 'Too many requests, please try again later.' }
+    });
+    app.use('/api/', limiter);
+    console.log(`[RateLimit] Enabled: ${process.env.RATE_LIMIT_MAX_REQUESTS} reqs / ${process.env.RATE_LIMIT_WINDOW_MS}ms`);
+}
+
+
+// Apply Authentication Middleware to populate req.user (skip API v1 — has own auth)
+app.use('/api/v1', apiV1Router);
+console.log('[API v1] Compliance Agent REST API mounted at /api/v1');
+
+// API Documentation (Swagger UI + OpenAPI spec)
+const OPENAPI_DIR = path.join(process.cwd(), 'openapi');
+app.get('/api/docs', (_req: express.Request, res: express.Response) => {
+  try {
+    const html = readFileSync(path.join(OPENAPI_DIR, 'swagger.html'), 'utf-8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load API docs', code: 'DOCS_ERROR', detail: err.message });
+  }
+});
+app.get('/api/spec', (_req: express.Request, res: express.Response) => {
+  try {
+    const spec = readFileSync(path.join(OPENAPI_DIR, 'api-v1.yaml'), 'utf-8');
+    res.setHeader('Content-Type', 'application/x-yaml; charset=utf-8');
+    res.send(spec);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load API spec', code: 'SPEC_ERROR', detail: err.message });
+  }
+});
+console.log('[API docs] Swagger UI at /api/docs, spec at /api/spec');
+
+// Mount Agent Compliance REST endpoints
+import { createAgentComplianceRouter } from './packages/core/src/server/routers/agentCompliance';
+import { createAgentCompliancePhase2Router } from './packages/core/src/server/routers/agentCompliancePhase2';
+import { createAgentCompliancePhase3Router } from './packages/core/src/server/routers/agentCompliancePhase3';
+import { createAgentCompliancePhase7Router } from './packages/core/src/server/routers/agentCompliancePhase7';
+import { createAgentPortfolioRouter } from './packages/core/src/server/routers/agentCompliancePortfolio';
+import { createAgentPdfRouter } from './packages/core/src/server/routers/agentCompliancePdf';
+import { createIndustryPackRouter } from './packages/core/src/server/routers/agentComplianceIndustryPacks';
+import { realtimeComplianceStreamHandler } from './packages/core/src/server/routes/realtimeComplianceStream';
+import { prometheusMetricsHandler } from './packages/core/src/server/routes/prometheusMetrics';
+
+app.get('/metrics', prometheusMetricsHandler);
+console.log('[Prometheus] Compliance metrics endpoint mounted at GET /metrics');
+
+
+app.use('/api/v1/agent-compliance', createAgentComplianceRouter());
+app.use('/api/v1/agent-compliance', createAgentCompliancePhase2Router());
+app.use('/api/v1/agent-compliance', createAgentCompliancePhase3Router());
+app.use('/api/v1/agent-compliance', createAgentCompliancePhase7Router());
+app.use('/api/v1/agent-compliance', createAgentPortfolioRouter());
+app.use('/api/v1/agent-compliance', createAgentPdfRouter());
+app.use('/api/v1/agent-compliance', createIndustryPackRouter());
+app.get('/api/v1/compliance/stream', realtimeComplianceStreamHandler);
+console.log('[AgentCompliance] Mounted REST routers under /api/v1/agent-compliance & SSE stream under /api/v1/compliance/stream');
+
+
+// Dynamic Local Compliance Assistant Engine powered by LLMService & Live DB Telemetry
+async function streamLocalAgentResponse(
+    message: string,
+    res: express.Response,
+    conversationId: string,
+    history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    let reply = "";
+
+    try {
+        const db = await getDb();
+
+        // 1. Gather live compliance telemetry from DB to ground LLM responses
+        let telemetrySummary = "";
+        try {
+            const [allRisks, clientList, ctrlList, evList, vList, pList] = await Promise.all([
+                db.select().from(riskAssessments).limit(20),
+                db.select().from(clients).limit(10),
+                db.select().from(clientControls).limit(10),
+                db.select().from(evidence).limit(10),
+                db.select().from(vendors).limit(10),
+                db.select().from(clientPolicies).limit(10),
+            ]);
+
+            telemetrySummary = `
+=== 📊 LIVE DATABASE STATE ===
+- Total Clients: ${clientList.length} (${clientList.map(c => c.name).join(", ") || "None"})
+- Risks on Record: ${allRisks.length} (Sample: ${allRisks.slice(0, 10).map(r => `[#${r.id}] ${r.title} (${r.inherentRisk || 'Medium'})`).join(", ") || "None"})
+- Controls Assigned: ${ctrlList.length}
+- Verified Evidence Records: ${evList.length}
+- Third-Party Vendors: ${vList.length} (${vList.map(v => v.name).join(", ") || "None"})
+- Master Governance Policies: ${pList.length} (${pList.map(p => p.name).join(", ") || "None"})
+==============================`;
+        } catch (dbErr) {
+            console.warn('[streamLocalAgentResponse] DB telemetry fetch note:', dbErr);
+        }
+
+        // 2. Query the real LLM engine with conversation history for multi-turn context
+        const completion = await llmService.generate({
+            systemPrompt: `You are the ComplianceOS AI Assistant, an expert GRC, cybersecurity, and regulatory compliance co-pilot.
+You have real-time access to the user's live database state:
+${telemetrySummary}
+
+CRITICAL RULES:
+1. Answer the user's question directly, intelligently, and with deep technical accuracy.
+2. When the user asks about risks, clients, controls, policies, or vendors, refer to the live database figures above.
+3. Use clear, formatted Markdown with headings, lists, and bold text.
+4. Do NOT output canned or generic placeholder answers. Reason dynamically over the user's specific request.
+5. VERY IMPORTANT: You have access to the full conversation history above. When the user says "this risk", "that risk", "it", "them", or any reference to something mentioned earlier, look at the previous messages to understand what they are referring to. NEVER ask the user to repeat or clarify something that was already established in the conversation.`,
+            messages: history,
+            userPrompt: message,
+            temperature: 0.3,
+            maxTokens: 1200
+        });
+
+        if (completion?.text && completion.text.trim().length > 10) {
+            reply = completion.text.trim();
+        }
+    } catch (llmErr: any) {
+        console.warn('[streamLocalAgentResponse] LLM execution note:', llmErr?.message);
+    }
+
+    // 3. Graceful fallback if no LLM provider responds
+    if (!reply) {
+        const msgLower = message.toLowerCase();
+        try {
+            const db = await getDb();
+            if (msgLower.includes("risk") || msgLower.includes("threat")) {
+                const allRisks = await db.select().from(riskAssessments);
+                reply = `### 🛡️ Risk Register Summary\n\nYou currently have **${allRisks.length} risks** recorded in your Risk Register across active frameworks.`;
+            } else if (msgLower.includes("client")) {
+                const clientList = await db.select().from(clients);
+                reply = `### 🏢 Managed Client Portfolio\n\nYou are managing **${clientList.length} client organizations** in ComplianceOS.`;
+            } else {
+                reply = `### 🤖 ComplianceOS AI Assistant\n\nI have received your query: "${message}". Please ensure an active LLM provider (OpenRouter, OpenAI, or Anthropic) is configured for dynamic reasoning.`;
+            }
+        } catch {
+            reply = `### 🤖 ComplianceOS AI Assistant\n\nI have received your query: "${message}".`;
+        }
+    }
+
+    // Stream token chunks for smooth UI response
+    const chunks = reply.split(/(\s+)/);
+    for (const chunk of chunks) {
+        res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`);
+        await new Promise((r) => setTimeout(r, 10));
+    }
+    res.write(`data: ${JSON.stringify({ conversation_id: conversationId, done: true })}\n\n`);
+    res.end();
+}
+
+// Agent Chat Proxy — must be before authMiddleware
+app.post('/api/agent-chat', express.json(), async (req: any, res: express.Response) => {
+    const { message, conversation_id, history } = req.body;
+    if (!message) {
+        return res.status(400).json({ error: 'Message required' });
+    }
+
+    // Validate history: must be array of {role, content}
+    const safeHistory: Array<{ role: 'user' | 'assistant'; content: string }> = Array.isArray(history)
+        ? history
+            .filter((h: any) => h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string' && h.content.trim().length > 0)
+            .slice(-20) // Never pass more than 20 turns (safety cap)
+        : [];
+
+    const effectiveConversationId = conversation_id || crypto.randomUUID();
+    const agentUrl = process.env.AGENT_API_URL;
+    const apiKey = process.env.COMPLIANCE_API_KEY || '';
+
+    // If no external AGENT_API_URL is configured, serve instant local compliance assistant
+    if (!agentUrl || agentUrl.includes('hermes-agent')) {
+        return await streamLocalAgentResponse(message, res, effectiveConversationId, safeHistory);
+    }
+
+    try {
+        const requestBody = JSON.stringify({ message, conversation_id: effectiveConversationId, history: safeHistory });
+        const contentLength = Buffer.byteLength(requestBody, 'utf-8');
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(agentUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': contentLength.toString(),
+                'X-API-Key': apiKey,
+            },
+            body: requestBody,
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            console.warn('[Agent Proxy] External agent unavailable, using intelligent local engine fallback.');
+            return await streamLocalAgentResponse(message, res, effectiveConversationId, safeHistory);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('text/event-stream')) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            if (response.body) {
+                const reader = response.body.getReader();
+                const pump = () => {
+                    reader.read().then(({ done, value }) => {
+                        if (done) { res.end(); return; }
+                        res.write(value);
+                        pump();
+                    }).catch(() => res.end());
+                };
+                pump();
+            } else {
+                res.end();
+            }
+            return;
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '';
+        const resConvoId = data.conversation_id || effectiveConversationId;
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        res.write(`data: ${JSON.stringify({ token: content })}\n\n`);
+        res.write(`data: ${JSON.stringify({ conversation_id: resConvoId, done: true })}\n\n`);
+        res.end();
+    } catch (err: any) {
+        console.warn('[Agent Proxy Note] External agent unreachable, serving intelligent local compliance assistant fallback.');
+        return await streamLocalAgentResponse(message, res, effectiveConversationId, safeHistory);
+    }
+});
+
+app.get('/api/agent-chat-suggested', async (_req: any, res: express.Response) => {
+    try {
+        const resp = await fetch('http://hermes-agent:9090/api/suggested');
+        const data = await resp.json();
+        res.json(data);
+    } catch {
+        res.json({ questions: ['How many risks?', 'List my clients', 'Show vendors', 'What are the top risks?'] });
+    }
+});
+
+app.use(authMiddleware);
+
+
+// Secure static uploads - must be after authMiddleware
+app.use('/uploads', (req: any, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required for media access' });
+    }
+    // Sandbox everything served from /uploads: even if an HTML/SVG document
+    // somehow gets stored, the sandbox gives it an opaque origin and blocks
+    // script execution, so it cannot act as stored XSS on the app origin.
+    res.setHeader('Content-Security-Policy', 'sandbox');
+    // Optional: Check client_id in path if we structure uploads by client
+    next();
+}, express.static(path.join(process.cwd(), 'uploads')));
+
+
+
+// Production Diagnostics Endpoint - Restricted to Admins + DEBUG mode
+// Diagnostic endpoint to check polyfills
+app.get(['/debug/globals', '/api/debug/globals'], (req: express.Request, res: express.Response) => {
+    if (process.env.DEBUG !== 'true') {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    const g = global as any;
+    res.json({
+        DOMMatrix: typeof g.DOMMatrix,
+        window: typeof g.window,
+        document: typeof g.document,
+        location: typeof g.location,
+        location_type: Object.prototype.toString.call(g.location),
+        location_href: g.location?.href,
+        navigator: typeof g.navigator,
+        userAgent: g.navigator?.userAgent,
+        process_env_NETLIFY: !!process.env.NETLIFY,
+        process_env_NODE_ENV: process.env.NODE_ENV,
+    });
+});
+
+app.get(['/debug/connection', '/api/debug/connection'], async (req: any, res) => {
+    if (process.env.DEBUG !== 'true') {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
+        return res.status(403).json({ error: 'Unauthorized diagnostic access' });
+    }
+    try {
+        const db = await getDb();
+        const start = Date.now();
+        // Simple query to verify connection
+        const result = await db.execute(sql`SELECT 1 as connected`);
+        const duration = Date.now() - start;
+
+        res.json({
+            status: 'success',
+            message: 'Database connection successful',
+            duration: `${duration}ms`,
+            env: {
+                has_db_url: !!process.env.DATABASE_URL,
+                db_url_length: process.env.DATABASE_URL?.length || 0,
+                db_url_protocol: process.env.DATABASE_URL?.split('://')[0] || 'unknown',
+                has_supabase_url: !!process.env.VITE_SUPABASE_URL,
+                has_supabase_key: !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY),
+                node_env: process.env.NODE_ENV,
+            },
+            result: result
+        });
+    } catch (error: any) {
+        console.error('[Diagnostics] DB Connection Failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Database connection failed',
+            error_code: error.code,
+            error_message: error.message,
+            env_check: {
+                has_db_url: !!process.env.DATABASE_URL,
+                db_url_start: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 15) + '...' : 'MISSING',
+            }
+        });
+    }
+});
+// APIs
+app.use('/api/export', exportRouter);
+app.use('/api/upload', uploadRouter);
+
+// AI router: gated by NO_TELEMETRY / ENABLE_AI (Phase 1.2)
+if (isTelemetryAllowed('ai_drafting') || isTelemetryAllowed('ai_evidence_analysis')) {
+  app.use('/api/ai', aiRouter);
+  console.log('[Telemetry] AI router enabled (ENABLE_AI=true)');
+} else if (process.env.ENABLE_AI !== 'true') {
+  // Also register a dead-end so callers get 404 instead of hanging
+  app.use('/api/ai', (_req: express.Request, res: express.Response) => {
+    res.status(404).json({ error: 'AI endpoints are disabled. Set ENABLE_AI=true to enable.' });
+  });
+}
+
+app.use('/api/webhooks', gumroadWebhookRouter);
+app.use('/api/webhooks', purchaseWebhookRouter);
+app.use('/api/jobs', jobRouter);
+
+// Redundant local uploads removed for security
+// app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// TRPC Endpoint with request logging
+app.use(
+    '/api/trpc',
+    (req, res, next) => {
+        if (req.url === '/health' || req.url === '/api/health') return next();
+        // SECURITY: Don't log query strings (may contain tokens)
+        console.log(`[TRPC Request] ${req.method} ${req.path}`);
+        next();
+    },
+    createExpressMiddleware({
+        router: appRouter,
+        createContext,
+        onError: ({ error, type, path, req }) => {
+            console.error(`[TRPC DEBUG] ${type} error on path "${path}":`, {
+                code: error.code,
+                message: error.message,
+            });
+        },
+    })
+);
+
+// Serve static files for Docker (not Netlify serverless)
+if (!process.env.NETLIFY) {
+    console.log('[Server] Serving static files from packages/core/dist');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const distPath = path.join(__dirname, 'packages/core/dist');
+    // Serve static files with no-cache for SPA HTML, aggressive caching for assets
+    app.use(express.static(distPath, {
+        setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.html')) {
+                res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.set('Pragma', 'no-cache');
+                res.set('Expires', '0');
+            }
+        }
+    }));
+
+    // Handle SPA routing - return index.html for any unknown non-API routes
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) {
+            return next();
+        }
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+}
+
+// 404 Handler for /api routes
+app.use('/api', (req, res) => {
+    console.warn(`[404 DEBUG] Unhandled API request: ${req.method} ${req.url}`);
+    res.status(404).json({
+        error: "Procedure or API endpoint not found",
+        path: req.url,
+        method: req.method
+    });
+});
+
+// Background schedulers
+const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+const allowSchedulers = !isDev || process.env.ENABLE_DEV_SCHEDULERS === 'true';
+
+if (!allowSchedulers) {
+    console.log('[Server] Development Mode: Background schedulers paused for optimal UI responsiveness (set ENABLE_DEV_SCHEDULERS=true to activate)');
+} else {
+    // Optional background syncs
+    if (process.env.ENABLE_THREAT_SCHEDULER === 'true') {
+        threatScheduler.start();
+    }
+
+    // License renewal scheduler
+    if (process.env.ENABLE_LICENSE_RENEWAL_SCHEDULER === 'true') {
+        licenseRenewalScheduler.start();
+        console.log('[Server] License renewal scheduler started');
+    }
+
+    // Policy review scheduler
+    if (process.env.ENABLE_POLICY_REVIEW_SCHEDULER !== 'false') {
+        policyReviewScheduler.start();
+        console.log('[Server] Policy review scheduler started');
+    }
+
+    // Evidence expiration scheduler
+    if (process.env.ENABLE_EVIDENCE_EXPIRATION_SCHEDULER !== 'false') {
+        evidenceExpirationScheduler.start();
+        console.log('[Server] Evidence expiration scheduler started');
+    }
+
+    // Evidence renewal scheduler (auto-remediation, P1 #14)
+    if (process.env.ENABLE_EVIDENCE_RENEWAL_SCHEDULER !== 'false') {
+        evidenceRenewalScheduler.start();
+        console.log('[Server] Evidence renewal scheduler started');
+    }
+
+    // Policy ACK reminder scheduler (P1 #4)
+    if (process.env.ENABLE_POLICY_ACK_REMINDERS !== 'false') {
+        policyAckReminderScheduler.start();
+        console.log('[Server] Policy ACK reminder scheduler started');
+    }
+
+    // Access review overdue sweep scheduler (P2 #7)
+    if (process.env.ENABLE_ACCESS_REVIEW_SCHEDULER !== 'false') {
+        accessReviewScheduler.start();
+        console.log('[Server] Access review scheduler started');
+    }
+
+    // Control auto-testing scheduler
+    if (process.env.ENABLE_CONTROL_AUTO_TESTING_SCHEDULER !== 'false') {
+        controlAutoTestScheduler.start();
+        console.log('[Server] Control auto-testing scheduler started');
+    }
+
+    // DSAR statutory deadline scheduler (7-day warnings + overdue tasks)
+    if (process.env.ENABLE_DSAR_DEADLINE_SCHEDULER !== 'false') {
+        import('./packages/core/src/server/services/dsarDeadlineScheduler').then((m) => {
+            m.start();
+            console.log('[Server] DSAR deadline scheduler started');
+        }).catch((err) => console.error('[Server] DSAR deadline scheduler failed to start:', err?.message));
+    }
+
+    // Weekly compliance snapshot capture (populates trend charts automatically)
+    if (process.env.ENABLE_COMPLIANCE_SNAPSHOT_SCHEDULER !== 'false') {
+        import('./packages/core/src/server/services/complianceSnapshotScheduler').then((m) => {
+            m.start();
+            console.log('[Server] Compliance snapshot scheduler started');
+        }).catch((err) => console.error('[Server] Compliance snapshot scheduler failed to start:', err?.message));
+    }
+
+    // Compliance monitor hourly check (health checks + drift events)
+    if (process.env.ENABLE_COMPLIANCE_MONITOR_CRON !== 'false') {
+        import('./packages/core/src/server/cron/compliance-monitor-cron').then((m) => {
+            const run = () => m.hourlyComplianceCheck().catch((err: any) =>
+                console.error('[Server] Compliance monitor cron run failed:', err?.message));
+            setTimeout(run, 90_000); // let boot-time work settle first
+            setInterval(run, 60 * 60 * 1000);
+            console.log('[Server] Compliance monitor cron started (hourly)');
+        }).catch((err) => console.error('[Server] Compliance monitor cron failed to start:', err?.message));
+    }
+
+    // Evidence collection scheduler (automated evidence collection, P0)
+    if (process.env.ENABLE_EVIDENCE_SCHEDULER !== 'false') {
+        startEvidenceScheduler();
+        console.log('[Server] Evidence collection scheduler started');
+    }
+
+    // VFS Memory Cortex continuous background synchronization
+    if (process.env.ENABLE_VFS_AUTO_SYNC !== 'false') {
+        startVfsAutoSyncScheduler(300_000); // sync every 5 minutes automatically
+    }
+}
+
+// Addon system initialization
+if (process.env.ENABLE_ADDONS !== 'false') {
+    import('./addon-init').then(({ initializeAddonSystem }) => {
+        initializeAddonSystem().then(({ executor }) => {
+            console.log(`[Server] Addon system initialized with ${executor.listRegistered().length} addon(s)`);
+        }).catch(err => {
+            console.error('[Server] Failed to initialize addon system:', err);
+        });
+    });
+}
+
+// Global error handler to ensure all errors return JSON - MUST BE LAST
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[Server Error]', {
+        message: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+    });
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    // Handle database connection errors specifically
+    const isDbError = err.message?.includes('connect') ||
+        err.message?.includes('database') ||
+        err.message?.includes('ECONNREFUSED') ||
+        err.message?.includes('ENOTFOUND') ||
+        err.message?.includes('timeout');
+
+    const statusCode = isDbError ? 503 : 500;
+    const errorCode = isDbError ? 'DATABASE_ERROR' : 'INTERNAL_SERVER_ERROR';
+    const errorMessage = isDbError
+        ? 'Database connection error. Please try again later.'
+        : (err.message || 'Internal Server Error');
+
+    // Ensure response is always JSON, even for critical errors
+    res.status(statusCode).json({
+        message: errorMessage,
+        code: errorCode,
+        data: null,
+    });
+});
+
+// Only listen locally, Netlify calls the handler directly
+if (process.env.NODE_ENV !== 'production' || !process.env.NETLIFY) {
+    const listenAddr = process.env.LISTEN_ADDR || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
+    const server = app.listen(Number(port), listenAddr, () => {
+        console.log(`\n🚀 Server listening specifically on http://${listenAddr}:${port}`);
+        console.log(`-> Health check: http://${listenAddr}:${port}/health`);
+        console.log(`-> TRPC endpoint: http://${listenAddr}:${port}/api/trpc\n`);
+        // Agent Runtime: start the sentinel heartbeat (Phase 1)
+        import('./packages/core/src/server/runtime/agentRuntime')
+            .then(m => { m.startAgentRuntime(); })
+            .catch(e => console.warn('[Server] agent runtime failed to start:', e.message));
+        // Autonomous Fleet: start the specialist-agent heartbeat (Phase 2).
+        // Drains agent_tasks and runs each specialist as a real LLM call.
+        import('./packages/core/src/server/runtime/agentFleet')
+            .then(m => { m.startFleetRuntime(); })
+            .catch(e => console.warn('[Server] agent fleet failed to start:', e.message));
+    });
+    server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`[Server] Port ${port} is active on bound socket.`);
+        } else {
+            console.error('[Server] Listen error:', err);
+        }
+    });
+    server.timeout = 300000; // 5 minutes 
+    server.keepAliveTimeout = 300000; // 5 minutes
+    server.headersTimeout = 302000; // Keep slightly higher than keepAliveTimeout
+}
+
+
+
+
