@@ -203,7 +203,7 @@
                 </p>
             </div>
 
-            <div class="grid md:grid-cols-4 gap-6 mb-16">
+            <div class="grid md:grid-cols-4 gap-6 mb-16 items-stretch">
                 <!-- Free SaaS -->
                 <div class="rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all flex flex-col">
                     <div class="text-xs font-bold text-[#00A36C] uppercase tracking-widest mb-2">Free SaaS Trial</div>
@@ -223,57 +223,54 @@
                     </a>
                 </div>
 
-                <!-- Consultant -->
-                <div class="rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all flex flex-col">
-                    <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Consultant</div>
-                    <div class="text-4xl font-extrabold text-slate-900 mb-1">$149</div>
-                    <p class="text-slate-500 text-sm mb-6">per year · self-host</p>
+                <!-- Professional (Most Popular) -->
+                <div class="rounded-2xl border-2 border-[#00A36C] p-8 shadow-sm flex flex-col relative">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00A36C] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Popular</div>
+                    <div class="text-xs font-bold text-[#00A36C] uppercase tracking-widest mb-2">Professional</div>
+                    <div class="text-4xl font-extrabold text-slate-900 mb-1">$1,592</div>
+                    <p class="text-slate-500 text-sm mb-6">per year · self-host <span class="line-through text-slate-400">$1,990</span></p>
                     <ul class="space-y-3 text-sm text-slate-700 flex-1">
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Unlimited workspaces &amp; users</li>
                         <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> All frameworks</li>
                         <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> AI policy generator</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> 3 workspaces</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Docker deploy</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Email support</li>
-                        <li class="flex items-start gap-2"><span class="text-slate-300 font-bold">✓</span> SSO</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Evidence &amp; vendor management</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> 1 year of updates &amp; support</li>
+                        <li class="flex items-start gap-2"><span class="text-slate-300 font-bold">✓</span> Founding price, save $398</li>
                     </ul>
-                    <a href="https://app.grcompliance.com/signup?tier=consultant"
-                        class="mt-8 inline-flex items-center justify-center px-6 py-3 rounded bg-[#001a33] text-white font-bold hover:bg-[#002244] transition-all w-full">
+                    <a href="https://app.grcompliance.com/signup?tier=business&code=FOUNDING20"
+                        class="mt-8 inline-flex items-center justify-center px-6 py-3 rounded bg-[#00A36C] text-white font-bold hover:bg-[#008F5D] transition-all w-full">
                         Buy Now
                     </a>
                 </div>
 
-                <!-- Business -->
-                <div class="rounded-2xl border-2 border-[#00A36C] p-8 shadow-sm flex flex-col relative">
-                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00A36C] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Popular</div>
-                    <div class="text-xs font-bold text-[#00A36C] uppercase tracking-widest mb-2">Business</div>
-                    <div class="text-4xl font-extrabold text-slate-900 mb-1">$1,990</div>
-                    <p class="text-slate-500 text-sm mb-6">per year · self-host</p>
+                <!-- Lifetime -->
+                <div class="rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all flex flex-col">
+                    <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Lifetime</div>
+                    <div class="text-4xl font-extrabold text-slate-900 mb-1">$3,992</div>
+                    <p class="text-slate-500 text-sm mb-6">one-time · self-host <span class="line-through text-slate-400">$4,990</span></p>
                     <ul class="space-y-3 text-sm text-slate-700 flex-1">
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Everything in Consultant</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Unlimited workspaces</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Premium integrations</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> SSO / OIDC</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Priority support</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Unlimited users</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Everything in Professional</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Pay once — no renewals, ever</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Lifetime updates &amp; support</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Runs forever on your cloud</li>
+                        <li class="flex items-start gap-2"><span class="text-slate-300 font-bold">✓</span> Founding price, save $998</li>
                     </ul>
-                    <a href="https://app.grcompliance.com/signup?tier=business"
-                        class="mt-8 inline-flex items-center justify-center px-6 py-3 rounded bg-[#00A36C] text-white font-bold hover:bg-[#008F5D] transition-all w-full">
-                        Buy Now
+                    <a href="https://app.grcompliance.com/signup?tier=business&billing=lifetime&code=FOUNDING20"
+                        class="mt-8 inline-flex items-center justify-center px-6 py-3 rounded bg-[#001a33] text-white font-bold hover:bg-[#002244] transition-all w-full">
+                        Buy Lifetime
                     </a>
                 </div>
 
                 <!-- Enterprise -->
                 <div class="rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all flex flex-col">
                     <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Enterprise</div>
-                    <div class="text-4xl font-extrabold text-slate-900 mb-1">$4,990</div>
-                    <p class="text-slate-500 text-sm mb-6">per year · self-host</p>
+                    <div class="text-4xl font-extrabold text-slate-900 mb-1">Custom</div>
+                    <p class="text-slate-500 text-sm mb-6">from $9,990 / year · self-host</p>
                     <ul class="space-y-3 text-sm text-slate-700 flex-1">
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Everything in Business</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> White-label</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> SLA guarantee</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Dedicated support</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Custom onboarding</li>
-                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Training included</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Everything in Professional</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Air-gapped deployment</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Dedicated engineer &amp; SLA</li>
+                        <li class="flex items-start gap-2"><span class="text-[#00A36C] font-bold">✓</span> Executive reporting</li>
                     </ul>
                     <a href="https://app.grcompliance.com/signup?tier=enterprise"
                         class="mt-8 inline-flex items-center justify-center px-6 py-3 rounded bg-[#001a33] text-white font-bold hover:bg-[#002244] transition-all w-full">
@@ -284,9 +281,8 @@
 
             <div class="text-center">
                 <p class="text-sm text-slate-500">
-                    Need a one-time purchase? Perpetual licenses available — 
-                    <a href="https://app.grcompliance.com/signup?tier=perpetual" class="text-[#00A36C] underline hover:text-[#008F5D]">request a quote</a>.
-                    <br>All self-host tiers include Docker image, license key, and setup guide.
+                    Founding Offer: 20% off all licenses for the first 30 days with code <strong>FOUNDING20</strong>.
+                    <br>Need the full-service option? The <a href="sprint/index.html" class="text-[#00A36C] underline hover:text-[#008F5D]">Audit Ready Sprint</a> gets you audit-ready in 30 days — $7,500 total.
                 </p>
             </div>
         </div>
