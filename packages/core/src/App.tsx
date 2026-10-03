@@ -367,6 +367,7 @@ const EmployeeOnboarding = lazyLoad(() => import("./pages/EmployeeOnboarding"));
 const TrainingManagement = lazyLoad(() => import("./pages/TrainingManagement"));
 
 const UIPatternShowcase = lazyLoad(() => import("./pages/UIPatternShowcase"));
+const Demo = lazyLoad(() => import("./pages/Demo"));
 const ConsolidatedRequestPortal = lazyLoad(() => import("./pages/portal/ConsolidatedRequestPortal"));
 const VendorAssessmentPortal = lazyLoad(() => import("./pages/portal/VendorAssessmentPortal"));
 const VendorQuestionnairePortal = lazyLoad(() => import("./pages/VendorQuestionnairePortal"));
@@ -697,7 +698,7 @@ function VendorsAlias() {
  */
 function RootHub() {
   const hostname = window.location.hostname;
-  const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
+  const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('sslip.io');
 
   // If on main domain but trying to access the app, redirect to proper subdomain
   if (!isAppDomain && (hostname.includes('grcompliance.com') || hostname.includes('grcompliance.com'))) {
@@ -731,7 +732,7 @@ function Router() {
       <Route path="/(login|signup|auth|dashboard|agent|clients|controls|settings|evidence|policy-templates)">
         {() => {
           const hostname = window.location.hostname;
-          const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1');
+          const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('sslip.io');
           if (!isAppDomain && hostname.includes('grcompliance.com')) {
             window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
           }
@@ -774,6 +775,7 @@ function Router() {
         <Route path="/landing" component={Home} />
         <Route path="/managed-services" component={ManagedServicesPage} />
         <Route path="/waitlist" component={WaitlistPage} />
+        <Route path="/demo" component={Demo} />
         <Route path="/respond-gap/:token" component={GapQuestionnaireResponse} />
         {/* Public Questionnaire Route */}
         <Route path="/questionnaire/:token" component={VendorQuestionnairePortal} />
