@@ -33,18 +33,21 @@ export const config = {
             webhookSecret: getEnv('STRIPE_WEBHOOK_SECRET'),
             publishableKey: getEnv('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'VITE_STRIPE_PUBLISHABLE_KEY'),
             prices: {
-                // "Self-Service" / Startup
-                startup: {
-                    monthly: getEnv('STRIPE_PRICE_STARTUP_MONTHLY') || 'price_1Snk7y08dNwwNbqftY7z1TbZ',
-                    yearly: getEnv('STRIPE_PRICE_STARTUP_YEARLY') || 'price_1SnkGg08dNwwNbqfFqxBnLMB',
+                // "Consultant" — $199/mo or $1,910/yr (20% off)
+                consultant: {
+                    monthly: getEnv('STRIPE_PRICE_CONSULTANT_MONTHLY') || 'price_placeholder_consultant_monthly',
+                    yearly: getEnv('STRIPE_PRICE_CONSULTANT_YEARLY') || 'price_placeholder_consultant_yearly',
                 },
-                // "Guided" / Pro
-                guided: {
-                    monthly: getEnv('STRIPE_PRICE_GUIDED_MONTHLY') || 'price_1Snk7y08dNwwNbqfkexPd4SR',
-                    yearly: getEnv('STRIPE_PRICE_GUIDED_YEARLY') || 'price_1SnkGh08dNwwNbqfoVCkK6ej',
+                // "Business" — $1,990/yr (or $499/mo)
+                business: {
+                    monthly: getEnv('STRIPE_PRICE_BUSINESS_MONTHLY') || 'price_placeholder_business_monthly',
+                    yearly: getEnv('STRIPE_PRICE_BUSINESS_YEARLY') || 'price_placeholder_business_yearly',
                 },
-                // "Managed" / Enterprise (Custom/Placeholder - usually Contact Sales)
-                managed: getEnv('STRIPE_PRICE_MANAGED') || 'price_1Snk8D08dNwwNbqftHqV7sxo',
+                // "Enterprise" — $4,990/yr (or $999/mo)
+                enterprise: {
+                    monthly: getEnv('STRIPE_PRICE_ENTERPRISE_MONTHLY') || 'price_placeholder_enterprise_monthly',
+                    yearly: getEnv('STRIPE_PRICE_ENTERPRISE_YEARLY') || 'price_placeholder_enterprise_yearly',
+                },
             }
         },
 

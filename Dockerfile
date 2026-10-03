@@ -27,9 +27,8 @@ COPY . .
 # We navigate to packages/core because that's where the vite app lives
 WORKDIR /app/packages/core
 # Skip type checking (tsc) to allow build to proceed despite existing type errors
-# Cap Vite heap at 4GB — the build fits comfortably and the deploy server
-# OOM-kills (exit 137) the container when Node is allowed to grow toward 12GB.
-RUN node --max-old-space-size=4096 ../../node_modules/.bin/vite build
+# Cap Vite heap at 6GB so the chunk generation fits comfortably without hitting V8 heap limit
+RUN node --max-old-space-size=6144 ../../node_modules/.bin/vite build
 
 # Stage 2: Production Runtime
 FROM node:20-alpine AS runner
@@ -37,7 +36,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3002
 
 # Copy package.json files
 COPY --from=builder /app/package.json /app/package-lock.json ./
@@ -67,7 +66,7 @@ COPY --from=builder /app/scripts/bootstrap-db.ts ./scripts/
 COPY --from=builder /app/scripts/schema-init.sql ./scripts/
 
 # Expose the port
-EXPOSE 3001
+EXPOSE 3002
 
 # Start the server:
 # 1. bootstrap-db.ts applies the full schema (scripts/schema-init.sql, idempotent)

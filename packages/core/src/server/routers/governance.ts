@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getDb } from "../../db";
-import { workItems, workItemStatusEnum, workItemPriorityEnum, workItemTypeEnum, governanceEvents } from "../../schema";
+import { workItems, workItemStatusEnum, workItemPriorityEnum, workItemTypeEnum, governanceEvents, clientPolicies, clientControls } from "../../schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -58,42 +58,58 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
                     pending: 0,
                     critical: 0,
                     overdue: 0,
-                    healthScore: 100
+                    healthScore: 100,
+                    policyStats: { total: 0, approved: 0 },
+                    controlStats: { total: 0, implemented: 0 }
                 };
             }
 
-            // We'll run a few aggregate queries
-            // 1. Total pending items
-            const [pendingCount] = await db.select({ count: sql<number>`count(*)` })
-                .from(workItems)
-                .where(and(
-                    eq(workItems.clientId, clientId),
-                    inArray(workItems.status, ['pending', 'in_progress'])
-                ));
+            // Run aggregate queries concurrently via Promise.all
+            const [workItemsResult, policyStatsResult, controlStatsResult] = await Promise.all([
+                db.select({
+                    pending: sql<number>`count(*) filter (where ${workItems.status} in ('pending', 'in_progress'))`,
+                    critical: sql<number>`count(*) filter (where ${workItems.status} in ('pending', 'in_progress') and ${workItems.priority} in ('high', 'critical'))`,
+                    overdue: sql<number>`count(*) filter (where ${workItems.status} in ('pending', 'in_progress') and ${workItems.dueDate} is not null and ${workItems.dueDate} < now())`
+                })
+                    .from(workItems)
+                    .where(eq(workItems.clientId, clientId)),
 
-            // 2. High/Critical priority pending
-            const [criticalCount] = await db.select({ count: sql<number>`count(*)` })
-                .from(workItems)
-                .where(and(
-                    eq(workItems.clientId, clientId),
-                    inArray(workItems.status, ['pending', 'in_progress']),
-                    inArray(workItems.priority, ['high', 'critical'])
-                ));
+                db.select({
+                    total: sql<number>`count(*)`,
+                    approved: sql<number>`count(*) filter (where ${clientPolicies.status} = 'approved')`
+                })
+                    .from(clientPolicies)
+                    .where(eq(clientPolicies.clientId, clientId)),
 
-            // 3. Overdue (dueDate < now AND status != completed AND dueDate IS NOT NULL)
-            const [overdueCount] = await db.select({ count: sql<number>`count(*)` })
-                .from(workItems)
-                .where(and(
-                    eq(workItems.clientId, clientId),
-                    inArray(workItems.status, ['pending', 'in_progress']),
-                    sql`${workItems.dueDate} IS NOT NULL AND ${workItems.dueDate} < NOW()`
-                ));
+                db.select({
+                    total: sql<number>`count(*)`,
+                    implemented: sql<number>`count(*) filter (where ${clientControls.status} = 'implemented')`
+                })
+                    .from(clientControls)
+                    .where(eq(clientControls.clientId, clientId))
+            ]);
+
+            const wi = workItemsResult[0];
+            const pi = policyStatsResult[0];
+            const ci = controlStatsResult[0];
+
+            const pending = Number(wi?.pending || 0);
+            const critical = Number(wi?.critical || 0);
+            const overdue = Number(wi?.overdue || 0);
 
             return {
-                pending: Number(pendingCount?.count || 0),
-                critical: Number(criticalCount?.count || 0),
-                overdue: Number(overdueCount?.count || 0),
-                healthScore: Math.max(0, 100 - (Number(overdueCount?.count || 0) * 5) - (Number(criticalCount?.count || 0) * 2))
+                pending,
+                critical,
+                overdue,
+                healthScore: Math.max(0, 100 - (overdue * 5) - (critical * 2)),
+                policyStats: {
+                    total: Number(pi?.total || 0),
+                    approved: Number(pi?.approved || 0)
+                },
+                controlStats: {
+                    total: Number(ci?.total || 0),
+                    implemented: Number(ci?.implemented || 0)
+                }
             };
         }),
 
@@ -190,7 +206,6 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
             clientId: z.number().optional()
         }).optional())
         .query(async ({ input }) => {
-            const db = await getDb();
             const days = 30;
 
             // Generate last 30 days
@@ -206,30 +221,41 @@ export const createGovernanceRouter = (t: any, clientProcedure: any, adminProced
                 });
             }
 
-            // Fetch created counts
-            const createdActivities = await db.select({
-                date: sql<string>`DATE(${workItems.createdAt})::text`,
-                count: sql<number>`count(*)`
-            })
-                .from(workItems)
-                .where(and(
-                    eq(workItems.clientId, input.clientId),
-                    sql`${workItems.createdAt} > NOW() - INTERVAL '30 days'`
-                ))
-                .groupBy(sql`DATE(${workItems.createdAt})`);
+            const clientId = input?.clientId;
+            if (!clientId || clientId <= 0) {
+                return trend.map(t => ({
+                    ...t,
+                    displayDate: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                }));
+            }
 
-            // Fetch completed counts
-            const completedActivities = await db.select({
-                date: sql<string>`DATE(${workItems.completedAt})::text`,
-                count: sql<number>`count(*)`
-            })
-                .from(workItems)
-                .where(and(
-                    eq(workItems.clientId, input.clientId),
-                    sql`${workItems.completedAt} IS NOT NULL`,
-                    sql`${workItems.completedAt} > NOW() - INTERVAL '30 days'`
-                ))
-                .groupBy(sql`DATE(${workItems.completedAt})`);
+            const db = await getDb();
+
+            // Fetch created and completed counts concurrently
+            const [createdActivities, completedActivities] = await Promise.all([
+                db.select({
+                    date: sql<string>`DATE(${workItems.createdAt})::text`,
+                    count: sql<number>`count(*)`
+                })
+                    .from(workItems)
+                    .where(and(
+                        eq(workItems.clientId, clientId),
+                        sql`${workItems.createdAt} > NOW() - INTERVAL '30 days'`
+                    ))
+                    .groupBy(sql`DATE(${workItems.createdAt})`),
+
+                db.select({
+                    date: sql<string>`DATE(${workItems.completedAt})::text`,
+                    count: sql<number>`count(*)`
+                })
+                    .from(workItems)
+                    .where(and(
+                        eq(workItems.clientId, clientId),
+                        sql`${workItems.completedAt} IS NOT NULL`,
+                        sql`${workItems.completedAt} > NOW() - INTERVAL '30 days'`
+                    ))
+                    .groupBy(sql`DATE(${workItems.completedAt})`)
+            ]);
 
             // Merge results
             createdActivities.forEach(row => {

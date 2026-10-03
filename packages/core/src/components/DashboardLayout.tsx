@@ -507,7 +507,8 @@ function DashboardLayoutContent({
     { id: persistentClientId as number },
     {
       enabled: shouldFetchClient,
-      retry: false
+      retry: false,
+      staleTime: 5 * 60 * 1000,
     }
   );
 
@@ -528,7 +529,7 @@ function DashboardLayoutContent({
 
 
 
-  const { data: clientsData } = trpc.clients.list.useQuery(undefined, { retry: false });
+  const { data: clientsData } = trpc.clients.list.useQuery(undefined, { retry: false, staleTime: 5 * 60 * 1000 });
 
   const DEFAULT_FALLBACK_CLIENTS = [
     { id: 679, name: "Topware" },

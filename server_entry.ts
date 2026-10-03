@@ -723,13 +723,27 @@ app.post('/api/agent-chat', express.json(), async (req: any, res: express.Respon
     }
 });
 
+let cachedSuggestedQuestions: any = null;
+let lastSuggestedFetch = 0;
+const DEFAULT_SUGGESTED_QUESTIONS = { questions: ['How many risks?', 'List my clients', 'Show vendors', 'What are the top risks?'] };
+
 app.get('/api/agent-chat-suggested', async (_req: any, res: express.Response) => {
+    const now = Date.now();
+    if (cachedSuggestedQuestions && (now - lastSuggestedFetch < 60000)) {
+        return res.json(cachedSuggestedQuestions);
+    }
     try {
-        const resp = await fetch('http://hermes-agent:9090/api/suggested');
+        const resp = await fetch('http://hermes-agent:9090/api/suggested', {
+            signal: AbortSignal.timeout(200)
+        });
         const data = await resp.json();
+        cachedSuggestedQuestions = data;
+        lastSuggestedFetch = now;
         res.json(data);
     } catch {
-        res.json({ questions: ['How many risks?', 'List my clients', 'Show vendors', 'What are the top risks?'] });
+        cachedSuggestedQuestions = DEFAULT_SUGGESTED_QUESTIONS;
+        lastSuggestedFetch = now;
+        res.json(DEFAULT_SUGGESTED_QUESTIONS);
     }
 });
 

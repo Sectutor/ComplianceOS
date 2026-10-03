@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { PageGuide } from '@/components/PageGuide';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
@@ -39,24 +40,36 @@ import {
 export default function GovernanceDashboard() {
     const params = useParams();
     const { t } = useTranslation('dashboard');
-    const [_, setLocation] = useLocation();
-    const clientId = parseInt(params.id || "0");
+    const { selectedClientId } = useClientContext();
+    const [location, setLocation] = useLocation();
+    const urlMatch = location.match(/\/clients\/(\d+)/);
+    const clientId = parseInt(params.id || "") || (urlMatch ? parseInt(urlMatch[1], 10) : 0) || selectedClientId || 0;
 
-    // Fetch Data
-    const { data: govStats } = trpc.governance.getStats.useQuery({ clientId });
-    const { data: readinessData } = trpc.compliance.getReadinessData.useQuery({ clientId });
-    const { data: riskStats } = trpc.risks.getKRIStats.useQuery({ clientId });
-    const { data: activityTrend, isLoading: isLoadingTrend } = trpc.governance.getActivityTrend.useQuery({ clientId }, {
-        enabled: !!clientId
-    });
+    // Fetch Data with caching and safe execution
+    const { data: govStats, isLoading: isLoadingGovStats } = trpc.governance.getStats.useQuery(
+        { clientId },
+        { enabled: clientId > 0, staleTime: 30000 }
+    );
+    const { data: riskStats, isLoading: isLoadingRiskStats } = trpc.risks.getKRIStats.useQuery(
+        { clientId },
+        { enabled: clientId > 0, staleTime: 30000 }
+    );
+    const { data: activityTrend, isLoading: isLoadingTrend } = trpc.governance.getActivityTrend.useQuery(
+        { clientId },
+        { enabled: clientId > 0, staleTime: 30000 }
+    );
 
-    // Calculate Percentages
-    const policyPercentage = readinessData?.coverage?.policyStats?.total
-        ? Math.round((readinessData.coverage.policyStats.approved / readinessData.coverage.policyStats.total) * 100)
+    // Calculate Percentages directly from fast aggregate stats
+    const policyTotal = govStats?.policyStats?.total ?? 0;
+    const policyApproved = govStats?.policyStats?.approved ?? 0;
+    const policyPercentage = policyTotal > 0
+        ? Math.round((policyApproved / policyTotal) * 100)
         : 0;
 
-    const controlPercentage = readinessData?.coverage?.controlStats?.total
-        ? Math.round((readinessData.coverage.controlStats.implemented / readinessData.coverage.controlStats.total) * 100)
+    const controlTotal = govStats?.controlStats?.total ?? 0;
+    const controlImplemented = govStats?.controlStats?.implemented ?? 0;
+    const controlPercentage = controlTotal > 0
+        ? Math.round((controlImplemented / controlTotal) * 100)
         : 0;
 
     return (
@@ -173,7 +186,7 @@ export default function GovernanceDashboard() {
                                     icon: Shield,
                                     color: "text-emerald-400",
                                     bg: "bg-emerald-900/50",
-                                    isComplete: (readinessData?.coverage?.controlStats?.implemented || 0) > 0
+                                    isComplete: controlImplemented > 0
                                 },
                                 {
                                     step: "3. Risks",
@@ -193,7 +206,7 @@ export default function GovernanceDashboard() {
                                     icon: FileText,
                                     color: "text-amber-400",
                                     bg: "bg-amber-900/50",
-                                    isComplete: (readinessData?.coverage?.policyStats?.approved || 0) > 0
+                                    isComplete: policyApproved > 0
                                 },
                                 {
                                     step: "5. Automate",
@@ -245,7 +258,9 @@ export default function GovernanceDashboard() {
                             <Activity className="h-4 w-4 text-indigo-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-indigo-700">{govStats?.healthScore || 0}%</div>
+                            <div className="text-3xl font-bold text-indigo-700">
+                                {isLoadingGovStats ? <span className="text-lg text-indigo-400 animate-pulse">...</span> : `${govStats?.healthScore ?? 100}%`}
+                            </div>
                             <p className="text-xs text-indigo-600 mt-1">{t("dashboard.overallSystemHealth", "Overall System Health")}</p>
                         </CardContent>
                     </Card>
@@ -257,9 +272,11 @@ export default function GovernanceDashboard() {
                             <FileText className="h-4 w-4 text-amber-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-amber-700">{policyPercentage}%</div>
+                            <div className="text-3xl font-bold text-amber-700">
+                                {isLoadingGovStats ? <span className="text-lg text-amber-400 animate-pulse">...</span> : `${policyPercentage}%`}
+                            </div>
                             <p className="text-xs text-amber-600 mt-1">
-                                {readinessData?.coverage?.policyStats?.approved || 0} / {readinessData?.coverage?.policyStats?.total || 0} {t("dashboard.approved", "Approved")}
+                                {isLoadingGovStats ? '...' : `${policyApproved} / ${policyTotal} ${t("dashboard.approved", "Approved")}`}
                             </p>
                         </CardContent>
                     </Card>
@@ -271,9 +288,11 @@ export default function GovernanceDashboard() {
                             <Shield className="h-4 w-4 text-emerald-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-emerald-700">{controlPercentage}%</div>
+                            <div className="text-3xl font-bold text-emerald-700">
+                                {isLoadingGovStats ? <span className="text-lg text-emerald-400 animate-pulse">...</span> : `${controlPercentage}%`}
+                            </div>
                             <p className="text-xs text-emerald-600 mt-1">
-                                {readinessData?.coverage?.controlStats?.implemented || 0} / {readinessData?.coverage?.controlStats?.total || 0} {t("dashboard.implemented", "Implemented")}
+                                {isLoadingGovStats ? '...' : `${controlImplemented} / ${controlTotal} ${t("dashboard.implemented", "Implemented")}`}
                             </p>
                         </CardContent>
                     </Card>
@@ -285,7 +304,9 @@ export default function GovernanceDashboard() {
                             <AlertTriangle className="h-4 w-4 text-orange-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-orange-700">{riskStats?.unmitigatedCriticalRisks || 0}</div>
+                            <div className="text-3xl font-bold text-orange-700">
+                                {isLoadingRiskStats ? <span className="text-lg text-orange-400 animate-pulse">...</span> : (riskStats?.unmitigatedCriticalRisks ?? 0)}
+                            </div>
                             <p className="text-xs text-orange-600 mt-1">
                                 {t("dashboard.criticalUnmitigated", "Critical Unmitigated Risks")}
                             </p>

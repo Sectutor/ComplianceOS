@@ -1,4 +1,4 @@
-﻿import { Button } from "@complianceos/ui/ui/button";
+import { Button } from "@complianceos/ui/ui/button";
 import {
   CommandDialog,
   CommandEmpty,
@@ -178,8 +178,8 @@ export function GlobalSearch() {
     });
   }, []);
 
-  // Fetch clients for filter dropdown - use empty object as per API
-  const { data: clientsData } = trpc.clients.list.useQuery({});
+  // Fetch clients for filter dropdown - use undefined to share cache with DashboardLayout
+  const { data: clientsData } = trpc.clients.list.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
 
   // Build filters object for the API - only use types supported by backend
   const apiTypeFilter = typeFilter as ApiSearchType;

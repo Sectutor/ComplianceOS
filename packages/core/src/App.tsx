@@ -840,7 +840,7 @@ function Router() {
           <ProtectedRoute component={ClientOnboarding} />
         </Route>
         <Route path="/clients/:id/governance">
-          {(params) => <Redirect to={`/clients/${params.id}/governance/overview`} />}
+          {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} /></UnifiedClientGuard>}
         </Route>
         <Route path="/clients/:id/governance/overview">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={GovernanceDashboard} /></UnifiedClientGuard>}

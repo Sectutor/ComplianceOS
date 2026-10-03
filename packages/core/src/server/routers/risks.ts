@@ -978,10 +978,21 @@ ${reportData.conclusion}
         getKRIStats: procedure
             .input(z.object({ clientId: z.coerce.number().optional() }).optional())
             .query(async ({ input }: any) => {
-                const db = await getDb();
                 const targetClientId = input?.clientId;
-
-                const clientWhere = targetClientId ? eq(riskAssessments.clientId, targetClientId) : sql`1=1`;
+                if (targetClientId === 0) {
+                    return {
+                        overdueReviews: 0,
+                        unmitigatedCriticalRisks: 0,
+                        mitigationEfficiency: 0,
+                        controlImplementationRate: 0,
+                        highRiskCount: 0,
+                        avgResidualScore: 0,
+                        linkedControlsCount: 0,
+                        treatmentProgress: 0
+                    };
+                }
+                const db = await getDb();
+                const clientWhere = (targetClientId && targetClientId > 0) ? eq(riskAssessments.clientId, targetClientId) : sql`1=1`;
 
                 // 1. Overdue Risk Reviews
                 const [overdueReviewsResult] = await db.select({ count: sql<number>`count(*)` })
