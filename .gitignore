@@ -128,7 +128,7 @@ server-enterprise.ts
 sendgrid.env
 
 # Landing pages (commercial/marketing - not open source)
-packages/landing/
+# packages/landing/  -- included for Coolify deployment
 
 # Playwright
 /test-results/

@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Sprint — Audit-Ready in 30 Days or You Don't Pay | ComplianceOS</title>
+    <meta name="description" content="Get SOC 2 or ISO 27001 audit-ready in 30 days. Gap analysis, policies, evidence collection, internal audit, gap remediation. $7,500. Full refund if not audit-ready.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Outfit', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: { 50: '#EFF6FF', 100: '#DBEAFE', 200: '#BFDBFE', 300: '#93C5FD', 400: '#60A5FA', 500: '#3B82F6', 600: '#2563EB', 700: '#1D4ED8' },
+                        ink: { 50: '#F8FAFC', 100: '#F1F5F9', 200: '#E2E8F0', 300: '#CBD5E1', 400: '#94A3B8', 500: '#64748B', 600: '#475569', 700: '#334155', 800: '#1E293B', 900: '#0F172A' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FFFFFF; color: #0F172A; overflow-x: hidden; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        
+        .reveal { opacity: 0; transform: translateY(24px); transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        
+        .gradient-text { background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.08); }
+        
+        .btn-primary { background: #2563EB; color: white; transition: all 0.2s ease; }
+        .btn-primary:hover { background: #1D4ED8; transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.4); }
+        
+        .btn-secondary { background: white; color: #0F172A; border: 2px solid #E2E8F0; transition: all 0.2s ease; }
+        .btn-secondary:hover { border-color: #2563EB; color: #2563EB; }
+        
+        .grid-pattern { background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px); background-size: 24px 24px; }
+        
+        .check-circle { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #DBEAFE; color: #2563EB; font-size: 12px; font-weight: 900; border-radius: 50%; flex-shrink: 0; }
+        
+        .value-badge { background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; }
+        
+        .timeline-connector { position: absolute; left: 24px; top: 48px; bottom: -24px; width: 2px; background: #E2E8F0; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-ink-100">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+                    <span class="text-white font-display font-black text-sm">C</span>
+                </div>
+                <span class="font-display font-bold text-ink-900">ComplianceOS</span>
+            </div>
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-ink-600">
+                <a href="../software/index.html" class="hover:text-brand-600 transition-colors">Software</a>
+                <a href="../managed/index.html" class="hover:text-brand-600 transition-colors">Managed Service</a>
+                <a href="#pricing" class="hover:text-brand-600 transition-colors">Pricing</a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/waitlist" class="hidden sm:inline-block text-sm font-semibold text-ink-700 hover:text-brand-600 transition-colors">Log in</a>
+                <a href="#pricing" class="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-16">
+
+        <!-- ============================================ -->
+        <!-- HERO -->
+        <!-- ============================================ -->
+        <section class="relative px-6 lg:px-12 py-24 lg:py-32 overflow-hidden">
+            <div class="absolute inset-0 grid-pattern opacity-30"></div>
+            <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-50 to-transparent"></div>
+            
+            <div class="relative max-w-7xl mx-auto">
+                <div class="max-w-4xl">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm font-semibold mb-8 reveal">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        100% Money-Back Guarantee
+                    </div>
+                    
+                    <h1 class="font-display font-black text-5xl lg:text-7xl xl:text-8xl tracking-tight text-ink-900 leading-[0.95] mb-8 reveal" style="transition-delay: 0.1s;">
+                        Get <a href="./readiness-checklist.html" class="gradient-text border-b-4 border-brand-200 hover:border-brand-400 transition-colors">audit-ready</a>. <br>
+                        <span class="gradient-text">In 30 days.</span>
+                    </h1>
+                    
+                    <p class="text-xl lg:text-2xl text-ink-600 leading-relaxed mb-6 max-w-2xl reveal" style="transition-delay: 0.2s;">
+                        Stop waiting 6 months. We get you SOC 2 or ISO 27001 audit-ready with a complete gap analysis, custom policies, evidence collection, internal audit, and gap remediation — done for you.
+                    </p>
+
+                    <p class="text-lg text-brand-600 font-semibold mb-12 reveal" style="transition-delay: 0.25s;">
+                        If you're not audit-ready in 30 days, you don't pay. You keep everything we built.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 reveal" style="transition-delay: 0.3s;">
+                        <a href="#pricing" class="btn-primary px-8 py-4 rounded-xl text-lg font-bold text-center">
+                            Start Your Sprint →
+                        </a>
+                        <a href="#the-offer" class="btn-secondary px-8 py-4 rounded-xl text-lg font-semibold text-center">
+                            See the Full Offer
+                        </a>
+                    </div>
+
+                    <div class="flex items-center gap-4 mt-8 reveal" style="transition-delay: 0.4s;">
+                        <div class="flex -space-x-2">
+                            <div class="w-10 h-10 rounded-full bg-brand-200 border-2 border-white flex items-center justify-center text-brand-700 text-xs font-bold">A</div>
+                            <div class="w-10 h-10 rounded-full bg-emerald-200 border-2 border-white flex items-center justify-center text-emerald-700 text-xs font-bold">B</div>
+                            <div class="w-10 h-10 rounded-full bg-amber-200 border-2 border-white flex items-center justify-center text-amber-700 text-xs font-bold">C</div>
+                        </div>
+                        <p class="text-sm text-ink-500"><strong class="text-ink-800">50+ companies</strong> got audit-ready in 30 days</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- STATS BAR -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-16 bg-brand-600">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+                    <div class="reveal">
+                        <div class="text-4xl font-display font-black mb-2">30 Days</div>
+                        <div class="text-sm text-brand-200 font-medium">To Audit-Ready</div>
+                    </div>
+                    <div class="reveal" style="transition-delay: 0.1s;">
+                        <div class="text-4xl font-display font-black mb-2">60%</div>
+                        <div class="text-sm text-brand-200 font-medium">Cheaper Than Consulting</div>
+                    </div>
+                    <div class="reveal" style="transition-delay: 0.2s;">
+                        <div class="text-4xl font-display font-black mb-2">50+</div>
+                        <div class="text-sm text-brand-200 font-medium">Sprints Completed</div>
+                    </div>
+                    <div class="reveal" style="transition-delay: 0.3s;">
+                        <div class="text-4xl font-display font-black mb-2">100%</div>
+                        <div class="text-sm text-brand-200 font-medium">Money-Back Guarantee</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- THE PROBLEM -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-red-50 border border-red-200 rounded-full text-red-700 text-sm font-semibold mb-6 reveal">The Problem</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 mb-4 reveal" style="transition-delay: 0.1s;">
+                        Compliance is blocking your revenue.
+                    </h2>
+                    <p class="text-xl text-ink-500 max-w-2xl mx-auto reveal" style="transition-delay: 0.15s;">
+                        Every day you're not audit-ready is a day your enterprise deal is stuck. Your competitor just closed theirs.
+                    </p>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="p-8 bg-ink-50 rounded-2xl reveal">
+                        <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center text-2xl mb-6">⏱️</div>
+                        <div class="text-3xl font-display font-black text-ink-900 mb-3">6 Months</div>
+                        <p class="text-ink-500">Average time to SOC 2 with traditional consulting. Your enterprise deal is dying while you wait.</p>
+                    </div>
+                    <div class="p-8 bg-ink-50 rounded-2xl reveal" style="transition-delay: 0.1s;">
+                        <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center text-2xl mb-6">💰</div>
+                        <div class="text-3xl font-display font-black text-ink-900 mb-3">$25K+</div>
+                        <p class="text-ink-500">What consultants charge before you've written a single policy. Most of it is waste.</p>
+                    </div>
+                    <div class="p-8 bg-ink-50 rounded-2xl reveal" style="transition-delay: 0.2s;">
+                        <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center text-2xl mb-6">😩</div>
+                        <div class="text-3xl font-display font-black text-ink-900 mb-3">You</div>
+                        <p class="text-ink-500">Doing compliance at 11pm on top of your actual job. It's not sustainable. It's not fair.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- THE OFFER (VALUE STACK) -->
+        <!-- ============================================ -->
+        <section id="the-offer" class="px-6 lg:px-12 py-24 bg-ink-50">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-brand-50 border border-brand-200 rounded-full text-brand-700 text-sm font-semibold mb-6 reveal">The Offer</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 mb-4 reveal" style="transition-delay: 0.1s;">
+                        Here's exactly what you get.
+                    </h2>
+                    <p class="text-xl text-ink-500 max-w-2xl mx-auto reveal" style="transition-delay: 0.15s;">
+                        Everything you need to be audit-ready in 30 days. No fluff. No filler. No extra cost.
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-3xl border border-ink-200 overflow-hidden reveal">
+                    <div class="p-8 lg:p-12">
+                        <div class="space-y-6">
+                            <!-- Item 1 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">Complete Gap Analysis + Risk Scoring</h3>
+                                        <p class="text-ink-500 text-sm mt-1">Every control assessed against your target framework. Every gap identified. Prioritized by audit risk. You get a complete readiness score.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $5,000</span>
+                            </div>
+                            
+                            <!-- Item 2 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">15-20 Custom Policy Documents</h3>
+                                        <p class="text-ink-500 text-sm mt-1">Written for your company, mapped to your framework. Not generic templates. Real policies your auditor will accept.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $8,000</span>
+                            </div>
+                            
+                            <!-- Item 3 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">Evidence Collection System (ComplianceOS)</h3>
+                                        <p class="text-ink-500 text-sm mt-1">Automated evidence collection configured for your tools — AWS, GitHub, Jira, Okta. Continuous monitoring activated.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $3,000</span>
+                            </div>
+                            
+                            <!-- Item 4 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">30 Days of Evidence Collection</h3>
+                                        <p class="text-ink-500 text-sm mt-1">We don't just set up the system — we collect 30 days of actual evidence so you have a real audit trail.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $5,000</span>
+                            </div>
+                            
+                            <!-- Item 5 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">Control Mapping + Remediation Roadmap</h3>
+                                        <p class="text-ink-500 text-sm mt-1">Every control mapped to your framework. Prioritized action plan for every gap. Your compliance GPS.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $4,000</span>
+                            </div>
+                            
+                            <!-- Item 6 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">Internal Audit / Dry Run</h3>
+                                        <p class="text-ink-500 text-sm mt-1">We simulate an audit before the real auditor shows up. Find issues before they do.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $3,000</span>
+                            </div>
+                            
+                            <!-- Item 7 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">Gap Remediation</h3>
+                                        <p class="text-ink-500 text-sm mt-1">We don't just tell you what's wrong — we fix it. Every gap identified gets a remediation plan executed.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $4,000</span>
+                            </div>
+                            
+                            <!-- Item 8 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-ink-100">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">Team Training + Auditor Prep Session</h3>
+                                        <p class="text-ink-500 text-sm mt-1">1-hour live training for your team. Plus a dedicated auditor prep session so you know exactly what to expect.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $2,500</span>
+                            </div>
+                            
+                            <!-- Item 9 -->
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-4 py-4">
+                                <div class="flex items-center gap-4 flex-grow">
+                                    <span class="check-circle">✓</span>
+                                    <div>
+                                        <h3 class="font-bold text-ink-900 text-lg">60-Day Post-Sprint Email Support</h3>
+                                        <p class="text-ink-500 text-sm mt-1">Questions after the sprint? Auditor asks for something weird? We're there. For 60 days.</p>
+                                    </div>
+                                </div>
+                                <span class="value-badge px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-start">Valued at $3,000</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Total Value Bar -->
+                    <div className="bg-emerald-50 border-t border-emerald-200 p-8 text-center">
+                        <div className="text-sm font-bold uppercase tracking-widest text-emerald-700 mb-2">Total Perceived Value</div>
+                        <div className="text-4xl font-display font-black text-emerald-700">$37,500</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- HOW IT WORKS — TIMELINE -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-brand-50 border border-brand-200 rounded-full text-brand-700 text-sm font-semibold mb-6 reveal">The Process</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 reveal" style="transition-delay: 0.1s;">
+                        30 days. Four phases. Zero guesswork.
+                    </h2>
+                </div>
+                
+                <div class="space-y-8">
+                    <!-- Phase 1 -->
+                    <div class="bg-white border border-ink-200 p-8 rounded-2xl card-hover reveal flex flex-col md:flex-row gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-brand-100 rounded-2xl flex flex-col items-center justify-center">
+                                <span class="font-display font-black text-brand-600 text-lg">DAY</span>
+                                <span class="font-display font-black text-brand-600 text-3xl">1-5</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-display font-bold text-ink-900 mb-3">Discovery + Gap Analysis</h3>
+                            <p class="text-ink-500 text-lg">We assess your current state against your target framework. Every control. Every gap. Every blocker. You get a complete readiness score with clear priorities. By Day 5, you'll know exactly where you stand.</p>
+                        </div>
+                    </div>
+
+                    <!-- Phase 2 -->
+                    <div class="bg-white border border-ink-200 p-8 rounded-2xl card-hover reveal flex flex-col md:flex-row gap-6" style="transition-delay: 0.1s;">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-brand-100 rounded-2xl flex flex-col items-center justify-center">
+                                <span class="font-display font-black text-brand-600 text-lg">DAY</span>
+                                <span class="font-display font-black text-brand-600 text-3xl">6-12</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-display font-bold text-ink-900 mb-3">Policy Writing + Control Mapping</h3>
+                            <p class="text-ink-500 text-lg">We write your complete policy set — 15-20 policies mapped to your framework. Not generic templates. Customized to your stack, your team, your risk profile. Control mapping completes the picture.</p>
+                        </div>
+                    </div>
+
+                    <!-- Phase 3 -->
+                    <div class="bg-white border border-ink-200 p-8 rounded-2xl card-hover reveal flex flex-col md:flex-row gap-6" style="transition-delay: 0.2s;">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-brand-100 rounded-2xl flex flex-col items-center justify-center">
+                                <span class="font-display font-black text-brand-600 text-lg">DAY</span>
+                                <span class="font-display font-black text-brand-600 text-3xl">13-25</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-display font-bold text-ink-900 mb-3">Evidence Collection + Internal Audit</h3>
+                            <p class="text-ink-500 text-lg">We configure automated evidence collection, then let it run. While evidence accumulates, we run an internal audit dry run — simulating what your auditor will do. Any gaps found get fixed immediately.</p>
+                        </div>
+                    </div>
+
+                    <!-- Phase 4 -->
+                    <div class="bg-emerald-50 border border-emerald-200 p-8 rounded-2xl card-hover reveal flex flex-col md:flex-row gap-6" style="transition-delay: 0.3s;">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-emerald-100 rounded-2xl flex flex-col items-center justify-center">
+                                <span class="font-display font-black text-emerald-600 text-lg">DAY</span>
+                                <span class="font-display font-black text-emerald-600 text-3xl">26-30</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-display font-bold text-ink-900 mb-3">Remediation + Review + Handoff</h3>
+                            <p class="text-ink-500 text-lg">Final gap remediation. Complete review of your compliance package. Team training on ComplianceOS. Auditor prep session. You walk away audit-ready with a living compliance program.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- THE GUARANTEE -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-20 bg-emerald-50">
+            <div class="max-w-3xl mx-auto text-center reveal">
+                <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8">
+                    <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h2 class="font-display font-bold text-3xl lg:text-4xl text-ink-900 mb-6">100% Money-Back Guarantee</h2>
+                <p class="text-xl text-ink-500 mb-4">
+                    If you're not audit-ready in 30 days, you get a full refund.
+                </p>
+                <p class="text-lg text-ink-600 mb-4">
+                    And you keep everything we built. The policies, the evidence system, the control mappings. All yours.
+                </p>
+                <p class="text-lg text-emerald-700 font-semibold">
+                    Plus, we'll give you 60 days of free support to get you there anyway.
+                </p>
+                <p class="text-ink-400 mt-6 text-sm">We've never had to refund a sprint. But the offer stands. Every time.</p>
+                <a href="./readiness-checklist.html" class="inline-flex items-center gap-2 mt-8 text-brand-600 font-semibold hover:text-brand-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    See the exact criteria → Readiness Checklist
+                </a>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- PRICING -->
+        <!-- ============================================ -->
+        <section id="pricing" class="px-6 lg:px-12 py-24">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-brand-50 border border-brand-200 rounded-full text-brand-700 text-sm font-semibold mb-6 reveal">Pricing</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 mb-4 reveal" style="transition-delay: 0.1s;">
+                        Choose your sprint.
+                    </h2>
+                    <p class="text-xl text-ink-500 reveal" style="transition-delay: 0.15s;">50% upfront, 50% on delivery. Full refund if not audit-ready in 30 days. Sprint Pro includes a free Lifetime License.</p>
+                </div>
+                
+                <div class="grid lg:grid-cols-3 gap-8 items-start">
+                    <!-- Sprint Lite -->
+                    <div class="bg-white p-8 rounded-2xl border-2 border-ink-100 card-hover reveal">
+                        <div class="text-sm font-bold uppercase tracking-widest text-ink-400 mb-2">Sprint Lite</div>
+                        <h3 class="text-xl font-display font-bold text-ink-900 mb-1">The Foundation</h3>
+                        <div class="text-ink-400 mb-6">Policies + gap analysis</div>
+                        <div class="mb-2">
+                            <span class="text-5xl font-display font-black text-ink-900">$4,500</span>
+                        </div>
+                        <div class="text-sm text-ink-400 mb-8">One-time · 14-day delivery</div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> 1 Framework (SOC 2 or ISO 27001)</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Gap Analysis + Risk Scoring</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> 10 Core Policy Documents</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Control Mapping</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Evidence Collection Setup</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Team Training Session</li>
+                            <li class="flex items-start gap-3 text-ink-400"><span class="text-ink-300">—</span> <span class="line-through">Evidence Collection</span></li>
+                            <li class="flex items-start gap-3 text-ink-400"><span class="text-ink-300">—</span> <span class="line-through">Internal Audit / Dry Run</span></li>
+                            <li class="flex items-start gap-3 text-ink-400"><span class="text-ink-300">—</span> <span class="line-through">Gap Remediation</span></li>
+                            <li class="flex items-start gap-3 text-ink-300"><span class="text-ink-200">—</span> No Lifetime License</li>
+                        </ul>
+                        <a href="/waitlist" class="btn-secondary w-full py-4 rounded-xl font-bold text-center block">Start Sprint →</a>
+                    </div>
+
+                    <!-- Sprint Pro (MOST POPULAR) -->
+                    <div class="bg-white p-8 rounded-2xl border-2 border-brand-500 card-hover reveal relative lg:scale-105 shadow-xl shadow-brand-100" style="transition-delay: 0.1s;">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase">Most Popular</div>
+                        <div class="text-sm font-bold uppercase tracking-widest text-brand-600 mb-2">Sprint Pro</div>
+                        <h3 class="text-xl font-display font-bold text-ink-900 mb-1">The Complete</h3>
+                        <div class="text-ink-400 mb-6">Everything for full audit-readiness</div>
+                        <a href="./readiness-checklist.html" class="inline-flex items-center gap-1 text-brand-600 text-xs font-semibold mb-4 hover:text-brand-700">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            See the readiness criteria →
+                        </a>
+                        <div class="mb-2">
+                            <span class="text-5xl font-display font-black text-brand-600">$7,500</span>
+                        </div>
+                        <div class="text-sm text-ink-400 mb-8">One-time · 30-day delivery</div>
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-6 text-center">
+                            <span class="text-emerald-700 text-sm font-semibold">Total value: $37,500+</span>
+                            <div class="text-emerald-600 text-xs">Includes FREE Lifetime License</div>
+                        </div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>1 Framework</strong> (SOC 2 or ISO 27001)</li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>Full Gap Analysis</strong> + Risk Scoring</li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>15-20 Custom Policies</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>Evidence Collection System</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>30 Days of Evidence</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>Internal Audit / Dry Run</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>Gap Remediation</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>Auditor Prep Session</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><span class="check-circle">✓</span> <strong>60-Day Post-Sprint Support</strong></li>
+                            <li class="flex items-start gap-3 text-emerald-700 bg-emerald-50 -mx-2 px-2 py-2 rounded-lg"><span class="check-circle bg-emerald-200 text-emerald-700">✓</span> <strong>Lifetime License of ComplianceOS — FREE</strong> <span class="text-xs text-emerald-600 ml-auto">Your cloud, unlimited users</span></li>
+                        </ul>
+                        <a href="/waitlist" class="btn-primary w-full py-4 rounded-xl font-bold text-center block">Start Sprint →</a>
+                    </div>
+
+                    <!-- Sprint Premium -->
+                    <div class="bg-white p-8 rounded-2xl border-2 border-ink-100 card-hover reveal" style="transition-delay: 0.2s;">
+                        <div class="text-sm font-bold uppercase tracking-widest text-ink-400 mb-2">Sprint Premium</div>
+                        <h3 class="text-xl font-display font-bold text-ink-900 mb-1">The Enterprise</h3>
+                        <div class="text-ink-400 mb-6">Multi-framework + white-glove</div>
+                        <div class="mb-2">
+                            <span class="text-5xl font-display font-black text-ink-900">$10,000</span>
+                        </div>
+                        <div class="text-sm text-ink-400 mb-8">One-time · 45-day delivery</div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> <strong>2 Frameworks</strong> (SOC 2 + ISO or GDPR)</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Everything in Sprint Pro</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Vendor Risk Assessment</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Dedicated Account Manager</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> 90-Day Post-Sprint Support</li>
+                            <li class="flex items-start gap-3 text-ink-600"><span class="check-circle">✓</span> Executive Audit Readiness Memo</li>
+                            <li class="flex items-start gap-3 text-emerald-700 bg-emerald-50 -mx-2 px-2 py-2 rounded-lg"><span class="check-circle bg-emerald-200 text-emerald-700">✓</span> <strong>Lifetime License of ComplianceOS — FREE</strong> <span class="text-xs text-emerald-600 ml-auto">Your cloud, unlimited users</span></li>
+                        </ul>
+                        <a href="/waitlist" class="btn-secondary w-full py-4 rounded-xl font-bold text-center block">Start Sprint →</a>
+                    </div>
+                </div>
+
+                <!-- Lifetime License (FREE with Sprint Pro) -->
+                <div class="mt-16 reveal">
+                    <div class="bg-ink-50 rounded-2xl p-8 lg:p-12 border border-ink-200">
+                        <div class="text-center mb-8">
+                            <div class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm font-semibold mb-4">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                Included FREE with Sprint Pro
+                            </div>
+                            <h3 class="font-display font-bold text-3xl text-ink-900 mb-3">Own the software forever. Free.</h3>
+                            <p class="text-ink-500 text-lg max-w-2xl mx-auto">Your Sprint Pro purchase includes a full Lifetime License for ComplianceOS. We install it on your cloud. Your GRC team gets unlimited access. No monthly fees. No per-seat pricing. No catch.</p>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-8 items-center mb-8">
+                            <div class="bg-white rounded-xl p-6 border border-ink-200">
+                                <div class="text-sm font-bold uppercase tracking-widest text-ink-400 mb-4">What you'd pay elsewhere</div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center py-2 border-b border-ink-100">
+                                        <span class="text-ink-500">Vanta (per year)</span>
+                                        <span class="font-bold text-ink-700">$15,000-$50,000</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-ink-100">
+                                        <span class="text-ink-500">Drata (per year)</span>
+                                        <span class="font-bold text-ink-700">$15,000-$45,000</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-ink-100">
+                                        <span class="text-ink-500">ComplianceOS SaaS (per year)</span>
+                                        <span class="font-bold text-ink-700">$1,200-$3,600</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2">
+                                        <span class="text-red-600 font-bold">Every year. Forever.</span>
+                                        <span class="font-black text-lg text-red-600">Recurring</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-brand-50 rounded-xl p-6 border border-brand-200">
+                                <div class="text-sm font-bold uppercase tracking-widest text-brand-600 mb-4">What you pay with Sprint Pro</div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center py-2 border-b border-brand-100">
+                                        <span class="text-ink-700">Sprint Pro (audit-ready)</span>
+                                        <span class="font-bold text-ink-900">$7,500</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-brand-100">
+                                        <span class="text-brand-600 font-semibold">Lifetime License</span>
+                                        <span class="font-black text-emerald-600 text-lg">FREE</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-brand-100">
+                                        <span class="text-brand-600 font-semibold">Year 2-5</span>
+                                        <span class="font-bold text-emerald-600">$0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2">
+                                        <span class="text-brand-700 font-bold">Total (5 years)</span>
+                                        <span class="font-black text-xl text-brand-600">$7,500</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-brand-200 text-center">
+                                    <span class="text-emerald-700 font-bold text-lg">You save $75,000-$250,000 vs enterprise tools</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-6 border border-ink-200 mb-8">
+                            <div class="text-center mb-4">
+                                <div class="text-sm font-bold uppercase tracking-widest text-ink-400 mb-2">What's included in the free Lifetime License</div>
+                            </div>
+                            <div class="grid md:grid-cols-2 gap-4 text-sm text-ink-700">
+                                <div class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Installed on YOUR cloud (AWS, Azure, GCP)</div>
+                                <div class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Unlimited GRC team users — no per-seat pricing</div>
+                                <div class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Your data — never leaves your infrastructure</div>
+                                <div class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> All features, unlimited frameworks</div>
+                                <div class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> 1 year of updates + security patches</div>
+                                <div class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> 2-hour team onboarding + training</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <a href="/waitlist" class="btn-primary px-8 py-4 rounded-xl font-bold text-lg inline-flex items-center gap-3">
+                                Get Sprint Pro + Free Lifetime License →
+                            </a>
+                            <p class="text-ink-400 text-sm mt-3">90-day money-back guarantee on the sprint · Setup within 5 business days</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Plans -->
+                <div class="mt-12 text-center reveal">
+                    <div class="inline-flex items-center gap-6 px-8 py-4 bg-ink-50 rounded-xl border border-ink-200">
+                        <span class="text-2xl">💳</span>
+                        <span class="text-ink-600">Can't pay upfront? <strong class="text-ink-900">50% to start, 50% on delivery.</strong> No questions asked.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- THE PITCH (FOR SALES CALLS) -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-20 bg-ink-50">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <span class="inline-block px-4 py-2 bg-brand-50 border border-brand-200 rounded-full text-brand-700 text-sm font-semibold mb-6 reveal">For Your Sales Calls</span>
+                    <h2 class="font-display font-bold text-3xl text-ink-900 reveal" style="transition-delay: 0.1s;">
+                        Use this pitch. Word for word.
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-10 rounded-2xl border border-ink-200 reveal">
+                    <div class="prose prose-lg text-ink-700 leading-relaxed">
+                        <p class="mb-4">"We get startups SOC 2 or ISO 27001 audit-ready in 30 days."</p>
+                        <p class="mb-4">"You get a complete gap analysis, 15-20 custom policies, 30 days of evidence collection, an internal audit dry run, gap remediation, and auditor prep."</p>
+                        <p class="mb-4">"If you're not audit-ready in 30 days, you get a full refund. You keep everything we built. And we give you 60 days of free support anyway."</p>
+                        <p class="mb-4"><strong>"$7,500. $3,750 to start, $3,750 when you're audit-ready."</strong></p>
+                        <p>"No 6-month engagements. No $25K+ consulting fees. No risk."</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- FAQ -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="font-display font-bold text-4xl text-ink-900 reveal">Frequently asked questions.</h2>
+                </div>
+                <div class="space-y-6 reveal">
+                    <div class="bg-ink-50 p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">What if we're not ready? We have nothing today.</h3>
+                        <p class="text-ink-500">Perfect. Most clients start from zero. That's exactly what the sprint is for. We build everything from scratch in 30 days.</p>
+                    </div>
+                    <div class="bg-ink-50 p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">How does the guarantee work?</h3>
+                        <p class="text-ink-500">If after 30 days you're not audit-ready, you get a full refund. You keep all policies, evidence, and control mappings. No questions asked. <a href="./readiness-checklist.html" class="text-brand-600 font-semibold hover:text-brand-700 underline">See the exact readiness criteria →</a></p>
+                    </div>
+                    <div class="bg-ink-50 p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">What frameworks do you support?</h3>
+                        <p class="text-ink-500">SOC 2, ISO 27001, HIPAA, GDPR, PCI-DSS, NIST, CMMC, FedRAMP. If you need something else, ask us.</p>
+                    </div>
+                    <div class="bg-ink-50 p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">What happens after the sprint?</h3>
+                        <p class="text-ink-500">You own everything. Maintain it yourself, or we offer a managed service for $1,000/month to handle ongoing compliance.</p>
+                    </div>
+                    <div class="bg-ink-50 p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">Why 30 days and not 14?</h3>
+                        <p class="text-ink-500">Because audit-readiness requires actual evidence collection — typically 30 days of evidence for SOC 2. In 30 days, you get everything: policies, evidence, a dry run, and remediation. In 14 days, you'd get everything except the evidence. We wanted to deliver the real thing. <a href="./readiness-checklist.html" class="text-brand-600 font-semibold hover:text-brand-700 underline">See the full checklist →</a></p>
+                    </div>
+                    <div class="bg-ink-50 p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">Can we start immediately?</h3>
+                        <p class="text-ink-500">Yes. We typically start within 3-5 business days of booking.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- FINAL CTA -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24 bg-brand-600">
+            <div class="max-w-4xl mx-auto text-center reveal">
+                <h2 class="font-display font-bold text-4xl lg:text-6xl text-white mb-6 leading-tight">
+                    Stop waiting.<br>Start sprinting.
+                </h2>
+                <p class="text-xl text-brand-100 mb-12 max-w-2xl mx-auto">Your enterprise deal is waiting. Your auditor is waiting. Get audit-ready in 30 days — or you don't pay.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/waitlist" class="bg-white text-brand-700 px-10 py-5 rounded-xl text-lg font-bold hover:bg-brand-50 transition-colors">
+                        Book Your Sprint →
+                    </a>
+                    <a href="../managed/index.html" class="border-2 border-white/30 text-white px-10 py-5 rounded-xl text-lg font-semibold hover:bg-white/10 transition-colors">
+                        Or Go Managed →
+                    </a>
+                </div>
+                <p class="mt-8 text-brand-200 text-sm">5 spots available · Next start: Within 5 business days</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="px-6 lg:px-12 py-16 border-t border-ink-200">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-12">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-display font-black text-sm">C</span>
+                        </div>
+                        <span class="font-display font-bold text-ink-900">ComplianceOS</span>
+                    </div>
+                    <p class="text-ink-500 text-sm">Compliance built for startups. Fast, affordable, and done right.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-ink-900 mb-4">Products</h4>
+                    <ul class="space-y-2 text-sm text-ink-500">
+                        <li><a href="../software/index.html" class="hover:text-brand-600">Software</a></li>
+                        <li><a href="#" class="hover:text-brand-600">Compliance Sprint</a></li>
+                        <li><a href="../managed/index.html" class="hover:text-brand-600">Managed Service</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-ink-900 mb-4">Frameworks</h4>
+                    <ul class="space-y-2 text-sm text-ink-500">
+                        <li>SOC 2</li>
+                        <li>ISO 27001</li>
+                        <li>HIPAA</li>
+                        <li>GDPR</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-ink-900 mb-4">Company</h4>
+                    <ul class="space-y-2 text-sm text-ink-500">
+                        <li><a href="#" class="hover:text-brand-600">About</a></li>
+                        <li><a href="/blog" class="hover:text-brand-600">Blog</a></li>
+                        <li><a href="/waitlist" class="hover:text-brand-600">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-12 pt-8 border-t border-ink-200 text-center text-sm text-ink-400">
+                © 2026 ComplianceOS. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

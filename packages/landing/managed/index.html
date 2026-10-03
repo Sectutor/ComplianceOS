@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance-as-a-Service — Fully Managed Compliance | ComplianceOS</title>
+    <meta name="description" content="We run your entire compliance program. Policies, evidence, vendor risk, auditor prep — handled for $1,000/month. Cheaper than a part-time hire.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Outfit', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: { 50: '#EFF6FF', 100: '#DBEAFE', 200: '#BFDBFE', 300: '#93C5FD', 400: '#60A5FA', 500: '#3B82F6', 600: '#2563EB', 700: '#1D4ED8' },
+                        ink: { 50: '#F8FAFC', 100: '#F1F5F9', 200: '#E2E8F0', 300: '#CBD5E1', 400: '#94A3B8', 500: '#64748B', 600: '#475569', 700: '#334155', 800: '#1E293B', 900: '#0F172A' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #FFFFFF; color: #0F172A; overflow-x: hidden; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        
+        .reveal { opacity: 0; transform: translateY(24px); transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        
+        .gradient-text { background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.08); }
+        
+        .btn-primary { background: #2563EB; color: white; transition: all 0.2s ease; }
+        .btn-primary:hover { background: #1D4ED8; transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.4); }
+        
+        .btn-secondary { background: white; color: #0F172A; border: 2px solid #E2E8F0; transition: all 0.2s ease; }
+        .btn-secondary:hover { border-color: #2563EB; color: #2563EB; }
+        
+        .check-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #DBEAFE; color: #2563EB; font-size: 12px; font-weight: 900; border-radius: 50%; flex-shrink: 0; }
+        
+        .grid-pattern {
+            background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-ink-100">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+                    <span class="text-white font-display font-black text-sm">C</span>
+                </div>
+                <span class="font-display font-bold text-ink-900">ComplianceOS</span>
+            </div>
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-ink-600">
+                <a href="../software/index.html" class="hover:text-brand-600 transition-colors">Software</a>
+                <a href="../sprint/index.html" class="hover:text-brand-600 transition-colors">Compliance Sprint</a>
+                <a href="#pricing" class="hover:text-brand-600 transition-colors">Pricing</a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/waitlist" class="hidden sm:inline-block text-sm font-semibold text-ink-700 hover:text-brand-600 transition-colors">Log in</a>
+                <a href="#pricing" class="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-16">
+
+        <!-- ============================================ -->
+        <!-- HERO -->
+        <!-- ============================================ -->
+        <section class="relative px-6 lg:px-12 py-24 lg:py-32 overflow-hidden">
+            <div class="absolute inset-0 grid-pattern opacity-30"></div>
+            <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-50 to-transparent"></div>
+            
+            <div class="relative max-w-7xl mx-auto">
+                <div class="max-w-4xl">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-brand-50 border border-brand-200 rounded-full text-brand-700 text-sm font-semibold mb-8 reveal">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z"></path></svg>
+                        Compliance-as-a-Service
+                    </div>
+                    
+                    <h1 class="font-display font-black text-5xl lg:text-7xl xl:text-8xl tracking-tight text-ink-900 leading-[0.95] mb-8 reveal" style="transition-delay: 0.1s;">
+                        Your compliance <br>
+                        <span class="gradient-text">department.</span>
+                    </h1>
+                    
+                    <p class="text-xl lg:text-2xl text-ink-600 leading-relaxed mb-12 max-w-2xl reveal" style="transition-delay: 0.2s;">
+                        For $1,000/month. We handle your entire compliance program — policies, evidence, vendor risk, auditor prep. Cheaper than a part-time hire.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 reveal" style="transition-delay: 0.3s;">
+                        <a href="#pricing" class="btn-primary px-8 py-4 rounded-xl text-lg font-bold text-center">
+                            Get Managed →
+                        </a>
+                        <a href="#how-it-works" class="btn-secondary px-8 py-4 rounded-xl text-lg font-semibold text-center">
+                            See How It Works
+                        </a>
+                    </div>
+
+                    <div class="flex items-center gap-4 mt-8 reveal" style="transition-delay: 0.4s;">
+                        <div class="flex -space-x-2">
+                            <div class="w-10 h-10 rounded-full bg-brand-200 border-2 border-white flex items-center justify-center text-brand-700 text-xs font-bold">A</div>
+                            <div class="w-10 h-10 rounded-full bg-emerald-200 border-2 border-white flex items-center justify-center text-emerald-700 text-xs font-bold">B</div>
+                            <div class="w-10 h-10 rounded-full bg-amber-200 border-2 border-white flex items-center justify-center text-amber-700 text-xs font-bold">C</div>
+                        </div>
+                        <p class="text-sm text-ink-500"><strong class="text-ink-800">12 companies</strong> never think about compliance anymore</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- STATS BAR -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-16 bg-brand-600">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+                    <div class="reveal">
+                        <div class="text-4xl font-display font-black mb-2">$1K/mo</div>
+                        <div class="text-sm text-brand-200 font-medium">Flat Monthly Rate</div>
+                    </div>
+                    <div class="reveal" style="transition-delay: 0.1s;">
+                        <div class="text-4xl font-display font-black mb-2">∞</div>
+                        <div class="text-sm text-brand-200 font-medium">Frameworks Supported</div>
+                    </div>
+                    <div class="reveal" style="transition-delay: 0.2s;">
+                        <div class="text-4xl font-display font-black mb-2">24h</div>
+                        <div class="text-sm text-brand-200 font-medium">Response Time</div>
+                    </div>
+                    <div class="reveal" style="transition-delay: 0.3s;">
+                        <div class="text-4xl font-display font-black mb-2">0</div>
+                        <div class="text-sm text-brand-200 font-medium">Annual Commitment</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- THE PAIN -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-red-50 border border-red-200 rounded-full text-red-700 text-sm font-semibold mb-6 reveal">The Reality</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 reveal" style="transition-delay: 0.1s;">
+                        Compliance falls on the wrong person.
+                    </h2>
+                </div>
+                
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-6">
+                        <div class="flex items-start gap-6 reveal">
+                            <div class="w-12 h-12 bg-red-50 border border-red-200 rounded-xl flex items-center justify-center text-red-500 font-bold text-lg flex-shrink-0">✕</div>
+                            <div>
+                                <h3 class="text-xl font-bold text-ink-900 mb-2">The CTO does it at 11pm</h3>
+                                <p class="text-ink-500">On top of their actual job. Compliance is a tax on your technical leadership.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-6 reveal">
+                            <div class="w-12 h-12 bg-red-50 border border-red-200 rounded-xl flex items-center justify-center text-red-500 font-bold text-lg flex-shrink-0">✕</div>
+                            <div>
+                                <h3 class="text-xl font-bold text-ink-900 mb-2">It's never "done"</h3>
+                                <p class="text-ink-500">Policies expire. Evidence gaps appear. Auditors ask for more. It's a treadmill.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-6 reveal">
+                            <div class="w-12 h-12 bg-red-50 border border-red-200 rounded-xl flex items-center justify-center text-red-500 font-bold text-lg flex-shrink-0">✕</div>
+                            <div>
+                                <h3 class="text-xl font-bold text-ink-900 mb-2">You don't know what you don't know</h3>
+                                <p class="text-ink-500">Until the auditor tells you. Then it's expensive and embarrassing.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-ink-50 p-10 rounded-2xl reveal">
+                        <div class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-6">THE MATH</div>
+                        <div class="space-y-5">
+                            <div class="flex justify-between items-center py-3 border-b border-ink-200">
+                                <span class="text-ink-500">Part-time compliance hire</span>
+                                <span class="font-bold text-ink-700">$4,000-$6,000/mo</span>
+                            </div>
+                            <div class="flex justify-between items-center py-3 border-b border-ink-200">
+                                <span class="text-ink-500">Traditional GRC consultant</span>
+                                <span class="font-bold text-ink-700">$3,000-$5,000/mo</span>
+                            </div>
+                            <div class="flex justify-between items-center py-3 border-b border-ink-200">
+                                <span class="text-ink-500">Your time (10 hrs/wk)</span>
+                                <span class="font-bold text-ink-700">$6,000/mo</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-4">
+                                <span class="text-ink-900 font-bold">ComplianceOS Managed</span>
+                                <span class="font-black text-2xl gradient-text">$1,000-$1,500/mo</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- WHAT'S INCLUDED -->
+        <!-- ============================================ -->
+        <section id="how-it-works" class="px-6 lg:px-12 py-24 bg-ink-50">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm font-semibold mb-6 reveal">What We Do</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 reveal" style="transition-delay: 0.1s;">
+                        Everything. Handled.
+                    </h2>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Policy Management</h3>
+                            <p class="text-ink-500 text-sm">Write, review, update all policies. Quarterly reviews. Always current.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal" style="transition-delay: 0.05s;">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Evidence Collection</h3>
+                            <p class="text-ink-500 text-sm">Automated collection from your tools. Manual uploads reviewed. Always audit-ready.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal" style="transition-delay: 0.1s;">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Control Monitoring</h3>
+                            <p class="text-ink-500 text-sm">Continuous monitoring of all controls. Alerts when something breaks. Monthly health reports.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal" style="transition-delay: 0.15s;">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Vendor Risk Management</h3>
+                            <p class="text-ink-500 text-sm">Vendor inventory, risk scoring, DPA tracking. Know your third-party exposure.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal" style="transition-delay: 0.2s;">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Auditor Liaison</h3>
+                            <p class="text-ink-500 text-sm">We talk to your auditor. Prepare the evidence package. Handle follow-up questions.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal" style="transition-delay: 0.25s;">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Monthly Check-ins</h3>
+                            <p class="text-ink-500 text-sm">30-min call every month. Review status, plan next steps, answer questions.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal" style="transition-delay: 0.3s;">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Risk Register Maintenance</h3>
+                            <p class="text-ink-500 text-sm">Keep your risk register current. Track remediation. Report to leadership.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl flex items-start gap-4 reveal" style="transition-delay: 0.35s;">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <h3 class="font-bold text-ink-900 mb-1">Regulatory Updates</h3>
+                            <p class="text-ink-500 text-sm">We monitor regulation changes. Alert you when something affects your program.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- MONTH 1 VS MONTH 6 -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-brand-50 border border-brand-200 rounded-full text-brand-700 text-sm font-semibold mb-6 reveal">The Process</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 reveal" style="transition-delay: 0.1s;">
+                        Month 1 vs Month 6.
+                    </h2>
+                </div>
+                
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-10 rounded-2xl border-2 border-ink-100 reveal">
+                        <div class="text-xs font-bold uppercase tracking-widest text-ink-400 mb-4">MONTH 1: SETUP</div>
+                        <h3 class="text-2xl font-display font-bold text-ink-900 mb-6">We Build It</h3>
+                        <ul class="space-y-4 text-ink-600">
+                            <li class="flex items-start gap-3"><span class="text-brand-500 font-bold">→</span> ComplianceOS configured for your environment</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-500 font-bold">→</span> Policies imported or written from scratch</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-500 font-bold">→</span> Evidence collection automated</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-500 font-bold">→</span> Control mapping completed</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-500 font-bold">→</span> Team trained on the platform</li>
+                        </ul>
+                    </div>
+                    <div class="bg-brand-600 p-10 rounded-2xl text-white reveal" style="transition-delay: 0.15s;">
+                        <div class="text-xs font-bold uppercase tracking-widest text-brand-200 mb-4">MONTH 6: RUNNING</div>
+                        <h3 class="text-2xl font-display font-bold mb-6">We Run It</h3>
+                        <ul class="space-y-4 text-brand-100">
+                            <li class="flex items-start gap-3"><span class="text-brand-300 font-bold">→</span> Continuous evidence monitoring</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-300 font-bold">→</span> Quarterly policy reviews</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-300 font-bold">→</span> Monthly health reports</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-300 font-bold">→</span> Vendor risk tracked</li>
+                            <li class="flex items-start gap-3"><span class="text-brand-300 font-bold">→</span> You never think about compliance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- PRICING -->
+        <!-- ============================================ -->
+        <section id="pricing" class="px-6 lg:px-12 py-24 bg-ink-50">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="inline-block px-4 py-2 bg-brand-50 border border-brand-200 rounded-full text-brand-700 text-sm font-semibold mb-6 reveal">Pricing</span>
+                    <h2 class="font-display font-bold text-4xl lg:text-5xl text-ink-900 mb-4 reveal" style="transition-delay: 0.1s;">
+                        Your compliance team.
+                    </h2>
+                    <p class="text-xl text-ink-500 reveal" style="transition-delay: 0.15s;">Monthly billing. Cancel anytime. No annual commitment required.</p>
+                </div>
+                
+                <div class="grid lg:grid-cols-3 gap-8 items-start">
+                    <!-- Essential -->
+                    <div class="bg-white p-8 rounded-2xl border-2 border-ink-100 card-hover reveal">
+                        <div class="text-sm font-bold uppercase tracking-widest text-ink-400 mb-2">Essential</div>
+                        <h3 class="text-xl font-display font-bold text-ink-900 mb-1">The Foundation</h3>
+                        <div class="text-ink-400 mb-6">1 framework</div>
+                        <div class="mb-8">
+                            <span class="text-5xl font-display font-black text-ink-900">$1,000</span>
+                            <span class="text-ink-400">/month</span>
+                        </div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> 1 Framework (SOC 2 or ISO 27001)</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Policy maintenance</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Quarterly evidence reviews</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Control monitoring</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Monthly check-in (30 min)</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Email support</li>
+                        </ul>
+                        <a href="/waitlist" class="btn-secondary w-full py-4 rounded-xl font-bold text-center block">Get Started →</a>
+                    </div>
+
+                    <!-- Professional (MOST POPULAR) -->
+                    <div class="bg-white p-8 rounded-2xl border-2 border-brand-500 card-hover reveal relative lg:scale-105 shadow-xl shadow-brand-100" style="transition-delay: 0.1s;">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase">Most Popular</div>
+                        <div class="text-sm font-bold uppercase tracking-widest text-brand-600 mb-2">Professional</div>
+                        <h3 class="text-xl font-display font-bold text-ink-900 mb-1">The Complete</h3>
+                        <div class="text-ink-400 mb-6">2 frameworks + vendor risk</div>
+                        <div class="mb-8">
+                            <span class="text-5xl font-display font-black text-brand-600">$1,500</span>
+                            <span class="text-ink-400">/month</span>
+                        </div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-start gap-3 text-ink-700"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> <strong>2 Frameworks</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> <strong>Policy + Evidence + Controls</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> <strong>Vendor risk management</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> <strong>Monthly evidence reviews</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> <strong>Auditor liaison</strong></li>
+                            <li class="flex items-start gap-3 text-ink-700"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> <strong>Priority support (24h)</strong></li>
+                        </ul>
+                        <a href="/waitlist" class="btn-primary w-full py-4 rounded-xl font-bold text-center block">Get Started →</a>
+                    </div>
+
+                    <!-- Business -->
+                    <div class="bg-white p-8 rounded-2xl border-2 border-ink-100 card-hover reveal" style="transition-delay: 0.2s;">
+                        <div class="text-sm font-bold uppercase tracking-widest text-ink-400 mb-2">Business</div>
+                        <h3 class="text-xl font-display font-bold text-ink-900 mb-1">The Enterprise</h3>
+                        <div class="text-ink-400 mb-6">Unlimited frameworks</div>
+                        <div class="mb-8">
+                            <span class="text-5xl font-display font-black text-ink-900">$2,000</span>
+                            <span class="text-ink-400">/month</span>
+                        </div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> <strong>Unlimited frameworks</strong></li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Everything in Professional</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Dedicated compliance manager</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Custom integrations</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> Weekly check-ins available</li>
+                            <li class="flex items-start gap-3 text-ink-600"><svg class="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg> SLA guarantee</li>
+                        </ul>
+                        <a href="/waitlist" class="btn-secondary w-full py-4 rounded-xl font-bold text-center block">Get Started →</a>
+                    </div>
+                </div>
+
+                <!-- Annual discount -->
+                <div class="mt-12 text-center reveal">
+                    <div class="inline-flex items-center gap-6 px-8 py-4 bg-white rounded-xl border border-ink-200">
+                        <span class="text-2xl">📅</span>
+                        <span class="text-ink-600">Save 17% with annual billing. <strong class="text-ink-900">Pay for 10 months, get 12.</strong> Cancel monthly anytime.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- COMPARISON TABLE -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="font-display font-bold text-4xl text-ink-900 reveal">How we compare.</h2>
+                </div>
+                
+                <div class="overflow-x-auto reveal">
+                    <table class="w-full text-left bg-white rounded-2xl overflow-hidden border border-ink-200">
+                        <thead>
+                            <tr class="bg-ink-50">
+                                <th class="py-4 px-6 text-sm font-bold text-ink-500 uppercase">Feature</th>
+                                <th class="py-4 px-6 text-sm font-bold text-brand-600 uppercase">ComplianceOS Managed</th>
+                                <th class="py-4 px-6 text-sm font-bold text-ink-500 uppercase">Traditional Consultant</th>
+                                <th class="py-4 px-6 text-sm font-bold text-ink-500 uppercase">DIY (Your Time)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-t border-ink-100">
+                                <td class="py-4 px-6 text-ink-600">Monthly cost</td>
+                                <td class="py-4 px-6 font-bold text-brand-600">$1,000-$1,500</td>
+                                <td class="py-4 px-6 text-ink-400">$3,000-$5,000</td>
+                                <td class="py-4 px-6 text-ink-400">$6,000+</td>
+                            </tr>
+                            <tr class="border-t border-ink-100 bg-ink-50/50">
+                                <td class="py-4 px-6 text-ink-600">Time to audit-ready</td>
+                                <td class="py-4 px-6 font-bold text-brand-600">30 days</td>
+                                <td class="py-4 px-6 text-ink-400">90-180 days</td>
+                                <td class="py-4 px-6 text-ink-400">180+ days</td>
+                            </tr>
+                            <tr class="border-t border-ink-100">
+                                <td class="py-4 px-6 text-ink-600">Ongoing maintenance</td>
+                                <td class="py-4 px-6 font-bold text-brand-600">Included</td>
+                                <td class="py-4 px-6 text-ink-400">$500-$1,000/mo</td>
+                                <td class="py-4 px-6 text-ink-400">Your weekends</td>
+                            </tr>
+                            <tr class="border-t border-ink-100 bg-ink-50/50">
+                                <td class="py-4 px-6 text-ink-600">Auditor communication</td>
+                                <td class="py-4 px-6 font-bold text-brand-600">We handle it</td>
+                                <td class="py-4 px-6 text-ink-400">Extra cost</td>
+                                <td class="py-4 px-6 text-ink-400">You do it</td>
+                            </tr>
+                            <tr class="border-t border-ink-100">
+                                <td class="py-4 px-6 text-ink-600">Commitment</td>
+                                <td class="py-4 px-6 font-bold text-brand-600">Monthly</td>
+                                <td class="py-4 px-6 text-ink-400">6-12 months</td>
+                                <td class="py-4 px-6 text-ink-400">Forever</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- FAQ -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24 bg-ink-50">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="font-display font-bold text-4xl text-ink-900 reveal">Frequently asked questions.</h2>
+                </div>
+                <div class="space-y-6 reveal">
+                    <div class="bg-white p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">Can we cancel anytime?</h3>
+                        <p class="text-ink-500">Yes. Month-to-month. No annual lock-in. If you're not happy, you leave. We think you won't want to.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">How is this different from hiring a vCISO?</h3>
+                        <p class="text-ink-500">A vCISO costs $5K-$15K/month. They tell you what to do. We DO it. And we give you a whole platform to run it on.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">What if we already have ComplianceOS?</h3>
+                        <p class="text-ink-500">Even better. We take over your existing instance and manage it. You get all the benefits without lifting a finger.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl">
+                        <h3 class="font-bold text-lg text-ink-900 mb-3">What happens if we get audited?</h3>
+                        <p class="text-ink-500">We prepare your evidence package, join the auditor calls, and handle follow-up questions. Audit support is included.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- FINAL CTA -->
+        <!-- ============================================ -->
+        <section class="px-6 lg:px-12 py-24">
+            <div class="max-w-4xl mx-auto text-center reveal">
+                <h2 class="font-display font-bold text-4xl lg:text-6xl text-ink-900 mb-6 leading-tight">
+                    Never think about <br>
+                    <span class="gradient-text">compliance again.</span>
+                </h2>
+                <p class="text-xl text-ink-500 mb-12 max-w-2xl mx-auto">$1,000/month. Cancel anytime. Your compliance department, on demand.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/waitlist" class="btn-primary px-10 py-5 rounded-xl text-lg font-bold">
+                        Start Managed Service →
+                    </a>
+                    <a href="../sprint/index.html" class="btn-secondary px-10 py-5 rounded-xl text-lg font-semibold">
+                        Or Try a Sprint First →
+                    </a>
+                </div>
+                <p class="mt-8 text-ink-400 text-sm">5 spots available · Next onboarding: Within 1 week</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="px-6 lg:px-12 py-16 bg-ink-50 border-t border-ink-200">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-12">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-display font-black text-sm">C</span>
+                        </div>
+                        <span class="font-display font-bold text-ink-900">ComplianceOS</span>
+                    </div>
+                    <p class="text-ink-500 text-sm">Compliance built for startups. Fast, affordable, and done right.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-ink-900 mb-4">Products</h4>
+                    <ul class="space-y-2 text-sm text-ink-500">
+                        <li><a href="../software/index.html" class="hover:text-brand-600">Software</a></li>
+                        <li><a href="../sprint/index.html" class="hover:text-brand-600">Compliance Sprint</a></li>
+                        <li><a href="#" class="hover:text-brand-600">Managed Service</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-ink-900 mb-4">Frameworks</h4>
+                    <ul class="space-y-2 text-sm text-ink-500">
+                        <li>SOC 2</li>
+                        <li>ISO 27001</li>
+                        <li>HIPAA</li>
+                        <li>GDPR</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-ink-900 mb-4">Company</h4>
+                    <ul class="space-y-2 text-sm text-ink-500">
+                        <li><a href="#" class="hover:text-brand-600">About</a></li>
+                        <li><a href="/blog" class="hover:text-brand-600">Blog</a></li>
+                        <li><a href="/waitlist" class="hover:text-brand-600">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-12 pt-8 border-t border-ink-200 text-center text-sm text-ink-400">
+                © 2026 ComplianceOS. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>
