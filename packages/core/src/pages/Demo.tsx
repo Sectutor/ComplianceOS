@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { trpc } from "@/lib/trpc";
-import { Loader2, Shield, Users, FileText, AlertTriangle, CheckCircle, Building2, Database, Lock } from "lucide-react";
+import { Loader2, Shield, Users, FileText, AlertTriangle, CheckCircle, Building2, Database, Lock, LogIn, UserPlus } from "lucide-react";
+
+type AuthMode = "signup" | "login";
 
 export default function DemoPage() {
+  const [mode, setMode] = useState<AuthMode>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -12,22 +14,20 @@ export default function DemoPage() {
   const [clientCount, setClientCount] = useState<number | null>(null);
   const [vendorCount, setVendorCount] = useState<number | null>(null);
 
-  const registerMutation = trpc.auth.localRegister.useMutation({
-    onSuccess: (data: any) => {
-      setToken(data.token);
-      setLoading(false);
-    },
-    onError: (err: any) => {
-      setError(err.message || "Registration failed");
-      setLoading(false);
-    },
-  });
+  useEffect(() => {
+    // Returning visitor with an active session? Offer to jump straight in.
+    const existingToken = localStorage.getItem("localAuthToken");
+    if (existingToken) setToken(existingToken);
+  }, []);
 
   useEffect(() => {
-    if (token) {
-      fetchCounts();
-    }
+    if (token) fetchCounts();
   }, [token]);
+
+  const persistSession = (authToken: string, user: unknown) => {
+    localStorage.setItem("localAuthToken", authToken);
+    localStorage.setItem("localAuthUser", JSON.stringify(user));
+  };
 
   const fetchCounts = async () => {
     try {
@@ -51,6 +51,10 @@ export default function DemoPage() {
     } catch {}
   };
 
+  const enterDashboard = () => {
+    window.location.href = "/dashboard";
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -63,13 +67,40 @@ export default function DemoPage() {
       });
       const data = await res.json();
       if (res.ok && data.token) {
+        persistSession(data.token, data.user);
         setToken(data.token);
+        setLoading(false);
       } else {
         setError(data.error || "Registration failed");
         setLoading(false);
       }
     } catch (err: any) {
       setError(err.message || "Registration failed");
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/local-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        persistSession(data.token, data.user);
+        setToken(data.token);
+        setLoading(false);
+      } else {
+        setError(data.error || "Invalid credentials");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setError(err.message || "Login failed");
       setLoading(false);
     }
   };
@@ -93,21 +124,39 @@ export default function DemoPage() {
         {!token ? (
           <div className="max-w-md mx-auto">
             <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                Sign Up for Demo Access
-              </h2>
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1.5">Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    placeholder="Your name"
-                  />
-                </div>
+              {/* Mode toggle */}
+              <div className="grid grid-cols-2 gap-2 mb-6 bg-slate-900/50 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => { setMode("signup"); setError(""); }}
+                  className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${mode === "signup" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Sign Up
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode("login"); setError(""); }}
+                  className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${mode === "login" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </button>
+              </div>
+
+              <form onSubmit={mode === "signup" ? handleRegister : handleLogin} className="space-y-4">
+                {mode === "signup" && (
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1.5">Name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                      placeholder="Your name"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm text-slate-400 mb-1.5">Email</label>
                   <input
@@ -126,9 +175,9 @@ export default function DemoPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    placeholder="Min 8 characters"
+                    placeholder={mode === "signup" ? "Min 8 characters" : "Your password"}
                     required
-                    minLength={8}
+                    minLength={mode === "signup" ? 8 : undefined}
                   />
                 </div>
                 {error && (
@@ -142,19 +191,33 @@ export default function DemoPage() {
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg px-4 py-2.5 transition-colors flex items-center justify-center gap-2"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? "Creating Account..." : "Sign Up & Explore Demo"}
+                  {loading
+                    ? mode === "signup" ? "Creating Account..." : "Signing In..."
+                    : mode === "signup" ? "Sign Up & Explore Demo" : "Sign In to Demo"}
                 </button>
               </form>
+
+              <p className="text-center text-slate-500 text-xs mt-4">
+                {mode === "signup"
+                  ? "New accounts get instant access to the shared LaTorre LTD demo workspace."
+                  : "Already signed up before? Sign in to return to the demo workspace."}
+              </p>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 flex items-center gap-4">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <CheckCircle className="w-8 h-8 text-green-400 shrink-0" />
-              <div>
-                <h3 className="text-lg font-semibold text-green-300">Welcome to the Demo!</h3>
-                <p className="text-green-400/80 text-sm">You now have access to the LaTorre LTD workspace with full demo data.</p>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-green-300">You're in!</h3>
+                <p className="text-green-400/80 text-sm">You have access to the LaTorre LTD workspace with full demo data.</p>
               </div>
+              <button
+                onClick={enterDashboard}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg px-5 py-2.5 transition-colors"
+              >
+                Enter Dashboard →
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -189,7 +252,7 @@ export default function DemoPage() {
                 <p className="text-slate-400 text-sm mt-1">With risk treatments</p>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                <Lock className="w-8 h-8 text-rose-400 mb-3" />
+                <Users className="w-8 h-8 text-rose-400 mb-3" />
                 <h3 className="text-lg font-semibold mb-1">Frameworks</h3>
                 <p className="text-3xl font-bold text-rose-300">4</p>
                 <p className="text-slate-400 text-sm mt-1">ISO 27001, SOC 2, GDPR, NIS2</p>
@@ -198,13 +261,13 @@ export default function DemoPage() {
 
             <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 text-center">
               <h3 className="text-xl font-semibold mb-2">Ready to explore?</h3>
-              <p className="text-slate-400 mb-6">Sign in with your new credentials to access the full dashboard.</p>
-              <a
-                href="/login"
+              <p className="text-slate-400 mb-6">Jump into the full dashboard — you're already signed in.</p>
+              <button
+                onClick={enterDashboard}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg px-6 py-3 transition-colors"
               >
                 Go to Dashboard
-              </a>
+              </button>
             </div>
           </div>
         )}
