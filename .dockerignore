@@ -2,6 +2,8 @@ node_modules
 .git
 .env
 .env.*
+# exception: Dockerfile.selfhost copies this into the image as a sample
+!.env.example
 dist
 .next
 *.tsbuildinfo

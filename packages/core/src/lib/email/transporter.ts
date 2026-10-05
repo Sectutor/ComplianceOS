@@ -34,7 +34,7 @@ export async function sendEmail({ to, subject, html, text, from, replyTo, client
     // Always provide a plain-text alternative: some webmail clients and
     // security gateways mishandle single-part text/html messages, showing
     // raw markup instead of the rendered email.
-    const plainText = (text || html
+    const plainText = (text || (html || '')
         .replace(/<style[\s\S]*?<\/style>/gi, ' ')
         .replace(/<[^>]+>/g, ' ')
         .replace(/&nbsp;/gi, ' ')
