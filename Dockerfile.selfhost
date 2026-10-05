@@ -74,7 +74,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
 
 # Security: non-root user
 RUN addgroup -S complianceos && adduser -S complianceos -G complianceos && \
-    mkdir -p /app/uploads /app/packages/core/drizzle && \
+    mkdir -p /app/uploads /app/packages/core/drizzle /app/node_modules/.cache && \
     chown -R complianceos:complianceos /app/uploads /app/packages/core/drizzle /app/node_modules/.cache
 USER complianceos
 
