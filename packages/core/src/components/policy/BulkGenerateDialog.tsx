@@ -157,13 +157,19 @@ export function BulkGenerateDialog({
 
     // Framework bulk generation mutation
     const bulkMutation = trpc.clientPolicies.generateBulkByFramework.useMutation({
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
             setResult(data);
             setStep("complete");
             setProgress(100);
             refetchClientPolicies();
             onComplete();
             toast.success(data.message || `Generated ${data.created} policies!`);
+            const t = data.tailoring;
+            if (t?.attempted > 0 && t.applied === 0) {
+                toast.warning("AI industry tailoring was unavailable — policies use the statutory base content. Check AI Providers in Settings.", { duration: 9000 });
+            } else if (t?.applied > 0) {
+                toast.success(`AI industry tailoring applied to ${t.applied} of ${t.attempted} policies.`);
+            }
         },
         onError: (err) => {
             setStep("select");

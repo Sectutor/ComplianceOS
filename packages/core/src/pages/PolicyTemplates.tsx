@@ -12,7 +12,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, XCircle, Clock, Sparkles, Loader2, Wand2, ChevronRight } from "lucide-react";
+import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, XCircle, Clock, Sparkles, Loader2, Wand2, ChevronRight, AlertTriangle } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -1484,6 +1484,7 @@ function BulkDeployDialog({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [completedResults, setCompletedResults] = useState<{ id: number; policyId?: number; name: string; status: 'success' | 'error' }[]>([]);
+  const [tailoringNotice, setTailoringNotice] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
   // Auto-navigate to policy when generation completes with exactly 1 success
@@ -1546,6 +1547,9 @@ function BulkDeployDialog({
     setIsGenerating(true);
     setProgress({ current: 0, total: wizardSelectedIds.length });
     const results: { id: number; policyId?: number; name: string; status: 'success' | 'error' }[] = [];
+    let tailoringAttempted = 0;
+    let tailoringApplied = 0;
+    const tailoringErrors: string[] = [];
 
     // Loop through selected templates and generate strictly sequentially to show progress
     for (let i = 0; i < wizardSelectedIds.length; i++) {
@@ -1560,6 +1564,14 @@ function BulkDeployDialog({
           instruction: customInstruction.trim() ? `${customInstruction} (Professional and detailed generation)` : "Professional and detailed generation from template",
           answers: {}
         });
+        const t = (response as any)?.tailoring;
+        if (t) {
+          tailoringAttempted += t.attempted || 0;
+          tailoringApplied += t.applied || 0;
+          for (const e of (t.errors || [])) {
+            if (!tailoringErrors.includes(e) && tailoringErrors.length < 3) tailoringErrors.push(e);
+          }
+        }
         const newPolicyId = response.deployed?.[0]?.policyId;
         results.push({ id: templateId, policyId: newPolicyId, name: templateName, status: 'success' });
       } catch (e) {
@@ -1568,6 +1580,14 @@ function BulkDeployDialog({
       }
 
       setProgress({ current: i + 1, total: wizardSelectedIds.length });
+    }
+
+    if (tailoringAttempted > 0 && tailoringApplied === 0) {
+      const notice = `AI industry tailoring was unavailable — ${tailoringAttempted} policies were generated from base templates.${tailoringErrors[0] ? ` (${tailoringErrors[0].slice(0, 120)})` : ''}`;
+      setTailoringNotice(notice);
+      toast.warning(notice, { duration: 9000 });
+    } else {
+      setTailoringNotice(null);
     }
 
     setCompletedResults(results);
@@ -1840,6 +1860,13 @@ function BulkDeployDialog({
               {errors.length > 0 && <p className="text-sm text-red-600 mt-1">{errors.length} failed.</p>}
             </div>
           </div>
+
+          {tailoringNotice && (
+            <div className="flex items-start gap-3 p-4 bg-amber-50 text-amber-800 rounded-md border border-amber-200">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <p className="text-sm">{tailoringNotice}</p>
+            </div>
+          )}
 
           <div className="border rounded-md max-h-[300px] overflow-y-auto">
             <Table>

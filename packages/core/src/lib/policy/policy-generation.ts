@@ -12,6 +12,14 @@ const LANGUAGE_NAMES: Record<string, string> = {
     ar: 'Arabic', he: 'Hebrew', tr: 'Turkish', ru: 'Russian', uk: 'Ukrainian',
 };
 
+/** Outcome of an AI tailoring attempt. `applied: false` with `attempted: true`
+ *  means the LLM failed and the base (substituted) content was kept. */
+export interface TailoringStatus {
+    attempted: boolean;
+    applied: boolean;
+    error?: string;
+}
+
 interface GenerationOptions {
     tailorToIndustry?: boolean;
     customInstruction?: string;
@@ -19,6 +27,8 @@ interface GenerationOptions {
     providerOverride?: string;
     language?: string; // Language code (e.g., 'en', 'de', 'fr')
     answers?: Record<string, any>;
+    /** OUT parameter: when provided, filled with the AI tailoring outcome. */
+    tailoringStatus?: TailoringStatus;
 }
 
 export class PolicyGenerator {
@@ -183,7 +193,12 @@ export class PolicyGenerator {
         if ((options.tailorToIndustry || options.customInstruction)) {
             const llmStart = Date.now();
             console.log(`[PolicyGen] Starting LLM tailoring for policy: ${template.name}, language: ${language}`);
-            content = await this.tailorContentWithLLM(content, client, template.name, options.customInstruction, language, answers);
+            const tailoring: TailoringStatus = { attempted: false, applied: false };
+            content = await this.tailorContentWithLLM(content, client, template.name, options.customInstruction, language, answers, tailoring);
+            if (options.tailoringStatus) Object.assign(options.tailoringStatus, tailoring);
+            if (tailoring.attempted && !tailoring.applied) {
+                console.warn(`[PolicyGen] AI tailoring fell back to base template for "${template.name}": ${tailoring.error}`);
+            }
             perfMetrics.llmTailoring = Date.now() - llmStart;
             console.log(`[PolicyGen] LLM tailoring finished in ${perfMetrics.llmTailoring}ms`);
         }
@@ -194,7 +209,7 @@ export class PolicyGenerator {
         return content;
     }
 
-    private substituteVariables(content: string, client: Client, answers: Record<string, any> = {}): string {
+    substituteVariables(content: string, client: Client, answers: Record<string, any> = {}): string {
         let replaced = content;
 
         // Calculate dates
@@ -303,10 +318,46 @@ export class PolicyGenerator {
 
         // AI Generation from Skeleton
         if (options.tailorToIndustry || options.customInstruction) {
-            content = await this.tailorContentWithLLM(content, client, policyName, "Generate detailed content for each section based on the header.", language, options.answers || {});
+            const tailoring: TailoringStatus = { attempted: false, applied: false };
+            content = await this.tailorContentWithLLM(content, client, policyName, "Generate detailed content for each section based on the header.", language, options.answers || {}, tailoring);
+            if (options.tailoringStatus) Object.assign(options.tailoringStatus, tailoring);
         }
 
         return content;
+    }
+
+    /**
+     * Tailor already-generated policy content to the client's industry/profile via LLM.
+     * Returns the (possibly unchanged) content plus the tailoring outcome, so callers
+     * can surface a fallback instead of silently shipping generic content.
+     */
+    async tailorExistingContent(
+        clientId: number,
+        policyName: string,
+        content: string,
+        options: { tailorToIndustry?: boolean; customInstruction?: string; answers?: Record<string, any> } = {}
+    ): Promise<{ content: string; tailoring: TailoringStatus }> {
+        if (!options.tailorToIndustry && !options.customInstruction) {
+            return { content, tailoring: { attempted: false, applied: false } };
+        }
+        const db = await getDb();
+        if (!db) throw new Error("Database connection failed");
+        const client = await db.query.clients.findFirst({
+            where: eq(clients.id, clientId),
+        });
+        if (!client) throw new Error(`Client with ID ${clientId} not found`);
+
+        const tailoring: TailoringStatus = { attempted: false, applied: false };
+        const tailored = await this.tailorContentWithLLM(
+            content,
+            client,
+            policyName,
+            options.customInstruction,
+            client.policyLanguage || 'en',
+            options.answers || {},
+            tailoring
+        );
+        return { content: tailored, tailoring };
     }
 
     async suggestSections(policyName: string, industry?: string): Promise<string[]> {
@@ -511,7 +562,7 @@ Directives:
         }
     }
 
-    private async tailorContentWithLLM(content: string, client: Client, policyName: string, customInstruction?: string, language: string = 'en', answers: Record<string, any> = {}): Promise<string> {
+    private async tailorContentWithLLM(content: string, client: Client, policyName: string, customInstruction?: string, language: string = 'en', answers: Record<string, any> = {}, status?: TailoringStatus): Promise<string> {
         const languageName = LANGUAGE_NAMES[language] || 'English';
 
         // Format answers for prompt
@@ -591,9 +642,12 @@ ${content}
                 maxTokens: 4000  // Reduced from 8000 to prevent timeouts
             }, { clientId: client.id, endpoint: 'tailor_policy_comprehensive' });
 
+            if (status) Object.assign(status, { attempted: true, applied: true });
             return response.text;
         } catch (error) {
-            console.error("LLM Comprehensive Generation failed:", error);
+            const message = error instanceof Error ? error.message : String(error);
+            console.error("LLM Comprehensive Generation failed:", message);
+            if (status) Object.assign(status, { attempted: true, applied: false, error: message });
             // Fallback to original content if AI fails
             return content;
         }

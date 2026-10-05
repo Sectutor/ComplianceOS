@@ -544,9 +544,18 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
         customInstruction: z.string().optional()
       }))
       .mutation(async ({ input, ctx }: any) => {
-        const dbConn = await db.getDb();
+        const dbConn = await getDb();
         const clientId = input.clientId;
         const companyName = input.companyName;
+        const { policyGenerator } = await import("../../lib/policy/policy-generation");
+
+        // Client profile drives placeholder substitution ([Industry], [Company Name], …)
+        const client = await dbConn.query.clients.findFirst({ where: eq(schema.clients.id, clientId) })
+          || ({ name: companyName } as any);
+
+        const wantsAiTailoring = !!(input.tailorToIndustry || input.customInstruction);
+        const tailoring = { attempted: 0, applied: 0, errors: [] as string[] };
+        let aiAvailable = wantsAiTailoring;
 
         // 1. Get existing policies to prevent exact duplicates
         const existing = await dbConn.select({
@@ -568,13 +577,17 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
 
           const policyNumber = `POL-${String(existing.length + createdPolicies.length + 1).padStart(3, '0')}`;
 
-          let content = p.content || '';
-          content = content.replace(/\[COMPANY NAME\]/g, companyName);
-          content = content.replace(/\[DATE\]/g, new Date().toLocaleDateString());
+          // 2. Deterministic personalization: industry, company, CISO, dates, region, …
+          let content = policyGenerator.substituteVariables(p.content || '', client, {});
 
-          if (input.customInstruction) {
-            content += `\n\n### Custom Organizational Directives\n${input.customInstruction}`;
-          }
+          // When AI tailoring is unavailable, a custom instruction is still
+          // appended verbatim so the directive is never lost.
+          const appendDirectives = () => {
+            if (input.customInstruction) {
+              content += `\n\n### Custom Organizational Directives\n${input.customInstruction}`;
+            }
+          };
+          if (input.customInstruction && !aiAvailable) appendDirectives();
 
           const [newPolicy] = await dbConn.insert(clientPolicies).values({
             clientId: clientId,
@@ -589,7 +602,6 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           }).returning();
 
           if (newPolicy) {
-            createdPolicies.push(newPolicy);
             try {
               await dbConn.insert(policyVersions).values({
                 clientPolicyId: newPolicy.id,
@@ -600,6 +612,54 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
                 publishedBy: (ctx?.user as any)?.id || null
               });
             } catch {}
+
+            // 3. AI industry tailoring — attempted per policy, but fails fast:
+            // once a provider proves unavailable, remaining policies keep the
+            // substituted statutory content instead of waiting out the same error.
+            if (aiAvailable) {
+              try {
+                const result = await policyGenerator.tailorExistingContent(clientId, p.name, content, {
+                  tailorToIndustry: input.tailorToIndustry,
+                  customInstruction: input.customInstruction
+                });
+                tailoring.attempted++;
+                if (result.tailoring.applied) {
+                  tailoring.applied++;
+                  content = result.content;
+                  await dbConn.update(clientPolicies)
+                    .set({ content, updatedAt: new Date() })
+                    .where(eq(clientPolicies.id, newPolicy.id));
+                  try {
+                    await dbConn.insert(policyVersions).values({
+                      clientPolicyId: newPolicy.id,
+                      version: 'v1.1',
+                      content: content,
+                      status: 'draft',
+                      description: `AI industry tailoring applied (${client.industry || 'general'})`,
+                      publishedBy: (ctx?.user as any)?.id || null
+                    });
+                  } catch {}
+                } else {
+                  if (result.tailoring.error && tailoring.errors.length < 3 && !tailoring.errors.includes(result.tailoring.error)) {
+                    tailoring.errors.push(result.tailoring.error);
+                  }
+                  aiAvailable = false;
+                  appendDirectives();
+                  if (input.customInstruction) {
+                    await dbConn.update(clientPolicies)
+                      .set({ content, updatedAt: new Date() })
+                      .where(eq(clientPolicies.id, newPolicy.id));
+                  }
+                  console.warn(`[GenerateBulk] AI tailoring unavailable after "${p.name}" — remaining policies use substituted statutory content`);
+                }
+              } catch (e: any) {
+                aiAvailable = false;
+                tailoring.errors.push(e?.message || 'AI tailoring failed');
+                console.warn('[GenerateBulk] AI tailoring error:', e?.message);
+              }
+            }
+
+            createdPolicies.push(newPolicy);
           }
         }
 
@@ -608,6 +668,7 @@ export const createClientPoliciesRouter = (t: any, clientProcedure: any, adminPr
           skipped,
           total: input.policies.length,
           createdPolicies,
+          tailoring,
           message: `Generated ${createdPolicies.length} statutory policies for ${input.frameworkId.toUpperCase()} (${skipped} already existed)`
         };
       }),
