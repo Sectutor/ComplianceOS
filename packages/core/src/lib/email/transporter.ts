@@ -31,6 +31,18 @@ export async function sendEmail({ to, subject, html, text, from, replyTo, client
     // Default replyTo to the sender's email if not specified
     const replyToAddress = replyTo || process.env.SMTP_REPLY_TO || fromAddress;
 
+    // Always provide a plain-text alternative: some webmail clients and
+    // security gateways mishandle single-part text/html messages, showing
+    // raw markup instead of the rendered email.
+    const plainText = (text || html
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/\s+/g, ' ')
+        .trim())
+        .slice(0, 5000);
+
     // 1. Try to load Client Integrations (Custom SMTP)
     // If a client has specific settings, they usually want to override everything.
     if (clientId) {
@@ -83,7 +95,7 @@ export async function sendEmail({ to, subject, html, text, from, replyTo, client
                 replyTo: replyToAddress,
                 subject: subject,
                 html: html,
-                text: text,
+                text: plainText,
                 // Track this as a system category
                 categories: ['compliance-os-system'],
             });
@@ -121,7 +133,7 @@ export async function sendEmail({ to, subject, html, text, from, replyTo, client
                     reply_to: replyToAddress,
                     subject: subject,
                     html: html,
-                    text: text,
+                    text: plainText,
                 }),
             });
 
@@ -176,7 +188,7 @@ export async function sendEmail({ to, subject, html, text, from, replyTo, client
             to: Array.isArray(to) ? to.join(', ') : to,
             subject,
             html,
-            text,
+            text: plainText,
         });
         console.log(`[Email] Sent (SMTP): ${info.messageId}`);
         return { success: true, messageId: info.messageId };

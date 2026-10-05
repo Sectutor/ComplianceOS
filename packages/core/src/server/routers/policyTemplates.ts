@@ -306,6 +306,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
 
                     // Process templates in parallel with concurrency limit
                     const results: { templateId: number; policyId: number }[] = [];
+                    const tailoring = { attempted: 0, applied: 0, errors: [] as string[] };
                     const processStart = Date.now();
 
                     for (let i = 0; i < accessibleTemplates.length; i += CONCURRENCY_LIMIT) {
@@ -314,11 +315,18 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                             batch.map(async (template: any) => {
                                 try {
                                     const genStart = Date.now();
+                                    const tailoringStatus = { attempted: false, applied: false, error: undefined as string | undefined };
                                     const tailoredContent = await policyGenerator.generate(input.clientId, template.id, {
                                         answers: input.answers,
                                         tailorToIndustry: input.tailor,
-                                        customInstruction: input.instruction
+                                        customInstruction: input.instruction,
+                                        tailoringStatus
                                     });
+                                    if (tailoringStatus.attempted) tailoring.attempted++;
+                                    if (tailoringStatus.applied) tailoring.applied++;
+                                    if (tailoringStatus.error && tailoring.errors.length < 3 && !tailoring.errors.includes(tailoringStatus.error)) {
+                                        tailoring.errors.push(tailoringStatus.error);
+                                    }
                                     console.log(`[BulkDeploy] Generated policy for template ${template.id} in ${Date.now() - genStart}ms`);
 
                                     const [policy] = await dbConn.insert(schema.clientPolicies).values({
@@ -345,7 +353,7 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     }
 
                     console.log(`[BulkDeploy] Total processing time for ${accessibleTemplates.length} templates: ${Date.now() - processStart}ms`);
-                    return { success: true, deployed: results };
+                    return { success: true, deployed: results, tailoring };
                 } catch (error: any) {
                     console.error('[PolicyTemplates bulkDeploy] Error:', error);
                     throw new TRPCError({

@@ -1959,7 +1959,11 @@ export async function ensureDefaultDataSeeded() {
     try {
       const fs = await import("fs");
       const path = await import("path");
-      const sqlPath = path.resolve(__dirname, "../../scripts/seed-demo-full.sql");
+      // ESM: __dirname is undefined in this module — derive the path from
+      // import.meta.url. src/ is three levels below the repo root.
+      const { fileURLToPath } = await import("url");
+      const here = path.dirname(fileURLToPath(import.meta.url));
+      const sqlPath = path.resolve(here, "../../../scripts/seed-demo-full.sql");
       if (fs.existsSync(sqlPath)) {
         const content = fs.readFileSync(sqlPath, "utf-8");
         const lines = content.split("\n");
@@ -3214,7 +3218,7 @@ export async function onboardClient(data: {
   companyName: string;
 }) {
   const db = await getDb();
-  return await db.transaction(async (tx) => {
+  const client = await db.transaction(async (tx) => {
     // 1. Create Client
     const [client] = await tx.insert(clients).values({
       name: data.name,
@@ -3251,6 +3255,39 @@ export async function onboardClient(data: {
 
     return client;
   });
+
+  await grantSharedClientAccess(data.userId, client);
+  return client;
+}
+
+/**
+ * Every new client gets viewer access to the shared tenant (LaTorre LTD by
+ * default, overridable via DEFAULT_SHARED_CLIENT_NAME). Resolved by name so
+ * the grant works against any database; skipped silently when the shared
+ * client does not exist there. Non-fatal: onboarding already succeeded.
+ */
+async function grantSharedClientAccess(userId: number, client: { id: number; name: string | null }) {
+  const sharedClientName = process.env.DEFAULT_SHARED_CLIENT_NAME || 'LaTorre LTD';
+  if (client.name === sharedClientName) return;
+  try {
+    const db = await getDb();
+    const [shared] = await db.select({ id: clients.id }).from(clients)
+      .where(eq(clients.name, sharedClientName))
+      .limit(1);
+    if (!shared || shared.id === client.id) return;
+    const [existing] = await db.select({ id: userClients.id }).from(userClients)
+      .where(and(eq(userClients.userId, userId), eq(userClients.clientId, shared.id)))
+      .limit(1);
+    if (existing) return;
+    await db.insert(userClients).values({
+      userId,
+      clientId: shared.id,
+      role: 'viewer'
+    });
+    console.log(`[onboardClient] Granted user ${userId} viewer access to shared client "${sharedClientName}" (id ${shared.id})`);
+  } catch (e) {
+    console.warn('[onboardClient] Shared client grant skipped:', e instanceof Error ? e.message : e);
+  }
 }
 
 /**
