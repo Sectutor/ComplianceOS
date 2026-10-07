@@ -16,9 +16,10 @@ import { requiresMFA } from "../trpc";
 
 describe("requiresMFA middleware", () => {
   it("allows when client does not require MFA", async () => {
-    const next = await (requiresMFA as any)({
-      ctx: { clientId: 1, aal: 'aal1', req: {}, res: {} },
-      next: ({ ctx }: any) => ({ ctx })
+    const fn = (requiresMFA as any)._middlewares?.[0] ?? (requiresMFA as any);
+    const next = await fn({
+      ctx: { clientId: 1, aal: 'aal1', req: {}, res: {}, user: { id: 1, role: 'viewer' } },
+      next: (args?: any) => args || { ok: true }
     });
     expect(next).toBeDefined();
   });
@@ -37,10 +38,11 @@ describe("requiresMFA middleware", () => {
       })
     }));
     const { requiresMFA: guard } = await import("../trpc");
+    const fn = (guard as any)._middlewares?.[0] ?? (guard as any);
     let threw = false;
     try {
-      await (guard as any)({
-        ctx: { clientId: 1, aal: 'aal1', req: {}, res: {} },
+      await fn({
+        ctx: { clientId: 1, aal: 'aal1', req: {}, res: {}, user: { id: 1, role: 'viewer' } },
         next: ({ ctx }: any) => ({ ctx })
       });
     } catch (e: any) {

@@ -18,23 +18,30 @@ import { config } from '../../lib/config';
 const router = express.Router();
 
 /**
- * Verify Gumroad webhook signature
+ * Verify Gumroad webhook signature with timing-safe comparison
  */
 function verifyGumroadSignature(
-  payload: string,
+  payload: string | Buffer,
   signature: string,
   webhookSecret: string
 ): boolean {
   try {
+    if (!signature || !webhookSecret) return false;
+
     const expectedSignature = crypto
       .createHmac('sha256', webhookSecret)
       .update(payload)
       .digest('hex');
-    
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
+
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+
+    // Prevent RangeError if lengths differ
+    if (sigBuf.length !== expectedBuf.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(sigBuf, expectedBuf);
   } catch (error) {
     console.error('Error verifying Gumroad signature:', error);
     return false;
@@ -347,9 +354,9 @@ router.post('/gumroad', async (req, res) => {
       return res.status(400).json({ error: 'Missing signature' });
     }
     
-    // Verify signature
-    const rawBody = JSON.stringify(req.body);
-    const isValid = verifyGumroadSignature(rawBody, signature, webhookSecret);
+    // Verify signature against raw bytes if available, fallback to serialized body
+    const rawPayload = (req as any).rawBody || JSON.stringify(req.body);
+    const isValid = verifyGumroadSignature(rawPayload, signature, webhookSecret);
     
     if (!isValid) {
       console.error('[Gumroad Webhook] Invalid signature');
@@ -371,14 +378,21 @@ router.post('/gumroad', async (req, res) => {
 });
 
 /**
- * Webhook test endpoint (for development)
+ * Webhook test endpoint (for development only)
  * POST /api/webhooks/gumroad/test
  */
-router.post('/gumroad/test', async (req, res) => {
+router.post('/gumroad/test', async (req: any, res) => {
   try {
-    // This is a test endpoint that simulates webhook processing
-    // It doesn't require signature verification
-    
+    // Security: Block test endpoint in production or when test mode is disabled
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_WEBHOOK_TEST !== 'true') {
+      return res.status(404).json({ error: 'Endpoint not found' });
+    }
+
+    // Security: Require admin privileges even in development
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin' && req.user.role !== 'enterprise_admin')) {
+      return res.status(403).json({ error: 'Unauthorized: Admin privileges required for webhook testing' });
+    }
+
     console.log('[Gumroad Webhook Test] Received test webhook:', req.body);
     
     // Simulate processing
@@ -411,8 +425,13 @@ router.post('/gumroad/test', async (req, res) => {
  * Webhook status endpoint
  * GET /api/webhooks/gumroad/status
  */
-router.get('/gumroad/status', async (req, res) => {
+router.get('/gumroad/status', async (req: any, res) => {
   try {
+    // Security: Restrict status and statistics endpoint to platform administrators
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin' && req.user.role !== 'enterprise_admin')) {
+      return res.status(403).json({ error: 'Unauthorized: Admin privileges required' });
+    }
+
     const db = await getDb();
     
     // Get recent webhook events

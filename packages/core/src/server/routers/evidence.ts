@@ -105,9 +105,10 @@ export const FRAMEWORK_SEEDS: Record<string, any[]> = {
 
 export const createEvidenceRouter = (
     t: any,
-    adminProcedure: any,
+    clientProcedure: any,
     publicProcedure: any,
-    protectedProcedure: any
+    protectedProcedure: any,
+    adminProcedure: any = clientProcedure
 ) => {
     return t.router({
         getFrameworks: publicProcedure
@@ -117,7 +118,7 @@ export const createEvidenceRouter = (
                     name: name
                 }));
             }),
-        list: publicProcedure
+        list: clientProcedure
             .input(z.object({ clientId: z.number(), systemId: z.string().optional() }))
             .query(async ({ input }: any) => {
                 const results = await db.getEvidence(input.clientId, input.systemId);
@@ -138,7 +139,7 @@ export const createEvidenceRouter = (
                 }));
             }),
 
-        listOpenRequests: publicProcedure
+        listOpenRequests: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 framework: z.string().optional()
@@ -183,16 +184,24 @@ export const createEvidenceRouter = (
                 }));
             }),
 
-        getByControl: publicProcedure
+        getByControl: protectedProcedure
             .input(z.object({ clientControlId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [cc] = await dbConn.select({ clientId: schema.clientControls.clientId })
+                    .from(schema.clientControls)
+                    .where(eq(schema.clientControls.id, input.clientControlId))
+                    .limit(1);
+                if (!cc) throw new TRPCError({ code: 'NOT_FOUND', message: 'Control not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, cc.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client control' });
+
                 return await dbConn.select().from(schema.evidence)
                     .where(eq(schema.evidence.clientControlId, input.clientControlId))
                     .orderBy(desc(schema.evidence.createdAt));
             }),
 
-        create: publicProcedure
+        create: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 clientControlId: z.number(),
@@ -215,16 +224,24 @@ export const createEvidenceRouter = (
                 return newEvidence;
             }),
 
-        delete: publicProcedure
+        delete: protectedProcedure
             .input(z.object({ id: z.number() }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [ev] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.id))
+                    .limit(1);
+                if (!ev) throw new TRPCError({ code: 'NOT_FOUND', message: 'Evidence not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, ev.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+
                 await dbConn.delete(schema.evidence)
                     .where(eq(schema.evidence.id, input.id));
                 return { success: true };
             }),
 
-        update: publicProcedure
+        update: protectedProcedure
             .input(z.object({
                 id: z.number(),
                 evidenceId: z.string().optional(),
@@ -236,8 +253,16 @@ export const createEvidenceRouter = (
                 intervalDays: z.number().optional(),
                 expirationDate: z.date().optional(),
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [ev] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.id))
+                    .limit(1);
+                if (!ev) throw new TRPCError({ code: 'NOT_FOUND', message: 'Evidence not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, ev.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+
                 const { id, ...data } = input;
 
                 // Construct update object removing undefined
@@ -252,17 +277,20 @@ export const createEvidenceRouter = (
                 return { success: true };
             }),
 
-        updateStatus: publicProcedure
+        updateStatus: protectedProcedure
             .input(z.object({
                 evidenceId: z.number(),
                 status: z.enum(['verified', 'rejected', 'collected', 'pending', 'expired', 'not_applicable'])
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
 
                 // 1. Update Evidence Status
                 const now = new Date();
                 const [existingEvidence] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
+                if (!existingEvidence) throw new TRPCError({ code: 'NOT_FOUND', message: 'Evidence not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, existingEvidence.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
                 
                 let expirationDate = null;
                 if (input.status === 'verified' && existingEvidence) {
@@ -337,8 +365,15 @@ export const createEvidenceRouter = (
                 resourceId: z.string(), // e.g. PR URL, S3 ARN
                 metadata: z.record(z.any()).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [ev] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.evidenceId))
+                    .limit(1);
+                if (!ev) throw new TRPCError({ code: 'NOT_FOUND', message: 'Evidence not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, ev.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
 
                 // Update evidence to point to integration
                 const safeLocation = input.resourceId ? input.resourceId.substring(0, 1024) : '';
@@ -357,27 +392,37 @@ export const createEvidenceRouter = (
                 return { success: true };
             }),
 
-        getFiles: publicProcedure
+        getFiles: protectedProcedure
             .input(z.object({ evidenceId: z.number() }))
-            .query(async ({ input }: any) => {
+            .query(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [ev] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.evidenceId))
+                    .limit(1);
+                if (!ev) throw new TRPCError({ code: 'NOT_FOUND', message: 'Evidence not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, ev.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+
                 return dbConn.select().from(schema.evidenceFiles)
                     .where(eq(schema.evidenceFiles.evidenceId, input.evidenceId));
             }),
 
-        analyze: publicProcedure
+        analyze: protectedProcedure
             .input(z.object({
                 evidenceId: z.number(),
                 controlName: z.string().optional(),
                 controlDescription: z.string().nullable().optional(), // Allow null
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
 
                 // Get the evidence item to check for existing content
                 const [evidenceItem] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
 
-                if (!evidenceItem) throw new Error("Evidence not found");
+                if (!evidenceItem) throw new TRPCError({ code: 'NOT_FOUND', message: "Evidence not found" });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, evidenceItem.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
 
                 // Check for attached files
                 const files = await dbConn.select().from(schema.evidenceFiles)

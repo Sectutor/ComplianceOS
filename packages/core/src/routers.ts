@@ -232,8 +232,8 @@ export const appRouter = router({
 
 
   dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
-  compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
-  evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, protectedProcedure),
+  evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure, adminProcedure),
   notifications: createNotificationsRouter(t, clientProcedure, adminProcedure, protectedProcedure),
 
   // Risk Management Module
@@ -247,7 +247,7 @@ export const appRouter = router({
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
   adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
   vendors: vendorsRouter,
-  roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure),
+  roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure, clientProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
@@ -1118,7 +1118,7 @@ export const appRouter = router({
 
         if (input?.clientId) {
           // If specific clientId provided, check access
-          const membership = ctx.user.role === 'admin' || ctx.user.role === 'owner' ? [true] :
+          const membership = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin' ? [true] :
             await db.select().from(schema.userClients)
               .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)))
               .limit(1);
@@ -1127,7 +1127,7 @@ export const appRouter = router({
             throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client' });
           }
           conditions.push(eq(schema.vendors.clientId, input.clientId));
-        } else if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
+        } else if (ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin' && ctx.user.role !== 'enterprise_admin') {
           // For non-admins calling globally, filter by their clients
           const userClientIds = await db.select({ id: schema.userClients.clientId })
             .from(schema.userClients)
@@ -2501,7 +2501,7 @@ ONLY return the JSON. No Markdown formatting.
         action: z.string()
       }))
       .mutation(async ({ input, ctx }) => {
-        if (input.clientId > 0 && ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin') {
+        if (input.clientId > 0 && ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin' && ctx.user.role !== 'enterprise_admin') {
           const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
           if (!hasAccess) {
             throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this client.' });
@@ -2642,7 +2642,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Security Check
-        const isSuperAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+        const isSuperAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
 
         // If filtering by client, ensure user has access to THAT client
         if (input.clientId) {
@@ -2820,7 +2820,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Access Control Logic
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
         const isClientAdmin = ['owner', 'admin'].includes(ctx.clientRole || '');
         const hasFullAccess = isGlobalAdmin || isClientAdmin;
 

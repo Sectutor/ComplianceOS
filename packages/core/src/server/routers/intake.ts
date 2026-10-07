@@ -42,7 +42,7 @@ export const createIntakeRouter = (t: any, clientProcedure: any, protectedProced
                     .from(intakeItems)
                     .innerJoin(clients, eq(intakeItems.clientId, clients.id));
 
-                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'owner' && ctx.user?.role !== 'super_admin') {
+                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'super_admin' && ctx.user?.role !== 'enterprise_admin') {
                     query.innerJoin(userClients, and(eq(userClients.clientId, clients.id), eq(userClients.userId, ctx.user.id)));
                 }
 

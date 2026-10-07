@@ -49,7 +49,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated' });
         }
 
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
 
         const userClientIds = isGlobalAdmin ? null : (await dbConn.select({ id: schema.userClients.clientId })
           .from(schema.userClients)
@@ -465,7 +465,7 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           ? Number(input.clientId)
           : undefined;
 
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
 
         const userClientIds = isGlobalAdmin ? null : (await dbConn.select({ id: schema.userClients.clientId })
           .from(schema.userClients)

@@ -349,7 +349,7 @@ function GlobalBrandingSync() {
   const [location] = useLocation();
   const urlClientMatch = location.match(/\/clients\/(\d+)/);
   const urlClientId = urlClientMatch ? parseInt(urlClientMatch[1], 10) : null;
-  const effectiveClientId = selectedClientId || urlClientId;
+  const effectiveClientId = urlClientId || selectedClientId;
 
   const { data: client } = trpc.clients.get.useQuery(
     { id: effectiveClientId as number },
@@ -396,10 +396,10 @@ function UnifiedClientGuard({
   const { selectedClientId, setPlanTier, setUserRole, userRole: contextRole, setIsPremiumStatus } = useClientContext();
   const [location] = useLocation();
 
-  // Extract client ID from URL as fallback
+  // Extract client ID from URL as primary
   const urlClientMatch = location.match(/\/clients\/(\d+)/);
   const urlClientId = urlClientMatch ? parseInt(urlClientMatch[1], 10) : null;
-  const effectiveClientId = selectedClientId || urlClientId;
+  const effectiveClientId = urlClientId || selectedClientId;
 
   const { data: userMe, isLoading: userLoading } = trpc.users.me.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -429,7 +429,7 @@ function UnifiedClientGuard({
   const tier = client?.planTier || userMe?.planTier;
   const clientRole = client?.userRole || contextRole;
   const globalRole = userMe?.role;
-  const isGlobalAdmin = ['admin', 'owner', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
+  const isGlobalAdmin = ['admin', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
   const isAdminOrOwner = isGlobalAdmin || clientRole === 'owner' || clientRole === 'admin';
   const isPremiumContext = tier === 'pro' || tier === 'enterprise' || isAdminOrOwner || clientRole === 'owner' || clientRole === 'admin';
 
@@ -484,6 +484,7 @@ function ManagementGuard({ children }: { children: React.ReactNode }) {
 // Wrapper for protected routes
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any> } & any) {
   const { session, loading } = useAuth();
+  const [location] = useLocation();
 
   if (loading) {
     return (
@@ -499,6 +500,15 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
   }
 
   console.log("ProtectedRoute: Session valid, rendering component");
+
+  const isClientRoute = location.match(/\/clients\/(\d+)/);
+  if (isClientRoute) {
+    return (
+      <UnifiedClientGuard>
+        <Component {...rest} />
+      </UnifiedClientGuard>
+    );
+  }
 
   return <Component {...rest} />;
 }

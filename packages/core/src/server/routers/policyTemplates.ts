@@ -492,8 +492,8 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 dryRun: z.boolean().default(true)
             }).optional())
             .mutation(async ({ input, ctx }: any) => {
-                if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin') {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "Admin or Owner required" });
+                if (ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin' && ctx.user.role !== 'enterprise_admin') {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
                 }
                 const db = await getDb();
                 const templates = await db.select().from(policyTemplates).orderBy(desc(policyTemplates.createdAt));

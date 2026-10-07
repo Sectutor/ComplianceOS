@@ -7,13 +7,17 @@ import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
 // Security: Validate that we don't accidentally use service role key in client-facing code
-if (!supabaseUrl || !supabaseKey) {
-    console.error('[AuthMiddleware] Missing required environment variables: VITE_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_ANON_KEY');
-    process.exit(1);
+if (!process.env.VITE_SUPABASE_URL || !(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY)) {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('[AuthMiddleware] Missing required environment variables: VITE_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_ANON_KEY');
+        process.exit(1);
+    } else {
+        console.warn('[AuthMiddleware] Missing VITE_SUPABASE_URL or Supabase keys in development. Running with placeholder client.');
+    }
 }
 
 console.log('[AuthMiddleware Init] Supabase URL:', supabaseUrl);

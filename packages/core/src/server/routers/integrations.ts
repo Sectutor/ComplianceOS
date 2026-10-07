@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { integrations, integrationDefinitions, evidenceFiles } from "../../schema";
 import * as db from "../../db";
 import { encrypt } from "../../lib/crypto";
+import { storagePut } from "../../storage";
 
 // Validate APP_URL - use default for development if not set
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
@@ -809,28 +810,9 @@ export const integrationsRouter = (t: any, clientProcedure: any, publicProcedure
                     const extension = fileName.split(".").pop() || "";
                     const filename = `gdrive-${evidenceId}-${timestamp}-${randomSuffix}.${extension}`;
 
-                    // Upload to storage (using the same approach as EvidenceFileUpload)
-                    const uploadResponse = await fetch("/api/upload", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            filename,
-                            data: base64,
-                            contentType: mimeType,
-                            folder: "evidence"
-                        })
-                    });
-
-                    if (!uploadResponse.ok) {
-                        throw new TRPCError({
-                            code: "INTERNAL_SERVER_ERROR",
-                            message: "Failed to upload file to storage"
-                        });
-                    }
-
-                    const { key, url } = await uploadResponse.json();
+                    // Upload to storage directly using storage subsystem
+                    const storageKey = `evidence/${Date.now()}-${filename}`;
+                    const { key, url } = await storagePut(storageKey, buffer, mimeType || "application/octet-stream");
                     const fileSize = buffer.length;
 
                     // Insert file record

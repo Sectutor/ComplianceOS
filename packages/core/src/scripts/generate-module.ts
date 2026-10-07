@@ -129,7 +129,7 @@ fs.writeFileSync(path.join(moduleDir, 'router.ts'), routerTemplate);
 fs.writeFileSync(path.join(moduleDir, 'index.ts'), indexTemplate);
 fs.writeFileSync(path.join(moduleDir, 'pages', 'index.ts'), pagesIndexTemplate);
 
-console.log(\`
+console.log(`
 ✅ Module '${moduleName}' scaffold created successfully!
 
 Next steps:
@@ -140,4 +140,4 @@ Next steps:
    
    Add to appRouter:
    ${moduleName}: ${moduleName}Router,
-\`);
+`);

@@ -1,19 +1,28 @@
 import crypto from 'crypto';
 import { getEncryptionKeys, getActiveKeyVersion } from './secrets';
 
-const ALGORITHM = 'aes-256-cbc';
-const IV_LENGTH = 16;
+const GCM_ALGORITHM = 'aes-256-gcm';
+const GCM_IV_LENGTH = 12; // 96-bit IV recommended by NIST for AES-GCM
+const CBC_ALGORITHM = 'aes-256-cbc';
+const LEGACY_IV_LENGTH = 16;
 
 /**
- * Derives a consistent 32-byte key from a secret string
+ * Derives a consistent 32-byte key from a secret string using SHA-256 binary digest
  */
 function deriveKey(secret: string): Buffer {
+    return crypto.createHash('sha256').update(secret).digest();
+}
+
+/**
+ * Legacy key derivation used by prior CBC implementation
+ */
+function deriveLegacyKey(secret: string): Buffer {
     const hash = crypto.createHash('sha256').update(secret).digest('base64').substring(0, 32);
     return Buffer.from(hash);
 }
 
 /**
- * Encrypts data using the active key version (ASVS V14.1.2)
+ * Encrypts data using authenticated AES-256-GCM (ASVS V14.1.2 / OWASP A02 Defense)
  */
 export function encrypt(text: string): string {
     if (!text) return text;
@@ -27,18 +36,19 @@ export function encrypt(text: string): string {
     }
 
     const key = deriveKey(activeKey);
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+    const iv = crypto.randomBytes(GCM_IV_LENGTH);
+    const cipher = crypto.createCipheriv(GCM_ALGORITHM, key, iv);
 
-    let encrypted = cipher.update(text);
+    let encrypted = cipher.update(text, 'utf8');
     encrypted = Buffer.concat([encrypted, cipher.final()]);
+    const authTag = cipher.getAuthTag();
 
-    // Format: version$iv:ciphertext
-    return `${activeVersion}$${iv.toString('hex')}:${encrypted.toString('hex')}`;
+    // Format: version$iv:authTag:ciphertext
+    return `${activeVersion}$${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
 }
 
 /**
- * Decrypts data using the version-specific key (ASVS V14.1.2)
+ * Decrypts data using authenticated AES-256-GCM, with backward-compatibility for legacy AES-256-CBC
  */
 export function decrypt(text: string): string {
     if (!text) return text;
@@ -62,19 +72,38 @@ export function decrypt(text: string): string {
         }
 
         const textParts = rawData.split(':');
-        if (textParts.length !== 2) return text;
 
-        const iv = Buffer.from(textParts[0], 'hex');
-        const encryptedText = Buffer.from(textParts[1], 'hex');
-        const key = deriveKey(keyString);
+        // Case 1: Authenticated AES-256-GCM (3 parts: iv, authTag, ciphertext)
+        if (textParts.length === 3) {
+            const iv = Buffer.from(textParts[0], 'hex');
+            const authTag = Buffer.from(textParts[1], 'hex');
+            const encryptedText = Buffer.from(textParts[2], 'hex');
+            const key = deriveKey(keyString);
 
-        const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-        let decrypted = decipher.update(encryptedText);
-        decrypted = Buffer.concat([decrypted, decipher.final()]);
+            const decipher = crypto.createDecipheriv(GCM_ALGORITHM, key, iv);
+            decipher.setAuthTag(authTag);
+            let decrypted = decipher.update(encryptedText);
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
 
-        return decrypted.toString();
-    } catch (error) {
-        console.error("Decryption failed:", error);
+            return decrypted.toString('utf8');
+        }
+
+        // Case 2: Legacy AES-256-CBC (2 parts: iv, ciphertext)
+        if (textParts.length === 2) {
+            const iv = Buffer.from(textParts[0], 'hex');
+            const encryptedText = Buffer.from(textParts[1], 'hex');
+            const key = deriveLegacyKey(keyString);
+
+            const decipher = crypto.createDecipheriv(CBC_ALGORITHM, key, iv);
+            let decrypted = decipher.update(encryptedText);
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+
+            return decrypted.toString('utf8');
+        }
+
         return text;
+    } catch (error) {
+        console.error("Decryption failed (integrity or key mismatch):", error);
+        throw new Error("Decryption failed: data may be corrupted or tampered with");
     }
 }

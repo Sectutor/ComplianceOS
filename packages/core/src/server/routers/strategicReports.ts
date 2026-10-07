@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import * as schema from "../../schema";
-import { getDb } from "../../db";
+import { getDb, isUserAllowedForClient } from "../../db";
 import { eq, desc } from "drizzle-orm";
 
-export const createStrategicReportsRouter = (t: any, publicProcedure: any, adminProcedure: any) => t.router({
+export const createStrategicReportsRouter = (t: any, publicProcedure: any, adminProcedure: any, clientProcedure: any = adminProcedure) => t.router({
     // List reports for a client
-    list: publicProcedure
+    list: clientProcedure
         .input(z.object({ clientId: z.number() }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
@@ -16,12 +17,15 @@ export const createStrategicReportsRouter = (t: any, publicProcedure: any, admin
         }),
 
     // Get a single report
-    get: publicProcedure
-        .input(z.object({ reportId: z.number() }))
-        .query(async ({ input }: any) => {
+    get: clientProcedure
+        .input(z.object({ reportId: z.number(), clientId: z.number().optional() }))
+        .query(async ({ input, ctx }: any) => {
             const dbConn = await getDb();
             const [report] = await dbConn.select().from(schema.strategicReports)
                 .where(eq(schema.strategicReports.id, input.reportId));
+            if (!report) return null;
+            const allowed = await isUserAllowedForClient(ctx.user.id, report.clientId);
+            if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this report' });
             return report;
         }),
 

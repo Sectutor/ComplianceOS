@@ -34,7 +34,7 @@ export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, ad
           if (!consent.length) throw new TRPCError({ code: "NOT_FOUND" });
 
           // Permission check
-          if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
+          if (ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin' && ctx.user.role !== 'enterprise_admin') {
             const allowed = await db.isUserAllowedForClient(ctx.user.id, consent[0].clientId);
             if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
           }
@@ -103,7 +103,7 @@ export const createPrivacyEnhancementsRouter = (t: any, clientProcedure: any, ad
 
           if (!consent.length) throw new TRPCError({ code: "NOT_FOUND" });
 
-          if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
+          if (ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin' && ctx.user.role !== 'enterprise_admin') {
             const allowed = await db.isUserAllowedForClient(ctx.user.id, consent[0].clientId);
             if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
           }

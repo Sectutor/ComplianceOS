@@ -79,12 +79,13 @@ export async function storagePut(
   // Local Storage Fallback
   if (!config) {
     const uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    const sanitizedRelPath = key.replace(/\.\./g, '').replace(/^\/+/, '');
+    const filePath = path.join(uploadDir, sanitizedRelPath);
+    const parentDir = path.dirname(filePath);
 
-    const fileName = key.split("/").pop() ?? `file-${Date.now()}`;
-    const filePath = path.join(uploadDir, fileName);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+    }
     
     const buffer = typeof data === 'string' 
       ? Buffer.from(data) 
@@ -94,10 +95,10 @@ export async function storagePut(
 
     fs.writeFileSync(filePath, buffer);
     
-    // Return local URL
+    // Return local URL preserving tenant hierarchy
     return {
       key,
-      url: `/uploads/${fileName}`
+      url: `/uploads/${sanitizedRelPath.replace(/\\/g, '/')}`
     };
   }
 
@@ -126,10 +127,10 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 
   // Local Storage Fallback
   if (!config) {
-    const fileName = key.split("/").pop() ?? key;
+    const sanitizedRelPath = key.replace(/\.\./g, '').replace(/^\/+/, '');
     return {
       key,
-      url: `/uploads/${fileName}`
+      url: `/uploads/${sanitizedRelPath.replace(/\\/g, '/')}`
     };
   }
 

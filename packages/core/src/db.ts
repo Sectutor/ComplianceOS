@@ -603,7 +603,7 @@ export async function isUserAllowedForClient(userId: number, clientId: number, m
   // 1. Check Global Role First
   const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
   console.log(`[DEBUG isUserAllowedForClient] Found user global role: ${user?.role}`);
-  if (user && (user.role === 'admin' || user.role === 'owner' || user.role === 'super_admin')) {
+  if (user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'enterprise_admin')) {
     console.log('[DEBUG isUserAllowedForClient] Global admin access granted');
     return true; // Global admins have access to everything
   }

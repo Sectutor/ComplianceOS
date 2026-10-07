@@ -480,6 +480,17 @@ function sanitizeText(text: string | null | undefined): string {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uD800-\uDFFF]/g, "");
 }
 
+// Sanitize text to escape HTML special characters (XSS Prevention)
+export function escapeHtml(text: string | null | undefined): string {
+  if (!text) return "";
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 import { logger } from './lib/logger';
 
 export async function generateProfessionalDocx(policy: PolicyExportData): Promise<Buffer> {
@@ -840,7 +851,7 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
       const tag = index === 0 ? 'th' : 'td';
       html += '<tr>';
       cells.forEach(cell => {
-        html += `<${tag}>${cell}</${tag}>`;
+        html += `<${tag}>${escapeHtml(cell)}</${tag}>`;
       });
       html += '</tr>';
     });
@@ -848,15 +859,36 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
     return html;
   }
 
+  // Sanitized metadata attributes (XSS Prevention)
+  const safeName = escapeHtml(policy.name);
+  const safeClientName = escapeHtml(policy.clientName);
+  const safeFramework = escapeHtml(policy.framework || 'Information Security Policy');
+  const safeContactName = escapeHtml(policy.contactName);
+  const safeContactTitle = escapeHtml(policy.contactTitle);
+  const safeContactEmail = escapeHtml(policy.contactEmail);
+  const safeContactPhone = escapeHtml(policy.contactPhone);
+  const safeAddress = policy.address ? escapeHtml(policy.address.replace(/\n/g, ', ')) : '';
+  const safeStatus = escapeHtml(policy.status);
+  const safeTemplateId = escapeHtml(policy.templateId || 'POL-' + Date.now());
+  const safeVerificationHash = escapeHtml(policy.verificationHash);
 
-  // Generate TOC HTML
+  // Validate and sanitize logo URL (only allow https:, data:image/, or local /uploads/)
+  let safeLogoTag = '';
+  if (policy.logoUrl) {
+    const rawLogo = policy.logoUrl.trim();
+    if (rawLogo.startsWith('https://') || rawLogo.startsWith('/uploads/') || rawLogo.startsWith('data:image/')) {
+      safeLogoTag = `<img src="${escapeHtml(rawLogo)}" alt="Company Logo" class="cover-logo" />`;
+    }
+  }
+
+  // Generate TOC HTML with escaping
   const tocHtml = sections.map((section, index) =>
-    `<div class="toc-item"><span class="toc-number">${index + 1}.</span> ${section.title}</div>`
+    `<div class="toc-item"><span class="toc-number">${index + 1}.</span> ${escapeHtml(section.title)}</div>`
   ).join('');
 
-  // Generate sections HTML
+  // Generate sections HTML with escaping
   const sectionsHtml = sections.map((section, index) => {
-    let contentHtml = section.content || '<p class="placeholder">[Content to be added]</p>';
+    let contentHtml = section.content ? escapeHtml(section.content) : '<p class="placeholder">[Content to be added]</p>';
 
     // Detect and convert markdown tables BEFORE other regex replacements
     // This prevents table rows from being broken by newline replacements
@@ -880,7 +912,7 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
 
     return `
       <div class="section">
-        <h2 class="section-title"><span class="section-number">${index + 1}.</span> ${section.title}</h2>
+        <h2 class="section-title"><span class="section-number">${index + 1}.</span> ${escapeHtml(section.title)}</h2>
         <div class="section-content"><p>${contentHtml}</p></div>
       </div>
     `;
@@ -896,7 +928,7 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
       size: A4;
       margin: 2.5cm;
       @top-right {
-        content: "${policy.name} | ${policy.clientName}";
+        content: "${safeName} | ${safeClientName}";
         font-size: 9pt;
         color: #666;
       }
@@ -1172,21 +1204,21 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
 <body>
   <!-- Cover Page -->
   <div class="cover-page">
-    ${policy.logoUrl ? `<img src="${policy.logoUrl}" alt="Company Logo" class="cover-logo" />` : ''}
-    <div class="cover-title">${policy.name}</div>
-    <div class="cover-subtitle">${policy.framework || 'Information Security Policy'}</div>
+    ${safeLogoTag}
+    <div class="cover-title">${safeName}</div>
+    <div class="cover-subtitle">${safeFramework}</div>
     <div class="cover-divider"></div>
-    <div class="cover-client">${policy.clientName}</div>
-    ${policy.contactName ? `<div class="cover-contact">${policy.contactName}${policy.contactTitle ? ` - ${policy.contactTitle}` : ''}</div>` : ''}
-    ${policy.contactEmail || policy.contactPhone ? `<div class="cover-contact-details">${[policy.contactEmail, policy.contactPhone].filter(Boolean).join(' | ')}</div>` : ''}
-    ${policy.address ? `<div class="cover-address">${policy.address.replace(/\n/g, ', ')}</div>` : ''}
+    <div class="cover-client">${safeClientName}</div>
+    ${safeContactName ? `<div class="cover-contact">${safeContactName}${safeContactTitle ? ` - ${safeContactTitle}` : ''}</div>` : ''}
+    ${safeContactEmail || safeContactPhone ? `<div class="cover-contact-details">${[safeContactEmail, safeContactPhone].filter(Boolean).join(' | ')}</div>` : ''}
+    ${safeAddress ? `<div class="cover-address">${safeAddress}</div>` : ''}
     <div class="cover-version">Version ${policy.version}.0</div>
-    <div class="cover-status">Status: ${policy.status.charAt(0).toUpperCase() + policy.status.slice(1)}</div>
+    <div class="cover-status">Status: ${safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}</div>
     <div class="cover-date">${new Date(policy.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
     
-    ${policy.verificationHash ? `
+    ${safeVerificationHash ? `
     <div style="margin-top: 40px; padding: 10px; border: 1px dashed #2563EB; background: #F0F7FF; border-radius: 4px; font-family: monospace; font-size: 8pt; color: #1E3A5F;">
-        <strong>SYSTEM AUTHENTICATED:</strong> ${policy.verificationHash}
+        <strong>SYSTEM AUTHENTICATED:</strong> ${safeVerificationHash}
     </div>
     ` : ''}
 
@@ -1200,15 +1232,15 @@ export function generateProfessionalHtml(policy: PolicyExportData): string {
   <div class="doc-control-page">
     <div class="page-title">Document Control</div>
     <table class="control-table">
-      <tr><td>Document Title</td><td>${policy.name}</td></tr>
-      <tr><td>Document ID</td><td>${policy.templateId || 'POL-' + Date.now()}</td></tr>
+      <tr><td>Document Title</td><td>${safeName}</td></tr>
+      <tr><td>Document ID</td><td>${safeTemplateId}</td></tr>
       <tr><td>Version</td><td>${policy.version}.0</td></tr>
-      <tr><td>Status</td><td>${policy.status.charAt(0).toUpperCase() + policy.status.slice(1)}</td></tr>
-      <tr><td>Framework</td><td>${policy.framework || 'ISO 27001 / SOC 2'}</td></tr>
-      <tr><td>Organization</td><td>${policy.clientName}</td></tr>
-      ${policy.contactName ? `<tr><td>Primary Contact</td><td>${policy.contactName}${policy.contactTitle ? ` (${policy.contactTitle})` : ''}</td></tr>` : ''}
-      ${policy.contactEmail ? `<tr><td>Contact Email</td><td>${policy.contactEmail}</td></tr>` : ''}
-      ${policy.contactPhone ? `<tr><td>Contact Phone</td><td>${policy.contactPhone}</td></tr>` : ''}
+      <tr><td>Status</td><td>${safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}</td></tr>
+      <tr><td>Framework</td><td>${safeFramework}</td></tr>
+      <tr><td>Organization</td><td>${safeClientName}</td></tr>
+      ${safeContactName ? `<tr><td>Primary Contact</td><td>${safeContactName}${safeContactTitle ? ` (${safeContactTitle})` : ''}</td></tr>` : ''}
+      ${safeContactEmail ? `<tr><td>Contact Email</td><td>${safeContactEmail}</td></tr>` : ''}
+      ${safeContactPhone ? `<tr><td>Contact Phone</td><td>${safeContactPhone}</td></tr>` : ''}
       <tr><td>Effective Date</td><td>${new Date(policy.createdAt).toLocaleDateString()}</td></tr>
       <tr><td>Last Review Date</td><td>${new Date(policy.updatedAt).toLocaleDateString()}</td></tr>
       <tr><td>Next Review Date</td><td>${new Date(new Date(policy.updatedAt).setFullYear(new Date(policy.updatedAt).getFullYear() + 1)).toLocaleDateString()}</td></tr>

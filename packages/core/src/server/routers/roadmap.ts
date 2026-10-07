@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { getDb } from "../../db";
+import { TRPCError } from "@trpc/server";
+import { getDb, isUserAllowedForClient } from "../../db";
 import * as schema from "../../schema";
 import { eq, and, desc, asc, ne, sql, count } from "drizzle-orm";
 import { WorkflowEngine } from "../../lib/governance/workflow";
 
-export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure: any) => t.router({
+export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure: any, clientProcedure: any = adminProcedure) => t.router({
     // Generate a new roadmap
     generate: adminProcedure
         .input(z.object({
@@ -108,7 +109,7 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
         }),
 
     // List plans for a client
-    list: publicProcedure
+    list: clientProcedure
         .input(z.object({ clientId: z.number() }))
         .query(async ({ input }: any) => {
             const dbConn = await getDb();
@@ -118,14 +119,17 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
         }),
 
     // Get full plan details
-    get: publicProcedure
-        .input(z.object({ planId: z.number() }))
-        .query(async ({ input }: any) => {
+    get: clientProcedure
+        .input(z.object({ planId: z.number(), clientId: z.number().optional() }))
+        .query(async ({ input, ctx }: any) => {
             const dbConn = await getDb();
             const [plan] = await dbConn.select().from(schema.remediationPlans)
                 .where(eq(schema.remediationPlans.id, input.planId));
 
             if (!plan) return null;
+
+            const allowed = await isUserAllowedForClient(ctx.user.id, plan.clientId);
+            if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this remediation plan' });
 
             const items = await dbConn.select().from(schema.roadmapItems)
                 .where(eq(schema.roadmapItems.planId, input.planId))
@@ -222,7 +226,7 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
         }),
 
     // List roadmaps for client
-    listStrategic: publicProcedure
+    listStrategic: clientProcedure
         .input(z.object({
             clientId: z.number(),
             status: z.enum(['draft', 'active', 'on_track', 'delayed', 'completed']).nullish()
@@ -240,9 +244,9 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
         }),
 
     // Get roadmap with details
-    getStrategic: publicProcedure
-        .input(z.object({ roadmapId: z.number() }))
-        .query(async ({ input }: any) => {
+    getStrategic: clientProcedure
+        .input(z.object({ roadmapId: z.number(), clientId: z.number().optional() }))
+        .query(async ({ input, ctx }: any) => {
             const dbConn = await getDb();
 
             // Get roadmap
@@ -250,6 +254,9 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
                 .where(eq(schema.roadmaps.id, input.roadmapId));
 
             if (!roadmap) return null;
+
+            const allowed = await isUserAllowedForClient(ctx.user.id, roadmap.clientId);
+            if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this strategic roadmap' });
 
             // Get milestones
             const milestones = await dbConn.select().from(schema.roadmapMilestones)
@@ -400,7 +407,7 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
         }),
 
     // List implementation plans
-    listImplementation: publicProcedure
+    listImplementation: clientProcedure
         .input(z.object({
             clientId: z.number(),
             roadmapId: z.number().optional(),
