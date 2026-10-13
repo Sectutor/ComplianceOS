@@ -507,6 +507,8 @@ const SidebarMenuButton = React.forwardRef<
         asChild?: boolean
         isActive?: boolean
         tooltip?: string | React.ComponentProps<typeof TooltipContent>
+        variant?: string
+        size?: string
     }
 >(
     (

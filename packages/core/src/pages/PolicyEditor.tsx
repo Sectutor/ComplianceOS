@@ -852,7 +852,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                     ]}
                 />
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-bold tracking-tight">Policy Editor</h1>
@@ -865,7 +865,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                         </div>
                         <p className="text-muted-foreground">Edit and manage your compliance policy</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button
                             variant="outline"
                             onClick={() => setLocation(`/clients/${clientId}/policies`)}
@@ -875,16 +875,11 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                         </Button>
                         <Button
                             variant="outline"
-                            onClick={() => setViewMode(viewMode === "edit" ? "preview" : "edit")}
-                        >
-                            <Eye className="mr-2 h-4 w-4" />
-                            {viewMode === "edit" ? "Preview" : "Edit"}
-                        </Button>
-                        <Button
-                            variant="destructive"
+                            className="text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
                             onClick={handleDelete}
                             disabled={isSaving || deletePolicyMutation.isPending}
                         >
+                            <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                         </Button>
                         {policy.status === 'approved' && (
@@ -968,7 +963,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-6 min-w-0">
                         <PageGuide
                             title="Policy Management Guide"
                             description="Build, manage, and distribute your organizational policies."
@@ -1009,59 +1004,62 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                             ]}
                         />
 
-                        <Card>
-                            <CardHeader className="pb-0 border-b mb-4">
-                                <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-4">
-                                    <div className="pb-4">
-                                        <CardTitle>Policy Content</CardTitle>
-                                        <CardDescription>
-                                            {viewMode === "edit"
-                                                ? "Edit your policy content using the rich text editor below"
-                                                : "Preview how your policy will appear"}
-                                        </CardDescription>
-                                    </div>
-                                    <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full xl:w-auto max-w-full">
-                                        <div className="w-full overflow-x-auto no-scrollbar">
-                                            <TabsList id="policy-view-tabs" className="bg-transparent p-0 gap-1 h-auto flex w-max min-w-full">
-                                                <TabsTrigger
-                                                    value="edit"
-                                                    id="policy-tab-edit"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
-                                                >
-                                                    Edit
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="preview"
-                                                    id="policy-tab-preview"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
-                                                >
-                                                    Preview
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="links"
-                                                    id="policy-tab-links"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
-                                                >
-                                                    Links
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="employees"
-                                                    id="policy-tab-employees"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
-                                                >
-                                                    Employees
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="history"
-                                                    id="policy-tab-history"
-                                                    className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-bold px-6 py-2.5 rounded-t-lg data-[state=active]:shadow-none"
-                                                >
-                                                    History
-                                                </TabsTrigger>
-                                            </TabsList>
-                                        </div>
-                                    </Tabs>
+                        <Card className="overflow-hidden">
+                            <CardHeader className="pb-0 border-b mb-4 space-y-4">
+                                <div className="space-y-1">
+                                    <CardTitle className="text-xl">Policy Document</CardTitle>
+                                    <CardDescription>
+                                        {viewMode === "edit"
+                                            ? "Edit your policy content using the rich text editor below"
+                                            : "Preview how your policy will appear"}
+                                    </CardDescription>
                                 </div>
+                                <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full">
+                                    <div className="w-full overflow-x-auto no-scrollbar pb-2">
+                                        <TabsList id="policy-view-tabs" className="bg-muted/60 p-1 rounded-lg h-auto flex w-max sm:w-auto min-w-full sm:min-w-0 border">
+                                            <TabsTrigger
+                                                value="edit"
+                                                id="policy-tab-edit"
+                                                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2 rounded-md transition-all"
+                                            >
+                                                <FileText className="h-4 w-4" />
+                                                Edit
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="preview"
+                                                id="policy-tab-preview"
+                                                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2 rounded-md transition-all"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                                Preview
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="links"
+                                                id="policy-tab-links"
+                                                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2 rounded-md transition-all"
+                                            >
+                                                <LinkIcon className="h-4 w-4" />
+                                                Links
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="employees"
+                                                id="policy-tab-employees"
+                                                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2 rounded-md transition-all"
+                                            >
+                                                <Users className="h-4 w-4" />
+                                                Employees
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="history"
+                                                id="policy-tab-history"
+                                                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2 rounded-md transition-all"
+                                            >
+                                                <History className="h-4 w-4" />
+                                                History
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    </div>
+                                </Tabs>
                             </CardHeader>
                             <CardContent>
                                 <Tabs value={viewMode}>
@@ -1158,7 +1156,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                                             />
                                         </div>
                                         <div>
-                                            <Label>Policy Content</Label>
+                                            <Label>Document Body</Label>
                                             {isContentReady ? (
                                                 <RichTextEditor
                                                     value={content}
@@ -2316,7 +2314,7 @@ export default function PolicyEditor(props: { id?: string; policyId?: string }) 
                         </Card>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-6 min-w-0">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Policy Details</CardTitle>

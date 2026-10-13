@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -9,7 +9,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Badge } from "@complianceos/ui/ui/badge";
-import { Loader2, Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Save, ChevronRight, ArrowLeft, Sparkles, Lock, FileDown, FileSpreadsheet, Mail, LayoutGrid, Check } from "lucide-react";
+import { Loader2, Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Save, ChevronRight, ChevronLeft, ArrowLeft, Sparkles, Lock, FileDown, FileSpreadsheet, Mail, LayoutGrid, Check, HelpCircle, Columns } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@complianceos/ui/ui/progress";
 import {
@@ -65,6 +65,40 @@ export default function QuestionnaireWorkspace() {
   const [vendorName, setVendorName] = useState("");
   const [vendorEmail, setVendorEmail] = useState("");
   const [vendorMessage, setVendorMessage] = useState("");
+  const [showAiColumns, setShowAiColumns] = useState<boolean | null>(null);
+
+  // Horizontal Table Scroll State & Handlers
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    if (tableScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  const handleScrollLeft = () => {
+    if (tableScrollRef.current) {
+      tableScrollRef.current.scrollBy({ left: -360, behavior: "smooth" });
+      setTimeout(checkScroll, 350);
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (tableScrollRef.current) {
+      tableScrollRef.current.scrollBy({ left: 360, behavior: "smooth" });
+      setTimeout(checkScroll, 350);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [checkScroll, answers, showAiColumns]);
 
   // Detect template mode from URL (SSR-safe)
   useEffect(() => {
@@ -424,57 +458,94 @@ export default function QuestionnaireWorkspace() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="p-8 max-w-[1600px] mx-auto space-y-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center space-x-1 text-sm text-muted-foreground">
-          <button
-            onClick={() => setLocation(`/clients/${clientId}/questionnaires`)}
-            className="hover:text-foreground transition-colors"
-          >
-            Questionnaires
-          </button>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground font-medium">
-            {projectData?.name || "New Questionnaire"}
-          </span>
-        </nav>
-
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
+    <DashboardLayout fullWidth>
+      <div className="px-4 sm:px-6 py-2.5 max-w-[1680px] mx-auto space-y-2.5">
+        {/* Sleek Compact Header Bar (replaces giant 3-story header) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setLocation(`/clients/${clientId}/questionnaires`)}
-              className="flex items-center gap-2"
+              className="h-7 px-2 text-xs font-medium text-slate-600 hover:text-slate-900"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back
+              <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {projectData ? projectData.name : "AI Questionnaire Workspace"}
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                {projectData
-                  ? `Status: ${formatStatus(projectData.status)}`
-                  : "Upload a security questionnaire to automatically generate answers."
-                }
-              </p>
-            </div>
+            <div className="h-4 w-px bg-slate-200" />
+            <nav className="flex items-center space-x-1.5 text-xs text-muted-foreground">
+              <button
+                onClick={() => setLocation(`/clients/${clientId}/questionnaires`)}
+                className="hover:text-foreground transition-colors"
+              >
+                Questionnaires
+              </button>
+              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+              <span className="text-slate-900 font-bold text-sm max-w-[320px] truncate">
+                {projectData?.name || "New Questionnaire"}
+              </span>
+            </nav>
+            {projectData && (
+              <Badge variant="outline" className="text-[10px] font-semibold capitalize bg-slate-50 text-slate-700 h-5 px-2">
+                Status: {formatStatus(projectData.status)}
+              </Badge>
+            )}
+            {projectData?.direction && (
+              <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider h-5 px-1.5">
+                {projectData.direction}
+              </Badge>
+            )}
           </div>
           <PageGuide
-            title="Questionnaire Workspace"
-            description="AI-powered workspace for completing security assessments."
-            rationale="Significantly reduces time spent on manual questionnaire filling by leveraging your Knowledge Base."
+            title="Questionnaire Workspace & AI Answering Guide"
+            description="Complete security questionnaires using AI Knowledge Base matching, verified policy citations, and assessment template blueprints."
+            rationale="Security questionnaires require defensible, auditable answers. ComplianceOS pairs your verified company policies with AI response drafting, scoring match certainty and citing exact evidence documents."
             howToUse={[
-              { step: "Upload", description: "Import Excel, CSV, or PDF security questionnaires." },
-              { step: "Generate", description: "AI automatically suggests answers based on your policies and past responses." },
-              { step: "Review", description: "Verify confidence scores, edit answers, and approve for export." }
+              {
+                step: "1. Upload or Adopt Assessment Blueprint",
+                description: "Import third-party questionnaires (Excel, CSV, PDF) or instantiate standard frameworks (ISO 27001, CAIQ v4, CIS Controls v8, SOC 2)."
+              },
+              {
+                step: "2. Generate AI Answers",
+                description: "AI analyzes each question against your Knowledge Base and policy library to propose answers with transparent evidence attribution."
+              },
+              {
+                step: "3. Understand Confidence Scores",
+                description: "Indicates how strongly internal policies support each response: High (>70% Green: direct policy match), Medium (40-70% Amber: partial match), Low (<40% Red: weak match requiring manual review), or '—' (Template or manual question without an AI run)."
+              },
+              {
+                step: "4. Verify Source Citations",
+                description: "Badges indicate internal documents referenced (e.g. SOC 2 Type II, BCP/DR, Access Control Policy). Hover over any source badge to inspect the exact policy excerpt."
+              },
+              {
+                step: "5. Review, Edit & Export",
+                description: "Review answers, add reviewer comments, adjust focus areas, and export back to CSV, Excel, or JSON for client submission."
+              }
+            ]}
+            scenarios={[
+              {
+                title: "Inbound Customer Security Reviews",
+                example: "An enterprise customer sends a 150-question spreadsheet. AI answers are generated with Confidence ratings and policy Source citations.",
+                auditTip: "Always review items with Confidence < 70%. Ensure cited source documents reflect your current audit period and latest published policies."
+              },
+              {
+                title: "Template Blueprints & Outbound Vendor Reviews",
+                example: "You create a questionnaire from the ISO 27001 or CIS 8 template to assess a vendor or conduct an internal baseline check.",
+                auditTip: "Template questions start with '—' for Confidence and Sources because they are baseline control questions awaiting vendor completion or manual answers."
+              }
             ]}
             integrations={[
-              { name: "Knowledge Base", description: "Source of truth for automated answers." },
-              { name: "Exports", description: "Download completed files." }
+              {
+                name: "Knowledge Base & Policies",
+                description: "The primary source of truth for all automated answers, confidence calculations, and citations."
+              },
+              {
+                name: "Assessment Template Blueprints",
+                description: "Standardized control libraries (ISO 27001:2022, CIS Controls v8, CAIQ v4, SOC 2) used to scaffold questionnaires."
+              },
+              {
+                name: "Excel & JSON Exporters",
+                description: "Generates formatted spreadsheets and data exports for sending to customers, auditors, or leadership."
+              }
             ]}
           />
         </div>
@@ -625,176 +696,379 @@ export default function QuestionnaireWorkspace() {
         )}
 
         {/* Step 4: Review Answers */}
-        {currentStep === "review" && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Review Generated Answers</CardTitle>
-                <CardDescription>Verify AI-suggested answers and edit as needed before completing.</CardDescription>
-              </div>
-              <div className="flex gap-2">
-                {projectData?.status !== 'completed' && (
-                  <Button variant="outline" onClick={() => setIsCompleteOpen(true)} disabled={completeMutation.isPending}>
-                    {completeMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-                    Mark as Completed
+        {currentStep === "review" && (() => {
+          const isOutbound = projectData?.direction === "outbound";
+          const hasAiAnswers = answers.some(a => (a.confidence && a.confidence > 0) || (a.sources && a.sources.length > 0));
+          const isAiVisible = showAiColumns !== null ? showAiColumns : (!isOutbound || hasAiAnswers);
+
+          return (
+            <Card>
+              <CardHeader className="py-2.5 px-4 flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100">
+                <div>
+                  <CardTitle className="text-base font-bold text-slate-900 leading-none">
+                    {isOutbound
+                      ? "Assessment Controls & Questionnaire"
+                      : hasAiAnswers
+                      ? "Review Generated Answers"
+                      : "Questionnaire Questions & Answers"}
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                    {isOutbound
+                      ? "Review and configure assessment controls before dispatching to the vendor or recording responses."
+                      : hasAiAnswers
+                      ? "Verify AI-suggested answers and edit as needed before completing."
+                      : "Review, edit, or enter responses for this evaluation before completion."}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {projectData?.status !== 'completed' && (
+                    <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setIsCompleteOpen(true)} disabled={completeMutation.isPending}>
+                      {completeMutation.isPending ? <Loader2 className="animate-spin mr-1 h-3 w-3" /> : <CheckCircle className="mr-1 h-3 w-3" />}
+                      Mark Completed
+                    </Button>
+                  )}
+                  {/* Show "Send to Vendor" for open/in_progress status */}
+                  {(projectData?.status === 'open' || projectData?.status === 'in_progress') && (
+                    <Button size="sm" className="h-7 px-2.5 text-xs bg-[#1C4D8D] hover:bg-[#153B6D] active:bg-[#153B6D] text-white" onClick={() => setShowVendorDialog(true)}>
+                      <Mail className="mr-1 h-3 w-3" /> Send to Vendor
+                    </Button>
+                  )}
+                  {/* Show "Submit for Review" for vendor_pending status */}
+                  {projectData?.status === 'vendor_pending' && (
+                    <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs border-amber-600 text-amber-700 hover:bg-amber-50" onClick={handleSubmitForReview} disabled={submitForReviewMutation.isPending}>
+                      {submitForReviewMutation.isPending ? <Loader2 className="animate-spin mr-1 h-3 w-3" /> : <Check className="mr-1 h-3 w-3" />}
+                      Submit for Review
+                    </Button>
+                  )}
+                  {/* Show vendor info if already sent */}
+                  {projectData?.status === 'vendor_pending' && projectData?.vendorName && (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded text-xs">
+                      <Mail className="h-3 w-3 text-amber-600" />
+                      <span className="text-amber-800 text-xs">Sent: <strong>{projectData.vendorName}</strong></span>
+                      {projectData.vendorLinkExpiresAt && (
+                        <span className="text-amber-600 text-[10px]">
+                          ({new Date(projectData.vendorLinkExpiresAt).toLocaleDateString()})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={handleSaveProgress}>
+                    <Save className="mr-1 h-3 w-3" /> Save
                   </Button>
-                )}
-                {/* Show "Send to Vendor" for open/in_progress status */}
-                {(projectData?.status === 'open' || projectData?.status === 'in_progress') && (
-                  <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50" onClick={() => setShowVendorDialog(true)}>
-                    <Mail className="mr-2 h-4 w-4" /> Send to Vendor
+                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={handleExportExcel} disabled={exportExcelQuery.isFetching}>
+                    <FileSpreadsheet className="mr-1 h-3 w-3" /> Export CSV
                   </Button>
-                )}
-                {/* Show "Submit for Review" for vendor_pending status */}
-                {projectData?.status === 'vendor_pending' && (
-                  <Button variant="outline" className="border-amber-600 text-amber-600 hover:bg-amber-50" onClick={handleSubmitForReview} disabled={submitForReviewMutation.isPending}>
-                    {submitForReviewMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
-                    Submit for Review
+                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={handleExportJSON} disabled={exportJSONQuery.isFetching}>
+                    <FileDown className="mr-1 h-3 w-3" /> Export JSON
                   </Button>
-                )}
-                {/* Show vendor info if already sent */}
-                {projectData?.status === 'vendor_pending' && projectData?.vendorName && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-                    <Mail className="h-4 w-4 text-amber-600" />
-                    <span className="text-amber-800">Sent to: <strong>{projectData.vendorName}</strong></span>
-                    {projectData.vendorLinkExpiresAt && (
-                      <span className="text-amber-600 text-xs">
-                        (expires {new Date(projectData.vendorLinkExpiresAt).toLocaleDateString()})
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-3.5 space-y-2">
+                {/* Visible Section Navigation & Column Status Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-md text-xs">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-semibold text-slate-800 flex items-center gap-1 shrink-0 text-[11px]">
+                      <LayoutGrid className="h-3 w-3 text-[#1C4D8D]" />
+                      Sections:
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium text-[10px] shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                      1. Control & Question (Pinned)
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium text-[10px] shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                      2. Answer & Notes (Visible)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowAiColumns(!isAiVisible)}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all shadow-2xs cursor-pointer h-5.5 ${
+                        isAiVisible
+                          ? "bg-blue-100 border-blue-300 text-blue-900 hover:bg-blue-200/80"
+                          : "bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100/80"
+                      }`}
+                    >
+                      <Sparkles className="h-2.5 w-2.5 text-amber-600 shrink-0" />
+                      <span>3. AI Citations:</span>
+                      <span className="font-bold underline">
+                        {isAiVisible ? "Visible" : "2 Cols Hidden"}
                       </span>
-                    )}
+                    </button>
                   </div>
-                )}
-                <Button onClick={handleSaveProgress}>
-                  <Save className="mr-2 h-4 w-4" /> Save
-                </Button>
-                <Button variant="outline" onClick={handleExportExcel} disabled={exportExcelQuery.isFetching}>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Export CSV
-                </Button>
-                <Button variant="outline" onClick={handleExportJSON} disabled={exportJSONQuery.isFetching}>
-                  <FileDown className="mr-2 h-4 w-4" /> Export JSON
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
-                    <TableHead className="w-[3%] text-white font-semibold py-4">#</TableHead>
-                    <TableHead className="w-[8%] text-white font-semibold py-4">Question ID</TableHead>
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Focus Area</TableHead>
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Sub Focus Area</TableHead>
-                    <TableHead className="w-[20%] text-white font-semibold py-4">Assessment Question</TableHead>
-                    <TableHead className="w-[22%] text-white font-semibold py-4">Answer</TableHead>
-                    <TableHead className="w-[7%] text-white font-semibold py-4">Confidence</TableHead>
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Sources</TableHead>
-                    {/* Dynamic extra columns derived from the first answer's extraFields */}
-                    {Object.keys(answers[0]?.extraFields || {}).map(col => (
-                      <TableHead key={col} className="text-white font-semibold py-4">{col}</TableHead>
-                    ))}
-                    <TableHead className="w-[10%] text-white font-semibold py-4">Comment</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {answers.map((item, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="align-top text-xs text-muted-foreground">
-                        {i + 1}
-                      </TableCell>
-                      <TableCell className="align-top font-mono text-xs font-medium">
-                        {item.questionId || "-"}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          className="text-sm"
-                          defaultValue={item.focusArea || ""}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].focusArea = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          className="text-sm"
-                          defaultValue={item.subFocusArea || ""}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].subFocusArea = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="align-top font-medium text-sm">
-                        {item.question}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Textarea
-                          className="text-sm min-h-[80px]"
-                          defaultValue={item.answer}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].answer = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {item.confidence > 0 && (
-                          <Badge className={`${item.confidence > 0.7 ? 'bg-green-100 text-green-700 hover:bg-green-100' :
-                            item.confidence > 0.4 ? 'bg-amber-100 text-amber-700 hover:bg-amber-100' :
-                              'bg-red-100 text-red-700 hover:bg-red-100'
-                            }`}>
-                            {Math.round(item.confidence * 100)}%
-                          </Badge>
+                  <div className="flex items-center gap-2 text-slate-500 text-[11px] shrink-0">
+                    <span className="flex items-center gap-1 text-[11px]">
+                      <Columns className="h-3 w-3 text-slate-400" />
+                      <span>{isAiVisible ? "8" : "6"} Cols</span>
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    {/* Top Bar Left/Right Chevron Buttons */}
+                    <div className="flex items-center gap-0.5 bg-white border border-slate-300 rounded p-0.5 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={handleScrollLeft}
+                        disabled={!canScrollLeft}
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                        title="Scroll table left"
+                      >
+                        <ChevronLeft className="h-3 w-3 text-[#1C4D8D]" />
+                        <span>Left</span>
+                      </button>
+                      <div className="h-3 w-px bg-slate-200" />
+                      <button
+                        type="button"
+                        onClick={handleScrollRight}
+                        disabled={!canScrollRight}
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                        title="Scroll table right"
+                      >
+                        <span>Right</span>
+                        <ChevronRight className="h-3 w-3 text-[#1C4D8D]" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Horizontally Scrollable Table with Left & Right Chevron Controls */}
+                <div className="relative group">
+                  {/* Left Chevron Button */}
+                  <button
+                    type="button"
+                    onClick={handleScrollLeft}
+                    disabled={!canScrollLeft}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                    title="Scroll table left"
+                    aria-label="Scroll table left"
+                  >
+                    <ChevronLeft className="h-4 w-4 text-[#1C4D8D]" />
+                  </button>
+
+                  {/* Right Chevron Button */}
+                  <button
+                    type="button"
+                    onClick={handleScrollRight}
+                    disabled={!canScrollRight}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                    title="Scroll table right"
+                    aria-label="Scroll table right"
+                  >
+                    <ChevronRight className="h-4 w-4 text-[#1C4D8D]" />
+                  </button>
+
+                  {/* Horizontally Scrollable Table */}
+                  <div
+                    ref={tableScrollRef}
+                    onScroll={checkScroll}
+                    className="overflow-x-auto rounded-lg border border-slate-200 shadow-2xs scroll-smooth"
+                  >
+                  <Table className="min-w-[1100px] border-collapse">
+                    <TableHeader>
+                      <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none text-white h-9">
+                        {/* SECTION 1: Control & Category (Sticky Left 0) */}
+                        <TableHead className="w-[160px] min-w-[160px] sticky left-0 z-30 bg-[#1C4D8D] text-white font-semibold py-1.5 px-3 text-xs border-r border-white/20 whitespace-nowrap h-9 leading-none">
+                          Control / ID
+                        </TableHead>
+
+                        {/* SECTION 1b: Assessment Question (Sticky Left 160px - ALWAYS VISIBLE) */}
+                        <TableHead className="w-[360px] min-w-[300px] sticky left-[160px] z-30 bg-[#1C4D8D] text-white font-semibold py-1.5 px-3 text-xs border-r-2 border-white/40 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.25)] whitespace-nowrap h-9 leading-none">
+                          Assessment Question
+                        </TableHead>
+
+                        {/* SECTION 2: Answer / Response (Fully Visible) */}
+                        <TableHead className="min-w-[280px] w-[320px] text-white font-semibold py-1.5 px-3 text-xs border-r border-white/20 whitespace-nowrap h-9 leading-none">
+                          Answer / Response
+                        </TableHead>
+
+                        {/* SECTION 2b: Comment & Reviewer Notes (Fully Visible - Positioned adjacent to Answer) */}
+                        <TableHead className="min-w-[240px] w-[260px] text-white font-semibold py-1.5 px-3 text-xs border-r-2 border-white/30 whitespace-nowrap h-9 leading-none">
+                          Reviewer Notes
+                        </TableHead>
+
+                        {/* SECTION 3: AI Citations & Confidence (Expanded or Collapsed Divider) */}
+                        {isAiVisible ? (
+                          <>
+                            <TableHead className="w-[105px] bg-[#163E72] text-white font-semibold py-1.5 px-3 text-xs whitespace-nowrap h-9 leading-none">
+                              <div className="flex items-center gap-1 group relative cursor-help">
+                                <span>Confidence</span>
+                                <HelpCircle className="h-3 w-3 text-white/80 group-hover:text-white" />
+                                <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 p-2 bg-slate-900 text-white rounded-md shadow-xl text-xs font-normal z-50 pointer-events-none border border-slate-700">
+                                  <p className="font-semibold text-amber-300 mb-0.5">AI Confidence Score</p>
+                                  Measures how strongly your internal policies and Knowledge Base match the question.
+                                </div>
+                              </div>
+                            </TableHead>
+                            <TableHead className="w-[130px] bg-[#163E72] text-white font-semibold py-1.5 px-3 text-xs border-r-2 border-white/30 whitespace-nowrap h-9 leading-none">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1 group relative cursor-help">
+                                  <span>Sources</span>
+                                  <HelpCircle className="h-3 w-3 text-white/80 group-hover:text-white" />
+                                  <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 p-2 bg-slate-900 text-white rounded-md shadow-xl text-xs font-normal z-50 pointer-events-none border border-slate-700">
+                                    <p className="font-semibold text-amber-300 mb-0.5">Policy Citations</p>
+                                    Direct references to company policies and evidence documents cited.
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAiColumns(false)}
+                                  className="text-[10px] text-blue-200 hover:text-white underline cursor-pointer ml-1"
+                                  title="Collapse AI columns"
+                                >
+                                  Hide
+                                </button>
+                              </div>
+                            </TableHead>
+                          </>
+                        ) : (
+                          <TableHead
+                            className="w-[125px] bg-[#143A6B] hover:bg-[#0F2D54] text-white py-1 px-2 text-center cursor-pointer border-r-2 border-amber-400/80 transition-all select-none h-9 whitespace-nowrap leading-none"
+                            onClick={() => setShowAiColumns(true)}
+                            title="Click to reveal 2 hidden AI columns: Confidence & Sources"
+                          >
+                            <span className="inline-flex items-center justify-center gap-1 py-0.5 px-2 bg-amber-400/20 hover:bg-amber-400/30 rounded border border-amber-300/40 text-[10px] font-bold text-amber-200">
+                              <Sparkles className="h-2.5 w-2.5 text-amber-300 shrink-0" />
+                              <span>+2 AI Cols</span>
+                            </span>
+                          </TableHead>
                         )}
-                      </TableCell>
-                      <TableCell className="align-top space-y-1">
-                        {item.sources?.map((s: any, idx: number) => (
-                          <div key={idx} className="text-xs flex items-center gap-1 group relative cursor-help">
-                            <Badge variant="outline" className="max-w-[120px] truncate">
-                              {s.title || `Source ${idx + 1}`}
-                            </Badge>
-                            <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 p-2 bg-slate-800 text-white rounded shadow-lg z-50 text-xs pointer-events-none">
-                              <p className="font-semibold mb-1">{s.title}</p>
-                              {s.excerpt && <p className="text-slate-300 line-clamp-3">{s.excerpt}</p>}
-                            </div>
-                          </div>
+
+                        {/* SECTION 4: Dynamic Extra Fields from Spreadsheets */}
+                        {Object.keys(answers[0]?.extraFields || {}).map(col => (
+                          <TableHead key={col} className="text-white font-semibold py-1.5 px-3 text-xs whitespace-nowrap h-9 leading-none">{col}</TableHead>
                         ))}
-                      </TableCell>
-                      {/* Dynamic extra field cells */}
-                      {Object.keys(answers[0]?.extraFields || {}).map(col => (
-                        <TableCell key={col} className="align-top">
-                          <Input
-                            className="text-sm"
-                            defaultValue={(item.extraFields || {})[col] || ""}
-                            onChange={(e) => {
-                              const newAnswers = [...answers];
-                              newAnswers[i].extraFields = { ...(newAnswers[i].extraFields || {}), [col]: e.target.value };
-                              setAnswers(newAnswers);
-                            }}
-                          />
-                        </TableCell>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {answers.map((item, i) => (
+                        <TableRow key={i} className="group hover:bg-slate-50/80 transition-colors">
+                          {/* SECTION 1: Control & Category Cell (Sticky Left 0) */}
+                          <TableCell className="w-[160px] min-w-[160px] sticky left-0 z-20 bg-white group-hover:bg-slate-50 align-top py-2 px-3 border-r border-slate-200">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-[10px] font-mono font-bold text-slate-400">#{i + 1}</span>
+                              <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                {item.questionId || item.controlId || "-"}
+                              </span>
+                            </div>
+                            {item.focusArea && (
+                              <Badge variant="outline" className="text-[10px] font-medium text-slate-700 bg-slate-50 border-slate-200 block truncate max-w-[145px] mt-0.5" title={item.focusArea}>
+                                {item.focusArea}
+                              </Badge>
+                            )}
+                            {item.subFocusArea && (
+                              <span className="text-[10px] text-slate-500 block line-clamp-1 leading-tight mt-0.5" title={item.subFocusArea}>
+                                {item.subFocusArea}
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* SECTION 1b: Assessment Question Cell (Sticky Left 160px - ALWAYS VISIBLE) */}
+                          <TableCell className="w-[360px] min-w-[300px] sticky left-[160px] z-20 bg-white group-hover:bg-slate-50 align-top py-2 px-3 text-xs leading-relaxed border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.06)]">
+                            <p className="font-medium text-slate-900 leading-snug text-xs">{item.question}</p>
+                            {/* Evidence requirement guidance from template if present */}
+                            {item.comment?.startsWith("Evidence Requirement:") && (
+                              <div className="mt-1.5 p-1 rounded bg-blue-50/80 border border-blue-100 text-[10px] text-blue-800 leading-snug">
+                                {item.comment}
+                              </div>
+                            )}
+                          </TableCell>
+
+                          {/* SECTION 2: Answer / Response Cell (Fully Visible) */}
+                          <TableCell className="align-top py-2 px-3 border-r border-slate-200">
+                            <Textarea
+                              className="text-xs min-h-[58px] bg-white resize-y font-normal leading-snug focus:ring-1 focus:ring-[#1C4D8D] py-1.5 px-2"
+                              placeholder={isOutbound ? "Awaiting vendor response..." : "Type response to this security question..."}
+                              defaultValue={item.answer || ""}
+                              onChange={(e) => {
+                                const newAnswers = [...answers];
+                                newAnswers[i].answer = e.target.value;
+                                setAnswers(newAnswers);
+                              }}
+                            />
+                          </TableCell>
+
+                          {/* SECTION 2b: Comment & Reviewer Notes Cell (Fully Visible - Adjacent to Answer) */}
+                          <TableCell className="align-top py-2 px-3 border-r-2 border-slate-300">
+                            <Textarea
+                              className="text-xs min-h-[58px] bg-amber-50/20 border-amber-200/80 focus:bg-white resize-y leading-snug text-slate-800 py-1.5 px-2"
+                              placeholder="Add internal notes, auditor comments, or evidence links..."
+                              defaultValue={item.comment || ""}
+                              onChange={(e) => {
+                                const newAnswers = [...answers];
+                                newAnswers[i].comment = e.target.value;
+                                setAnswers(newAnswers);
+                              }}
+                            />
+                          </TableCell>
+
+                          {/* SECTION 3: AI Citations & Confidence Cells (Expanded or Collapsed Divider) */}
+                          {isAiVisible ? (
+                            <>
+                              <TableCell className="align-top py-2 px-2.5 bg-blue-50/20 text-center">
+                                {item.confidence && item.confidence > 0 ? (
+                                  <Badge className={`${item.confidence > 0.7 ? 'bg-green-100 text-green-700 hover:bg-green-100' :
+                                    item.confidence > 0.4 ? 'bg-amber-100 text-amber-700 hover:bg-amber-100' :
+                                      'bg-red-100 text-red-700 hover:bg-red-100'
+                                    }`}>
+                                    {Math.round(item.confidence * 100)}%
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground font-mono" title="No AI score (Manual / Template)">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="align-top space-y-1 py-2 px-2.5 bg-blue-50/20 border-r-2 border-slate-300">
+                                {item.sources && item.sources.length > 0 ? (
+                                  item.sources.map((s: any, idx: number) => (
+                                    <div key={idx} className="text-xs flex items-center gap-1 group relative cursor-help">
+                                      <Badge variant="outline" className="max-w-[120px] truncate bg-white">
+                                        {s.title || `Source ${idx + 1}`}
+                                      </Badge>
+                                      <div className="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 p-2 bg-slate-800 text-white rounded shadow-lg z-50 text-xs pointer-events-none">
+                                        <p className="font-semibold mb-1">{s.title}</p>
+                                        {s.excerpt && <p className="text-slate-300 line-clamp-3">{s.excerpt}</p>}
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground font-mono" title="No citations linked">—</span>
+                                )}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <TableCell
+                              className="align-middle text-center py-2 px-1 bg-amber-50/30 hover:bg-amber-100/50 border-r-2 border-amber-200/80 cursor-pointer transition-colors"
+                              onClick={() => setShowAiColumns(true)}
+                              title="Confidence & Sources are hidden. Click to expand."
+                            >
+                              <div className="inline-flex items-center justify-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-amber-800 hover:text-amber-950 bg-white border border-amber-300 shadow-2xs">
+                                <Sparkles className="h-2 w-2 text-amber-600" />
+                                <span>Hidden</span>
+                                <ChevronRight className="h-2 w-2 text-amber-600" />
+                              </div>
+                            </TableCell>
+                          )}
+
+                          {/* SECTION 4: Dynamic Extra Fields from Spreadsheets */}
+                          {Object.keys(answers[0]?.extraFields || {}).map(col => (
+                            <TableCell key={col} className="align-top py-2 px-3">
+                              <Input
+                                className="text-xs h-7"
+                                defaultValue={(item.extraFields || {})[col] || ""}
+                                onChange={(e) => {
+                                  const newAnswers = [...answers];
+                                  newAnswers[i].extraFields = { ...(newAnswers[i].extraFields || {}), [col]: e.target.value };
+                                  setAnswers(newAnswers);
+                                }}
+                              />
+                            </TableCell>
+                          ))}
+                        </TableRow>
                       ))}
-                      <TableCell className="align-top">
-                        <Input
-                          className="text-sm"
-                          placeholder="Add a note..."
-                          defaultValue={item.comment || ""}
-                          onChange={(e) => {
-                            const newAnswers = [...answers];
-                            newAnswers[i].comment = e.target.value;
-                            setAnswers(newAnswers);
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </CardContent>
-          </Card>
-        )}
+            </Card>
+          );
+        })()}
 
         {/* Template Selection Dialog */}
         <Dialog open={showTemplateDialog} onOpenChange={(open) => {

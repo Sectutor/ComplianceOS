@@ -32,7 +32,7 @@ export const employeesRouter = router({
                 return [];
             }
 
-            let query = db.select()
+            const query = db.select()
                 .from(employees)
                 .where(eq(employees.clientId, clientId));
 

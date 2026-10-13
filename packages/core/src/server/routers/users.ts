@@ -146,7 +146,9 @@ export const usersSubRouter = router({
                             name: `${orgName} DEMO`,
                             industry
                         });
-                    } catch (se) { }
+                    } catch (se) {
+                        // Ignore sample data seed failure
+                    }
                 } catch (e) {
                     console.error("[acceptInviteAndSignup] OnboardClient failed for waitlist link:", e);
                 }
@@ -800,7 +802,9 @@ export const usersSubRouter = router({
                                 name: `${orgName} DEMO`,
                                 industry
                             });
-                        } catch (se) { }
+                        } catch (se) {
+                            // Ignore sample data seed failure
+                        }
                     } catch (e) {
                         // If onboarding fails, still proceed with account updates, but without global role elevation
                         console.error("[applyMagicLink] OnboardClient failed for waitlist link:", e);

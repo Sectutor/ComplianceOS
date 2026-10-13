@@ -18,7 +18,8 @@ aiRouter.post('/generate-stream', async (req: any, res: any) => {
     }
 
     try {
-        let { systemPrompt, userPrompt, temperature, maxTokens, instruction, tailor, clientId, templateId } = req.body;
+        let { systemPrompt, userPrompt } = req.body;
+        const { temperature, maxTokens, instruction, tailor, clientId, templateId } = req.body;
 
         const parsedClientId = clientId ? parseInt(String(clientId), 10) : null;
 

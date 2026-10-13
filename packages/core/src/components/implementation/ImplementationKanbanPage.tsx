@@ -1,4 +1,3 @@
-
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ImplementationKanban from './ImplementationKanban';
@@ -15,8 +14,7 @@ export default function ImplementationKanbanPage() {
 
     return (
         <DashboardLayout fullWidth={true}>
-            <div className="p-8 h-full">
-                <h2 className="text-3xl font-bold tracking-tight mb-6">Implementation Task Board</h2>
+            <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
                 <ImplementationKanban clientId={clientId!} planId={planId} />
             </div>
         </DashboardLayout>

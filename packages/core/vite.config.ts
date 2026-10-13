@@ -24,6 +24,7 @@ console.log(`[Vite] Building ${licenseType} edition (Build Type: ${buildType})`)
 console.log(`[Vite] Premium features: ${hasPremium ? 'ENABLED' : 'DISABLED'}`);
 
 export default defineConfig({
+    envDir: path.resolve(__dirname, "../../"),
     plugins: [react(), tailwindcss()],
     define: {
         "process.env.BUILD_TYPE": JSON.stringify(buildType),
@@ -93,5 +94,26 @@ export default defineConfig({
             '@dnd-kit/utilities',
             'date-fns'
         ]
+    },
+    build: {
+        sourcemap: false,
+        chunkSizeWarningLimit: 3000,
+        rollupOptions: {
+            output: {
+                manualChunks: (id) => {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('react') || id.includes('react-dom') || id.includes('wouter')) {
+                            return 'vendor-react';
+                        }
+                        if (id.includes('@radix-ui') || id.includes('lucide-react')) {
+                            return 'vendor-ui';
+                        }
+                        if (id.includes('recharts') || id.includes('d3')) {
+                            return 'vendor-charts';
+                        }
+                    }
+                }
+            }
+        }
     }
 });

@@ -274,7 +274,9 @@ export default function SecuritySettings() {
             clientId: selectedClientId
           }).catch(() => { });
         }
-      } catch (err) { }
+      } catch (err) {
+        // Ignored
+      }
 
       await fetchFactors();
     } catch (err: any) {

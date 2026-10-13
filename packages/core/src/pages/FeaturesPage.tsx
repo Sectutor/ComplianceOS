@@ -225,7 +225,7 @@ const comingSoonFeatures: FeatureCategory[] = [
 ];
 
 function FeatureCard({ feature }: { feature: Feature }) {
-    const [, setLocation] = useLocation();;
+    const [, setLocation] = useLocation();
 
     const statusConfig = {
         core: {
@@ -280,7 +280,7 @@ function CategorySection({ category }: { category: FeatureCategory }) {
 }
 
 export default function FeaturesPage() {
-    const [, setLocation] = useLocation();;
+    const [, setLocation] = useLocation();
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">

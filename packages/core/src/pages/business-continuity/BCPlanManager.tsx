@@ -37,25 +37,38 @@ export default function BCPlanManager() {
     const [, setLocation] = useLocation();
     const [match, params] = useRoute("/clients/:clientId/business-continuity/plans/:planId");
 
-    if (!match || !params) return null;
-
-    const clientId = parseInt(params.clientId);
-    const planId = parseInt(params.planId);
+    const clientId = params ? parseInt(params.clientId) : 0;
+    const planId = params ? parseInt(params.planId) : 0;
 
     const [activeTab, setActiveTab] = useState("overview");
 
+    // Local State for Edit Mode
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState<any>(null);
+
+    // Dialog States
+    const [versionDialogOpen, setVersionDialogOpen] = useState(false);
+    const [newVersion, setNewVersion] = useState("");
+    const [changeSummary, setChangeSummary] = useState("");
+
+    const [exerciseDialogOpen, setExerciseDialogOpen] = useState(false);
+    const [exerciseData, setExerciseData] = useState({ title: "", type: "Tabletop", date: new Date().toISOString().split('T')[0], status: "Completed", notes: "" });
+
+    // Crisis Mode State
+    const [crisisModeOpen, setCrisisModeOpen] = useState(false);
+
     // Queries
-    const { data: plan, refetch: refetchPlan } = trpc.businessContinuity.plans.get.useQuery({ id: planId, clientId });
-    const { data: versions, refetch: refetchVersions } = trpc.businessContinuity.plans.getVersions.useQuery({ planId, clientId });
-    const { data: exercises, refetch: refetchExercises } = trpc.businessContinuity.exercises.list.useQuery({ planId, clientId });
-    const { data: changeLog } = trpc.businessContinuity.plans.getChangeLog.useQuery({ planId, clientId });
-    const { data: planContacts, refetch: refetchContacts } = trpc.businessContinuity.plans.contacts.list.useQuery({ planId });
+    const { data: plan, refetch: refetchPlan } = trpc.businessContinuity.plans.get.useQuery({ id: planId, clientId }, { enabled: !!(match && params && planId && clientId) });
+    const { data: versions, refetch: refetchVersions } = trpc.businessContinuity.plans.getVersions.useQuery({ planId, clientId }, { enabled: !!(match && params && planId && clientId) });
+    const { data: exercises, refetch: refetchExercises } = trpc.businessContinuity.exercises.list.useQuery({ planId, clientId }, { enabled: !!(match && params && planId && clientId) });
+    const { data: changeLog } = trpc.businessContinuity.plans.getChangeLog.useQuery({ planId, clientId }, { enabled: !!(match && params && planId && clientId) });
+    const { data: planContacts, refetch: refetchContacts } = trpc.businessContinuity.plans.contacts.list.useQuery({ planId }, { enabled: !!(match && params && planId) });
 
     // Resource Queries for Editing
-    const { data: strategies } = trpc.businessContinuity.strategies.list.useQuery({ clientId });
-    const { data: scenarios } = trpc.businessContinuity.scenarios.list.useQuery({ clientId });
-    const { data: bias } = trpc.businessContinuity.bia.list.useQuery({ clientId });
-    const { data: availableUsers } = trpc.businessContinuity.stakeholders.searchCandidates.useQuery({});
+    const { data: strategies } = trpc.businessContinuity.strategies.list.useQuery({ clientId }, { enabled: !!(match && params && clientId) });
+    const { data: scenarios } = trpc.businessContinuity.scenarios.list.useQuery({ clientId }, { enabled: !!(match && params && clientId) });
+    const { data: bias } = trpc.businessContinuity.bia.list.useQuery({ clientId }, { enabled: !!(match && params && clientId) });
+    const { data: availableUsers } = trpc.businessContinuity.stakeholders.searchCandidates.useQuery({}, { enabled: !!(match && params) });
 
     // Mutations
     const updatePlan = trpc.businessContinuity.plans.update.useMutation({
@@ -95,10 +108,6 @@ export default function BCPlanManager() {
         }
     });
 
-    // Local State for Edit Mode
-    const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState<any>(null);
-
     // Initialize form data when entering edit mode
     React.useEffect(() => {
         if (plan && !formData) {
@@ -112,6 +121,8 @@ export default function BCPlanManager() {
             });
         }
     }, [plan, formData]);
+
+    if (!match || !params) return null;
 
     const handleSave = async () => {
         if (!formData) return;
@@ -136,17 +147,6 @@ export default function BCPlanManager() {
         });
         setIsEditing(false);
     };
-
-    // Dialog States
-    const [versionDialogOpen, setVersionDialogOpen] = useState(false);
-    const [newVersion, setNewVersion] = useState("");
-    const [changeSummary, setChangeSummary] = useState("");
-
-    const [exerciseDialogOpen, setExerciseDialogOpen] = useState(false);
-    const [exerciseData, setExerciseData] = useState({ title: "", type: "Tabletop", date: new Date().toISOString().split('T')[0], status: "Completed", notes: "" });
-
-    // Crisis Mode State
-    const [crisisModeOpen, setCrisisModeOpen] = useState(false);
 
     // Print Handler
     const handlePrint = () => {

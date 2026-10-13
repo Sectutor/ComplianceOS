@@ -175,14 +175,14 @@ export default function DashboardLayout({
   const branding = useBranding();
   const { appName } = branding;
 
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
+  }, [sidebarWidth]);
+
   // Redirect Auditors to their clean room
   if (user?.user_metadata?.role === 'auditor' && selectedClientId) {
     return <Redirect to={`/clients/${selectedClientId}/audit-hub`} />;
   }
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
-  }, [sidebarWidth]);
 
   if (loading) {
     return <DashboardLayoutSkeleton />

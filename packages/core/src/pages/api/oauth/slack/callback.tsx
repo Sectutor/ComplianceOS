@@ -13,18 +13,7 @@ export function SlackOAuthCallback() {
     // Use client from session if available
     // CRITICAL: Never fall back to clientId=1 - this is a security risk
     // that could cause OAuth integrations to attach to the wrong client
-    let clientId = selectedClientId || parseInt(sessionStorage.getItem('last_client_id') || '0');
-
-    if (!selectedClientId && sessionStorage.getItem('last_client_id')) {
-        console.warn('[SlackOAuth] No selectedClientId, falling back to session client ID:', clientId);
-    } else if (!selectedClientId) {
-        // CRITICAL SECURITY FIX: Do NOT fall back to clientId=1
-        // Instead, show an error and require explicit client selection
-        console.error('[SlackOAuth] No client in session - OAuth requires explicit client selection');
-        toast.error('No client selected. Please select a client workspace before connecting integrations.');
-        setLocation('/settings/integrations');
-        return;
-    }
+    const clientId = selectedClientId || parseInt(sessionStorage.getItem('last_client_id') || '0');
 
     const isValidClient = clientId !== null && clientId !== undefined && clientId > 0;
 
@@ -41,29 +30,21 @@ export function SlackOAuthCallback() {
     });
 
     useEffect(() => {
-        const searchParams = new URLSearchParams(location.search);
-        const code = searchParams.get('code');
-        const state = searchParams.get('state');
-        const error = searchParams.get('error');
-
-        if (error) {
-            toast.error(`Slack Error: ${error}`);
-            setLocation('/settings/integrations');
-            return;
+        if (!selectedClientId && sessionStorage.getItem('last_client_id')) {
+            console.warn('[SlackOAuth] No selectedClientId, falling back to session client ID:', clientId);
         }
 
-        if (!code) {
-            toast.error('No code received from Slack');
-            setLocation('/settings/integrations');
-            return;
-        }
-
-        // CRITICAL: Validate client selection before proceeding with OAuth
         if (!isValidClient) {
+            console.error('[SlackOAuth] No client in session - OAuth requires explicit client selection');
             toast.error('No client selected. Please select a client workspace before connecting integrations.');
             setLocation('/settings/integrations');
             return;
         }
+
+        const searchParams = new URLSearchParams(location.search);
+        const code = searchParams.get('code');
+        const state = searchParams.get('state');
+        const error = searchParams.get('error');
 
         // CSRF protection check
         const savedState = sessionStorage.getItem("slack_oauth_state");
@@ -85,7 +66,7 @@ export function SlackOAuthCallback() {
             // Clear state after use
             sessionStorage.removeItem("slack_oauth_state");
         }
-    }, [location, clientId, setLocation, mutation]);
+    }, [location, clientId, setLocation, mutation, isValidClient, selectedClientId]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">

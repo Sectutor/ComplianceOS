@@ -127,7 +127,7 @@ export default function EmployeeOnboarding() {
     const { data: employee } = (trpc.employees as any).getByEmail?.useQuery(
         { email: me?.email || "", clientId: effectiveClientId || 0 },
         { enabled: !!me?.email && !!effectiveClientId }
-    );
+    ) || {};
 
     // Auto-ensure employee record exists for the current user
     const ensureSelfMutation = (trpc.employees as any).ensureSelf?.useMutation({
@@ -146,13 +146,13 @@ export default function EmployeeOnboarding() {
     const { data: onboardingStatus, refetch: refetchOnboarding } = (trpc.onboarding as any).getOnboardingStatus?.useQuery(
         { clientId: effectiveClientId || 0, employeeId: employee?.id || 0 },
         { enabled: !!effectiveClientId && !!employee?.id }
-    );
+    ) || {};
 
     // Fetch training progress from database
     const { data: trainingData } = (trpc.onboarding as any).getTrainingProgress?.useQuery(
         { clientId: effectiveClientId || 0, employeeId: employee?.id || 0 },
         { enabled: !!effectiveClientId && !!employee?.id }
-    );
+    ) || {};
 
     // Fetch custom training modules
     const { data: customModules } = trpc.training.list.useQuery(
@@ -164,7 +164,7 @@ export default function EmployeeOnboarding() {
     const { data: policyData } = (trpc.policyManagement as any).getMyPolicies?.useQuery(
         { clientId: effectiveClientId || 0, employeeId: employee?.id || 0 },
         { enabled: !!effectiveClientId && !!employee?.id }
-    );
+    ) || {};
 
     // Attest training mutation
     const attestTrainingMutation = (trpc.onboarding as any).attestTraining?.useMutation({

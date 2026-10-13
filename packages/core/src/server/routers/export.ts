@@ -270,7 +270,9 @@ exportRouter.get('/policy/:id/pdf', async (req: any, res) => {
         res.status(500).send('Error generating PDF');
     } finally {
         if (browser) {
-            try { await browser.close(); } catch { }
+            try { await browser.close(); } catch {
+                // Ignore browser close error
+            }
         }
     }
 });

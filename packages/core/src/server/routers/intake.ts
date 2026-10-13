@@ -30,7 +30,7 @@ export const createIntakeRouter = (t: any, clientProcedure: any, protectedProced
             .query(async ({ ctx }: any) => {
                 const d = await db.getDb();
 
-                let query = d.select({
+                const query = d.select({
                     id: intakeItems.id,
                     filename: intakeItems.filename,
                     status: intakeItems.status,

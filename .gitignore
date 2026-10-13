@@ -38,6 +38,9 @@ tmp/
 
 # Testing/coverage
 coverage/
+test-results/
+playwright-report/
+blob-report/
 
 # Premium Package (Open for internal tracking)
 # packages/premium/

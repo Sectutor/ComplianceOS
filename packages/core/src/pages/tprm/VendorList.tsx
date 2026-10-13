@@ -284,22 +284,22 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <TabsList className="bg-[#1C4D8D]/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 border border-[#1C4D8D]/20 rounded-xl">
+                    <TabsList className="bg-slate-100 p-1 h-auto flex flex-wrap justify-start gap-1.5 border border-slate-200 rounded-xl">
                         <TabsTrigger
                             value="active"
-                            className="data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-6 py-2.5 rounded-lg font-bold"
+                            className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:shadow-xs text-slate-600 hover:text-slate-900 transition-all px-4 py-2 rounded-lg text-xs md:text-sm font-semibold active:bg-[#153a6a]"
                         >
                             Active Vendors
                         </TabsTrigger>
                         <TabsTrigger
                             value="requests"
-                            className="relative data-[state=active]:bg-[#3ABEF9] data-[state=active]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all px-6 py-2.5 rounded-lg font-bold"
+                            className="relative data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:shadow-xs text-slate-600 hover:text-slate-900 transition-all px-4 py-2 rounded-lg text-xs md:text-sm font-semibold active:bg-[#153a6a]"
                         >
                             Pending Requests
                             {requests?.filter((r: any) => r.status === 'pending').length > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                                 </span>
                             )}
                         </TabsTrigger>

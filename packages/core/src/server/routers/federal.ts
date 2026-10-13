@@ -625,17 +625,6 @@ export const createFederalRouter = (t: any, clientProcedure: any) => {
                 return control;
             }),
 
-        getSspControls: clientProcedure
-            .input(z.object({
-                clientId: z.number(),
-                sspId: z.number()
-            }))
-            .query(async ({ input }: any) => {
-                const dbConn = await getDb();
-                return await dbConn.select().from(schema.federalSspControls)
-                    .where(eq(schema.federalSspControls.sspId, input.sspId));
-            }),
-
         saveSspControl: clientProcedure
             .input(z.object({
                 clientId: z.number(),

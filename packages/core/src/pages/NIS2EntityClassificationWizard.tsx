@@ -397,7 +397,7 @@ export default function NIS2EntityClassificationWizard() {
           </div>
         );
 
-      case 3:
+      case 3: {
         const classification = determineClassification();
         return (
           <div className="space-y-6">
@@ -464,6 +464,7 @@ export default function NIS2EntityClassificationWizard() {
             </Alert>
           </div>
         );
+      }
 
       case 4:
         return (

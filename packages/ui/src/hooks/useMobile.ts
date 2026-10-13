@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
 
 export function useIsMobile() {
-    const [isMobile, setIsMobile] = useState<boolean | undefined>(undefined)
+    const [isMobile, setIsMobile] = useState<boolean>(() => 
+        typeof window !== "undefined" ? window.innerWidth < 768 : false
+    )
 
     useEffect(() => {
         const mql = window.matchMedia("(max-width: 768px)")
@@ -9,9 +11,8 @@ export function useIsMobile() {
             setIsMobile(window.innerWidth < 768)
         }
         mql.addEventListener("change", onChange)
-        setIsMobile(window.innerWidth < 768)
         return () => mql.removeEventListener("change", onChange)
     }, [])
 
-    return !!isMobile
+    return isMobile
 }

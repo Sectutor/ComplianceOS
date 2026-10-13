@@ -45,66 +45,66 @@ export const HarmonizationAnalyzer = ({ planId, frameworkId, planTitle }: Harmon
     };
 
     return (
-        <Card className="border-purple-200 bg-purple-50/50">
-            <CardHeader>
+        <Card className="border-indigo-200 bg-indigo-50/40 shadow-xs">
+            <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                            <Wand2 className="w-5 h-5 text-purple-600" />
+                        <div className="p-2 bg-indigo-100 rounded-lg">
+                            <Wand2 className="w-4 h-4 text-indigo-700" />
                         </div>
                         <div>
-                            <CardTitle className="text-lg text-purple-900">Harmonization Engine</CardTitle>
-                            <CardDescription className="text-purple-700/80">
-                                Detect cross-framework overlaps to reduce work.
+                            <CardTitle className="text-sm font-bold text-indigo-950">Work Reuse Engine</CardTitle>
+                            <CardDescription className="text-xs text-indigo-700/80">
+                                Avoid doing the same security work twice.
                             </CardDescription>
                         </div>
                     </div>
                     {analyzed && (
-                        <Badge className="bg-green-600 hover:bg-green-700 text-base px-3 py-1">
-                            {savings}% Effort Saved
+                        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-0.5">
+                            {savings}% Effort Reused
                         </Badge>
                     )}
                 </div>
             </CardHeader>
             <CardContent>
                 {!analyzed ? (
-                    <div className="text-center py-6">
-                        <p className="text-slate-600 mb-4">
-                            We can scan your other active plans (SOC 2, GDPR) to find controls you've already implemented.
+                    <div className="text-center py-4 space-y-3">
+                        <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                            If you already implemented controls (like MFA or Incident Response) for <strong>SOC 2</strong> or <strong>GDPR</strong>, this scanner detects them so you don't have to re-do them for this plan.
                         </p>
                         <Button
                             onClick={handleAnalyze}
                             disabled={isAnalyzing}
-                            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/20"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs h-8 px-3"
                         >
-                            {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                            Run Analysis
+                            {isAnalyzing ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Wand2 className="mr-1.5 h-3.5 w-3.5" />}
+                            {isAnalyzing ? "Scanning Other Plans..." : "Scan for Reusable Work"}
                         </Button>
                     </div>
                 ) : (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm font-medium text-slate-700">
-                                <span>Optimization Score</span>
-                                <span>{savings}/100</span>
+                        <div className="space-y-1.5 bg-white p-3 rounded-lg border border-indigo-100">
+                            <div className="flex justify-between text-xs font-semibold text-slate-700">
+                                <span>Duplicate Work Eliminated</span>
+                                <span className="text-indigo-600 font-bold">{savings}%</span>
                             </div>
-                            <Progress value={savings} className="h-2 bg-purple-100" indicatorClassName="bg-purple-600" />
+                            <Progress value={savings} className="h-1.5 bg-indigo-100" />
                         </div>
 
-                        <div className="bg-white rounded-lg border border-purple-100 p-4">
-                            <h4 className="font-semibold text-sm mb-3 text-slate-900">Detected Opportunities</h4>
-                            <div className="space-y-3">
+                        <div className="bg-white rounded-lg border border-slate-200 p-3 space-y-2">
+                            <h4 className="font-bold text-xs text-slate-800">Reusable Items Found:</h4>
+                            <div className="space-y-2">
                                 {opportunities.map((opp) => (
-                                    <div key={opp.id} className="flex items-start gap-3 p-3 bg-purple-50/50 rounded border border-purple-100">
-                                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5" />
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-slate-900">{opp.title}</p>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                Satisfied by <strong>{opp.source}</strong>
+                                    <div key={opp.id} className="flex items-start gap-2.5 p-2.5 bg-slate-50/80 rounded-md border border-slate-200/80">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-semibold text-slate-900 truncate">{opp.title}</p>
+                                            <p className="text-[11px] text-slate-500 mt-0.5">
+                                                Already satisfied by: <strong className="text-slate-700">{opp.source}</strong>
                                             </p>
                                         </div>
-                                        <Button variant="ghost" size="sm" className="h-6 text-purple-700 hover:text-purple-900 text-xs">
-                                            Apply
+                                        <Button variant="outline" size="sm" className="h-6 text-[10px] text-indigo-700 hover:bg-indigo-50 border-indigo-200 font-bold px-2">
+                                            Reuse
                                         </Button>
                                     </div>
                                 ))}

@@ -31,19 +31,19 @@ const IMPACT_MAP: Record<string, number> = {
 };
 
 const REVERSE_LIKELIHOOD_MAP: Record<string | number, string> = {
-    1: 'Rare', '1': 'Rare',
-    2: 'Unlikely', '2': 'Unlikely',
-    3: 'Possible', '3': 'Possible',
-    4: 'Likely', '4': 'Likely',
-    5: 'Almost Certain', '5': 'Almost Certain',
+    1: 'Rare',
+    2: 'Unlikely',
+    3: 'Possible',
+    4: 'Likely',
+    5: 'Almost Certain',
 };
 
 const REVERSE_IMPACT_MAP: Record<string | number, string> = {
-    1: 'Low', '1': 'Low',
-    2: 'Medium', '2': 'Medium',
-    3: 'High', '3': 'High',
-    4: 'Very High', '4': 'Very High',
-    5: 'Critical', '5': 'Critical',
+    1: 'Low',
+    2: 'Medium',
+    3: 'High',
+    4: 'Very High',
+    5: 'Critical',
 };
 
 interface AddRiskAssessmentDialogProps {

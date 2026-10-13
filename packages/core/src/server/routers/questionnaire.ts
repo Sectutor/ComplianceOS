@@ -9,6 +9,7 @@ import * as schema from '../../schema';
 import { eq, desc, and } from "drizzle-orm";
 import { sendEmail } from '../../lib/email/transporter';
 import { rateLimiter } from "../../lib/redis";
+import { STANDARD_TEMPLATES } from './standardTemplatesData';
 
 // Rate limiting configuration for public vendor endpoints
 // Configurable via environment variables with sensible defaults
@@ -368,8 +369,11 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
         name: z.string(),
         direction: z.enum(['inbound', 'outbound']).default('inbound'),
         senderName: z.string().optional(),
+        vendorName: z.string().optional(),
         productName: z.string().optional(),
         dueDate: z.string().optional(),
+        priority: z.string().optional(),
+        templateId: z.union([z.string(), z.number()]).optional(),
       }))
       .mutation(async ({ input, ctx }: any) => {
         const db = await getDb();
@@ -378,12 +382,79 @@ Output JSON array: [{"questionId": "optional-id", "question": "Question text"}]`
           name: input.name,
           direction: input.direction,
           senderName: input.senderName,
+          vendorName: input.vendorName,
           productName: input.productName,
           dueDate: input.dueDate ? new Date(input.dueDate) : null,
+          priority: input.priority || 'medium',
           ownerId: ctx.user.id,
           status: 'open',
           progress: 0
         }).returning();
+
+        // If templateId provided, populate questions from that Assessment Template
+        if (input.templateId) {
+          const tIdStr = String(input.templateId);
+          const questionsToInsert: any[] = [];
+
+          // 1. Check if custom template from vendorAssessmentTemplates
+          if (tIdStr.startsWith('custom_') || !isNaN(Number(tIdStr))) {
+            const rawId = parseInt(tIdStr.replace('custom_', ''), 10);
+            const [customTmpl] = await db.select().from(schema.vendorAssessmentTemplates)
+              .where(eq(schema.vendorAssessmentTemplates.id, rawId)).limit(1);
+
+            if (customTmpl && customTmpl.content) {
+              const content = typeof customTmpl.content === 'string' ? JSON.parse(customTmpl.content) : customTmpl.content;
+              const sections = content.sections || [];
+              for (const sec of sections) {
+                if (Array.isArray(sec.questions)) {
+                  for (const q of sec.questions) {
+                    if (q.enabled !== false) {
+                      questionsToInsert.push({
+                        questionnaireId: project.id,
+                        questionId: q.controlId || q.id || `q_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                        focusArea: sec.title || 'General',
+                        subFocusArea: sec.description || '',
+                        question: q.text,
+                        category: sec.title || 'General',
+                        controlId: q.controlId || q.id,
+                        controlFramework: q.standard || content.framework || 'Custom',
+                        comment: q.guidance ? `Evidence Requirement: ${q.guidance}` : null,
+                        status: 'pending'
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // 2. Check if blueprint from STANDARD_TEMPLATES
+          const standardTmpl = STANDARD_TEMPLATES.find(st => st.idKey === tIdStr);
+          if (standardTmpl) {
+            for (const sec of standardTmpl.sections) {
+              for (const q of sec.questions) {
+                if (q.enabled !== false) {
+                  questionsToInsert.push({
+                    questionnaireId: project.id,
+                    questionId: q.controlId || q.id,
+                    focusArea: sec.title || 'General',
+                    subFocusArea: sec.description || '',
+                    question: q.text,
+                    category: sec.title || 'General',
+                    controlId: q.controlId || q.id,
+                    controlFramework: q.standard || standardTmpl.framework,
+                    comment: q.guidance ? `Evidence Requirement: ${q.guidance}` : null,
+                    status: 'pending'
+                  });
+                }
+              }
+            }
+          }
+
+          if (questionsToInsert.length > 0) {
+            await db.insert(schema.questionnaireQuestions).values(questionsToInsert);
+          }
+        }
 
         return project;
       }),
@@ -905,18 +976,45 @@ Generate a professional answer. Response format:
             framework: 'GDPR',
             questionCount: 8,
             category: 'Privacy'
-          },
-          {
-            id: 'hipaa-security',
-            name: 'HIPAA Security Rule',
-            description: 'HIPAA Security Rule compliance assessment',
-            framework: 'HIPAA',
-            questionCount: 9,
-            category: 'Healthcare'
           }
         ];
 
-        return [...templateList, ...builtInTemplates];
+        // Fetch custom Assessment Templates from vendorAssessmentTemplates table
+        const assessmentTemplates = await db.select()
+          .from(schema.vendorAssessmentTemplates)
+          .where(eq(schema.vendorAssessmentTemplates.clientId, input.clientId));
+
+        const customAssessmentTemplates = assessmentTemplates.map((t: any) => {
+          let count = 0;
+          let framework = "Custom";
+          try {
+            const content = typeof t.content === 'string' ? JSON.parse(t.content) : t.content;
+            framework = content?.framework || "Custom";
+            if (Array.isArray(content?.sections)) {
+              count = content.sections.reduce((acc: number, s: any) => acc + (s.questions?.length || 0), 0);
+            }
+          } catch(e) {}
+          return {
+            id: `custom_${t.id}`,
+            name: t.name,
+            description: t.description || `Assessment blueprint with ${count} controls`,
+            framework,
+            questionCount: count,
+            category: 'Assessment Blueprint'
+          };
+        });
+
+        // Add standard blueprints from STANDARD_TEMPLATES
+        const standardList = STANDARD_TEMPLATES.map((st) => ({
+          id: st.idKey,
+          name: st.name,
+          description: st.description,
+          framework: st.framework,
+          questionCount: st.sections.reduce((acc, s) => acc + s.questions.length, 0),
+          category: 'Standard Blueprint'
+        }));
+
+        return [...customAssessmentTemplates, ...standardList, ...templateList];
       }),
 
     /**
@@ -927,7 +1025,48 @@ Generate a professional answer. Response format:
       .query(async ({ input }: any) => {
         const db = await getDb();
 
-        // If templateId is a number, treat it as an existing questionnaire ID and fetch its questions
+        // 1. Check if custom template from vendorAssessmentTemplates
+        if (input.templateId.startsWith('custom_')) {
+          const rawId = parseInt(input.templateId.replace('custom_', ''), 10);
+          const [customTmpl] = await db.select().from(schema.vendorAssessmentTemplates)
+            .where(eq(schema.vendorAssessmentTemplates.id, rawId)).limit(1);
+
+          if (customTmpl && customTmpl.content) {
+            const content = typeof customTmpl.content === 'string' ? JSON.parse(customTmpl.content) : customTmpl.content;
+            const sections = content.sections || [];
+            const result: Array<{ questionId: string; question: string; category?: string }> = [];
+            for (const sec of sections) {
+              if (Array.isArray(sec.questions)) {
+                for (const q of sec.questions) {
+                  result.push({
+                    questionId: q.controlId || q.id,
+                    question: q.text,
+                    category: sec.title || 'General'
+                  });
+                }
+              }
+            }
+            return result;
+          }
+        }
+
+        // 2. Check if blueprint from STANDARD_TEMPLATES
+        const standardTmpl = STANDARD_TEMPLATES.find(st => st.idKey === input.templateId);
+        if (standardTmpl) {
+          const result: Array<{ questionId: string; question: string; category?: string }> = [];
+          for (const sec of standardTmpl.sections) {
+            for (const q of sec.questions) {
+              result.push({
+                questionId: q.controlId || q.id,
+                question: q.text,
+                category: sec.title || 'General'
+              });
+            }
+          }
+          return result;
+        }
+
+        // 3. If templateId is a number, treat it as an existing questionnaire ID and fetch its questions
         const templateIdNum = parseInt(input.templateId, 10);
         if (!isNaN(templateIdNum)) {
           // Fetch questions from an existing questionnaire

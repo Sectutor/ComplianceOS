@@ -71,9 +71,9 @@ export const createRisksRouter = (t: any, procedure: any, premiumClientProcedure
                 // Fetch risk counts separately using a subquery approach
                 const assetIds = rawAssets.map((a: typeof schema.assets.$inferSelect) => a.id);
 
-                let riskCountMap: Record<number, number> = {};
-                let vulnCountMap: Record<number, number> = {};
-                let suggestionCountMap: Record<number, number> = {};
+                const riskCountMap: Record<number, number> = {};
+                const vulnCountMap: Record<number, number> = {};
+                const suggestionCountMap: Record<number, number> = {};
 
                 if (assetIds.length > 0) {
                     // Get risk counts - count assessments where asset ID is in affectedAssets

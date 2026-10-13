@@ -210,8 +210,11 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 
     try {
       if (!_sql) {
+        const isLocalDb = databaseUrl.includes('localhost') ||
+                          databaseUrl.includes('127.0.0.1') ||
+                          databaseUrl.includes('sslmode=disable');
         _sql = postgres(databaseUrl, {
-          ssl: { rejectUnauthorized: false }, // Critical for Supabase Transaction Pooler compatibility
+          ssl: isLocalDb ? false : { rejectUnauthorized: false }, // Critical for Supabase Transaction Pooler compatibility
           prepare: false, // Required for Supabase Transaction Pooler (port 6543)
           idle_timeout: 30,      // Close idle connections after 30s (reduced from 60s)
           max_lifetime: 300,     // Force-recycle connections every 5 min — prevents stale TCP after Supabase drops idle sessions
@@ -264,10 +267,10 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 export async function closeDb() {
 
   try {
-
     await _sql?.end({ timeout: 5 });
-
-  } catch { }
+  } catch {
+    /* ignore close error */
+  }
 
   _sql = null;
 
@@ -2418,7 +2421,7 @@ export async function createEvidence(data: InsertEvidence) {
 export async function getEvidence(clientId: number, systemId?: string) {
   const db = await getDb();
 
-  let conditions = [eq(evidence.clientId, clientId)];
+  const conditions = [eq(evidence.clientId, clientId)];
   if (systemId) {
     conditions.push(eq(evidence.systemId, systemId));
   }
@@ -3814,23 +3817,15 @@ export async function getCalendarEvents(
         break;
 
       case 'semi-annually':
-
       case 'semi-annual':
-
         nextReview = new Date(lastReview);
-
         nextReview.setMonth(nextReview.getMonth() + 6);
-
         break;
 
       case 'annually':
-
       case 'annual':
-
         nextReview = new Date(lastReview);
-
         nextReview.setFullYear(nextReview.getFullYear() + 1);
-
         break;
 
       default:

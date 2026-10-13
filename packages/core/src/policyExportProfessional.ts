@@ -477,6 +477,7 @@ function sanitizeText(text: string | null | undefined): string {
   if (!text) return "";
   // Remove control characters (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F) which are invalid in XML 1.0
   // Keep tab (0x09), newline (0x0A), carriage return (0x0D)
+  // eslint-disable-next-line no-control-regex
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uD800-\uDFFF]/g, "");
 }
 

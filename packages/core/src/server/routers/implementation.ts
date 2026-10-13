@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { getDb } from "../../db";
 import * as schema from "../../schema";
-import { eq, desc, and, or, isNull, asc } from "drizzle-orm";
+import { eq, desc, and, or, isNull, asc, inArray } from "drizzle-orm";
 import { llmService } from "../../lib/llm/service";
 import { randomUUID } from "node:crypto";
 
@@ -15,7 +15,122 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
             const plans = await db.select().from(schema.implementationPlans)
                 .where(eq(schema.implementationPlans.clientId, input.clientId))
                 .orderBy(desc(schema.implementationPlans.createdAt));
-            return plans;
+
+            if (!plans || plans.length === 0) return [];
+
+            const planIds = plans.map((p: any) => p.id);
+            const roadmapIds = plans.map((p: any) => p.roadmapId).filter(Boolean);
+
+            const [tasks, roadmaps] = await Promise.all([
+                db.select({
+                    implementationPlanId: schema.implementationTasks.implementationPlanId,
+                    status: schema.implementationTasks.status,
+                    pdca: schema.implementationTasks.pdca,
+                }).from(schema.implementationTasks)
+                    .where(inArray(schema.implementationTasks.implementationPlanId, planIds)),
+                roadmapIds.length > 0
+                    ? db.select({ id: schema.roadmaps.id, title: schema.roadmaps.title }).from(schema.roadmaps)
+                        .where(inArray(schema.roadmaps.id, roadmapIds))
+                    : Promise.resolve([])
+            ]);
+
+            const roadmapMap: Record<number, string> = {};
+            roadmaps.forEach((r: any) => { roadmapMap[r.id] = r.title; });
+
+            return plans.map((plan: any) => {
+                const planTasks = tasks.filter((t: any) => t.implementationPlanId === plan.id);
+                const totalTasks = planTasks.length;
+                const completedTasks = planTasks.filter((t: any) => t.status === 'done' || t.status === 'completed').length;
+                const inProgressTasks = planTasks.filter((t: any) => t.status === 'in_progress').length;
+                const reviewTasks = planTasks.filter((t: any) => t.status === 'review').length;
+                const todoTasks = planTasks.filter((t: any) => t.status === 'todo').length;
+                const backlogTasks = planTasks.filter((t: any) => t.status === 'backlog').length;
+                const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                const pdcaPlan = planTasks.filter((t: any) => t.pdca === 'Plan').length;
+                const pdcaDo = planTasks.filter((t: any) => t.pdca === 'Do').length;
+                const pdcaCheck = planTasks.filter((t: any) => t.pdca === 'Check').length;
+                const pdcaAct = planTasks.filter((t: any) => t.pdca === 'Act').length;
+
+                // Framework inference
+                let frameworkTag = plan.linkedFramework || plan.customFrameworkName;
+                if (!frameworkTag) {
+                    if (/ISO\s*27001/i.test(plan.title)) frameworkTag = "ISO 27001";
+                    else if (/SOC\s*2/i.test(plan.title)) frameworkTag = "SOC 2 Type II";
+                    else if (/NIST/i.test(plan.title)) frameworkTag = "NIST CSF";
+                    else if (/HIPAA/i.test(plan.title)) frameworkTag = "HIPAA Security";
+                    else if (/GDPR/i.test(plan.title)) frameworkTag = "GDPR";
+                    else frameworkTag = "Security Control";
+                }
+
+                return {
+                    ...plan,
+                    totalTasks,
+                    completedTasks,
+                    inProgressTasks,
+                    reviewTasks,
+                    todoTasks,
+                    backlogTasks,
+                    progress,
+                    frameworkTag,
+                    linkedRoadmapTitle: plan.roadmapId ? (roadmapMap[plan.roadmapId] || `Roadmap #${plan.roadmapId}`) : null,
+                    pdcaStats: {
+                        plan: pdcaPlan,
+                        do: pdcaDo,
+                        check: pdcaCheck,
+                        act: pdcaAct,
+                        unassigned: planTasks.filter((t: any) => !t.pdca).length
+                    }
+                };
+            });
+        }),
+
+        getAuditBrief: publicProcedure.input(z.object({
+            planId: z.number(),
+            clientId: z.number()
+        })).query(async ({ input }: any) => {
+            const db = await getDb();
+            const [plan] = await db.select().from(schema.implementationPlans)
+                .where(and(eq(schema.implementationPlans.id, input.planId), eq(schema.implementationPlans.clientId, input.clientId)))
+                .limit(1);
+
+            if (!plan) throw new Error("Implementation plan not found");
+
+            const tasks = await db.select().from(schema.implementationTasks)
+                .where(eq(schema.implementationTasks.implementationPlanId, plan.id));
+
+            const total = tasks.length;
+            const done = tasks.filter((t: any) => t.status === 'done' || t.status === 'completed').length;
+            const inProgress = tasks.filter((t: any) => t.status === 'in_progress').length;
+            const review = tasks.filter((t: any) => t.status === 'review').length;
+            const backlog = tasks.filter((t: any) => t.status === 'backlog' || t.status === 'todo').length;
+
+            const pdca = {
+                plan: tasks.filter((t: any) => t.pdca === 'Plan').length,
+                do: tasks.filter((t: any) => t.pdca === 'Do').length,
+                check: tasks.filter((t: any) => t.pdca === 'Check').length,
+                act: tasks.filter((t: any) => t.pdca === 'Act').length,
+            };
+
+            const [client] = await db.select().from(schema.clients).where(eq(schema.clients.id, input.clientId)).limit(1);
+
+            return {
+                plan,
+                clientName: client?.name || `Client #${input.clientId}`,
+                totalTasks: total,
+                completedTasks: done,
+                inProgressTasks: inProgress,
+                reviewTasks: review,
+                backlogTasks: backlog,
+                progress: total > 0 ? Math.round((done / total) * 100) : 0,
+                pdca,
+                generatedAt: new Date().toISOString(),
+                auditReadinessRating: total > 0 && done / total > 0.8
+                    ? 'Audit Ready (Tier 1)'
+                    : (inProgress + done) / total > 0.5
+                        ? 'Remediation Active (Tier 2)'
+                        : 'Foundational Phase (Tier 3)'
+            };
         }),
 
         create: adminProcedure.input(z.object({
@@ -223,11 +338,12 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
 
         createTask: adminProcedure.input(z.object({
             planId: z.number(),
-            clientId: z.number(),
+            clientId: z.number().optional(),
             title: z.string(),
             description: z.string().optional(),
             priority: z.string().optional(),
             pdca: z.string().optional(),
+            nist: z.string().optional(),
             status: z.string().optional(),
         })).mutation(async ({ input, ctx }: any) => {
             const db = await getDb();
@@ -238,6 +354,7 @@ export const createImplementationRouter = (t: any, publicProcedure: any, adminPr
                 description: input.description,
                 priority: input.priority || 'medium',
                 pdca: input.pdca || 'Plan',
+                nist: input.nist || 'Identify',
                 status: input.status || 'todo',
                 createdById: ctx.user?.id || 1,
             } as any).returning();

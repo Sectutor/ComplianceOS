@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getDb, isUserAllowedForClient } from "../../db";
 import * as schema from "../../schema";
-import { eq, and, desc, asc, ne, sql, count } from "drizzle-orm";
+import { eq, and, desc, asc, ne, sql, count, inArray } from "drizzle-orm";
 import { WorkflowEngine } from "../../lib/governance/workflow";
 
 export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure: any, clientProcedure: any = adminProcedure) => t.router({
@@ -240,7 +240,25 @@ export const createRoadmapRouter = (t: any, publicProcedure: any, adminProcedure
                 query = query.where(eq(schema.roadmaps.status, input.status));
             }
 
-            return await query.orderBy(desc(schema.roadmaps.createdAt));
+            const roadmapsList = await query.orderBy(desc(schema.roadmaps.createdAt));
+            if (!roadmapsList || roadmapsList.length === 0) return [];
+
+            const roadmapIds = roadmapsList.map((r: any) => r.id);
+            const milestones = await dbConn.select().from(schema.roadmapMilestones)
+                .where(inArray(schema.roadmapMilestones.roadmapId, roadmapIds));
+
+            return roadmapsList.map((r: any) => {
+                const rMilestones = milestones.filter((m: any) => m.roadmapId === r.id);
+                const total = rMilestones.length;
+                const completed = rMilestones.filter((m: any) => m.status === 'completed').length;
+                const progress = total > 0 ? Math.round((completed / total) * 100) : (r.status === 'completed' ? 100 : 0);
+                return {
+                    ...r,
+                    progress,
+                    milestoneCount: total,
+                    completedMilestones: completed
+                };
+            });
         }),
 
     // Get roadmap with details

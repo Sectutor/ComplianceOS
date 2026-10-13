@@ -245,8 +245,7 @@ export const appRouter = router({
   projects: createProjectsRouter(t, clientProcedure),
   threatModels: createThreatModelsRouter(t, clientProcedure),
   threatIntel: createThreatIntelRouter(t, adminProcedure, publicProcedure, protectedProcedure, clientProcedure),
-  adversaryIntel: createAdversaryIntelRouter(t, publicProcedure, clientProcedure),
-  vendors: vendorsRouter,
+  vendors: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
   roadmap: createRoadmapRouter(t, publicProcedure, adminProcedure, clientProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
@@ -974,56 +973,6 @@ export const appRouter = router({
     }),
   }),
 
-  // Gap Email Questionnaire
-  kris: router({
-    list: publicProcedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
-        const db = await getDb();
-        return db.select().from(schema.kris).where(eq(schema.kris.clientId, input.clientId));
-      }),
-    create: adminProcedure
-      .input(z.object({
-        clientId: z.number(),
-        name: z.string(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const [kri] = await db.insert(schema.kris).values({ ...input, status: 'active' }).returning();
-        return kri;
-      }),
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const { id, ...data } = input;
-        const [kri] = await db.update(schema.kris).set(data).where(eq(schema.kris.id, id)).returning();
-        return kri;
-      }),
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        await db.delete(schema.kris).where(eq(schema.kris.id, input.id));
-        return true;
-      }),
-  }),
-
   vendorAuthorizations: router({
     get: clientProcedure
       .input(z.object({ vendorId: z.number() }))
@@ -1489,7 +1438,7 @@ export const appRouter = router({
         return updated;
       }),
 
-    send: clientEditorProcedure
+    sendDraft: clientEditorProcedure
       .input(z.object({ clientId: z.number(), id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();

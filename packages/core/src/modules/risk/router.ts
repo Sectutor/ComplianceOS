@@ -44,7 +44,7 @@ export const riskRouter = router({
         .query(async ({ input }: any) => {
             const db = await getDb();
 
-            let query = db.select()
+            const query = db.select()
                 .from(riskScenarios)
                 .where(eq(riskScenarios.clientId, input.clientId));
 

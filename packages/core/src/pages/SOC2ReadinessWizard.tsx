@@ -555,7 +555,7 @@ export default function SOC2ReadinessWizard() {
           </div>
         );
 
-      case 2:
+      case 2: {
         const gaps = generateGapAnalysis();
         return (
           <div className="space-y-6">
@@ -622,8 +622,9 @@ export default function SOC2ReadinessWizard() {
             </div>
           </div>
         );
+      }
 
-      case 3:
+      case 3: {
         const score = calculateReadinessScore();
         const status = getReadinessStatus(score);
         const recommendations = generateRecommendations(score);
@@ -699,8 +700,9 @@ export default function SOC2ReadinessWizard() {
             </div>
           </div>
         );
+      }
 
-      case 4:
+      case 4: {
         const roadmap = generateRoadmap();
         return (
           <div className="space-y-6">
@@ -759,6 +761,7 @@ export default function SOC2ReadinessWizard() {
             </div>
           </div>
         );
+      }
 
       default:
         return null;

@@ -3480,7 +3480,7 @@ export const emailTriggers = pgTable("email_triggers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const emailTemplatesRelations = relations(emailTemplates, ({ }) => ({
+export const emailTemplatesRelations = relations(emailTemplates, () => ({
 }));
 
 export type EmployeeAssetReceipt = typeof employeeAssetReceipts.$inferSelect;

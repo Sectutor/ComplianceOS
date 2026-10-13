@@ -1,18 +1,17 @@
-
-import React, { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
-    CardFooter,
+    CardDescription,
 } from "@complianceos/ui/ui/card";
 import { Button } from "@complianceos/ui/ui/button";
 import { Badge } from "@complianceos/ui/ui/badge";
+import { Input } from "@complianceos/ui/ui/input";
+import { Progress } from "@complianceos/ui/ui/progress";
 import {
     Plus,
     ArrowRight,
@@ -24,11 +23,14 @@ import {
     Clock,
     Layout,
     BarChart3,
-    Rocket,
-    ChevronRight,
     Zap,
-    BookOpen,
-    FileText
+    FileText,
+    Search,
+    Shield,
+    Sparkles,
+    Trash2,
+    Edit3,
+    ChevronRight
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -41,7 +43,6 @@ import {
 import { toast } from "sonner";
 import { useLocation, useParams } from "wouter";
 import { format } from "date-fns";
-import { Progress } from "@complianceos/ui/ui/progress";
 import { useClientContext } from "@/contexts/ClientContext";
 import { PageGuide } from "@/components/PageGuide";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -52,43 +53,39 @@ interface RoadmapData {
     id: number;
     title: string;
     description: string | null;
+    framework?: string | null;
     status: string;
     progress?: number;
+    milestoneCount?: number;
+    completedMilestones?: number;
+    targetDate?: string | Date | null;
     updatedAt: string | Date;
+    createdAt?: string | Date;
 }
 
 // Utility function to clean up descriptions that might be stored as JSON configuration strings
-// Also used for sanitizing titles to prevent XSS
-// NOTE: We intentionally escape HTML entities here as defense-in-depth against XSS.
-// React escapes text content by default, so this provides an extra layer of protection.
 const sanitizeText = (text: string | null, fallback: string): string => {
     if (!text) return fallback;
     const trimmed = text.trim();
 
-    // Try to parse and extract meaningful content from JSON
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
         try {
             const parsed = JSON.parse(trimmed);
-            // Try to extract common display fields from JSON object
             if (typeof parsed === 'object' && parsed !== null) {
                 const displayFields = ['title', 'name', 'description', 'summary', 'goal', 'objective'];
                 for (const field of displayFields) {
                     if (parsed[field] && typeof parsed[field] === 'string') {
-                        return parsed[field].substring(0, 500); // Limit length
+                        return parsed[field].substring(0, 500);
                     }
                 }
-                // If no common fields, return the first string value found
                 const firstString = Object.values(parsed).find(v => typeof v === 'string' && v.length > 5);
                 if (firstString) return (firstString as string).substring(0, 500);
             }
         } catch {
-            // Invalid JSON, log for debugging but fall through to generic message
-            console.warn('Failed to parse text as JSON:', trimmed.substring(0, 100));
+            // Invalid JSON, fall through
         }
-        // Return generic message only if we couldn't extract meaningful content
         return fallback;
     }
-    // React handles HTML escaping automatically - just limit length
     return trimmed.substring(0, 500);
 };
 
@@ -97,12 +94,13 @@ export default function RoadmapDashboard() {
     const clientIdParam = params.id ? parseInt(params.id, 10) : null;
     const { selectedClientId } = useClientContext();
 
-    // Use URL param first, fall back to context
     const clientId = clientIdParam || selectedClientId;
     const [location, setLocation] = useLocation();
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
 
-    // Fetch roadmaps
+    // Fetch roadmaps with milestone metrics
     const { data: roadmaps, isLoading, error, refetch } = trpc.roadmap.listStrategic.useQuery(
         { clientId: clientId! },
         {
@@ -127,11 +125,53 @@ export default function RoadmapDashboard() {
         },
     });
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: string | number) => {
         if (confirm("Are you sure you want to delete this roadmap?")) {
-            await deleteMutation.mutateAsync({ id });
+            await deleteMutation.mutateAsync({ id: String(id) });
         }
     };
+
+    // Category groupings
+    const activeRoadmaps = useMemo(() =>
+        (roadmaps || []).filter(r => ['active', 'in_progress', 'on_track'].includes(r.status?.toLowerCase())),
+        [roadmaps]
+    );
+
+    const criticalRoadmaps = useMemo(() =>
+        (roadmaps || []).filter(r => ['at_risk', 'blocked', 'behind', 'delayed'].includes(r.status?.toLowerCase())),
+        [roadmaps]
+    );
+
+    const draftingRoadmaps = useMemo(() =>
+        (roadmaps || []).filter(r => ['draft', 'planning'].includes(r.status?.toLowerCase())),
+        [roadmaps]
+    );
+
+    const completedRoadmaps = useMemo(() =>
+        (roadmaps || []).filter(r => ['completed', 'archived'].includes(r.status?.toLowerCase())),
+        [roadmaps]
+    );
+
+    // Filtered roadmaps based on search and status tabs
+    const filteredRoadmaps = useMemo(() => {
+        if (!roadmaps) return [];
+
+        return roadmaps.filter((roadmap) => {
+            const matchesSearch =
+                roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (roadmap.description && roadmap.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (roadmap.framework && roadmap.framework.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            if (!matchesSearch) return false;
+
+            const st = roadmap.status?.toLowerCase();
+            if (statusFilter === 'active') return ['active', 'in_progress', 'on_track'].includes(st);
+            if (statusFilter === 'critical') return ['at_risk', 'blocked', 'behind', 'delayed'].includes(st);
+            if (statusFilter === 'planning') return ['draft', 'planning'].includes(st);
+            if (statusFilter === 'completed') return ['completed', 'archived'].includes(st);
+            return true;
+        });
+    }, [roadmaps, searchQuery, statusFilter]);
 
     if (!clientId) {
         return (
@@ -143,13 +183,12 @@ export default function RoadmapDashboard() {
         );
     }
 
-    // Show loading state
     if (isLoading) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-[60vh]">
                     <div className="text-center">
-                        <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4" />
                         <p className="text-slate-600">Loading roadmaps...</p>
                     </div>
                 </div>
@@ -157,39 +196,20 @@ export default function RoadmapDashboard() {
         );
     }
 
-    // Show error state
     if (error) {
-        console.error('❌ Error loading roadmaps:', error);
-
-        const isJsonParseError = error.message?.includes('JSON.parse') || error.message?.includes('unexpected end');
-        const errorMessage = isJsonParseError
-            ? 'Connection issue detected. Please check your network and try again.'
-            : error.message;
-
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-[60vh]">
-                    <div className="text-center">
+                    <div className="text-center max-w-md p-6 bg-white rounded-xl border border-red-100 shadow-sm">
                         <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                             <AlertTriangle className="w-6 h-6" />
                         </div>
-                        <p className="text-red-600 font-medium">Failed to load roadmaps</p>
-                        <p className="text-slate-500 text-sm mt-2">{errorMessage}</p>
-                        <div className="flex gap-2 justify-center mt-4">
-                            <Button
-                                onClick={() => refetch()}
-                                variant="outline"
-                            >
-                                Retry
+                        <p className="text-red-700 font-semibold text-lg">Failed to load roadmaps</p>
+                        <p className="text-slate-500 text-sm mt-2">{error.message}</p>
+                        <div className="flex gap-2 justify-center mt-6">
+                            <Button onClick={() => refetch()} variant="outline">
+                                Try Again
                             </Button>
-                            {isJsonParseError && (
-                                <Button
-                                    onClick={() => window.location.reload()}
-                                    variant="default"
-                                >
-                                    Refresh Page
-                                </Button>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -197,60 +217,38 @@ export default function RoadmapDashboard() {
         );
     }
 
-    // Debug logging
-    console.log('📊 Roadmaps data received:', {
-        hasData: !!roadmaps,
-        count: roadmaps?.length || 0,
-        roadmaps: roadmaps?.map(r => ({ id: r.id, title: r.title, status: r.status }))
-    });
-
-    // Group roadmaps for "Action Lanes"
-    const activeRoadmaps = roadmaps?.filter(r => ['active', 'in_progress'].includes(r.status.toLowerCase())) || [];
-    const draftingRoadmaps = roadmaps?.filter(r => ['draft', 'planning'].includes(r.status.toLowerCase())) || [];
-    const criticalRoadmaps = roadmaps?.filter(r => ['at_risk', 'blocked', 'behind'].includes(r.status.toLowerCase())) || [];
-    const completedRoadmaps = roadmaps?.filter(r => ['completed', 'archived'].includes(r.status.toLowerCase())) || [];
-
     return (
         <DashboardLayout>
-            <div className="space-y-8 p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+            <div className="space-y-8 p-6 sm:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-300">
+                {/* Header & PageGuide */}
                 <div className="flex items-center justify-between">
                     <Breadcrumb items={[{ label: "Strategic Roadmap" }]} />
                     <PageGuide
                         title="Strategic Roadmap"
                         description="Align compliance initiatives with business growth and operational milestones."
-                        rationale="A roadmap transforms a static compliance list into a dynamic execution plan. It helps stakeholders understand the timeline, resource requirements, and dependencies for reaching multi-year compliance goals."
+                        rationale="A roadmap transforms a static compliance checklist into a dynamic execution plan. It helps stakeholders understand the timeline, resource requirements, and dependencies for reaching multi-year compliance goals."
                         howToUse={[
                             {
                                 step: "Define Strategy",
-                                description: "Use 'Create New Roadmap' to start a new strategic cycle or project.",
+                                description: "Use 'New Strategic Roadmap' to start a new strategic cycle or project.",
                                 targetId: "roadmap-create-btn"
                             },
                             {
-                                step: "Monitor Execution",
-                                description: "Track active initiatives in the 'Active Execution' lane to ensure they stay on schedule.",
-                                targetId: "roadmap-active-lane"
+                                step: "Monitor Milestones",
+                                description: "Track active initiatives to ensure milestones stay on schedule.",
+                                targetId: "roadmap-initiatives"
                             },
                             {
                                 step: "Report Progress",
-                                description: "Generate executive-ready PDF reports to communicate roadmap status to the board.",
+                                description: "Generate executive-ready reports to communicate roadmap status to leadership.",
                                 targetId: "roadmap-report-btn"
-                            },
-                            {
-                                step: "Address Blocks",
-                                description: "Check the 'Attention Required' lane for initiatives that are behind or blocked.",
-                                targetId: "roadmap-critical-lane"
                             }
                         ]}
                         scenarios={[
                             {
                                 title: "Board Meeting Preparation",
-                                example: "You need to show the board that the ISO 27001 certification project is 60% complete and on track for next quarter.",
-                                auditTip: "Auditors look for evidence of management review and oversight. A well-maintained strategic roadmap demonstrates that compliance is part of the corporate planning process."
-                            },
-                            {
-                                title: "Resource Balancing",
-                                example: "Two major initiatives (e.g., SOC 2 and GDPR) are overlapping in Q3, causing a bottleneck.",
-                                auditTip: "Prioritize roadmaps based on risk-impact. Use the report to justify budget or resource increases where critical compliance paths are blocked."
+                                example: "You need to demonstrate that the ISO 27001 certification initiative is 60% complete and on track for next quarter.",
+                                auditTip: "Auditors look for evidence of management oversight. A well-maintained roadmap demonstrates compliance is part of corporate planning."
                             }
                         ]}
                         integrations={[
@@ -260,328 +258,234 @@ export default function RoadmapDashboard() {
                     />
                 </div>
 
-                {/* HERO SECTION - Links to Overview/Explore */}
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-2xl">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -ml-20 -mb-20" />
+                {/* Hero Banner */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white shadow-lg border border-slate-800">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
 
-                    <div className="relative z-10 p-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                        <div className="max-w-2xl space-y-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <Badge variant="outline" className="bg-white/10 text-white border-white/20 px-3 py-1">
-                                    Strategic Execution
+                    <div className="relative z-10 p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div className="max-w-2xl space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-white/10 text-white border-white/20 px-2.5 py-0.5 text-xs font-medium">
+                                    <Sparkles className="w-3 h-3 mr-1 text-emerald-400" />
+                                    Strategic Execution Layer
                                 </Badge>
-                                <div className="flex items-center text-slate-400 text-sm">
-                                    <Clock className="w-4 h-4 mr-1" />
-                                    <span>Q1 2026 Cycle</span>
-                                </div>
+                                <span className="text-xs text-slate-300">
+                                    {roadmaps?.length || 0} Total Initiatives
+                                </span>
                             </div>
-                            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
+                            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                                 Strategic Roadmap Command Center
                             </h1>
-                            <p className="text-lg text-slate-300 leading-relaxed">
-                                Align vision with execution. Manage strategic initiatives, track milestones, and ensure operational readiness across your organization.
+                            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
+                                Align compliance initiatives with business milestones, track real operational progress, and maintain executive audit readiness.
                             </p>
-                            <div className="flex flex-wrap gap-4 pt-2">
-                                {roadmaps && roadmaps.length > 0 ? (
-                                    <>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-lg shadow-emerald-500/25 h-12 px-6">
-                                                    <Layout className="w-4 h-4 mr-2" />
-                                                    View Roadmap
-                                                    <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">
-                                                        {roadmaps.length} active
-                                                    </Badge>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="w-64">
-                                                <DropdownMenuLabel>Select Roadmap</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                {roadmaps.map((roadmap) => (
-                                                    <DropdownMenuItem
-                                                        key={roadmap.id}
-                                                        onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)}
-                                                        className="cursor-pointer"
-                                                    >
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">{sanitizeText(roadmap.title, roadmap.title)}</span>
-                                                            <span className="text-xs text-slate-500 truncate">
-                                                                {sanitizeText(roadmap.description, "No description")}
-                                                            </span>
-                                                            <div className="flex items-center justify-between mt-1">
-                                                                <Badge variant="outline" className="text-xs capitalize">
-                                                                    {roadmap.status.replace('_', ' ')}
-                                                                </Badge>
-                                                                <span className="text-xs text-slate-400">
-                                                                    ID: {roadmap.id}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <Button
-                                            id="roadmap-create-btn"
-                                            onClick={() => setLocation(`/clients/${clientId}/roadmap/templates`)}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white border-none shadow-lg shadow-blue-500/25 h-12 px-6"
-                                        >
-                                            <Plus className="w-4 h-4 mr-2" />
-                                            Create New Roadmap
-                                        </Button>
-                                    </>
-                                ) : (
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Button
+                                id="roadmap-create-btn"
+                                onClick={() => setLocation(`/clients/${clientId}/roadmap/templates`)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-md font-semibold h-10 px-5"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                New Strategic Roadmap
+                            </Button>
+                            <Button
+                                id="roadmap-report-btn"
+                                variant="outline"
+                                onClick={() => setReportDialogOpen(true)}
+                                className="bg-white/10 hover:bg-white/20 text-white border-white/20 font-medium h-10 px-4"
+                            >
+                                <FileText className="w-4 h-4 mr-2 text-emerald-400" />
+                                Generate Report
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setLocation(`/clients/${clientId}/reports`)}
+                                className="text-slate-300 hover:text-white hover:bg-white/10 font-medium h-10 px-3"
+                            >
+                                <BarChart3 className="w-4 h-4 mr-2" />
+                                Reports Archive
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* KPI Metrics Summary Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card
+                        className={`cursor-pointer transition-all hover:shadow-md border-slate-200 ${statusFilter === 'all' ? 'ring-2 ring-blue-500/50 bg-blue-50/20' : 'bg-white'}`}
+                        onClick={() => setStatusFilter('all')}
+                    >
+                        <CardContent className="p-5 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Initiatives</p>
+                                <p className="text-2xl font-bold text-slate-900">{roadmaps?.length || 0}</p>
+                                <p className="text-xs text-slate-500">Across all compliance cycles</p>
+                            </div>
+                            <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                <Target className="w-5 h-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card
+                        className={`cursor-pointer transition-all hover:shadow-md border-slate-200 ${statusFilter === 'active' ? 'ring-2 ring-emerald-500/50 bg-emerald-50/20' : 'bg-white'}`}
+                        onClick={() => setStatusFilter('active')}
+                    >
+                        <CardContent className="p-5 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Active Execution</p>
+                                <p className="text-2xl font-bold text-slate-900">{activeRoadmaps.length}</p>
+                                <p className="text-xs text-slate-500">Currently in progress</p>
+                            </div>
+                            <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <Zap className="w-5 h-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card
+                        className={`cursor-pointer transition-all hover:shadow-md border-slate-200 ${statusFilter === 'critical' ? 'ring-2 ring-amber-500/50 bg-amber-50/20' : 'bg-white'}`}
+                        onClick={() => setStatusFilter('critical')}
+                    >
+                        <CardContent className="p-5 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Attention Required</p>
+                                <p className="text-2xl font-bold text-slate-900">{criticalRoadmaps.length}</p>
+                                <p className="text-xs text-slate-500">At risk or delayed</p>
+                            </div>
+                            <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                <AlertTriangle className="w-5 h-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card
+                        className={`cursor-pointer transition-all hover:shadow-md border-slate-200 ${statusFilter === 'planning' ? 'ring-2 ring-indigo-500/50 bg-indigo-50/20' : 'bg-white'}`}
+                        onClick={() => setStatusFilter('planning')}
+                    >
+                        <CardContent className="p-5 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Planning & Drafts</p>
+                                <p className="text-2xl font-bold text-slate-900">{draftingRoadmaps.length}</p>
+                                <p className="text-xs text-slate-500">In preparation</p>
+                            </div>
+                            <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                <Clock className="w-5 h-5" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Toolbar: Search and Filter Tabs */}
+                <div id="roadmap-initiatives" className="space-y-6 pt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                size="sm"
+                                variant={statusFilter === 'all' ? 'default' : 'outline'}
+                                onClick={() => setStatusFilter('all')}
+                                className="h-9 px-3.5 text-xs font-semibold"
+                            >
+                                All ({roadmaps?.length || 0})
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant={statusFilter === 'active' ? 'default' : 'outline'}
+                                onClick={() => setStatusFilter('active')}
+                                className="h-9 px-3.5 text-xs font-semibold"
+                            >
+                                <Zap className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                                Active Execution ({activeRoadmaps.length})
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant={statusFilter === 'critical' ? 'default' : 'outline'}
+                                onClick={() => setStatusFilter('critical')}
+                                className="h-9 px-3.5 text-xs font-semibold"
+                            >
+                                <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                                Attention Required ({criticalRoadmaps.length})
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant={statusFilter === 'planning' ? 'default' : 'outline'}
+                                onClick={() => setStatusFilter('planning')}
+                                className="h-9 px-3.5 text-xs font-semibold"
+                            >
+                                <Clock className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
+                                Planning ({draftingRoadmaps.length})
+                            </Button>
+                            {completedRoadmaps.length > 0 && (
+                                <Button
+                                    size="sm"
+                                    variant={statusFilter === 'completed' ? 'default' : 'outline'}
+                                    onClick={() => setStatusFilter('completed')}
+                                    className="h-9 px-3.5 text-xs font-semibold"
+                                >
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                                    Completed ({completedRoadmaps.length})
+                                </Button>
+                            )}
+                        </div>
+
+                        <div className="relative w-full sm:w-72">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search roadmaps..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9 h-9 text-xs"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Initiatives Grid */}
+                    {filteredRoadmaps.length === 0 ? (
+                        <div className="border border-dashed border-slate-200 rounded-2xl p-12 text-center bg-slate-50/50">
+                            <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                <Layout className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-base font-semibold text-slate-900">No roadmaps found</h3>
+                            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                                {searchQuery || statusFilter !== 'all'
+                                    ? "No initiatives match your current filters. Try resetting your search or filter criteria."
+                                    : "You haven't created any strategic roadmaps for this client yet."}
+                            </p>
+                            <div className="mt-4 flex gap-2 justify-center">
+                                {(searchQuery || statusFilter !== 'all') && (
                                     <Button
-                                        onClick={() => setLocation(`/clients/${clientId}/roadmap/templates`)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white border-none shadow-lg shadow-blue-500/25 h-12 px-6"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
                                     >
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Create New Roadmap
+                                        Reset Filters
                                     </Button>
                                 )}
                                 <Button
-                                    variant="outline"
-                                    className="bg-white/5 border-white/10 text-white hover:bg-white/10 h-12 px-6"
-                                    onClick={() => setLocation(`/clients/${clientId}/roadmap/overview`)}
+                                    size="sm"
+                                    onClick={() => setLocation(`/clients/${clientId}/roadmap/templates`)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                 >
-                                    <BookOpen className="w-4 h-4 mr-2" />
-                                    Explore Methodology
-                                </Button>
-                                <Button
-                                    id="roadmap-report-btn"
-                                    variant="outline"
-                                    className="bg-emerald-600/20 border-emerald-500/30 text-emerald-100 hover:bg-emerald-600/30 h-12 px-6"
-                                    onClick={() => setReportDialogOpen(true)}
-                                >
-                                    <FileText className="w-4 h-4 mr-2" />
-                                    Generate Report
+                                    <Plus className="w-4 h-4 mr-1.5" />
+                                    Create Roadmap
                                 </Button>
                             </div>
                         </div>
-
-                        {/* Workflow Visualization */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm max-w-md w-full">
-                            <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center">
-                                <Layout className="w-4 h-4 mr-2" />
-                                Execution Framework
-                            </h3>
-                            <div className="space-y-4">
-                                {[
-                                    { label: "1. Define Strategy", icon: Target, active: true },
-                                    { label: "2. Plan Initiatives", icon: Calendar, active: true },
-                                    { label: "3. Execute & Track", icon: Rocket, active: false },
-                                    { label: "4. Measure Impact", icon: BarChart3, active: false },
-                                ].map((step, idx) => (
-                                    <div key={idx} className={`flex items-center gap-3 ${step.active ? 'opacity-100' : 'opacity-40'}`}>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.active ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                                            <step.icon className="w-4 h-4" />
-                                        </div>
-                                        <div className="h-0.5 flex-1 bg-white/10 mx-2" />
-                                        <span className="text-sm font-medium">{step.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* CURRENT ROADMAP SECTION */}
-                {roadmaps && roadmaps.length > 0 && (
-                    <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-2xl p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                                    <Layout className="w-5 h-5 text-emerald-600" />
-                                    Current Roadmap
-                                </h3>
-                                <p className="text-sm text-slate-600 mt-1">
-                                    Your organization's primary strategic roadmap
-                                </p>
-                            </div>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button className="bg-emerald-600 hover:bg-emerald-700">
-                                        <Layout className="w-4 h-4 mr-2" />
-                                        Open Roadmap
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-64">
-                                    <DropdownMenuLabel>Select Roadmap</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {roadmaps.map((roadmap) => (
-                                        <DropdownMenuItem
-                                            key={roadmap.id}
-                                            onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)}
-                                            className="cursor-pointer"
-                                        >
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">{sanitizeText(roadmap.title, roadmap.title)}</span>
-                                                <span className="text-xs text-slate-500 truncate">
-                                                    {sanitizeText(roadmap.description, "No description")}
-                                                </span>
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <Badge variant="outline" className="text-xs capitalize">
-                                                        {roadmap.status.replace('_', ' ')}
-                                                    </Badge>
-                                                    <span className="text-xs text-slate-400">
-                                                        ID: {roadmap.id}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {roadmaps.slice(0, 3).map((roadmap) => (
-                                <div
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredRoadmaps.map((roadmap) => (
+                                <RoadmapCard
                                     key={roadmap.id}
-                                    className="group bg-white border border-slate-200 rounded-xl p-5 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300 cursor-pointer flex flex-col h-full"
-                                    onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <h4 className="font-bold text-slate-900 line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                                            {sanitizeText(roadmap.title, roadmap.title)}
-                                        </h4>
-                                        <Badge variant="outline" className="capitalize bg-slate-50 text-[10px] h-5 px-2 border-slate-200">
-                                            {roadmap.status.replace('_', ' ')}
-                                        </Badge>
-                                    </div>
-
-                                    <p className="text-xs text-slate-600 line-clamp-3 mb-6 flex-grow leading-relaxed">
-                                        {sanitizeText(roadmap.description, "Strategic planning and execution initiative.")}
-                                    </p>
-
-                                    <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
-                                        <div className="flex items-center text-[10px] text-slate-400 font-medium">
-                                            <Calendar className="w-3 h-3 mr-1.5 opacity-60" />
-                                            {format(new Date(roadmap.updatedAt), 'MMM d, yyyy')}
-                                        </div>
-                                        <span className="text-[10px] font-bold text-emerald-600 flex items-center group-hover:translate-x-1 transition-transform">
-                                            View Roadmap
-                                            <ArrowRight className="w-3 h-3 ml-1" />
-                                        </span>
-                                    </div>
-                                </div>
+                                    roadmap={roadmap}
+                                    clientId={clientId!}
+                                    onDelete={handleDelete}
+                                />
                             ))}
                         </div>
-                    </div>
-                )}
-
-                {/* ACTION LANES */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-
-                    {/* Lane 1: Critical Activity */}
-                    <div id="roadmap-critical-lane" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-amber-500" />
-                                Attention Required
-                            </h3>
-                            <Badge variant="secondary" className="rounded-full">{criticalRoadmaps.length}</Badge>
-                        </div>
-
-                        {criticalRoadmaps.length === 0 ? (
-                            <EmptyLaneState
-                                icon={CheckCircle2}
-                                title="All systems go"
-                                description="No roadmaps require immediate attention."
-                                color="text-emerald-500"
-                            />
-                        ) : (
-                            <div className="space-y-3">
-                                {criticalRoadmaps.map(roadmap => (
-                                    <RoadmapCard key={roadmap.id} roadmap={roadmap} clientId={clientId!} onDelete={handleDelete} compact />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Lane 2: Active Execution */}
-                    <div id="roadmap-active-lane" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <Zap className="w-5 h-5 text-blue-500" />
-                                Active Execution
-                            </h3>
-                            <Badge variant="secondary" className="rounded-full">{activeRoadmaps.length}</Badge>
-                        </div>
-
-                        {activeRoadmaps.length === 0 ? (
-                            <EmptyLaneState
-                                icon={Rocket}
-                                title="No active roadmaps"
-                                description="Launch a roadmap to see it here."
-                                color="text-slate-400"
-                            />
-                        ) : (
-                            <div className="space-y-3">
-                                {activeRoadmaps.map(roadmap => (
-                                    <RoadmapCard key={roadmap.id} roadmap={roadmap} clientId={clientId!} onDelete={handleDelete} />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Lane 3: Planning & Drafts */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <Layout className="w-5 h-5 text-slate-500" />
-                                Planning & Drafts
-                            </h3>
-                            <Badge variant="secondary" className="rounded-full">{draftingRoadmaps.length}</Badge>
-                        </div>
-
-                        {draftingRoadmaps.length === 0 ? (
-                            <EmptyLaneState
-                                icon={Layout}
-                                title="Empty drafting board"
-                                description="Start a new plan to populate this list."
-                                color="text-slate-400"
-                            />
-                        ) : (
-                            <div className="space-y-3">
-                                {draftingRoadmaps.map(roadmap => (
-                                    <RoadmapCard key={roadmap.id} roadmap={roadmap} clientId={clientId!} onDelete={handleDelete} compact />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* RECENTLY COMPLETED / ARCHIVED (Optional Collapsible or Bottom Section) */}
-                {completedRoadmaps.length > 0 && (
-                    <div className="pt-8 border-t">
-                        <h3 className="text-lg font-medium text-slate-500 mb-4">Completed & Archived</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {completedRoadmaps.map(roadmap => (
-                                <RoadmapCard key={roadmap.id} roadmap={roadmap} clientId={clientId!} onDelete={handleDelete} compact />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* REPORT GENERATION */}
-                <div className="pt-8 border-t">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium text-slate-900">Generate Reports</h3>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-emerald-600/20 border-emerald-500/30 text-emerald-700 hover:bg-emerald-600/30"
-                            onClick={() => setReportDialogOpen(true)}
-                        >
-                            <FileText className="w-4 h-4 mr-2" />
-                            Generate New Report
-                        </Button>
-                    </div>
-                    <p className="text-sm text-slate-500 mb-4">
-                        Generate roadmap reports from this dashboard. All generated reports can be managed in the <a href={`/clients/${clientId}/roadmap/reports`} className="text-emerald-600 hover:text-emerald-700 font-medium">Report Management</a> page.
-                    </p>
+                    )}
                 </div>
 
                 <ReportGeneratorDialog
@@ -595,120 +499,151 @@ export default function RoadmapDashboard() {
 }
 
 // ----------------------------------------------------------------------
-// Sub-components
+// Polished Roadmap Initiative Card Component
 // ----------------------------------------------------------------------
 
-function EmptyLaneState({ icon: Icon, title, description, color }: { icon: any, title: string, description: string, color: string }) {
-    return (
-        <div className="border border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center h-[200px] bg-slate-50/50">
-            <div className={`p-3 rounded-full bg-white shadow-sm mb-3 ${color}`}>
-                <Icon className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-medium text-slate-900">{title}</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-[150px]">{description}</p>
-        </div>
-    )
-}
+function RoadmapCard({
+    roadmap,
+    clientId,
+    onDelete,
+}: {
+    roadmap: RoadmapData;
+    clientId: number | string;
+    onDelete: (id: number | string) => void;
+}) {
+    const [, setLocation] = useLocation();
 
-function RoadmapCard({ roadmap, clientId, onDelete, compact = false }: { roadmap: RoadmapData, clientId: string, onDelete: (id: string) => void, compact?: boolean }) {
-    const [location, setLocation] = useLocation();
-
-    // Helper for colors
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'active': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-            case 'at_risk': return 'bg-red-500/10 text-red-600 border-red-500/20';
-            case 'planning': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-            case 'in_progress': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-            default: return 'bg-slate-100 text-slate-600 border-slate-200';
+    const getStatusBadge = (status: string) => {
+        const s = status.toLowerCase();
+        switch (s) {
+            case 'active':
+            case 'on_track':
+                return { label: 'Active', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+            case 'at_risk':
+            case 'delayed':
+            case 'behind':
+                return { label: 'Attention Required', className: 'bg-amber-50 text-amber-700 border-amber-200' };
+            case 'planning':
+            case 'draft':
+                return { label: 'Planning', className: 'bg-blue-50 text-blue-700 border-blue-200' };
+            case 'completed':
+                return { label: 'Completed', className: 'bg-slate-100 text-slate-700 border-slate-200' };
+            default:
+                return { label: status.replace('_', ' '), className: 'bg-slate-50 text-slate-600 border-slate-200' };
         }
     };
 
-    // Mock progress calculation if not available
-    const progress = roadmap.progress ?? 50;
+    const statusBadge = getStatusBadge(roadmap.status);
+    const progress = Math.min(100, Math.max(0, roadmap.progress ?? 0));
+    const milestoneCount = roadmap.milestoneCount ?? 0;
+    const completedMilestones = roadmap.completedMilestones ?? 0;
 
     return (
-        <Card className="group hover:shadow-lg transition-all duration-300 border-slate-200 hover:border-blue-400/50 overflow-hidden bg-white">
-            <div className="p-5 space-y-4">
-                <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                        <Badge variant="outline" className={`mb-2 capitalize text-[10px] h-5 px-2 ${getStatusColor(roadmap.status)}`}>
-                            {roadmap.status.replace('_', ' ')}
+        <Card className="group hover:shadow-lg transition-all duration-200 border-slate-200 hover:border-slate-300 bg-white flex flex-col justify-between overflow-hidden">
+            <CardHeader className="p-5 pb-3">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="outline" className={`capitalize text-[11px] font-semibold h-5 px-2 ${statusBadge.className}`}>
+                            {statusBadge.label}
                         </Badge>
-                        <h4 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors cursor-pointer truncate"
-                            onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)}>
-                            {sanitizeText(roadmap.title, roadmap.title)}
-                        </h4>
-                        {!compact && (
-                            <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed min-h-[2.5rem]">
-                                {sanitizeText(roadmap.description, "No description")}
-                            </p>
+                        {roadmap.framework && (
+                            <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-[11px] font-medium h-5 px-2">
+                                <Shield className="w-3 h-3 mr-1 text-slate-500" />
+                                {roadmap.framework}
+                            </Badge>
                         )}
                     </div>
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 -mr-1 -mt-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                            >
                                 <MoreVertical className="w-4 h-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>Initiative Options</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)} className="cursor-pointer">
-                                <Layout className="w-4 h-4 mr-2" />
-                                View Dashboard
+                            <DropdownMenuItem
+                                onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)}
+                                className="cursor-pointer"
+                            >
+                                <Layout className="w-4 h-4 mr-2 text-slate-500" />
+                                Open Strategic Board
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}/edit`)} className="cursor-pointer">
-                                <Zap className="w-4 h-4 mr-2" />
+                            <DropdownMenuItem
+                                onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}/edit`)}
+                                className="cursor-pointer"
+                            >
+                                <Edit3 className="w-4 h-4 mr-2 text-slate-500" />
                                 Edit Configuration
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => onDelete(roadmap.id)}>
-                                <Plus className="w-4 h-4 mr-2 rotate-45" />
+                            <DropdownMenuItem
+                                className="text-red-600 focus:text-red-700 cursor-pointer"
+                                onClick={() => onDelete(roadmap.id)}
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
                                 Delete Roadmap
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
 
-                <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overall Progress</span>
-                        <span className="text-xs font-bold text-slate-700">{progress}%</span>
+                <div className="pt-2">
+                    <h3
+                        onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)}
+                        className="font-bold text-base text-slate-900 group-hover:text-emerald-700 transition-colors cursor-pointer line-clamp-1"
+                        title={roadmap.title}
+                    >
+                        {sanitizeText(roadmap.title, roadmap.title)}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed min-h-[2.5rem]">
+                        {sanitizeText(roadmap.description, "Strategic compliance implementation and audit readiness initiative.")}
+                    </p>
+                </div>
+            </CardHeader>
+
+            <CardContent className="p-5 pt-0 space-y-4">
+                {/* Real Milestone Progress */}
+                <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-slate-600">
+                            {milestoneCount > 0
+                                ? `${completedMilestones} of ${milestoneCount} Milestones`
+                                : "Milestone Progress"}
+                        </span>
+                        <span className="font-bold text-slate-900">{progress}%</span>
                     </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
+                    <Progress value={progress} className="h-2 bg-slate-100" />
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-1">
-                    <div className="flex -space-x-1.5 overflow-hidden">
-                        {/* Mock Avatars */}
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-[8px] font-bold text-indigo-600">JD</div>
-                        <div className="w-6 h-6 rounded-full bg-emerald-100 border-2 border-white flex items-center justify-center text-[8px] font-bold text-emerald-600">AS</div>
-                        <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[8px] font-bold text-slate-500">+1</div>
+                {/* Date & Meta Info */}
+                <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
+                    <div className="flex items-center">
+                        <Calendar className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                        <span>
+                            {roadmap.targetDate
+                                ? `Target: ${format(new Date(roadmap.targetDate), 'MMM yyyy')}`
+                                : `Updated ${format(new Date(roadmap.updatedAt), 'MMM d, yyyy')}`}
+                        </span>
                     </div>
-                    <div className="flex items-center text-[10px] font-medium text-slate-400">
-                        <Clock className="w-3 h-3 mr-1 opacity-60" />
-                        {format(new Date(roadmap.updatedAt), 'MMM d, yyyy')}
-                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">ID #{roadmap.id}</span>
                 </div>
 
+                {/* Primary Card CTA */}
                 <Button
-                    variant="secondary"
-                    className="w-full text-xs h-9 bg-slate-50 hover:bg-blue-600 hover:text-white border border-slate-200 hover:border-blue-600 transition-all duration-300 font-semibold rounded-lg"
+                    variant="outline"
+                    className="w-full text-xs font-semibold h-9 bg-slate-50/80 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all duration-200 mt-2"
                     onClick={() => setLocation(`/clients/${clientId}/roadmap/${roadmap.id}`)}
                 >
                     Open Strategic Board
-                    <ChevronRight className="w-3 h-3 ml-1" />
+                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
-            </div>
+            </CardContent>
         </Card>
     );
 }
-
-// Roadmap Report History Component
-

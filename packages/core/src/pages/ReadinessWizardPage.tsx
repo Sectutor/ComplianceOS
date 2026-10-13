@@ -405,7 +405,7 @@ export default function ReadinessWizardPage() {
           </div>
         );
 
-      case 2:
+      case 2: {
         const gaps = generateGapAnalysis();
         return (
           <div className="space-y-6">
@@ -486,8 +486,9 @@ export default function ReadinessWizardPage() {
             </div>
           </div>
         );
+      }
 
-      case 3:
+      case 3: {
         const score = calculateReadinessScore();
         const statusInfo = getReadinessStatus(score);
         return (
@@ -567,6 +568,7 @@ export default function ReadinessWizardPage() {
             </div>
           </div>
         );
+      }
 
       case 4:
         return (

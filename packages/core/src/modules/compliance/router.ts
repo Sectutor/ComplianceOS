@@ -477,7 +477,7 @@ export const complianceRouter = router({
         .query(async ({ input }: any) => {
             const db = await getDb();
 
-            let query = db.select()
+            const query = db.select()
                 .from(clientControls)
                 .where(eq(clientControls.clientId, input.clientId));
 

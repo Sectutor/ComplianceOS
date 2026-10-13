@@ -96,10 +96,7 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
     return (
         <DashboardLayout fullWidth={fullWidth}>
             <div className="flex flex-col min-h-screen bg-slate-50/50">
-                <div className={cn(
-                    "bg-white border-b border-slate-200 py-3 sticky top-0 z-30 shadow-sm space-y-3",
-                    fullWidth ? "pl-0 pr-4 md:pl-0 md:pr-8" : "pl-4 pr-4 md:pl-20 md:pr-8"
-                )}>
+                <div className="bg-white border-b border-slate-200 py-3 px-4 sm:px-6 lg:px-8 sticky top-0 z-30 shadow-xs space-y-3">
                     <Breadcrumb className="mb-0">
                         <BreadcrumbList>
                             {breadcrumbItems.map((item, idx) => {
@@ -108,12 +105,12 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                                     <React.Fragment key={idx}>
                                         <BreadcrumbItem>
                                             {isLast ? (
-                                                <BreadcrumbPage className="font-bold text-[#1C4D8D]">
+                                                <BreadcrumbPage className="font-bold text-slate-900">
                                                     {item.label}
                                                 </BreadcrumbPage>
                                             ) : (
                                                 <BreadcrumbLink asChild>
-                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 hover:text-[#3ABEF9] transition-colors">
+                                                    <Link href={item.href || "#"} className="flex items-center gap-1.5 text-slate-500 hover:text-indigo-600 transition-colors">
                                                         {item.icon && <item.icon className="h-3.5 w-3.5" />}
                                                         {item.label}
                                                     </Link>
@@ -131,7 +128,7 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    <nav className="flex space-x-2 overflow-x-auto no-scrollbar py-1" aria-label="TPRM Navigation">
+                    <nav className="flex flex-wrap items-center gap-1.5 md:gap-2 py-0.5" aria-label="TPRM Navigation">
                         {navItems.map((item) => {
                             const active = isActive(item.href);
                             return (
@@ -139,20 +136,20 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer shadow-sm border",
+                                        "flex items-center px-3.5 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-150 cursor-pointer border shadow-2xs",
                                         active
-                                            ? "bg-[#3ABEF9] text-white border-[#3ABEF9]"
-                                            : "bg-[#1C4D8D] text-white border-[#1C4D8D] hover:bg-[#3ABEF9] hover:border-[#3ABEF9]"
+                                            ? "bg-[#1C4D8D] text-white border-[#1C4D8D] shadow-xs active:bg-[#153a6a]"
+                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 active:bg-[#1C4D8D] active:text-white"
                                     )}
                                 >
-                                    <item.icon className="mr-2.5 h-4 w-4" />
+                                    <item.icon className={cn("mr-2 h-4 w-4", active ? "text-white" : "text-slate-500")} />
                                     {item.label}
                                     {!!item.badge && (
                                         <span className={cn(
-                                            "ml-2.5 rounded-full py-0.5 px-2 text-[10px] font-bold border backdrop-blur-md",
+                                            "ml-2 rounded-full py-0.5 px-2 text-[10px] font-bold border",
                                             active
                                                 ? "bg-white/20 text-white border-white/30"
-                                                : "bg-[#3ABEF9]/20 text-white border-[#3ABEF9]/30"
+                                                : "bg-slate-100 text-slate-700 border-slate-200"
                                         )}>
                                             {item.badge}
                                         </span>
@@ -162,7 +159,7 @@ export function TPRMLayout({ clientId, children, fullWidth }: TPRMLayoutProps) {
                         })}
                     </nav>
                 </div>
-                <div className={cn("flex-1 w-full", fullWidth ? "pl-0 pr-4 py-8 md:pl-0 md:pr-8" : "pl-4 pr-4 py-8 md:pl-20 md:pr-8")}>
+                <div className="flex-1 w-full p-4 sm:p-6 lg:p-8">
                     {children}
                 </div>
             </div>

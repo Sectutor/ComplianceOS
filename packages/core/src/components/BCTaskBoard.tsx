@@ -244,7 +244,7 @@ export function BCTaskBoard() {
                                                 */}
                                                     <Avatar className="h-6 w-6">
                                                         <AvatarFallback className="text-[10px]">
-                                                            {assignees.find((u: any) => u.id === task.assigneeId)?.name ? getInitials(assignees.find((u: any) => u.id === task.assigneeId)?.name!) : "?"}
+                                                            {assignees.find((u: any) => u.id === task.assigneeId)?.name ? getInitials(assignees.find((u: any) => u.id === task.assigneeId)?.name || "") : "?"}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <span className="text-sm text-gray-600">

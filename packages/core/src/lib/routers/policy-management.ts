@@ -96,8 +96,8 @@ export const createPolicyManagementRouter = (
                 return assignments;
             }),
 
-        // Mark as viewed
-        viewPolicy: clientProcedure
+        // Attest policy
+        attestPolicy: clientProcedure
             .input(z.object({
                 assignmentId: z.number()
             }))
