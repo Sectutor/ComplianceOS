@@ -21,7 +21,12 @@ if (!process.env.VITE_SUPABASE_URL || !(process.env.SUPABASE_SERVICE_ROLE_KEY ||
 }
 
 console.log('[AuthMiddleware Init] Supabase URL:', supabaseUrl);
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false
+    }
+});
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     console.log(`[Auth] Request: ${req.url}`);

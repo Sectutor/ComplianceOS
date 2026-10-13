@@ -55,8 +55,27 @@ const redirectToLoginIfUnauthorized = async (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  // Check if we actually have a session still
-  const { data: { session } } = await supabase.auth.getSession();
+  // Check if we actually have a session still (via getSession + localStorage check)
+  let session = null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    session = data?.session;
+  } catch {}
+  if (!session && typeof window !== 'undefined') {
+    try {
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          const stored = window.localStorage.getItem(key);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed?.access_token) { session = parsed; break; }
+          }
+        }
+      }
+    } catch {}
+  }
+
   if (session) {
     console.warn("[Auth] Received UNAUTHORIZED but session exists. Possibly a transient error or DB sync issue. Not redirecting.", {
       path: (error as any).meta?.path || error.shape?.data?.path || 'unknown',
@@ -184,6 +203,27 @@ const trpcClient = trpc.createClient({
           session = data?.session;
         } catch (e) {
           console.error('[TRPC] Failed to fetch Supabase session for headers:', e);
+        }
+
+        // Resilient fallback: read cached token directly from localStorage if getSession() failed or had a race condition
+        if (!session?.access_token && typeof window !== 'undefined') {
+          try {
+            for (let i = 0; i < window.localStorage.length; i++) {
+              const key = window.localStorage.key(i);
+              if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                const stored = window.localStorage.getItem(key);
+                if (stored) {
+                  const parsed = JSON.parse(stored);
+                  if (parsed?.access_token) {
+                    session = parsed;
+                    break;
+                  }
+                }
+              }
+            }
+          } catch {
+            // ignore
+          }
         }
 
         const reqId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
