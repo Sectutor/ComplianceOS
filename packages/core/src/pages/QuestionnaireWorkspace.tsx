@@ -7,7 +7,7 @@ import { Button } from "@complianceos/ui/ui/button";
 import { Input } from "@complianceos/ui/ui/input";
 import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { Badge } from "@complianceos/ui/ui/badge";
 import { Loader2, Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Save, ChevronRight, ChevronLeft, ArrowLeft, Sparkles, Lock, FileDown, FileSpreadsheet, Mail, LayoutGrid, Check, HelpCircle, Columns } from "lucide-react";
 import { toast } from "sonner";
@@ -67,38 +67,119 @@ export default function QuestionnaireWorkspace() {
   const [vendorMessage, setVendorMessage] = useState("");
   const [showAiColumns, setShowAiColumns] = useState<boolean | null>(null);
 
-  // Horizontal Table Scroll State & Handlers
+  // Horizontal Table Scroll State & Column Stepping Engine
   const tableScrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const isSyncingTop = useRef(false);
+  const isSyncingTable = useRef(false);
+  const [currentScrollX, setCurrentScrollX] = useState(0);
+  const [tableScrollWidth, setTableScrollWidth] = useState(2100);
 
-  const checkScroll = useCallback(() => {
+  const isAiVisible = showAiColumns !== null ? showAiColumns : true;
+  const extraCols = Object.keys(answers[0]?.extraFields || {});
+
+  // Define unpinned column step targets (relative to unpinned scroll window)
+  const columnSteps = [
+    { id: "answer", label: "Answer", offset: 0 },
+    { id: "notes", label: "Reviewer Notes", offset: 320 },
+    ...(isAiVisible ? [
+      { id: "confidence", label: "Confidence", offset: 580 },
+      { id: "sources", label: "Sources", offset: 685 }
+    ] : []),
+    ...extraCols.map((c, idx) => ({
+      id: c,
+      label: c,
+      offset: (isAiVisible ? 815 : 705) + idx * 200
+    }))
+  ];
+
+  const maxScrollLeft = tableScrollRef.current
+    ? Math.max(0, tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth)
+    : 0;
+
+  const isAtMaxRight = maxScrollLeft > 50 && currentScrollX >= maxScrollLeft - 20;
+
+  // Determine which column step is currently aligned
+  const currentStepIndex = isAtMaxRight
+    ? columnSteps.length - 1
+    : columnSteps.reduce((accIndex, step, index) => {
+        if (currentScrollX >= step.offset - 35) return index;
+        return accIndex;
+      }, 0);
+
+  const canGoLeft = currentStepIndex > 0 || currentScrollX > 15;
+  const canGoRight = currentStepIndex < columnSteps.length - 1;
+
+  // Jump smoothly to a specific column step
+  const scrollToColumn = (index: number) => {
     if (tableScrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      const clampedIndex = Math.max(0, Math.min(index, columnSteps.length - 1));
+      const targetStep = columnSteps[clampedIndex];
+      if (clampedIndex === columnSteps.length - 1) {
+        const maxScroll = tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth;
+        const target = Math.min(maxScroll, Math.max(targetStep.offset, maxScroll - 50));
+        tableScrollRef.current.scrollTo({ left: target, behavior: "smooth" });
+      } else {
+        tableScrollRef.current.scrollTo({ left: targetStep.offset, behavior: "smooth" });
+      }
     }
-  }, []);
+  };
 
+  // Move column-by-column until the last column is visible
   const handleScrollLeft = () => {
-    if (tableScrollRef.current) {
-      tableScrollRef.current.scrollBy({ left: -360, behavior: "smooth" });
-      setTimeout(checkScroll, 350);
-    }
+    const prevIndex = Math.max(0, currentStepIndex - 1);
+    scrollToColumn(prevIndex);
   };
 
   const handleScrollRight = () => {
-    if (tableScrollRef.current) {
-      tableScrollRef.current.scrollBy({ left: 360, behavior: "smooth" });
-      setTimeout(checkScroll, 350);
-    }
+    const nextIndex = Math.min(columnSteps.length - 1, currentStepIndex + 1);
+    scrollToColumn(nextIndex);
   };
 
+  // Synchronized scroll handlers between Top Scrollbar and Table
+  const handleTopScroll = () => {
+    if (isSyncingTable.current) return;
+    isSyncingTop.current = true;
+    if (tableScrollRef.current && topScrollRef.current) {
+      tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+      setCurrentScrollX(topScrollRef.current.scrollLeft);
+    }
+    requestAnimationFrame(() => {
+      isSyncingTop.current = false;
+    });
+  };
+
+  const handleTableScroll = () => {
+    if (isSyncingTop.current) return;
+    isSyncingTable.current = true;
+    if (tableScrollRef.current) {
+      const scrollLeft = tableScrollRef.current.scrollLeft;
+      setCurrentScrollX(scrollLeft);
+      if (topScrollRef.current) {
+        topScrollRef.current.scrollLeft = scrollLeft;
+      }
+    }
+    requestAnimationFrame(() => {
+      isSyncingTable.current = false;
+    });
+  };
+
+  // Keep table scroll width and positions updated
   useEffect(() => {
-    checkScroll();
-    window.addEventListener("resize", checkScroll);
-    return () => window.removeEventListener("resize", checkScroll);
-  }, [checkScroll, answers, showAiColumns]);
+    const updateWidth = () => {
+      if (tableScrollRef.current) {
+        setTableScrollWidth(tableScrollRef.current.scrollWidth);
+        const scrollLeft = tableScrollRef.current.scrollLeft;
+        setCurrentScrollX(scrollLeft);
+        if (topScrollRef.current) {
+          topScrollRef.current.scrollLeft = scrollLeft;
+        }
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, [answers, showAiColumns]);
 
   // Detect template mode from URL (SSR-safe)
   useEffect(() => {
@@ -699,7 +780,6 @@ export default function QuestionnaireWorkspace() {
         {currentStep === "review" && (() => {
           const isOutbound = projectData?.direction === "outbound";
           const hasAiAnswers = answers.some(a => (a.confidence && a.confidence > 0) || (a.sources && a.sources.length > 0));
-          const isAiVisible = showAiColumns !== null ? showAiColumns : (!isOutbound || hasAiAnswers);
 
           return (
             <Card>
@@ -798,17 +878,27 @@ export default function QuestionnaireWorkspace() {
                   <div className="flex items-center gap-2 text-slate-500 text-[11px] shrink-0">
                     <span className="flex items-center gap-1 text-[11px]">
                       <Columns className="h-3 w-3 text-slate-400" />
-                      <span>{isAiVisible ? "8" : "6"} Cols</span>
+                      <span>{4 + (isAiVisible ? 2 : 0) + Object.keys(answers[0]?.extraFields || {}).length} Cols</span>
                     </span>
+                    {canGoRight && (
+                      <span className="text-[10px] text-[#1C4D8D] font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-200 hidden md:inline-flex items-center gap-1">
+                        Next: {columnSteps[currentStepIndex + 1]?.label} <ChevronRight className="h-3 w-3" />
+                      </span>
+                    )}
+                    {!canGoRight && (
+                      <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 hidden md:inline-flex items-center gap-1">
+                        ✓ Last col ({columnSteps[columnSteps.length - 1]?.label}) in view
+                      </span>
+                    )}
                     <span className="text-slate-300">|</span>
-                    {/* Top Bar Left/Right Chevron Buttons */}
+                    {/* Top Bar Left/Right Column Step Buttons */}
                     <div className="flex items-center gap-0.5 bg-white border border-slate-300 rounded p-0.5 shadow-2xs">
                       <button
                         type="button"
                         onClick={handleScrollLeft}
-                        disabled={!canScrollLeft}
+                        disabled={!canGoLeft}
                         className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                        title="Scroll table left"
+                        title="Move to previous column"
                       >
                         <ChevronLeft className="h-3 w-3 text-[#1C4D8D]" />
                         <span>Left</span>
@@ -817,9 +907,9 @@ export default function QuestionnaireWorkspace() {
                       <button
                         type="button"
                         onClick={handleScrollRight}
-                        disabled={!canScrollRight}
+                        disabled={!canGoRight}
                         className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                        title="Scroll table right"
+                        title={canGoRight ? `Next column: ${columnSteps[currentStepIndex + 1]?.label}` : "At last column"}
                       >
                         <span>Right</span>
                         <ChevronRight className="h-3 w-3 text-[#1C4D8D]" />
@@ -828,39 +918,79 @@ export default function QuestionnaireWorkspace() {
                   </div>
                 </div>
 
+                {/* Top Column Step Navigator (1-Click Snap to Any Column) */}
+                <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1 bg-slate-50 border-t border-x border-slate-200 rounded-t-lg select-none">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 mr-1 tracking-wider">Columns:</span>
+                    {columnSteps.map((step, idx) => {
+                      const isActive = currentStepIndex === idx;
+                      return (
+                        <button
+                          key={step.id}
+                          type="button"
+                          onClick={() => scrollToColumn(idx)}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-[#1C4D8D] text-white shadow-2xs"
+                              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                          title={`Click to jump directly to ${step.label}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-amber-300" : "bg-slate-400"}`} />
+                          <span>{idx + 1}. {step.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                    <span className="text-slate-400">Step {currentStepIndex + 1} of {columnSteps.length}:</span>
+                    <span className="text-[#1C4D8D] font-bold">{columnSteps[currentStepIndex]?.label}</span>
+                  </div>
+                </div>
+
+                {/* Top Horizontal Scrollbar (Synchronized 2-Way with Table) */}
+                <div
+                  ref={topScrollRef}
+                  onScroll={handleTopScroll}
+                  className="w-full overflow-x-auto overflow-y-hidden bg-slate-100 border-x border-slate-200 select-none h-3.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-[#1C4D8D] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#153B6D] active:[&::-webkit-scrollbar-thumb]:bg-[#0f2d54]"
+                  title="Drag or click top scrollbar to scroll horizontally across columns"
+                >
+                  <div style={{ width: `${Math.max(tableScrollWidth, 2100)}px`, height: '2px' }} />
+                </div>
+
                 {/* Horizontally Scrollable Table with Left & Right Chevron Controls */}
                 <div className="relative group">
                   {/* Left Chevron Button */}
                   <button
                     type="button"
                     onClick={handleScrollLeft}
-                    disabled={!canScrollLeft}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
-                    title="Scroll table left"
-                    aria-label="Scroll table left"
+                    disabled={!canGoLeft}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-9 w-9 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-xl flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                    title="Move to previous column"
+                    aria-label="Previous column"
                   >
-                    <ChevronLeft className="h-4 w-4 text-[#1C4D8D]" />
+                    <ChevronLeft className="h-5 w-5 text-[#1C4D8D]" />
                   </button>
 
                   {/* Right Chevron Button */}
                   <button
                     type="button"
                     onClick={handleScrollRight}
-                    disabled={!canScrollRight}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
-                    title="Scroll table right"
-                    aria-label="Scroll table right"
+                    disabled={!canGoRight}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-9 w-9 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-xl flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                    title={canGoRight ? `Next: ${columnSteps[currentStepIndex + 1]?.label}` : "At last column"}
+                    aria-label="Next column"
                   >
-                    <ChevronRight className="h-4 w-4 text-[#1C4D8D]" />
+                    <ChevronRight className="h-5 w-5 text-[#1C4D8D]" />
                   </button>
 
                   {/* Horizontally Scrollable Table */}
                   <div
                     ref={tableScrollRef}
-                    onScroll={checkScroll}
-                    className="overflow-x-auto rounded-lg border border-slate-200 shadow-2xs scroll-smooth"
+                    onScroll={handleTableScroll}
+                    className="overflow-x-auto rounded-b border border-slate-200 shadow-2xs scroll-smooth"
                   >
-                  <Table className="min-w-[1100px] border-collapse">
+                  <table className="w-full min-w-[2100px] caption-bottom text-sm border-collapse">
                     <TableHeader>
                       <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none text-white h-9">
                         {/* SECTION 1: Control & Category (Sticky Left 0) */}
@@ -934,6 +1064,10 @@ export default function QuestionnaireWorkspace() {
                         {Object.keys(answers[0]?.extraFields || {}).map(col => (
                           <TableHead key={col} className="text-white font-semibold py-1.5 px-3 text-xs whitespace-nowrap h-9 leading-none">{col}</TableHead>
                         ))}
+                        {/* Buffer Space to ensure Sources and extra columns scroll completely into view */}
+                        <TableHead className="w-[320px] min-w-[320px] bg-[#163E72] text-white/50 text-[10px] text-center italic py-1.5 px-3 whitespace-nowrap h-9 leading-none">
+                          End of Columns
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1059,10 +1193,14 @@ export default function QuestionnaireWorkspace() {
                               />
                             </TableCell>
                           ))}
+                          {/* Buffer Space to match TableHeader */}
+                          <TableCell className="w-[320px] min-w-[320px] bg-slate-50/40 text-center text-[10px] text-slate-400 py-2">
+                            ✓ All columns displayed
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                  </table>
                 </div>
               </div>
             </CardContent>
