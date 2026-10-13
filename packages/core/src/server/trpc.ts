@@ -321,7 +321,9 @@ export const requiresMFA = middleware(async ({ ctx, next, path }) => {
     try {
         const dbConn = await db.getDb();
 
-        let must = isPrivilegedRole; // Forced for admins
+        // In local development, don't force MFA on platform admins unless ENFORCE_MFA is explicitly true
+        const isDev = process.env.NODE_ENV !== 'production';
+        let must = isPrivilegedRole && (!isDev || process.env.ENFORCE_MFA === 'true'); // Forced for admins in prod/enforced
 
         if (!must && clientId) {
             console.log('[DEBUG requiresMFA] Checking client MFA req for clientId:', clientId);
