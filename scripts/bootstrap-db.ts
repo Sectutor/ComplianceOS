@@ -19,7 +19,7 @@
  * Run before the server starts (see Dockerfile CMD).
  */
 import "../env-loader";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { spawnSync } from "child_process";
 import path from "path";
 import { drizzle } from "drizzle-orm/postgres-js";
@@ -71,40 +71,60 @@ async function applySchema(sql: postgres.Sql) {
         console.warn("[BootstrapDB] Could not create pgvector extension (vector columns will be skipped):", (err?.message || err).toString().slice(0, 160));
     }
 
-    const schemaPath = path.join(process.cwd(), "scripts", "schema-init.sql");
-    let raw = readFileSync(schemaPath, "utf-8");
-    // Old drizzle-kit renders pgvector typmods as quoted identifiers ("vector(1536)"),
-    // which Postgres can never resolve as a type. Unquote them.
-    raw = raw.replace(/"vector\((\d+)\)"/g, "vector($1)").replace(/"vector"/g, "vector");
-    const statements = raw
-        .split("--> statement-breakpoint")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+    const schemaFiles = [
+        path.join(process.cwd(), "scripts", "schema-init.sql"),
+        // Gap fill for tables/columns the app uses that schema-init.sql still lacks
+        // (autopilot, agent compliance, monitor, auditor, missing review columns…).
+        // Idempotent CREATE/ALTER IF NOT EXISTS — safe on existing installs.
+        path.join(process.cwd(), "scripts", "schema-selfhost-gapfill.sql"),
+    ];
 
     let applied = 0;
     let skipped = 0;
-    for (const stmt of statements) {
-        try {
-            await sql.unsafe(stmt);
-            applied++;
-        } catch (err: any) {
-            const msg = (err?.message || err).toString();
-            if (IGNORED_ERROR_CODES.has(err?.code) || /already exists/i.test(msg)) {
-                skipped++;
-                continue;
-            }
-            // Missing pgvector: skip vector-dependent statements instead of aborting the boot
-            if (/type "vector/i.test(msg) && stmt.includes("vector")) {
-                console.warn("[BootstrapDB] Skipping vector-dependent statement (pgvector unavailable).");
-                skipped++;
-                continue;
-            }
-            console.error("[BootstrapDB] Statement failed:", msg.slice(0, 300));
-            console.error("[BootstrapDB] Offending statement:", stmt.slice(0, 200));
-            throw err;
+    for (const schemaPath of schemaFiles) {
+        if (!existsSync(schemaPath)) {
+            console.warn(`[BootstrapDB] Schema file missing, skipping: ${schemaPath}`);
+            continue;
         }
+        let raw = readFileSync(schemaPath, "utf-8");
+        // Old drizzle-kit renders pgvector typmods as quoted identifiers ("vector(1536)"),
+        // which Postgres can never resolve as a type. Unquote them.
+        raw = raw.replace(/"vector\((\d+)\)"/g, "vector($1)").replace(/"vector"/g, "vector");
+        const statements = raw
+            .split("--> statement-breakpoint")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+
+        for (const stmt of statements) {
+            try {
+                await sql.unsafe(stmt);
+                applied++;
+            } catch (err: any) {
+                const msg = (err?.message || err).toString();
+                if (IGNORED_ERROR_CODES.has(err?.code) || /already exists/i.test(msg)) {
+                    skipped++;
+                    continue;
+                }
+                // Missing pgvector: skip vector-dependent statements instead of aborting the boot
+                if (/type ["']?vector/i.test(msg) && /vector/i.test(stmt)) {
+                    console.warn("[BootstrapDB] Skipping vector-dependent statement (pgvector unavailable).");
+                    skipped++;
+                    continue;
+                }
+                // Index/constraint on a table that was itself skipped (e.g. embeddings without pgvector)
+                if (/does not exist/i.test(msg) && /^(CREATE (UNIQUE )?INDEX|ALTER TABLE)/i.test(stmt.trim())) {
+                    console.warn(`[BootstrapDB] Skipping dependent statement (relation missing): ${msg.slice(0, 120)}`);
+                    skipped++;
+                    continue;
+                }
+                console.error("[BootstrapDB] Statement failed:", msg.slice(0, 300));
+                console.error("[BootstrapDB] Offending statement:", stmt.slice(0, 200));
+                throw err;
+            }
+        }
+        console.log(`[BootstrapDB] Applied ${path.basename(schemaPath)}`);
     }
-    console.log(`[BootstrapDB] Schema applied (${applied} statements, ${skipped} already-exists skipped).`);
+    console.log(`[BootstrapDB] Schema applied (${applied} statements, ${skipped} already-exists/skipped).`);
 
     // Ensure backwards-compatible columns on tables that may have been created earlier
     try {

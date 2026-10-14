@@ -74,7 +74,7 @@ services:
       - complianceos-net
 
   db:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     environment:
       POSTGRES_USER: complianceos
       POSTGRES_PASSWORD: complianceos
