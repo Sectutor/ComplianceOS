@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>State of Startup Security 2026 — GRCompliance</title>
+    <meta name="description"
+        content="42% of 104 recently funded startups showed no public SOC 2, ISO 27001, or trust signal. A deep check of 17 averaged 3.3/10. Download the State of Startup Security 2026 report." />
+    <link rel="canonical" href="https://grcompliance.com/state-of-startup-security-2026.html" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="GRCompliance" />
+    <meta property="og:title" content="State of Startup Security 2026" />
+    <meta property="og:description"
+        content="42% of 104 recently funded startups showed no public SOC 2, ISO, or trust signal. Deep-checked companies averaged 3.3/10. None had security.txt or a verifiable report." />
+    <meta property="og:url" content="https://grcompliance.com/state-of-startup-security-2026.html" />
+    <meta property="og:image" content="https://grcompliance.com/assets/reports/public-signal-donut.png" />
+    <meta property="og:image:alt" content="Donut chart: 42% of 104 recently funded startups showed no public SOC 2, ISO, or trust signal" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="State of Startup Security 2026" />
+    <meta name="twitter:description"
+        content="42% of 104 recently funded startups showed no public SOC 2, ISO, or trust signal. Download the report." />
+    <meta name="twitter:image" content="https://grcompliance.com/assets/reports/public-signal-donut.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: { 800: '#002244', 900: '#001a33', 950: '#001122' },
+                        brand: { 50: '#eefbf4', 100: '#d7f6e4', 200: '#b1edcd', 500: '#00A36C', 600: '#008F5D', 700: '#00724a' },
+                        accent: { 500: '#2563EB', 600: '#1D4ED8' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #fafbfc; color: #0f172a; }
+        .font-display { font-family: 'Outfit', sans-serif; }
+        .grid-pattern {
+            background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2.5 group">
+                <span class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-display font-black text-sm shadow-sm group-hover:bg-brand-600 transition-colors">C</span>
+                <div class="flex flex-col">
+                    <span class="font-display font-bold text-base tracking-tight text-navy-900 leading-tight">ComplianceOS</span>
+                    <span class="text-[10px] text-slate-600 font-semibold tracking-wide">by Intellfence</span>
+                </div>
+            </a>
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+                <a href="/pricing.html#self-host" class="hover:text-navy-900 transition-colors">Self-Host Licenses</a>
+                <a href="/pricing.html#addons" class="hover:text-navy-900 transition-colors">Sprint &amp; Install</a>
+                <a href="/pricing.html#calculator" class="hover:text-navy-900 transition-colors">Cost Calculator</a>
+                <a href="/state-of-startup-security-2026.html" class="text-navy-900 font-bold">2026 Report</a>
+                <a href="/pricing.html#faq" class="hover:text-navy-900 transition-colors">FAQ</a>
+            </nav>
+            <div class="flex items-center gap-3">
+                <a href="https://github.com/Sectutor/ComplianceOS-Core" target="_blank" rel="noopener"
+                    class="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-navy-900 transition-colors px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+                    <span>GitHub</span>
+                </a>
+                <a href="#download"
+                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-brand-500 text-white text-xs sm:text-sm font-bold hover:bg-brand-600 transition-all shadow-sm">
+                    Get the report
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="relative pt-14 pb-10 sm:pt-20 sm:pb-14 overflow-hidden">
+            <div class="absolute inset-0 grid-pattern opacity-40 pointer-events-none"></div>
+            <div class="relative max-w-6xl mx-auto px-4 sm:px-6">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200 mb-6 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                    Research report · 14 October 2026 · Public signals only
+                </div>
+                <div class="grid lg:grid-cols-12 gap-10 items-start">
+                    <div class="lg:col-span-7">
+                        <h1 class="font-display font-extrabold text-4xl sm:text-5xl text-navy-900 tracking-tight leading-[1.1] mb-5">
+                            State of Startup Security 2026
+                        </h1>
+                        <p class="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mb-8">
+                            What recently funded SaaS companies show the public — and what enterprise buyers check first. We reviewed 104 Seed to Series A/B companies that raised between April and October 2026, then deep-checked 17 that showed no public SOC 2, ISO 27001, or trust-centre signal. This is not an audit.
+                        </p>
+                        <dl class="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+                                <dt class="text-[11px] font-bold uppercase tracking-wider text-slate-500">No public trust signal</dt>
+                                <dd class="font-display font-extrabold text-3xl sm:text-4xl text-navy-900 mt-1">42%</dd>
+                                <p class="text-xs text-slate-500 mt-1">44 of 104 recently funded startups. No public SOC 2, ISO, or trust signal.</p>
+                            </div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+                                <dt class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Deep-check average</dt>
+                                <dd class="font-display font-extrabold text-3xl sm:text-4xl text-navy-900 mt-1">3.3<span class="text-lg text-slate-400">/10</span></dd>
+                                <p class="text-xs text-slate-500 mt-1">Mean public-trust score across 17 companies (3.26 unrounded). None scored Advanced.</p>
+                            </div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+                                <dt class="text-[11px] font-bold uppercase tracking-wider text-slate-500">security.txt</dt>
+                                <dd class="font-display font-extrabold text-3xl sm:text-4xl text-navy-900 mt-1">0<span class="text-lg text-slate-400">/17</span></dd>
+                                <p class="text-xs text-slate-500 mt-1">None of the deep-checked companies had a working security.txt or disclosure page.</p>
+                            </div>
+                            <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+                                <dt class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Verifiable report</dt>
+                                <dd class="font-display font-extrabold text-3xl sm:text-4xl text-navy-900 mt-1">0<span class="text-lg text-slate-400">/17</span></dd>
+                                <p class="text-xs text-slate-500 mt-1">None had a verifiable SOC 2 or ISO 27001 report. Two claimed SOC 2 without a report path.</p>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <div class="lg:col-span-5" id="download">
+                        <div class="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
+                            <div id="report-form-panel">
+                                <h2 class="font-display font-extrabold text-2xl text-navy-900 mb-1">Download the report</h2>
+                                <p class="text-sm text-slate-600 mb-6">Six pages. Public signals only, company names withheld. We’ll send the PDF as soon as this form is saved.</p>
+                                <form id="report-form" class="space-y-4" novalidate>
+                                    <div>
+                                        <label for="lead-name" class="block text-xs font-bold text-navy-900 uppercase tracking-wider mb-1.5">Name</label>
+                                        <input id="lead-name" name="name" type="text" autocomplete="name" required maxlength="120"
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-navy-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                                            placeholder="Ada Lovelace">
+                                    </div>
+                                    <div>
+                                        <label for="lead-email" class="block text-xs font-bold text-navy-900 uppercase tracking-wider mb-1.5">Work email</label>
+                                        <input id="lead-email" name="email" type="email" autocomplete="email" required maxlength="255"
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-navy-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                                            placeholder="ada@company.com">
+                                    </div>
+                                    <div>
+                                        <label for="lead-company" class="block text-xs font-bold text-navy-900 uppercase tracking-wider mb-1.5">Company</label>
+                                        <input id="lead-company" name="company" type="text" autocomplete="organization" required maxlength="255"
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-navy-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                                            placeholder="Company name">
+                                    </div>
+                                    <div>
+                                        <label for="lead-role" class="block text-xs font-bold text-navy-900 uppercase tracking-wider mb-1.5">Role <span class="font-medium text-slate-400 normal-case tracking-normal">(optional)</span></label>
+                                        <input id="lead-role" name="role" type="text" autocomplete="organization-title" maxlength="255"
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-navy-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                                            placeholder="Founder, security, procurement">
+                                    </div>
+                                    <label class="flex items-start gap-3 text-sm text-slate-600 cursor-pointer">
+                                        <input id="lead-consent" name="consent" type="checkbox" required class="mt-1 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                        <span>Email me follow-up about this report and a free Readiness Snapshot. See our <a href="privacy.html" class="underline hover:text-navy-900">privacy policy</a>.</span>
+                                    </label>
+                                    <p id="report-error" class="hidden text-sm font-medium text-red-600" role="alert"></p>
+                                    <button id="report-submit" type="submit"
+                                        class="w-full py-3.5 px-6 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm transition-all shadow-md disabled:opacity-60 disabled:cursor-not-allowed">
+                                        Get the PDF
+                                    </button>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">Public signals only · Anonymised · Not an audit or legal advice. The file downloads in the browser after we record your request.</p>
+                                </form>
+                            </div>
+
+                            <div id="report-thanks" class="hidden">
+                                <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold mb-4">✓</div>
+                                <h2 class="font-display font-extrabold text-2xl text-navy-900 mb-2">Your report is ready</h2>
+                                <p class="text-sm text-slate-600 leading-relaxed mb-5">The PDF should start downloading now. If it doesn’t, use the button below. We saved your details so we can follow up by email.</p>
+                                <a id="report-download-link" href="assets/reports/state-of-startup-security-2026.pdf" download="State-of-Startup-Security-2026.pdf"
+                                    class="w-full py-3.5 px-6 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-sm text-center transition-all shadow-md flex items-center justify-center gap-2 mb-6">
+                                    Download State of Startup Security 2026
+                                </a>
+                                <div class="rounded-2xl border border-brand-200 bg-brand-50 p-5">
+                                    <h3 class="font-display font-bold text-lg text-navy-900 mb-1">Free Readiness Snapshot</h3>
+                                    <p class="text-sm text-slate-600 leading-relaxed mb-4">Book a 20-minute call and we’ll send a one-page snapshot of your company, using the same public-signal method as this report.</p>
+                                    <a id="calendar-link" href="[CALENDAR_LINK]"
+                                        class="inline-flex items-center justify-center w-full py-3 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm transition-all">
+                                        Book a Readiness Snapshot
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="max-w-6xl mx-auto px-4 sm:px-6 pb-20" aria-label="Charts from the report">
+            <div class="mb-6">
+                <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-navy-900">From the report</h2>
+                <p class="text-sm text-slate-600 mt-1">Charts from the 14 October 2026 study. Company names are withheld.</p>
+            </div>
+            <figure class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 mb-6">
+                <img src="assets/reports/public-signal-donut.png" alt="Donut chart showing 43% with a public SOC 2, ISO, or trust signal, 42% with none, and 14% unknown, out of 104 companies" class="w-full h-auto rounded-xl" width="1240" height="520">
+                <figcaption class="text-xs text-slate-500 mt-3">Public SOC 2, ISO 27001, or trust-centre signal across 104 recently funded SaaS companies. 44 companies (42%) showed none.</figcaption>
+            </figure>
+            <div class="grid md:grid-cols-2 gap-6">
+                <figure class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                    <img src="assets/reports/signal-breakdown.png" alt="Bar chart of signal types among 45 companies with a public signal: SOC 2, ISO 27001, both, and trust centre" class="w-full h-auto rounded-xl" width="1240" height="520">
+                    <figcaption class="text-xs text-slate-500 mt-3">Among the 45 companies with a signal: SOC 2 mentions, ISO 27001 mentions, both, and trust-centre references.</figcaption>
+                </figure>
+                <figure class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6">
+                    <img src="assets/reports/score-distribution.png" alt="Histogram of public-trust scores for 17 companies, mean 3.26 out of 10, none in the Advanced band" class="w-full h-auto rounded-xl" width="1280" height="780">
+                    <figcaption class="text-xs text-slate-500 mt-3">Deep check of 17 companies with no public attestation. Mean 3.26/10. Twelve were Early. None reached Advanced.</figcaption>
+                </figure>
+            </div>
+            <figure class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 mt-6">
+                <img src="assets/reports/security-headers.png" alt="Bar chart of six security headers on 17 marketing sites. Average 2.29 of 6 headers present." class="w-full h-auto rounded-xl" width="1240" height="480">
+                <figcaption class="text-xs text-slate-500 mt-3">Security headers on marketing homepages. Average 2.29 of 6. Two sites sent none, including no HSTS. One sent all six.</figcaption>
+            </figure>
+        </section>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6 text-xs sm:text-sm text-slate-500">
+            <div class="flex items-center gap-3">
+                <span class="w-6 h-6 rounded bg-brand-500 flex items-center justify-center text-white font-black text-xs">C</span>
+                <span class="font-bold text-navy-900">ComplianceOS</span>
+                <span class="text-slate-400">&bull; Open-Core GRC Infrastructure by Intellfence</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-6 font-medium">
+                <a href="/" class="hover:text-navy-900 transition-colors">Home</a>
+                <a href="pricing.html" class="hover:text-navy-900 transition-colors">Pricing</a>
+                <a href="state-of-startup-security-2026.html" class="text-navy-900 font-bold">2026 Report</a>
+                <a href="https://github.com/Sectutor/ComplianceOS-Core" target="_blank" rel="noopener" class="hover:text-navy-900 transition-colors">GitHub</a>
+                <a href="selfhosted/index.html" class="hover:text-navy-900 transition-colors">Self-Host Docs</a>
+                <a href="community.html" class="hover:text-navy-900 transition-colors">Community</a>
+                <a href="privacy.html" class="hover:text-navy-900 transition-colors">Privacy</a>
+                <a href="terms.html" class="hover:text-navy-900 transition-colors">Terms</a>
+            </div>
+            <div>&copy; <span id="year"></span> ComplianceOS. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script src="assets/report-lead-config.js"></script>
+    <script>
+        document.getElementById("year").textContent = new Date().getFullYear();
+
+        var PDF_PATH = "assets/reports/state-of-startup-security-2026.pdf";
+        var DEFAULT_LEAD_ENDPOINT = "https://app.grcompliance.com/api/trpc/waitlist.join";
+
+        function reportConfig() {
+            return window.GRC_REPORT_CONFIG || {};
+        }
+
+        function leadEndpoint() {
+            var configured = (reportConfig().leadEndpoint || "").trim();
+            return configured || DEFAULT_LEAD_ENDPOINT;
+        }
+
+        function splitName(full) {
+            var parts = full.trim().split(/\s+/);
+            return { firstName: parts[0] || "", lastName: parts.slice(1).join(" ") };
+        }
+
+        function showError(message) {
+            var el = document.getElementById("report-error");
+            el.textContent = message;
+            el.classList.remove("hidden");
+        }
+
+        function leadSuccessFlag(data) {
+            if (!data || typeof data !== "object") return false;
+            if (data.success === true) return true;
+            var resultData = data.result && data.result.data;
+            if (resultData && resultData.success === true) return true;
+            if (resultData && resultData.json && resultData.json.success === true) return true;
+            return false;
+        }
+
+        function leadAccepted(response, data) {
+            if (!response.ok) return false;
+            if (leadSuccessFlag(data)) return true;
+            if (Array.isArray(data) && data.some(leadSuccessFlag)) return true;
+            if (data && data.error) return false;
+            var endpoint = leadEndpoint();
+            if (endpoint.indexOf("/api/trpc/") !== -1) return false;
+            return response.status >= 200 && response.status < 300;
+        }
+
+        function startDownload() {
+            var link = document.getElementById("report-download-link");
+            link.setAttribute("href", PDF_PATH);
+            var click = document.createElement("a");
+            click.href = PDF_PATH;
+            click.download = "State-of-Startup-Security-2026.pdf";
+            document.body.appendChild(click);
+            click.click();
+            click.remove();
+        }
+
+        function showThanks() {
+            var calendar = (reportConfig().calendarLink || "[CALENDAR_LINK]").trim() || "[CALENDAR_LINK]";
+            var calendarLink = document.getElementById("calendar-link");
+            calendarLink.href = calendar;
+            document.getElementById("report-form-panel").classList.add("hidden");
+            document.getElementById("report-thanks").classList.remove("hidden");
+            startDownload();
+        }
+
+        document.getElementById("report-form").addEventListener("submit", async function (event) {
+            event.preventDefault();
+            var errorEl = document.getElementById("report-error");
+            errorEl.classList.add("hidden");
+
+            var name = document.getElementById("lead-name").value.trim();
+            var email = document.getElementById("lead-email").value.trim();
+            var company = document.getElementById("lead-company").value.trim();
+            var role = document.getElementById("lead-role").value.trim();
+            var consent = document.getElementById("lead-consent").checked;
+            var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+            if (!name || !emailOk || !company) {
+                showError("Enter your name, a work email, and your company.");
+                return;
+            }
+            if (!consent) {
+                showError("Tick the box to agree to a follow-up email.");
+                return;
+            }
+
+            var button = document.getElementById("report-submit");
+            button.disabled = true;
+            button.textContent = "Saving…";
+
+            var names = splitName(name);
+            var endpoint = leadEndpoint();
+            var isTrpc = endpoint.indexOf("/api/trpc/") !== -1;
+            var payload = isTrpc
+                ? {
+                    email: email,
+                    firstName: names.firstName,
+                    lastName: names.lastName,
+                    company: company,
+                    role: role || undefined,
+                    source: "report-2026",
+                    interestedPlay: "State of Startup Security 2026; follow-up email: yes"
+                }
+                : {
+                    name: name,
+                    email: email,
+                    company: company,
+                    role: role,
+                    consent: true,
+                    source: "report-2026",
+                    report: "state-of-startup-security-2026"
+                };
+
+            try {
+                var response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                var data = null;
+                var text = await response.text();
+                if (text) {
+                    try { data = JSON.parse(text); } catch (parseError) { data = null; }
+                }
+                if (!leadAccepted(response, data)) {
+                    var message = (data && data.error && data.error.message) || "We couldn’t save your request. Try again in a moment.";
+                    showError(message);
+                    button.disabled = false;
+                    button.textContent = "Get the PDF";
+                    return;
+                }
+                showThanks();
+            } catch (networkError) {
+                showError("We couldn’t reach the form endpoint. Check the lead endpoint configuration and try again.");
+                button.disabled = false;
+                button.textContent = "Get the PDF";
+            }
+        });
+    </script>
+</body>
+</html>
