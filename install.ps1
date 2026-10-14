@@ -2,7 +2,7 @@
 # ComplianceOS — Windows PowerShell Production Installer
 # =============================================================================
 # Quick start:
-#   irm https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/Sectutor/ComplianceOS/coolify-deploy-buildall/install.ps1 | iex
 # =============================================================================
 param(
     [int]$Port = 3002,
@@ -28,7 +28,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 Set-Location $TargetDir
 
-$composeUrl = "https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/docker-compose.selfhost.yml"
+$composeUrl = "https://raw.githubusercontent.com/Sectutor/ComplianceOS/coolify-deploy-buildall/docker-compose.selfhost.yml"
 if (-not (Test-Path "docker-compose.selfhost.yml") -and -not (Test-Path "docker-compose.yml")) {
     Write-Host "📥 Downloading docker-compose.yml..." -ForegroundColor Gray
     try {

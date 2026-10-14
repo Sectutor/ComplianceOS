@@ -2,7 +2,7 @@ name: Publish Self-Host Container
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, coolify-deploy-buildall]
   release:
     types: [published]
   workflow_dispatch:
@@ -47,7 +47,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # main shares no history with the release branch; publish :latest from it
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/coolify-deploy-buildall' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=commit-

@@ -8,12 +8,12 @@ Welcome to **ComplianceOS**, the open-source operating system for Governance, Ri
 
 ### 🐧 Linux & macOS
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash
+curl -fsSL https://grcompliance.com/install.sh | bash
 ```
 
 ### 🪟 Windows (PowerShell)
 ```powershell
-irm https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Sectutor/ComplianceOS/coolify-deploy-buildall/install.ps1 | iex
 ```
 
 This automatically:

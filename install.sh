@@ -3,10 +3,11 @@
 # ComplianceOS — One-Command Production Installer
 # =============================================================================
 # Quick start:
-#   curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash
+#   curl -fsSL https://grcompliance.com/install.sh | bash
+#   (mirror: https://raw.githubusercontent.com/Sectutor/ComplianceOS/coolify-deploy-buildall/install.sh)
 #
 # Or with options:
-#   curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash -s -- -p 3002
+#   curl -fsSL https://grcompliance.com/install.sh | bash -s -- -p 3002
 # =============================================================================
 set -e
 set -u
@@ -14,7 +15,9 @@ set -o pipefail 2>/dev/null || true
 
 PORT="${PORT:-3002}"
 TARGET_DIR="${TARGET_DIR:-${HOME}/complianceos}"
-COMPOSE_FILE_URL="https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/docker-compose.selfhost.yml"
+REPO_URL="${REPO_URL:-https://github.com/Sectutor/ComplianceOS.git}"
+REPO_REF="${REPO_REF:-coolify-deploy-buildall}"
+COMPOSE_FILE_URL="https://raw.githubusercontent.com/Sectutor/ComplianceOS/${REPO_REF}/docker-compose.selfhost.yml"
 
 # Parse optional arguments
 while [ $# -gt 0 ]; do
@@ -223,8 +226,29 @@ else
   DOCKER_CMD="docker-compose -f ${COMPOSE_FILE}"
 fi
 
-$DOCKER_CMD pull || true
-$DOCKER_CMD up -d
+# Only the core stack; the optional hermes-agent service has its own image.
+if $DOCKER_CMD pull complianceos db redis; then
+  $DOCKER_CMD up -d complianceos db redis
+else
+  # The prebuilt image (ghcr.io/sectutor/complianceos-self-hosted) may not be
+  # published or public yet. Fall back to building it from source.
+  echo "⚠️ Could not pull the prebuilt image — building ComplianceOS from source instead (first build takes several minutes)..."
+  if ! command -v git >/dev/null 2>&1; then
+    echo "❌ git is required to build from source. Install git, or wait for the published image."
+    exit 1
+  fi
+  if [ ! -d "${TARGET_DIR}/src/.git" ]; then
+    git clone --depth 1 --branch "${REPO_REF}" "${REPO_URL}" "${TARGET_DIR}/src"
+  fi
+  cp .env "${TARGET_DIR}/src/.env"
+  cd "${TARGET_DIR}/src"
+  if docker compose version >/dev/null 2>&1; then
+    DOCKER_CMD="docker compose -f docker-compose.selfhost.yml"
+  else
+    DOCKER_CMD="docker-compose -f docker-compose.selfhost.yml"
+  fi
+  $DOCKER_CMD up -d --build complianceos db redis
+fi
 
 # 6. Wait for health check
 echo "⏳ Waiting for ComplianceOS to initialize..."

@@ -4,10 +4,10 @@
 
 ![ComplianceOS Dashboard](./docs/assets/screenshots/dashboard.png)
 
-**The Open Source Operating System for Governance, Risk, and Compliance.**
+**SOC 2, ISO 27001, HIPAA, PCI DSS, NIST 800-53 / 800-171 (CMMC), NIS2, FedRAMP and privacy programs — in one self-hosted install.**
 
 [![License: Dual AGPLv3 / Commercial](https://img.shields.io/badge/License-Dual%20AGPLv3%20%2F%20Commercial-blue.svg)](./LICENSE)
-[![CI](https://github.com/sectutor/ComplianceOS/actions/workflows/ci.yml/badge.svg)](https://github.com/sectutor/ComplianceOS/actions/workflows/ci.yml)
+[![CI](https://github.com/Sectutor/ComplianceOS/actions/workflows/ci.yml/badge.svg?branch=coolify-deploy-buildall)](https://github.com/Sectutor/ComplianceOS/actions/workflows/ci.yml?query=branch%3Acoolify-deploy-buildall)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://github.com/Sectutor/ComplianceOS)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.0-61DAFB.svg)](https://reactjs.org/)
@@ -15,7 +15,7 @@
 
 ```bash
 # ⚡ 60-Second One-Line Docker Install (Linux & macOS)
-curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash
+curl -fsSL https://grcompliance.com/install.sh | bash
 ```
 
 [Quickstart](#-getting-started) • [Features](#-key-features) • [Why ComplianceOS?](#-why-complianceos) • [Architecture](#-architecture) • [Contributing](#-contributing)
@@ -26,15 +26,22 @@ curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.
 
 ## 🚀 Overview
 
-**ComplianceOS** (formerly GRCompliance) is a comprehensive, open-source GRC (Governance, Risk, and Compliance) platform designed to democratize security compliance. It replaces fragmented spreadsheets and expensive enterprise tools with a modern, unified operating system for security teams.
+**ComplianceOS** (formerly GRCompliance) puts your whole framework portfolio in **one self-hosted install** on your own infrastructure: no per-seat pricing, and your compliance data stays on your infrastructure.
 
-Whether you are a startup aiming for **SOC 2 Type I** or an enterprise managing complex **ISO 27001** and **GDPR** frameworks, GRCompliance provides the primitives to build, manage, and automate your compliance program.
+Framework content that ships in the repo (`packages/core/src/data/frameworks`, `packages/core/src/data/regulations`):
+
+- **Security:** SOC 2, ISO 27001 (2013 & 2022), ISO 22301, HIPAA, PCI DSS, CIS Controls, HITRUST, Cyber Essentials, NIST AI RMF
+- **Federal / defense:** NIST 800-53 Rev 5, FedRAMP, NIST 800-171 with SPRS score weighting for **CMMC** readiness, SSP and POA&M tooling
+- **EU:** **NIS2** (entity classification wizard, control health, incident-reporting clock, audit bundle generator)
+- **Privacy:** GDPR assessment plus ROPA, DSAR and DPIA workflows; UK GDPR, LGPD, PIPEDA, APPI, ISO 27701 and US state privacy laws
+
+Evidence: **GitHub & AWS evidence collectors + open-source scanner add-ons (Prowler, Trivy, Wazuh)**, plus manual uploads.
 
 ## ✨ Key Features
 
 ### 🛡️ Unified Control Framework
 Define your controls once and map them to multiple standards automatically.
-- **Multi-Framework Support**: Built-in support for ISO 27001, SOC 2, HIPAA, PCI-DSS, NIST 800-53, and GDPR.
+- **Multi-Framework Support**: SOC 2, ISO 27001, HIPAA, PCI DSS, NIST 800-53, NIST 800-171 / CMMC, NIS2, FedRAMP and GDPR (see Overview).
 - **Smart Mapping**: Our "Mesh" architecture ensures that one implemented control satisfies requirements across multiple frameworks.
 - **Harmonization**: Automatically identify overlapping requirements to reduce audit fatigue.
 
@@ -46,7 +53,7 @@ Move beyond static risk registers with a dynamic, ISO 31000-aligned risk engine.
 
 ### 🔌 Modular Addon System
 Extensible architecture allowing you to connect your favorite tools.
-- **Integrations**: Connect Jira, Slack, GitHub, and more.
+- **Evidence**: GitHub & AWS evidence collectors + open-source scanner add-ons (Prowler, Trivy, Wazuh).
 - **Storage Providers**: Bring your own storage (AWS S3, Azure Blob, Google Cloud).
 - **Templates**: Marketplace for policy packs and assessment templates.
 - **Developer Friendly**: easy-to-use API for building your own [Custom Addons](./docs/ADDON_SYSTEM.md).
@@ -89,26 +96,26 @@ Prepare for and respond to cyber incidents.
 - **Cyber Assessments**: Regular maturity assessments against cyber frameworks.
 
 
-## ⚖️ Core vs Enterprise
-GRCompliance operates on an **Open Core** model. We believe security should be accessible to everyone, but advanced automation and specialized frameworks require sustained development.
+## ⚖️ Editions & Pricing
+ComplianceOS is **open core**. Same price for internal teams and consultants, no per-seat fees. Current prices and the founding-member offer: **[grcompliance.com/pricing](https://grcompliance.com/pricing.html)**.
 
-| Feature | 🟢 Community (Core) | 💎 Enterprise (Premium) |
-| :--- | :---: | :---: |
-| **Frameworks** | ISO 27001, SOC 2, HIPAA, GDPR | **+ FedRAMP, CMMC, NIST 800-53** |
-| **Risk Management** | ISO 31000 Risk Engine | **+ Threat Intelligence, AI Analysis** |
-| **Multi-Tenancy** | Single Workspace | **Unlimited Workspaces (MSP Mode)** |
-| **Automation** | Standard Evidence Collection | **Advanced API Integrations** |
-| **Support** | Community via GitHub | **SLA + Dedicated Success Manager** |
-| **Release Cycle** | Stable Quarterly Releases | **Continuous "Edge" Updates** |
+| Edition | Price | What you get |
+| :--- | :---: | :--- |
+| **Community** | Free (AGPLv3) | Core GRC modules (risks & policies), standard framework controls, single-command Docker deploy, 1 workspace, community GitHub support |
+| **Professional** | $1,990 / year | Unlimited workspaces, all frameworks, GitHub & AWS evidence collectors + scanner add-ons, vendor risk, AI policy generator & questionnaire responder, white-label reports, 1 year of updates & priority support |
+| **Lifetime** | $4,990 one-time | Everything in Professional, lifetime software updates, 1 year of priority support |
+| **Enterprise** | From $9,990 / year | Tailored deployment (incl. air-gapped) — [contact via the pricing page](https://grcompliance.com/pricing.html) |
+
+Optional services: Standard Install $499 · Secure Install $1,490 · 45-day Audit Ready Sprint $12,900 + license. Founding members get 20% off licenses for the first 30 days (Professional $1,592/yr, Lifetime $3,992).
 
 ### 🎓 The "Feature Graduation" Philosophy
 We use a time-delayed open source model. New, cutting-edge features (like AI Governance or new Federal standards) are initially released to **Premium** users to fund development. After a stabilization period (typically 3-6 months), these features are "graduated" into the **Community** edition, ensuring the open source platform gets more powerful over time.
 
-## 🏆 Why GRCompliance?
+## 🏆 Why ComplianceOS?
 
-| Metric | 🚀 GRCompliance | 📉 Spreadsheets | 🏢 Commercial (Vanta/Drata) |
+| Metric | 🚀 ComplianceOS | 📉 Spreadsheets | 🏢 Commercial (Vanta/Drata) |
 | :--- | :---: | :---: | :---: |
-| **Cost** | **Free (Self-Hosted)** | Free | $15,000+ / year |
+| **Cost** | **Free Community / from $1,990 per year** | Free | ~$12,000–$28,000 / year |
 | **Data Privacy** | **On-Prem / Private Cloud** | Local Files | Third-Party SaaS |
 | **Customization** | **Full Code Access** | High | Rigid |
 | **Vendor Lock-in** | **None (Open Data)** | None | High |
@@ -122,13 +129,13 @@ graph TD
     UI -->|TRPC| API[Node.js Backend]
     API -->|SQL| DB[(PostgreSQL)]
     API -->|Plugins| Addons[Addon System]
-    Addons -->|Integration| Jira[Jira/Slack]
+    Addons -->|Evidence| Scan[GitHub/AWS collectors, Prowler/Trivy/Wazuh]
     Addons -->|Storage| S3[AWS S3/Azure]
 ```
 
 ## 🛠️ Tech Stack
 
-GRCompliance is built with a modern, type-safe stack designed for performance and developer experience.
+ComplianceOS is built with a modern, type-safe stack designed for performance and developer experience.
 
 - **Frontend**: React 18, TypeScript, Tailwind CSS, Shadcn UI
 - **Backend**: Node.js, Express
@@ -143,12 +150,12 @@ GRCompliance is built with a modern, type-safe stack designed for performance an
 
 **Linux & macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.sh | bash
+curl -fsSL https://grcompliance.com/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/Sectutor/ComplianceOS/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Sectutor/ComplianceOS/coolify-deploy-buildall/install.ps1 | iex
 ```
 
 This starts PostgreSQL, Redis, and ComplianceOS on port `3002`, auto-generates your production encryption keys, and initializes your admin account.
@@ -181,9 +188,20 @@ See the complete [**60-Second Onboarding Guide**](./docs/QUICKSTART.md) for step
 
 ### Production Deployment (canonical path)
 
-Docker is the supported deployment: use `install.sh` (or `docker-compose.yml`)
-as described above — it builds the image and runs PostgreSQL + Redis +
-ComplianceOS as a single stack. Other deployment artifacts in the repo
+Docker is the supported deployment: use `install.sh` (or `docker-compose.selfhost.yml`)
+as described above. It runs PostgreSQL + Redis + ComplianceOS as a single stack,
+pulling `ghcr.io/sectutor/complianceos-self-hosted` and building from source
+automatically if the prebuilt image is unavailable.
+
+**Build from source with Compose:**
+
+```bash
+git clone --branch coolify-deploy-buildall https://github.com/Sectutor/ComplianceOS.git
+cd ComplianceOS
+cp .env.example .env   # set ENCRYPTION_KEY, LOCAL_JWT_SECRET, SESSION_SECRET, admin credentials
+docker compose -f docker-compose.selfhost.yml up -d --build complianceos db redis
+```
+ Other deployment artifacts in the repo
 (Netlify, Vercel, Helm, Tauri) are community contributions and not part of the
 tested release path.
 
@@ -220,10 +238,10 @@ For organizations requiring advanced features, enterprise support, or commercial
 - AI-Powered Intelligence Suite
 - Advisor & MSP Features (white-labeling)
 - Enterprise Scalability
-- Professional Support & SLA
+- Priority support
 - Commercial use rights
 
-For commercial licensing inquiries, please contact us at [sales@complianceos.com](mailto:sales@complianceos.com).
+For commercial licensing inquiries, see [grcompliance.com/pricing](https://grcompliance.com/pricing.html).
 
 ### License Files
 - [AGPLv3 License](./LICENSE) - Community Edition

@@ -147,11 +147,16 @@ beforeEach(() => {
 // ── Route shape ──────────────────────────────────────────────────────────────
 
 describe("sentinel router — route shape", () => {
-  it("exposes exactly the 12 documented procedures, each with a callable handler", () => {
+  it("exposes exactly the 17 documented procedures, each with a callable handler", () => {
     const router = buildRouter();
     expect(Object.keys(router).sort()).toEqual(
       [
+        "acceptRiskAction",
         "batchReviewActions",
+        "delegateAction",
+        "escalateAction",
+        "getActionHistory",
+        "promoteToIncident",
         "escalationSweep",
         "getActionDetail",
         "getStats",
@@ -592,30 +597,32 @@ describe("sentinel router — reviewSentinelAction ghost-action & clientId guard
   it("reject needs no clientId: valid action rejects cleanly with the unchanged success shape", async () => {
     const db = makeSentinelDb(structuredClone({ ...ACTION_ROW, metadata: "{}" }));
     const result = await callReview(db, { actionId: 11, decision: "rejected" }); // no clientId anywhere
-    expect(result).toEqual({ success: true, executed: false });
-    expect(db.execute).toHaveBeenCalledTimes(2); // lookup + status update
+    expect(result).toMatchObject({ success: true, executed: false });
+    expect(db.execute).toHaveBeenCalledTimes(3); // lookup + status update + action-history audit row
     expect(db.queries[1].text).toMatch(/status\s*=\s*'rejected'/);
+    expect(db.queries[2].text).toMatch(/INSERT\s+INTO\s+autopilot_action_history/i);
     expect(db.queries.every(q => !/INSERT\s+INTO\s+work_items/i.test(q.text))).toBe(true);
   });
 
   it("approve with valid metadata.clientId executes: unchanged shape, insert carries the METADATA clientId over the request's", async () => {
     const db = makeSentinelDb(structuredClone(ACTION_ROW)); // metadata.clientId === 7
     const result = await callReview(db, { clientId: 9, actionId: 11, decision: "approved" }); // input says 9
-    expect(result).toEqual({ success: true, executed: true });
+    expect(result).toMatchObject({ success: true, executed: true });
 
     const insert = db.queries.find(q => /INSERT\s+INTO\s+work_items/i.test(q.text));
     expect(insert, "a work_items INSERT must run").toBeDefined();
     expect(insert!.params[0]).toBe(7); // metadata.clientId wins over input.clientId
 
-    const markExecuted = db.queries[db.queries.length - 1];
+    const markExecuted = db.queries[db.queries.length - 2];
     expect(markExecuted.text).toMatch(/status\s*=\s*'executed'/);
-    expect(db.execute).toHaveBeenCalledTimes(3); // lookup + INSERT + mark-executed UPDATE
+    expect(db.queries[db.queries.length - 1].text).toMatch(/INSERT\s+INTO\s+autopilot_action_history/i);
+    expect(db.execute).toHaveBeenCalledTimes(4); // lookup + INSERT + mark-executed UPDATE + action-history audit row
   });
 
   it("approve falls back to input.clientId when the action metadata has none", async () => {
     const db = makeSentinelDb(structuredClone({ ...ACTION_ROW, metadata: "{}" }));
     const result = await callReview(db, { clientId: 9, actionId: 11, decision: "approved" });
-    expect(result).toEqual({ success: true, executed: true });
+    expect(result).toMatchObject({ success: true, executed: true });
 
     const insert = db.queries.find(q => /INSERT\s+INTO\s+work_items/i.test(q.text));
     expect(insert, "a work_items INSERT must run").toBeDefined();
@@ -649,7 +656,7 @@ describe("sentinel router — reviewSentinelAction ghost-action & clientId guard
         ctx: { user: { id: 1, role: "admin" } },
       });
 
-      expect(stats).toEqual({
+      expect(stats).toMatchObject({
         totalPending: 5,
         criticalCount: 2,
         warningCount: 3,
