@@ -81,6 +81,32 @@ export const riskQuantificationTreatmentPlansInputSchema = z.object({
   ...riskQuantificationClockOptionSchema,
 });
 
+import { runFairSimulation } from "../../lib/risk-quant/monteCarloFair";
+
+export const riskQuantificationFairInputSchema = z.object({
+  scenarioId: z.union([z.string(), z.number()]).nullish(),
+  scenarioName: z.string().default("Critical Asset Threat Scenario"),
+  threatEventFrequency: z.object({
+    min: z.number().default(1),
+    mode: z.number().default(3),
+    max: z.number().default(10),
+  }).default({ min: 1, mode: 3, max: 10 }),
+  vulnerabilityPercentage: z.number().min(0).max(100).default(30),
+  primaryLoss: z.object({
+    min: z.number().default(10000),
+    mode: z.number().default(50000),
+    max: z.number().default(200000),
+  }).default({ min: 10000, mode: 50000, max: 200000 }),
+  secondaryLoss: z.object({
+    min: z.number().default(5000),
+    mode: z.number().default(25000),
+    max: z.number().default(150000),
+  }).default({ min: 5000, mode: 25000, max: 150000 }),
+  secondaryLossProbability: z.number().min(0).max(1).default(0.4),
+  currency: z.enum(["USD", "EUR", "GBP"]).default("USD"),
+  iterations: z.number().min(100).max(50000).default(10000),
+});
+
 export const createRiskQuantificationRouter = (t: any, protectedProcedure: any) => {
   return t.router({
     /**
@@ -127,6 +153,17 @@ export const createRiskQuantificationRouter = (t: any, protectedProcedure: any) 
           now: input?.now ?? undefined,
           clock: input?.clock ?? undefined,
         });
+      }),
+
+    /**
+     * Open FAIR Monte Carlo simulation engine:
+     * 10,000-iteration stochastic simulation producing ALE Mean, P50 Median,
+     * P90 Loss, P95 Value-at-Risk, and Loss Exceedance Curve (LEC) data.
+     */
+    simulateFair: protectedProcedure
+      .input(riskQuantificationFairInputSchema)
+      .query(({ input }) => {
+        return runFairSimulation(input);
       }),
   });
 };
