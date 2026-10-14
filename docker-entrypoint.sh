@@ -4,13 +4,15 @@ echo "=== ComplianceOS Startup ==="
 
 echo "[1/5] Waiting for database..."
 for i in $(seq 1 30); do
-  node -e "require('net').createConnection({port:5432,host:'db'}).on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))" 2>/dev/null && echo "DB port ready" && break
+  node -e "const s=require('net').createConnection({port:5432,host:'db'});s.setTimeout(3000,()=>process.exit(1));s.on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))" 2>/dev/null && echo "DB port ready" && break
   echo "Waiting... ($i/30)"
   sleep 2
 done
 sleep 3
 
 cd /app
+# Prefer the tsx baked into the image; fall back to npx for older images.
+TSX="$(command -v tsx || echo 'npx tsx')"
 
 echo "[2/5] Admin credentials..."
 # Generate a strong admin password on first boot when none is configured.
@@ -40,7 +42,7 @@ echo "[3/5] Preparing database (schema + demo workspace)..."
 if [ "${DB_SCHEMA_EXISTS:-false}" = "true" ]; then
   echo "[3/5] DB_SCHEMA_EXISTS=true - skipping schema/seed step"
 else
-  npx tsx scripts/bootstrap-db.ts 2>&1 | tail -20
+  $TSX scripts/bootstrap-db.ts 2>&1 | tail -20
 fi
 
 echo "[4/5] Ensuring JWT signing secret..."
@@ -50,4 +52,4 @@ echo "[4/5] Ensuring JWT signing secret..."
 #   3. freshly generated secret (persisted when the data dir is writable)
 
 echo "[5/5] Starting ComplianceOS server..."
-exec npx tsx server_entry.ts
+exec $TSX server_entry.ts

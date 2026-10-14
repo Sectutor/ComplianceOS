@@ -253,7 +253,7 @@ fi
 # 6. Wait for health check
 echo "⏳ Waiting for ComplianceOS to initialize..."
 HEALTH_URL="http://localhost:${PORT}/api/health"
-MAX_RETRIES=30
+MAX_RETRIES=90
 COUNT=0
 HEALTHY=false
 
@@ -271,6 +271,13 @@ while [ $COUNT -lt $MAX_RETRIES ]; do
   sleep 2
   COUNT=$((COUNT + 1))
 done
+
+if [ "$HEALTHY" != "true" ]; then
+  echo ""
+  echo "❌ ComplianceOS did not become healthy at ${HEALTH_URL} within $((MAX_RETRIES * 2))s."
+  echo "   Check the logs: ${DOCKER_CMD} logs --tail 100 complianceos"
+  exit 1
+fi
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"

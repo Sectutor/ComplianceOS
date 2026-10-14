@@ -36,6 +36,8 @@ COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/packages/core/package.json ./packages/core/
 COPY --from=builder /app/packages/addons ./packages/addons
 RUN npm ci --omit=dev --legacy-peer-deps && rm -rf ~/.npm
+# tsx runs bootstrap-db.ts and server_entry.ts; install it so startup needs no network
+RUN npm install -g tsx@4 && rm -rf ~/.npm
 
 # Copy built frontend
 COPY --from=builder /app/packages/core/dist ./packages/core/dist
@@ -70,12 +72,12 @@ RUN chmod +x /app/docker-entrypoint.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT}/health || exit 1
 
 # Security: non-root user
 RUN addgroup -S complianceos && adduser -S complianceos -G complianceos && \
-    mkdir -p /app/uploads /app/packages/core/drizzle /app/node_modules/.cache && \
-    chown -R complianceos:complianceos /app/uploads /app/packages/core/drizzle /app/node_modules/.cache
+    mkdir -p /app/uploads /app/packages/core/drizzle /app/node_modules/.cache /data && \
+    chown -R complianceos:complianceos /app/uploads /app/packages/core/drizzle /app/node_modules/.cache /data
 USER complianceos
 
 EXPOSE 3002
