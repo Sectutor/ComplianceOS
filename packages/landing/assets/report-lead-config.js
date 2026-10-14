@@ -1,24 +1,18 @@
 /**
- * Lead capture for /state-of-startup-security-2026.html
+ * Optional email signup on /state-of-startup-security-2026.html
+ * ("2026 checklist + updates"). The PDF itself is a direct download.
  *
  * Static Coolify/nginx deploys cannot read environment variables at request
- * time. Set the endpoint here before you deploy (no secrets belong in this file).
+ * time. Set the endpoint here before you deploy. Do not put secrets in this file.
  *
  * leadEndpoint
- *   ""  — use the default, https://app.grcompliance.com/api/trpc/waitlist.join
- *         (the same public waitlist.join mutation the app already exposes).
- *         grcompliance.com is already allowed by the app CORS list.
+ *   ""  — POST https://app.grcompliance.com/api/trpc/waitlist.join
+ *         (public waitlist.join; grcompliance.com is already CORS-allowed).
  *   "/api/trpc/waitlist.join"
- *         — same-origin. Only works if this host proxies /api to the
- *         ComplianceOS app. The landing nginx image does not proxy /api.
+ *         — same-origin. Only works if this host proxies /api to the app.
  *   "https://example.com/hooks/report-lead"
- *         — any endpoint that accepts a JSON POST and returns 2xx:
- *           { name, email, company, role, consent, source, report }
- *
- * calendarLink
- *   Replace "[CALENDAR_LINK]" with the Readiness Snapshot booking URL.
+ *         — any URL that accepts JSON { email, source, interestedPlay } and returns 2xx.
  */
 window.GRC_REPORT_CONFIG = {
-    leadEndpoint: "",
-    calendarLink: "[CALENDAR_LINK]"
+    leadEndpoint: ""
 };
