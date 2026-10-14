@@ -60,20 +60,6 @@ export default function AuditManager() {
     const { t } = useTranslation('dashboard');
     const clientId = parseInt(params.id || "0");
 
-    // Validate clientId - must be a positive number
-    if (!clientId || clientId <= 0) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center h-96">
-                    <div className="text-center">
-                        <p className="text-red-500 dark:text-red-400 dark:text-red-300 text-lg font-medium">Invalid client ID</p>
-                        <p className="text-muted-foreground mt-2">Please select a valid client from the dashboard.</p>
-                    </div>
-                </div>
-            </DashboardLayout>
-        );
-    }
-
     const [activeTab, setActiveTab] = useState("schedule");
     const [searchQuery, setSearchQuery] = useState("");
     const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
@@ -112,6 +98,20 @@ export default function AuditManager() {
 
     // Schedule audit mutation
     const scheduleAuditMutation = useAuditSchedule();
+
+    // Validate clientId - must be a positive number
+    if (!clientId || clientId <= 0) {
+        return (
+            <DashboardLayout>
+                <div className="flex items-center justify-center h-96">
+                    <div className="text-center">
+                        <p className="text-red-500 dark:text-red-400 text-lg font-medium">Invalid client ID</p>
+                        <p className="text-muted-foreground mt-2">Please select a valid client from the dashboard.</p>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     const resetForm = () => {
         setAuditForm({

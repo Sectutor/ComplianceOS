@@ -30,7 +30,7 @@ export function OnboardingSettingsTab({ clientId }: OnboardingSettingsTabProps) 
     const { data: requirements, refetch } = (trpc.onboarding as any).getRequirements?.useQuery(
         { clientId },
         { enabled: !!clientId }
-    );
+    ) || {};
 
     // Mutations
     const createMutation = (trpc.onboarding as any).createRequirement?.useMutation({

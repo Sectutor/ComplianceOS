@@ -74,6 +74,20 @@ const sanitizeHtml = (html: string, title: string) => {
   return s.trim();
 };
 
+const getFrameworks = (frameworks: any): string[] => {
+  if (Array.isArray(frameworks)) return frameworks;
+  if (typeof frameworks === 'string') {
+    try {
+      const parsed = JSON.parse(frameworks);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === 'string') return [parsed];
+    } catch {
+      return frameworks ? [frameworks] : [];
+    }
+  }
+  return [];
+};
+
 const baselineText = (title: string) => {
   const t = (title || "").toLowerCase();
   if (t.includes("purpose")) return "This policy establishes objectives and guiding principles to protect information assets and support regulatory compliance across the organization.";
@@ -103,7 +117,9 @@ const improveContentFallback = (content: string, template?: any, enhanceBaseline
   if (!isHtml) {
     try {
       s = marked.parse(s, { async: false }) as string;
-    } catch { }
+    } catch {
+      /* ignore markdown parse error */
+    }
   }
   s = s
     .replace(/\bTBD\b/gi, "")
@@ -146,10 +162,7 @@ export default function PolicyTemplates() {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [templateToGenerate, setTemplateToGenerate] = useState<any>(null);
   const [templateToDelete, setTemplateToDelete] = useState<any>(null);
-  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
-  const [upgradeReport, setUpgradeReport] = useState<any>(null);
   const [enhanceBaseline, setEnhanceBaseline] = useState(true);
-  const [useServerUpgrade, setUseServerUpgrade] = useState(false);
   const [isImproveOpen, setIsImproveOpen] = useState(false);
   const [improveTarget, setImproveTarget] = useState<any>(null);
   const [improveInstruction, setImproveInstruction] = useState("");
@@ -200,86 +213,6 @@ export default function PolicyTemplates() {
     },
     onError: (error) => toast.error(error.message),
   });
-
-  const upgradeMutation = trpc.policyTemplates.upgradeAll.useMutation({
-    onSuccess: (data: any) => setUpgradeReport(data),
-    onError: (error) => {
-      const msg = error?.message || "";
-      if (msg.includes("No procedure found") || msg.includes("NOT_FOUND")) {
-        // Fallback to policyManagement router if policyTemplates.upgradeAll isn't available
-        fallbackUpgradeMutation.mutate({ dryRun: true });
-      } else {
-        toast.error(msg);
-      }
-    },
-  });
-  const fallbackUpgradeMutation = (trpc.policyManagement as any).upgradeTemplates?.useMutation({
-    onSuccess: (data: any) => setUpgradeReport(data),
-    onError: async (error: any) => {
-      const msg = error?.message || "";
-      await clientSideUpgrade(true);
-    },
-  });
-
-  // Utility functions moved to top level
-  // (globalThis as any).PolicyTemplates_improveContentFallback = improveContentFallback;
-
-  const clientSideUpgrade = async (dryRun: boolean) => {
-    const list = templates || [];
-    const results: Array<{ id: number; updated: boolean; changes: string[] }> = [];
-    for (const tpl of list) {
-      const changes: string[] = [];
-      let content = tpl.content || "";
-      const before = content;
-      const title = tpl.name || "Information Security Policy";
-      if (!content || content.trim().length === 0) {
-        const sectionTitles = Array.isArray(tpl.sections)
-          ? (tpl.sections as any[]).map((s: any) => (typeof s === 'object' ? (s.title || 'Section') : String(s))).filter(Boolean)
-          : undefined;
-        content = buildSkeleton(title, sectionTitles, enhanceBaseline);
-        changes.push("skeleton_built_for_empty_template");
-      }
-      const after = sanitizeHtml(content, title);
-      if (after !== before) {
-        changes.push("sanitized_html_and_title");
-      }
-      let updatedSections = tpl.sections;
-      if (Array.isArray(updatedSections)) {
-        const newSections = updatedSections.map((s: any) => {
-          if (s && typeof s === 'object') {
-            const body = s.content || s.text || "";
-            let nextBody = body;
-            if (enhanceBaseline) {
-              const isEmpty = !nextBody || nextBody.trim().length < 60 || /\[Content\]/i.test(nextBody);
-              if (isEmpty) nextBody = baselineText(s.title || "Section");
-            }
-            const cleanBody = sanitizeHtml(nextBody, title);
-            if (cleanBody !== body) changes.push(`section_${s.id || s.title}_sanitized`);
-            return { ...s, content: cleanBody };
-          }
-          return s;
-        });
-        updatedSections = newSections as any;
-      }
-      const updated = changes.length > 0;
-      results.push({ id: tpl.id, updated, changes });
-      if (updated && !dryRun) {
-        await updateMutation.mutateAsync({
-          id: tpl.id,
-          content: after,
-          sections: updatedSections
-        } as any);
-      }
-    }
-    const report = {
-      templatesProcessed: list.length,
-      templatesChanged: results.filter(r => r.updated).length,
-      dryRun,
-      results
-    };
-    setUpgradeReport(report);
-    if (!dryRun) toast.success("Templates upgraded");
-  };
 
   const filteredTemplates = templates?.filter(template =>
     template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -476,9 +409,6 @@ export default function PolicyTemplates() {
                 </div>
               </form>
             </EnhancedDialog>
-            <Button variant="outline" onClick={() => { setIsUpgradeOpen(true); setUpgradeReport(null); }}>
-              Upgrade Templates
-            </Button>
           </div>
         </div>
 
@@ -542,107 +472,6 @@ export default function PolicyTemplates() {
             </CardContent>
           </div>
         </Card>
-
-        <EnhancedDialog
-          open={isUpgradeOpen}
-          onOpenChange={setIsUpgradeOpen}
-          title="Upgrade Policy Templates"
-          description="Sanitize HTML, enforce titles, fill empty templates, and optionally enhance content."
-          size="md"
-          footer={
-            <div className="flex justify-end gap-2 w-full">
-              <Button variant="outline" onClick={() => setIsUpgradeOpen(false)}>Close</Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) return;
-                  if (useServerUpgrade) {
-                    upgradeMutation.mutate({ dryRun: true });
-                  } else {
-                    clientSideUpgrade(true);
-                  }
-                }}
-                disabled={upgradeMutation.isPending || fallbackUpgradeMutation?.isPending}
-              >
-                {(upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) ? "Running..." : "Dry‑run"}
-              </Button>
-              <Button
-                onClick={() => {
-                  if (upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) return;
-                  if (useServerUpgrade) {
-                    upgradeMutation.mutate({ dryRun: false });
-                    setTimeout(async () => {
-                      if (!upgradeReport) {
-                        await clientSideUpgrade(false);
-                      }
-                    }, 800);
-                  } else {
-                    clientSideUpgrade(false);
-                  }
-                }}
-                disabled={upgradeMutation.isPending || fallbackUpgradeMutation?.isPending}
-              >
-                {(upgradeMutation.isPending || fallbackUpgradeMutation?.isPending) ? "Applying..." : "Apply Upgrades"}
-              </Button>
-            </div>
-          }
-        >
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enhanceBaseline"
-                checked={enhanceBaseline}
-                onChange={(e) => setEnhanceBaseline(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <Label htmlFor="enhanceBaseline" className="text-sm font-normal">
-                Enhance content with baseline boilerplate
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="useServerUpgrade"
-                checked={useServerUpgrade}
-                onChange={(e) => setUseServerUpgrade(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <Label htmlFor="useServerUpgrade" className="text-sm font-normal">
-                Use server route (if available)
-              </Label>
-            </div>
-            {!upgradeReport ? (
-              <p className="text-sm text-muted-foreground">Run a dry‑run or apply upgrades.</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-sm">
-                  Processed: {upgradeReport.templatesProcessed} • Changed: {upgradeReport.templatesChanged} • Dry‑run: {String(upgradeReport.dryRun)}
-                </div>
-                <div className="border rounded-md max-h-[50vh] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Updated</TableHead>
-                        <TableHead>Changes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(upgradeReport.results || []).map((r: any) => (
-                        <TableRow key={r.id}>
-                          <TableCell>{r.id}</TableCell>
-                          <TableCell>{r.updated ? "Yes" : "No"}</TableCell>
-                          <TableCell className="text-xs">{(r.changes || []).join(", ") || "-"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-          </div>
-        </EnhancedDialog>
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4">
@@ -710,7 +539,7 @@ export default function PolicyTemplates() {
                           <Badge variant="outline" className="font-mono text-[9px] font-bold px-1.5 py-0 bg-white border-slate-200 text-slate-500 tracking-wider">
                             {template.templateId}
                           </Badge>
-                          <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest">{template.frameworks?.join(' / ')}</span>
+                          <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest">{getFrameworks(template.frameworks).join(' / ')}</span>
                         </div>
                         <CardTitle className="text-lg font-extrabold text-slate-900 leading-tight group-hover:text-brand transition-colors">{template.name}</CardTitle>
                       </div>
@@ -843,7 +672,7 @@ export default function PolicyTemplates() {
                         <TableCell className="font-medium">{template.name}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {template.frameworks?.map((fw, i) => (
+                            {getFrameworks(template.frameworks).map((fw, i) => (
                               <Badge key={i} variant="outline" className="text-[10px] uppercase">
                                 {fw}
                               </Badge>
@@ -931,7 +760,7 @@ export default function PolicyTemplates() {
           open={!!viewingTemplate}
           onOpenChange={() => setViewingTemplate(null)}
           title={viewedTemplate?.name}
-          description={`${viewedTemplate?.templateId} • ${viewedTemplate?.frameworks?.join(' / ')}`}
+          description={`${viewedTemplate?.templateId} • ${getFrameworks(viewedTemplate?.frameworks).join(' / ')}`}
           size="xl"
         >
           <div className="max-h-[80vh] overflow-y-auto space-y-4 py-4 pr-2">
@@ -1410,7 +1239,7 @@ function EditTemplateDialog({ template, editingTemplate, setEditingTemplate, upd
             </div>
             <div className="grid gap-2">
               <Label htmlFor="framework">Framework</Label>
-              <Select name="framework" defaultValue={template.frameworks?.[0] || ""}>
+              <Select name="framework" defaultValue={getFrameworks(template.frameworks)[0] || ""}>
                 <SelectTrigger className="border-2 border-slate-300 bg-white focus:ring-2 focus:ring-primary/20">
                   <SelectValue />
                 </SelectTrigger>

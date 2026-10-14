@@ -106,7 +106,7 @@ function studioReducer(state: StudioState, action: Action): StudioState {
             return { ...state, requirements: [...state.requirements, ...action.requirements] };
         case 'SET_STEP':
             return { ...state, activeStep: action.step };
-        case 'TOGGLE_SIMPLE_MODE':
+        case 'TOGGLE_SIMPLE_MODE': {
             const newSimpleMode = action.enabled;
             let updatedPhases = state.phases;
 
@@ -125,6 +125,7 @@ function studioReducer(state: StudioState, action: Action): StudioState {
                 simpleMode: newSimpleMode,
                 phases: updatedPhases
             };
+        }
         case 'RESET':
             return initialState;
         default:

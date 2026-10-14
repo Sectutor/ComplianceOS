@@ -1,4 +1,5 @@
 // Router index - updated at 2026-02-11 17:15
+import { createKrisRouter } from "./server/routers/kris";
 import { createClientPoliciesRouter } from "./server/routers/clientPolicies";
 import { createClientControlsRouter } from "./server/routers/clientControls";
 import { createComplianceRouter } from "./server/routers/compliance";
@@ -237,8 +238,8 @@ export const appRouter = router({
 
 
   dashboard: createDashboardRouter(t, adminProcedure, protectedProcedure),
-  compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure),
-  evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure),
+  compliance: createComplianceRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, protectedProcedure),
+  evidence: createEvidenceRouter(t, clientProcedure, publicProcedure, protectedProcedure, adminProcedure),
   evidenceFiles: createEvidenceFilesRouter(t, adminProcedure, clientProcedure, protectedProcedure),
   accessReviews: createAccessReviewsRouter(t, clientProcedure, adminProcedure),
   evidenceExpiry: createEvidenceExpiryRouter(t, premiumClientProcedure),
@@ -248,6 +249,7 @@ export const appRouter = router({
   // Risk Management Module
   risks: createRisksRouter(t, clientProcedure, premiumClientProcedure),
   riskSettings: createRiskSettingsRouter(t, protectedProcedure, premiumClientProcedure),
+  kris: createKrisRouter(t, clientProcedure),
   settings: createSettingsRouter(t, clientProcedure),
   riskGame: createRiskGameRouter(t, clientProcedure),
   plugins: pluginRouter,
@@ -261,7 +263,7 @@ export const appRouter = router({
   // well was dead code — the later key silently shadowed it. Kept unmounted on
   // purpose; see KNOWN_UNMOUNTED in routerMountCoverage.test.ts.
   vendors: vendorsRouter,
-  roadmap: createRoadmapRouter(t, premiumClientProcedure, adminProcedure),
+  roadmap: createRoadmapRouter(t, premiumClientProcedure, adminProcedure, premiumClientProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
@@ -1064,56 +1066,6 @@ export const appRouter = router({
     }),
   }),
 
-  // Gap Email Questionnaire
-  kris: router({
-    list: publicProcedure
-      .input(z.object({ clientId: z.number() }))
-      .query(async ({ input }) => {
-        const db = await getDb();
-        return db.select().from(schema.kris).where(eq(schema.kris.clientId, input.clientId));
-      }),
-    create: adminProcedure
-      .input(z.object({
-        clientId: z.number(),
-        name: z.string(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const [kri] = await db.insert(schema.kris).values({ ...input, status: 'active' }).returning();
-        return kri;
-      }),
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        name: z.string().optional(),
-        description: z.string().optional(),
-        thresholdGreen: z.string().optional(),
-        thresholdAmber: z.string().optional(),
-        thresholdRed: z.string().optional(),
-        currentValue: z.string().optional(),
-        currentStatus: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        const { id, ...data } = input;
-        const [kri] = await db.update(schema.kris).set(data).where(eq(schema.kris.id, id)).returning();
-        return kri;
-      }),
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        await db.delete(schema.kris).where(eq(schema.kris.id, input.id));
-        return true;
-      }),
-  }),
-
   vendorAuthorizations: router({
     get: clientProcedure
       .input(z.object({ vendorId: z.number() }))
@@ -1209,7 +1161,7 @@ export const appRouter = router({
 
         if (input?.clientId) {
           // If specific clientId provided, check access
-          const membership = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' ? [true] :
+          const membership = ctx.user!.role === 'admin' || ctx.user!.role === 'super_admin' || ctx.user!.role === 'enterprise_admin' ? [true] :
             await db.select().from(schema.userClients)
               .where(and(eq(schema.userClients.userId, ctx.user.id), eq(schema.userClients.clientId, input.clientId)))
               .limit(1);
@@ -1218,7 +1170,7 @@ export const appRouter = router({
             throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client' });
           }
           conditions.push(eq(schema.vendors.clientId, input.clientId));
-        } else if (ctx.user!.role !== 'admin' && ctx.user!.role !== 'owner') {
+        } else if (ctx.user!.role !== 'admin' && ctx.user!.role !== 'super_admin' && ctx.user!.role !== 'enterprise_admin') {
           // For non-admins calling globally, filter by their clients
           const userClientIds = await db.select({ id: schema.userClients.clientId })
             .from(schema.userClients)
@@ -1580,7 +1532,7 @@ export const appRouter = router({
         return updated;
       }),
 
-    send: clientEditorProcedure
+    sendDraft: clientEditorProcedure
       .input(z.object({ clientId: z.number(), id: z.number() }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -2592,7 +2544,7 @@ ONLY return the JSON. No Markdown formatting.
         action: z.string()
       }))
       .mutation(async ({ input, ctx }) => {
-        if (input.clientId > 0 && ctx.user!.role !== 'admin' && ctx.user!.role !== 'owner' && ctx.user!.role !== 'super_admin') {
+        if (input.clientId > 0 && ctx.user!.role !== 'admin' && ctx.user!.role !== 'super_admin' && ctx.user!.role !== 'enterprise_admin') {
           const hasAccess = await db.isUserAllowedForClient(ctx.user!.id, input.clientId);
           if (!hasAccess) {
             throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this client.' });
@@ -2733,7 +2685,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Security Check
-        const isSuperAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' || ctx.user!.role === 'super_admin';
+        const isSuperAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'super_admin' || ctx.user!.role === 'enterprise_admin';
 
         // If filtering by client, ensure user has access to THAT client
         if (input.clientId) {
@@ -2911,7 +2863,7 @@ ONLY return the JSON. No Markdown formatting.
         const dbConn = await db.getDb();
 
         // Access Control Logic
-        const isGlobalAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'owner' || ctx.user!.role === 'super_admin';
+        const isGlobalAdmin = ctx.user!.role === 'admin' || ctx.user!.role === 'super_admin' || ctx.user!.role === 'enterprise_admin';
         const isClientAdmin = ['owner', 'admin'].includes(ctx.clientRole || '');
         const hasFullAccess = isGlobalAdmin || isClientAdmin;
 

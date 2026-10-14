@@ -58,7 +58,7 @@ export default function VendorQuestionnairePortal() {
             console.error('[VendorQuestionnairePortal] Failed to load existing answers:', error);
             toast.error('Failed to load questionnaire data. Please refresh the page.');
         }
-    }, [questionnaireData]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [questionnaireData]);
 
     if (isLoading) {
         return (

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { randomBytes } from 'crypto';
 import { storagePut } from '../../storage';
 import { logger } from '../../lib/logger';
+import { isUserAllowedForClient } from '../../db';
+import { PLATFORM_ADMIN_ROLES } from '../trpc';
 
 export const uploadRouter = Router();
 
@@ -29,7 +31,7 @@ uploadRouter.post('/', async (req: any, res) => {
             return res.status(401).json({ error: 'Authentication required for uploads' });
         }
 
-        const { filename, data, contentType, folder = 'uploads' } = req.body;
+        const { filename, data, contentType, folder = 'uploads', clientId } = req.body;
 
         if (!filename || !data) {
             return res.status(400).json({ error: 'Missing filename or data' });
@@ -70,7 +72,22 @@ uploadRouter.post('/', async (req: any, res) => {
             .replace(/\.\./g, '')
             .substring(0, 255); // Limit filename length
         // Random suffix keeps evidence URLs unguessable across tenants (IDOR hardening)
-        const key = `${folder}/${Date.now()}-${randomBytes(12).toString('hex')}-${safeFilename}`;
+        // Tenant scoping: when a clientId is supplied, verify access and store under clients/<id>/
+        let targetFolder = folder;
+        if (clientId) {
+            const parsedClientId = parseInt(String(clientId), 10);
+            if (!isNaN(parsedClientId)) {
+                if (!PLATFORM_ADMIN_ROLES.includes(req.user?.role || '')) {
+                    const hasAccess = await isUserAllowedForClient(req.user.id, parsedClientId);
+                    if (!hasAccess) {
+                        return res.status(403).json({ error: 'Forbidden: You do not have access to this client organization' });
+                    }
+                }
+                const subfolder = folder === 'uploads' ? '' : `/${folder.replace(/^clients\/\d+\/?/, '')}`;
+                targetFolder = `clients/${parsedClientId}${subfolder}`;
+            }
+        }
+        const key = `${targetFolder}/${Date.now()}-${randomBytes(12).toString('hex')}-${safeFilename}`;
 
         // Upload
         const result = await storagePut(key, buffer, detectedType);

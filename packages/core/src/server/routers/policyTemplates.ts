@@ -9,6 +9,20 @@ import { eq, desc, or, and, sql, inArray } from "drizzle-orm";
 // Configurable concurrency limit for policy generation to avoid overwhelming the LLM API
 const CONCURRENCY_LIMIT = Number(process.env.POLICY_GENERATION_CONCURRENCY) || 3;
 
+function normalizeFrameworks(fw: any): string[] {
+    if (Array.isArray(fw)) return fw;
+    if (typeof fw === 'string') {
+        try {
+            const parsed = JSON.parse(fw);
+            if (Array.isArray(parsed)) return parsed;
+            if (typeof parsed === 'string') return [parsed];
+        } catch {
+            return fw ? [fw] : [];
+        }
+    }
+    return [];
+}
+
 export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuthed: any, adminProcedure: any) => {
     return t.router({
         list: publicProcedure
@@ -32,16 +46,22 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
 
                 // If framework filter is provided and not 'all', filter by framework
                 // frameworks is a JSON array, so we check if it contains the framework
+                let templates;
                 if (input?.framework && input.framework !== 'all') {
-                    return await db.select().from(policyTemplates)
+                    templates = await db.select().from(policyTemplates)
                         .where(and(
                             whereClause,
                             sql`${policyTemplates.frameworks}::jsonb @> ${JSON.stringify([input.framework])}::jsonb`
                         ));
+                } else {
+                    templates = await db.select().from(policyTemplates)
+                        .where(whereClause);
                 }
 
-                return await db.select().from(policyTemplates)
-                    .where(whereClause);
+                return templates.map(t => ({
+                    ...t,
+                    frameworks: normalizeFrameworks(t.frameworks)
+                }));
             }),
 
         get: publicProcedure
@@ -71,7 +91,10 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                     }
                 }
 
-                return template;
+                return {
+                    ...template,
+                    frameworks: normalizeFrameworks(template.frameworks)
+                };
             }),
 
         create: publicProcedure
@@ -524,8 +547,8 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                 dryRun: z.boolean().default(true)
             }).optional())
             .mutation(async ({ input, ctx }: any) => {
-                if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner' && ctx.user.role !== 'super_admin') {
-                    throw new TRPCError({ code: "FORBIDDEN", message: "Admin or Owner required" });
+                if (ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin' && ctx.user.role !== 'enterprise_admin') {
+                    throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
                 }
                 const db = await getDb();
                 const templates = await db.select().from(policyTemplates).orderBy(desc(policyTemplates.createdAt));
@@ -660,28 +683,28 @@ export const createPolicyTemplatesRouter = (t: any, publicProcedure: any, isAuth
                         name: "NIS2 Information Security Risk Management Policy",
                         content: `<h1>Risk Management Policy</h1><p>This policy establishes the framework for identifying, assessing, and treating security risks in accordance with NIS2 Article 21(2)(a).</p><h2>1. Risk Assessment Methodology</h2><p>Risk assessments must be conducted at least annually or when significant changes occur...</p>`,
                         isPublic: true,
-                        frameworks: JSON.stringify(["nis2"]),
+                        frameworks: ["nis2"],
                     },
                     {
                         templateId: "nis2-incident-handling",
                         name: "NIS2 Incident Handling & Response Policy",
                         content: `<h1>Incident Response Policy</h1><p>In alignment with NIS2 Article 21(2)(b), this policy defines how the organization detects and responds to security incidents.</p><h2>1. Classification</h2><p>Incidents are classified based on impact to essential services...</p>`,
                         isPublic: true,
-                        frameworks: JSON.stringify(["nis2"]),
+                        frameworks: ["nis2"],
                     },
                     {
                         templateId: "nis2-supply-chain",
                         name: "NIS2 Supply Chain Security Policy",
                         content: `<h1>Supply Chain Security Policy</h1><p>Addressing NIS2 Article 21(2)(d), this policy governs security requirements for all direct suppliers and service providers.</p><h2>1. Vendor Assessment</h2><p>All Tier 1 suppliers must undergo a biennial security review...</p>`,
                         isPublic: true,
-                        frameworks: JSON.stringify(["nis2"]),
+                        frameworks: ["nis2"],
                     },
                     {
                         templateId: "nis2-vulnerability-disclosure",
                         name: "NIS2 Vulnerability Handling & Disclosure Policy",
                         content: `<h1>Vulnerability Disclosure Policy</h1><p>Compliance with NIS2 Article 21(2)(e). Provides a coordinated framework for discovering and patching system flaws.</p><h2>1. Coordinated Disclosure</h2><p>We maintain a public security.txt file for reporting vulnerabilities...</p>`,
                         isPublic: true,
-                        frameworks: JSON.stringify(["nis2"]),
+                        frameworks: ["nis2"],
                     }
                 ];
 

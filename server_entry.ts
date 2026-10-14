@@ -39,7 +39,8 @@ import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from './packages/core/src/routers';
 import { createContext } from './packages/core/src/server/context';
 import { authMiddleware } from './packages/core/src/authMiddleware';
-import { getDb, resetDb, ensureDefaultDataSeeded } from './packages/core/src/db';
+import { getDb, resetDb, ensureDefaultDataSeeded, isUserAllowedForClient } from './packages/core/src/db';
+import { PLATFORM_ADMIN_ROLES } from './packages/core/src/server/trpc';
 import { sql } from 'drizzle-orm';
 import { exportRouter } from './packages/core/src/server/routers/export';
 import { uploadRouter } from './packages/core/src/server/routers/upload';
@@ -270,18 +271,20 @@ app.use(cors({
         if (!origin) return callback(null, true);
 
         // Strict origin validation
-        const isLocal = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
+        const isLocal = origin.startsWith('http://localhost:') ||
+            origin === 'http://localhost' ||
+            origin.startsWith('http://127.0.0.1:') ||
+            origin === 'http://127.0.0.1';
+
         const isAllowedProd =
             allowedOrigins.indexOf(origin) !== -1 ||
-            origin.endsWith('.netlify.app') ||
             origin === 'https://grcompliance.netlify.app' ||
             origin === 'https://grcompliance.com' ||
             origin === 'https://www.grcompliance.com' ||
             origin === 'https://app.grcompliance.com' ||
-            origin.endsWith('.grcompliance.com');
+            /^https:\/\/[a-z0-9-]+\.grcompliance\.com$/.test(origin);
 
-        // Always allow localhost/127.0.0.1 for local development ease, regardless of NODE_ENV
-        // This unblocks local testing where ports might vary (e.g., landing on 5174, app on 5173)
+        // Allow trusted production origins or local development origins
         if (isAllowedProd || isLocal) {
             callback(null, true);
         } else {
@@ -298,7 +301,11 @@ app.use(cors({
 // and double-consumption of the body stream causes requests to hang forever.
 app.use((req, res, next) => {
     if (req.path.startsWith('/api/trpc')) return next();
-    express.json({ limit: '50mb' })(req, res, next);
+    express.json({
+        limit: '50mb',
+        // Keep raw bytes for webhook HMAC verification (e.g. Gumroad)
+        verify: (r: any, _res, buf) => { r.rawBody = buf; },
+    })(req, res, next);
 });
 app.use((req, res, next) => {
     if (req.path.startsWith('/api/trpc')) return next();
@@ -485,7 +492,7 @@ if (process.env.RATE_LIMITING_ENABLED !== 'false') {
         message: { status: 429, message: 'Too many requests, please try again later.' }
     });
     app.use('/api/', limiter);
-    console.log(`[RateLimit] Enabled: ${process.env.RATE_LIMIT_MAX_REQUESTS} reqs / ${process.env.RATE_LIMIT_WINDOW_MS}ms`);
+    console.log(`[RateLimit] Enabled: ${process.env.RATE_LIMIT_MAX_REQUESTS || 200} reqs / ${process.env.RATE_LIMIT_WINDOW_MS || 60000}ms`);
 }
 
 
@@ -751,7 +758,7 @@ app.use(authMiddleware);
 
 
 // Secure static uploads - must be after authMiddleware
-app.use('/uploads', (req: any, res, next) => {
+app.use('/uploads', async (req: any, res, next) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Authentication required for media access' });
     }
@@ -760,6 +767,22 @@ app.use('/uploads', (req: any, res, next) => {
     // script execution, so it cannot act as stored XSS on the app origin.
     res.setHeader('Content-Security-Policy', 'sandbox');
     // Optional: Check client_id in path if we structure uploads by client
+    // Tenant isolation: if accessing client-scoped uploads (/uploads/clients/:clientId/...)
+    const clientMatch = req.path.match(/^\/clients\/(\d+)\//);
+    if (clientMatch) {
+        const targetClientId = parseInt(clientMatch[1], 10);
+        if (!PLATFORM_ADMIN_ROLES.includes(req.user.role || '')) {
+            try {
+                const hasAccess = await isUserAllowedForClient(req.user.id, targetClientId);
+                if (!hasAccess) {
+                    return res.status(403).json({ error: 'Forbidden: You do not have permission to view files in this workspace' });
+                }
+            } catch (err) {
+                return res.status(500).json({ error: 'Authorization check failed' });
+            }
+        }
+    }
+
     next();
 }, express.static(path.join(process.cwd(), 'uploads')));
 
@@ -767,9 +790,12 @@ app.use('/uploads', (req: any, res, next) => {
 
 // Production Diagnostics Endpoint - Restricted to Admins + DEBUG mode
 // Diagnostic endpoint to check polyfills
-app.get(['/debug/globals', '/api/debug/globals'], (req: express.Request, res: express.Response) => {
+app.get(['/debug/globals', '/api/debug/globals'], (req: any, res: express.Response) => {
     if (process.env.DEBUG !== 'true') {
         return res.status(404).json({ error: 'Not found' });
+    }
+    if (!req.user || !PLATFORM_ADMIN_ROLES.includes(req.user.role || '')) {
+        return res.status(403).json({ error: 'Unauthorized diagnostic access' });
     }
     const g = global as any;
     res.json({

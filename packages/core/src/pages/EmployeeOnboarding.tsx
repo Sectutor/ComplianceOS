@@ -122,7 +122,7 @@ export default function EmployeeOnboarding() {
     const { data: employee } = (trpc.employees as any).getByEmail?.useQuery(
         { email: me?.email || "", clientId: effectiveClientId || 0 },
         { enabled: !!me?.email && !!effectiveClientId }
-    );
+    ) || {};
 
     // Auto-ensure employee record
     const ensureSelfMutation = (trpc.employees as any).ensureSelf?.useMutation({
@@ -139,13 +139,13 @@ export default function EmployeeOnboarding() {
     const { data: onboardingStatus, refetch: refetchOnboarding } = (trpc.onboarding as any).getOnboardingStatus?.useQuery(
         { clientId: effectiveClientId || 0, employeeId: employee?.id || 0 },
         { enabled: !!effectiveClientId && !!employee?.id }
-    );
+    ) || {};
 
     // Fetch training progress
     const { data: trainingData } = (trpc.onboarding as any).getTrainingProgress?.useQuery(
         { clientId: effectiveClientId || 0, employeeId: employee?.id || 0 },
         { enabled: !!effectiveClientId && !!employee?.id }
-    );
+    ) || {};
 
     // Fetch custom training modules
     const { data: customModules } = trpc.training.list.useQuery(

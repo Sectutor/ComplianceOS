@@ -12,6 +12,32 @@ import {
 } from "../../schema";
 import { and, eq, desc, asc, inArray, ne } from "drizzle-orm";
 import { BUILTIN_TEMPLATES } from "../../lib/questionnaire/templates";
+import { STANDARD_TEMPLATES } from "./standardTemplatesData";
+
+// Standard assessment blueprints (ISO 27001:2022, CIS v8, CAIQ v4, SOC 2, AI governance,
+// HIPAA, GDPR, ...) exposed as questionnaire templates. Prefixed "std-" so their ids
+// never collide with BUILTIN_TEMPLATES ids (e.g. soc2-type2, hipaa-security).
+const STANDARD_TEMPLATE_SETS = STANDARD_TEMPLATES.map((st) => {
+    const questions = st.sections.flatMap((sec) =>
+        sec.questions
+            .filter((q) => q.enabled !== false)
+            .map((q) => ({
+                questionId: q.controlId || q.id,
+                question: q.text,
+                focusArea: sec.title || "General",
+                subFocusArea: sec.description || "",
+            }))
+    );
+    return {
+        id: `std-${st.idKey}`,
+        name: st.name,
+        description: st.description,
+        category: "Standard Blueprint",
+        framework: st.framework,
+        questionCount: questions.length,
+        questions,
+    };
+});
 import {
     scoreQuestionnaire,
     summarizeScore,
@@ -263,6 +289,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 productName: z.string().optional(),
                 vendorName: z.string().optional(),
                 vendorEmail: z.string().optional(),
+                priority: z.string().optional(),
                 dueDate: z.string().datetime().nullable().optional(),
             }))
             .mutation(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
@@ -282,6 +309,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                     productName: input.productName,
                     vendorName: input.vendorName,
                     vendorEmail: input.vendorEmail,
+                    priority: input.priority || "medium",
                     dueDate: input.dueDate ? new Date(input.dueDate) : null,
                     status: "in_progress",
                     createdAt: new Date(),
@@ -705,6 +733,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                         ...t,
                         questionCount: t.questions.length, // always derived, never hardcoded
                     })),
+                    ...STANDARD_TEMPLATE_SETS,
                     ...customTemplates.map(t => ({
                         id: `custom-${t.id}`,
                         name: t.name,
@@ -726,6 +755,10 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 const builtin = BUILTIN_TEMPLATES.find(b => b.id === tId);
                 if (builtin) {
                     return { success: true, questions: builtin.questions };
+                }
+                const standard = STANDARD_TEMPLATE_SETS.find(st => st.id === tId);
+                if (standard) {
+                    return { success: true, questions: standard.questions };
                 }
                 if (tId.startsWith("custom-")) {
                     const numericId = parseInt(tId.replace("custom-", ""), 10);

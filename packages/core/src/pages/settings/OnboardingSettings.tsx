@@ -103,7 +103,7 @@ export default function OnboardingSettings({ hideLayout = false, clientId: propC
     const { data: requirements, isLoading, refetch } = (trpc.onboarding as any).getRequirements?.useQuery(
         { clientId },
         { enabled: !!clientId }
-    );
+    ) || {};
 
     // Fetch company onboarding status for analytics
     const { data: companyStatus } = (trpc.onboarding as any).getCompanyOnboardingStatus?.useQuery(

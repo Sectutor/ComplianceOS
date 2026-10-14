@@ -70,7 +70,7 @@ export const createClientControlsRouter = (t: any, clientProcedure: any, adminPr
         if (!cc) throw new TRPCError({ code: "NOT_FOUND" });
 
         // Manual Security Check since input lacks clientId
-        if (ctx.user.role !== 'admin' && ctx.user.role !== 'owner') {
+        if (ctx.user.role !== 'admin' && ctx.user.role !== 'super_admin' && ctx.user.role !== 'enterprise_admin') {
           const allowed = await db.isUserAllowedForClient(ctx.user.id, cc.clientId);
           if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
         }

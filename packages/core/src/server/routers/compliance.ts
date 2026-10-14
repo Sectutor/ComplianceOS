@@ -28,7 +28,8 @@ export const createComplianceRouter = (
   adminProcedure: any,
   clientProcedure: any,
   clientEditorProcedure: any,
-  publicProcedure: any
+  publicProcedure: any,
+  protectedProcedure: any = clientProcedure
 ) => {
   return t.router({
     clientControls: t.router({
@@ -155,11 +156,13 @@ export const createComplianceRouter = (
 
           return rawControls;
         }),
-      get: publicProcedure // GET by ID needs manual check or clientId in input. Leaving public for now (soft read).
+      get: (protectedProcedure || clientProcedure)
         .input(z.object({ id: z.number() }))
-        .query(async ({ input }: any) => {
+        .query(async ({ input, ctx }: any) => {
           const cc = await db.getClientControlById(input.id);
           if (!cc) throw new TRPCError({ code: "NOT_FOUND" });
+          const allowed = await db.isUserAllowedForClient(ctx.user.id, cc.clientId);
+          if (!allowed) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
           return cc;
         }),
       createCustom: clientEditorProcedure

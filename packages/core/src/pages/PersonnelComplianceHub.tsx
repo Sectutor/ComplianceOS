@@ -168,7 +168,7 @@ function ComplianceTrackingTab({ clientId }: { clientId: number }) {
     const { data: employeeStatuses, isLoading } = (trpc.onboarding as any).getCompanyOnboardingStatus?.useQuery(
         { clientId },
         { enabled: clientId > 0 }
-    );
+    ) || {};
 
     const filteredEmployees = employeeStatuses?.filter((emp: any) =>
         `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(search.toLowerCase()) ||

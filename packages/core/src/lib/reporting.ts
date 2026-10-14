@@ -1544,6 +1544,7 @@ export async function generateCustomProfessionalReportDOCX(clientId: number, opt
     // Safety helper
     const safeText = (text: any) => {
         if (text === null || text === undefined) return "N/A";
+        // eslint-disable-next-line no-control-regex
         return String(text).replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD]/g, "");
     };
 

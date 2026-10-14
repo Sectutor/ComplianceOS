@@ -299,7 +299,7 @@ export const vendorsRouter = router({
         .input(z.object({ clientId: z.number(), vendorId: z.number().optional() }))
         .query(async ({ input }: any) => {
             const db = await getDb();
-            let query = db.select().from(vendorAssessments).where(eq(vendorAssessments.clientId, input.clientId));
+            const query = db.select().from(vendorAssessments).where(eq(vendorAssessments.clientId, input.clientId));
             return query;
         }),
 

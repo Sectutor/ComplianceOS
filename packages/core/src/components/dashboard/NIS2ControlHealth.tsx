@@ -140,7 +140,7 @@ export function NIS2ControlHealth({ clientId }: NIS2ControlHealthProps) {
     // Calculate overall score from real data or show placeholder when no data
     const getScoreFromData = () => {
         if (nis2Data && nis2Data.length > 0) {
-            let totalWeightedScore = 0;
+            const totalWeightedScore = 0;
             let totalPossibleControls = 0;
             let totalImplementedControls = 0;
 

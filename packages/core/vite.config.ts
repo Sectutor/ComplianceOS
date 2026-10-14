@@ -27,6 +27,7 @@ const hmrProtocol = (process.env.VITE_HMR_PROTOCOL || 'ws') as 'ws' | 'wss';
 const hmrClientPort = parseInt(process.env.VITE_HMR_CLIENT_PORT || String(devPort), 10);
 
 export default defineConfig({
+    envDir: path.resolve(__dirname, "../../"),
     plugins: [react(), tailwindcss()],
     define: {
         "process.env.BUILD_TYPE": JSON.stringify(buildType),

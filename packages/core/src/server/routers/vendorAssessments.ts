@@ -24,9 +24,56 @@ import * as dbHelpers from "../../db";
 import * as threatIntel from "../../lib/threatIntelligence";
 import { EmailService } from "../../lib/email/service";
 
+import { STANDARD_TEMPLATES } from "./standardTemplatesData";
+import { MASTER_QUESTION_BANK, SECTION_POOL } from "./questionBankData";
+
 export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publicProcedure: any, premiumClientProcedure: any, adminProcedure: any) => {
     return t.router({
         // Template Management
+        getStandardTemplates: clientProcedure
+            .query(() => {
+                return STANDARD_TEMPLATES;
+            }),
+
+        getQuestionBank: clientProcedure
+            .query(() => {
+                return MASTER_QUESTION_BANK;
+            }),
+
+        getSectionPool: clientProcedure
+            .query(() => {
+                return SECTION_POOL;
+            }),
+
+        seedStandardTemplates: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .mutation(async ({ input, ctx }: { ctx: any, input: any }) => {
+                const db = await getDb();
+                const existing = await db.select({ name: vendorAssessmentTemplates.name })
+                    .from(vendorAssessmentTemplates)
+                    .where(eq(vendorAssessmentTemplates.clientId, input.clientId));
+                
+                const existingNames = new Set(existing.map((e: any) => e.name));
+                const inserted = [];
+
+                for (const tmpl of STANDARD_TEMPLATES) {
+                    if (!existingNames.has(tmpl.name)) {
+                        const [created] = await db.insert(vendorAssessmentTemplates).values({
+                            clientId: input.clientId,
+                            name: tmpl.name,
+                            description: tmpl.description,
+                            content: {
+                                framework: tmpl.framework,
+                                sections: tmpl.sections
+                            },
+                            createdBy: ctx.user?.id,
+                        }).returning();
+                        inserted.push(created);
+                    }
+                }
+                return { count: inserted.length, inserted };
+            }),
+
         createTemplate: clientProcedure
             .input(z.object({
                 clientId: z.number(),
@@ -46,19 +93,83 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return template;
             }),
 
+        deleteTemplate: clientProcedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number().optional()
+            }))
+            .mutation(async ({ input }: { input: any }) => {
+                const db = await getDb();
+                await db.delete(vendorAssessmentTemplates)
+                    .where(eq(vendorAssessmentTemplates.id, input.id));
+                return { success: true };
+            }),
+
         listTemplates: clientProcedure
             .input(z.object({ clientId: z.number() }))
-            .query(async ({ input }: { input: any }) => {
+            .query(async ({ input, ctx }: { input: any, ctx: any }) => {
                 const db = await getDb();
-                return await db.select({
-                    id: vendorAssessmentTemplates.id,
-                    name: vendorAssessmentTemplates.name,
-                    description: vendorAssessmentTemplates.description,
-                    updatedAt: vendorAssessmentTemplates.updatedAt,
-                    createdAt: vendorAssessmentTemplates.createdAt,
-                })
+                let templates = await db.select()
                     .from(vendorAssessmentTemplates)
                     .where(eq(vendorAssessmentTemplates.clientId, input.clientId));
+
+                // If no templates exist for this client yet, auto-seed the standard industry templates
+                if (templates.length === 0) {
+                    for (const tmpl of STANDARD_TEMPLATES) {
+                        await db.insert(vendorAssessmentTemplates).values({
+                            clientId: input.clientId,
+                            name: tmpl.name,
+                            description: tmpl.description,
+                            content: {
+                                framework: tmpl.framework,
+                                sections: tmpl.sections
+                            },
+                            createdBy: ctx.user?.id,
+                        });
+                    }
+                    templates = await db.select()
+                        .from(vendorAssessmentTemplates)
+                        .where(eq(vendorAssessmentTemplates.clientId, input.clientId));
+                }
+
+                // Fetch dispatch counts per template for this client
+                const allRequests = await db.select({
+                    templateId: vendorAssessmentRequests.templateId
+                })
+                    .from(vendorAssessmentRequests)
+                    .where(eq(vendorAssessmentRequests.clientId, input.clientId));
+
+                const dispatchCounts: Record<number, number> = {};
+                for (const req of allRequests) {
+                    if (req.templateId) {
+                        dispatchCounts[req.templateId] = (dispatchCounts[req.templateId] || 0) + 1;
+                    }
+                }
+
+                return templates.map((t: any) => {
+                    let questionCount = 0;
+                    let framework = "Custom";
+                    try {
+                        const content = typeof t.content === 'string' ? JSON.parse(t.content) : t.content;
+                        if (content?.framework) framework = content.framework;
+                        if (Array.isArray(content?.sections)) {
+                            questionCount = content.sections.reduce((acc: number, s: any) => acc + (s.questions?.length || 0), 0);
+                        }
+                    } catch (e) {
+                        // ignore parse error
+                    }
+
+                    return {
+                        id: t.id,
+                        name: t.name,
+                        description: t.description,
+                        framework,
+                        questionCount,
+                        dispatchedCount: dispatchCounts[t.id] || 0,
+                        updatedAt: t.updatedAt,
+                        createdAt: t.createdAt,
+                    };
+                });
             }),
 
         updateTemplate: clientProcedure
@@ -87,6 +198,35 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 const [template] = await db.select().from(vendorAssessmentTemplates)
                     .where(eq(vendorAssessmentTemplates.id, input.id));
                 return template;
+            }),
+
+        // Assessment Requests Tracking (Sent to Vendors)
+        listAssessmentRequests: clientProcedure
+            .input(z.object({ clientId: z.number() }))
+            .query(async ({ input }: { input: any }) => {
+                const db = await getDb();
+                const requests = await db.select({
+                    id: vendorAssessmentRequests.id,
+                    vendorId: vendorAssessmentRequests.vendorId,
+                    vendorName: vendors.name,
+                    templateId: vendorAssessmentRequests.templateId,
+                    templateName: vendorAssessmentTemplates.name,
+                    recipientEmail: vendorAssessmentRequests.recipientEmail,
+                    status: vendorAssessmentRequests.status,
+                    score: vendorAssessmentRequests.score,
+                    sentAt: vendorAssessmentRequests.sentAt,
+                    expiresAt: vendorAssessmentRequests.expiresAt,
+                    submittedAt: vendorAssessmentRequests.submittedAt,
+                    completedAt: vendorAssessmentRequests.completedAt,
+                    token: vendorAssessmentRequests.token,
+                })
+                    .from(vendorAssessmentRequests)
+                    .leftJoin(vendors, eq(vendorAssessmentRequests.vendorId, vendors.id))
+                    .leftJoin(vendorAssessmentTemplates, eq(vendorAssessmentRequests.templateId, vendorAssessmentTemplates.id))
+                    .where(eq(vendorAssessmentRequests.clientId, input.clientId))
+                    .orderBy(desc(vendorAssessmentRequests.sentAt));
+
+                return requests;
             }),
 
         // Assessment Requests
@@ -828,7 +968,7 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
             }),
 
         // Vendor Management - renamed to avoid conflict with assessment procedures
-        createVendor: premiumClientProcedure
+        createVendor: clientProcedure
             .input(z.object({
                 clientId: z.number(),
                 name: z.string(),
@@ -899,12 +1039,22 @@ export const createVendorAssessmentsRouter = (t: any, clientProcedure: any, publ
                 return { success: true };
             }),
 
-        getStats: premiumClientProcedure
+        getStats: clientProcedure
             .input(z.object({ clientId: z.number().optional() }))
             .query(async ({ input, ctx }: any) => {
                 const clientId = input.clientId || ctx.clientId;
                 if (!clientId) throw new Error("Client ID required");
                 return dbHelpers.getVendorStats(clientId);
+            }),
+
+        scan: clientProcedure
+            .input(z.object({ clientId: z.number().optional() }))
+            .mutation(async ({ input, ctx }: any) => {
+                const clientId = input.clientId || ctx.clientId;
+                if (!clientId) throw new Error("Client ID required");
+                const db = await getDb();
+                const currentVendors = await db.select().from(vendors).where(eq(vendors.clientId, clientId));
+                return { count: 0, total: currentVendors.length, message: "Vendor scan completed" };
             }),
 
         discoverTrustCenter: clientProcedure

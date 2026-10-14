@@ -153,7 +153,10 @@ exportRouter.get('/policy/:id/professional-html', async (req: any, res) => {
         }
 
         const html = generateProfessionalHtml(data);
-        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src https: data:; font-src https: data:;");
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
         res.send(html);
     } catch (error) {
         console.error("Export HTML Error:", error);
@@ -163,6 +166,7 @@ exportRouter.get('/policy/:id/professional-html', async (req: any, res) => {
 
 // PDF Export (via Puppeteer)
 exportRouter.get('/policy/:id/pdf', async (req: any, res) => {
+    let browser: any = null;
     try {
         if (!req.user) {
             return res.status(401).send('Authentication required');
@@ -190,14 +194,58 @@ exportRouter.get('/policy/:id/pdf', async (req: any, res) => {
 
         const html = generateProfessionalHtml(data);
 
-        // Launch Puppeteer
-        const browser = await puppeteer.launch({
+        // Launch Puppeteer with sandboxing controls
+        browser = await puppeteer.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'] // Required for some environments
+            args: ['--no-sandbox', '--disable-setuid-sandbox'] // Required for container environments
         });
         const page = await browser.newPage();
 
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        // SSRF Defense: Intercept network requests and block internal/private network targets
+        await page.setRequestInterception(true);
+        page.on('request', (interceptedReq) => {
+            const reqUrl = interceptedReq.url();
+            try {
+                if (reqUrl.startsWith('data:')) {
+                    return interceptedReq.continue();
+                }
+                const parsed = new URL(reqUrl);
+                const host = parsed.hostname.toLowerCase();
+                const isBlockedHost =
+                    host === 'localhost' ||
+                    host === '127.0.0.1' ||
+                    host === '169.254.169.254' ||
+                    host.startsWith('10.') ||
+                    host.startsWith('192.168.') ||
+                    host.startsWith('172.16.') ||
+                    host.startsWith('172.17.') ||
+                    host.startsWith('172.18.') ||
+                    host.startsWith('172.19.') ||
+                    host.startsWith('172.20.') ||
+                    host.startsWith('172.21.') ||
+                    host.startsWith('172.22.') ||
+                    host.startsWith('172.23.') ||
+                    host.startsWith('172.24.') ||
+                    host.startsWith('172.25.') ||
+                    host.startsWith('172.26.') ||
+                    host.startsWith('172.27.') ||
+                    host.startsWith('172.28.') ||
+                    host.startsWith('172.29.') ||
+                    host.startsWith('172.30.') ||
+                    host.startsWith('172.31.') ||
+                    parsed.protocol === 'file:' ||
+                    (parsed.protocol !== 'http:' && parsed.protocol !== 'https:');
+
+                if (isBlockedHost) {
+                    return interceptedReq.abort();
+                }
+                interceptedReq.continue();
+            } catch {
+                interceptedReq.abort();
+            }
+        });
+
+        await page.setContent(html, { waitUntil: 'networkidle0', timeout: 15000 });
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -211,6 +259,7 @@ exportRouter.get('/policy/:id/pdf', async (req: any, res) => {
         });
 
         await browser.close();
+        browser = null;
 
         res.setHeader('Content-Disposition', `attachment; filename="${data.name.replace(/[^a-z0-9]/gi, '_')}.pdf"`);
         res.setHeader('Content-Type', 'application/pdf');
@@ -219,6 +268,12 @@ exportRouter.get('/policy/:id/pdf', async (req: any, res) => {
     } catch (error) {
         console.error("Export PDF Error:", error);
         res.status(500).send('Error generating PDF');
+    } finally {
+        if (browser) {
+            try { await browser.close(); } catch {
+                // Ignore browser close error
+            }
+        }
     }
 });
 

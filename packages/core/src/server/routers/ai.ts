@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { llmService } from '../../lib/llm/service';
 import { policyGenerator } from '../../lib/policy/policy-generation';
+import { isUserAllowedForClient } from '../../db';
 
 export const aiRouter = Router();
 
@@ -32,6 +33,20 @@ aiRouter.post('/generate-stream', async (req: any, res: any) => {
 
     try {
         let { systemPrompt, userPrompt, temperature, maxTokens, instruction, tailor, clientId, templateId, feature, standardId, data } = req.body;
+
+
+        const parsedClientId = clientId ? parseInt(String(clientId), 10) : null;
+
+        // Security: Validate client access if clientId or templateId is supplied
+        if (parsedClientId) {
+            const hasAccess = await isUserAllowedForClient(req.user.id, parsedClientId);
+            if (!hasAccess) {
+                return res.status(403).json({ error: 'Forbidden: You do not have access to this client organization' });
+            }
+        } else if (templateId) {
+            return res.status(400).json({ error: 'Missing clientId required for template generation' });
+        }
+
 
         // Scoping / Readiness Blueprint Report Feature
         if (feature === 'scoping_report' || (!userPrompt && data && standardId)) {
@@ -103,9 +118,10 @@ ${questionsAnswered || 'Baseline readiness evaluation complete.'}`;
         // If templateId is provided but no userPrompt, generate from policy generator
         if (templateId && !userPrompt) {
             try {
-                const parsedClientId = clientId ? parseInt(clientId) : 0;
+                // NOTE: This fix was applied to correct parameter order
+                // getGenerationPrompt signature: (clientId, templateId, sections, options)
                 const prompt = await policyGenerator.getGenerationPrompt(
-                    parsedClientId,
+                    parsedClientId!,
                     templateId,
                     undefined,
                     { customInstruction: instruction, tailorToIndustry: tailor }

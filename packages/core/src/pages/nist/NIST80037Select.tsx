@@ -136,7 +136,9 @@ export default function NIST80037Select() {
                 if (content.monitoring) setMonitoringPlan(content.monitoring);
                 if (content.diagnosticsEnabled !== undefined) setDiagnosticsEnabled(content.diagnosticsEnabled);
                 if (content.assessmentFrequency) setAssessmentFrequency(content.assessmentFrequency);
-            } catch (e) { }
+            } catch (e) {
+                /* ignore parse error */
+            }
         }
 
         if (sspControlsQuery.data && sspControlsQuery.data.length > 0) {

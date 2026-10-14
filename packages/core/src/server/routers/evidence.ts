@@ -110,7 +110,8 @@ export const createEvidenceRouter = (
     t: any,
     clientProcedure: any,
     publicProcedure: any,
-    protectedProcedure: any
+    protectedProcedure: any,
+    adminProcedure: any = clientProcedure
 ) => {
     return t.router({
         getFrameworks: publicProcedure
@@ -251,6 +252,14 @@ export const createEvidenceRouter = (
             }))
             .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [ev] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.id))
+                    .limit(1);
+                if (!ev) throw new TRPCError({ code: 'NOT_FOUND', message: 'Evidence not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, ev.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
+
                 const { id, ...data } = input;
 
                 const [row] = await dbConn.select({ clientId: schema.evidence.clientId })
@@ -360,8 +369,15 @@ export const createEvidenceRouter = (
                 resourceId: z.string(), // e.g. PR URL, S3 ARN
                 metadata: z.record(z.any()).optional()
             }))
-            .mutation(async ({ input }: any) => {
+            .mutation(async ({ input, ctx }: any) => {
                 const dbConn = await getDb();
+                const [ev] = await dbConn.select({ clientId: schema.evidence.clientId })
+                    .from(schema.evidence)
+                    .where(eq(schema.evidence.id, input.evidenceId))
+                    .limit(1);
+                if (!ev) throw new TRPCError({ code: 'NOT_FOUND', message: 'Evidence not found' });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, ev.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
 
                 // Update evidence to point to integration
                 const safeLocation = input.resourceId ? input.resourceId.substring(0, 1024) : '';
@@ -406,7 +422,9 @@ export const createEvidenceRouter = (
                 const [evidenceItem] = await dbConn.select().from(schema.evidence).where(eq(schema.evidence.id, input.evidenceId));
                 await assertClientAccess(dbConn, ctx, evidenceItem?.clientId);
 
-                if (!evidenceItem) throw new Error("Evidence not found");
+                if (!evidenceItem) throw new TRPCError({ code: 'NOT_FOUND', message: "Evidence not found" });
+                const allowed = await db.isUserAllowedForClient(ctx.user.id, evidenceItem.clientId);
+                if (!allowed) throw new TRPCError({ code: 'FORBIDDEN', message: 'Access denied' });
 
                 // Check for attached files
                 const files = await dbConn.select().from(schema.evidenceFiles)

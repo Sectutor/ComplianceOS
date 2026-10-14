@@ -19,31 +19,6 @@ export default function GitHubOAuthCallback() {
     const { selectedClientId } = useClientContext();
     const hasExchanged = useRef(false);
 
-    // Validate client is selected - redirect if not
-    if (selectedClientId === undefined || selectedClientId === null) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="text-center space-y-4 bg-white/50 backdrop-blur-xl p-12 rounded-[3rem] border border-slate-200 shadow-2xl">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full" />
-                            <AlertCircle className="h-12 w-12 text-red-600 mx-auto relative z-10" />
-                        </div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">No Organization Selected</h2>
-                        <p className="text-slate-500 font-medium">
-                            Please select an organization before connecting GitHub.
-                        </p>
-                        <Button onClick={() => setLocation("/settings/integrations")} className="mt-4">
-                            Go to Integrations
-                        </Button>
-                    </div>
-                </div>
-            </DashboardLayout>
-        );
-    }
-
-    const clientId = selectedClientId;
-
     const exchangeMutation = trpc.integrations.handleOAuthCallback.useMutation({
         onSuccess: () => {
             toast.success("GitHub connected successfully!");
@@ -56,6 +31,8 @@ export default function GitHubOAuthCallback() {
     });
 
     useEffect(() => {
+        if (selectedClientId === undefined || selectedClientId === null) return;
+
         const searchParams = new URLSearchParams(window.location.search);
         const code = searchParams.get("code");
         const error = searchParams.get("error");
@@ -87,14 +64,37 @@ export default function GitHubOAuthCallback() {
 
         if (!hasExchanged.current) {
             hasExchanged.current = true;
-            console.log(`[GitHub OAuth] Exchanging code for tenant ${clientId}...`);
+            console.log(`[GitHub OAuth] Exchanging code for tenant ${selectedClientId}...`);
             exchangeMutation.mutate({
                 provider: "github",
                 code: code,
-                clientId: clientId
+                clientId: selectedClientId
             });
         }
-    }, [setLocation, exchangeMutation, clientId]);
+    }, [setLocation, exchangeMutation, selectedClientId]);
+
+    // Validate client is selected - redirect if not
+    if (selectedClientId === undefined || selectedClientId === null) {
+        return (
+            <DashboardLayout>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="text-center space-y-4 bg-white/50 backdrop-blur-xl p-12 rounded-[3rem] border border-slate-200 shadow-2xl">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full" />
+                            <AlertCircle className="h-12 w-12 text-red-600 mx-auto relative z-10" />
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">No Organization Selected</h2>
+                        <p className="text-slate-500 font-medium">
+                            Please select an organization before connecting GitHub.
+                        </p>
+                        <Button onClick={() => setLocation("/settings/integrations")} className="mt-4">
+                            Go to Integrations
+                        </Button>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout>

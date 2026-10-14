@@ -3,6 +3,79 @@
 import { getDb } from '../../db';
 import { globalVendors, vendors, vendorChangeLogs } from '../../schema';
 import { eq, ilike, or, and, sql } from 'drizzle-orm';
+import dns from 'dns/promises';
+
+/**
+ * Checks if an IP address belongs to private/internal/reserved ranges (SSRF Defense)
+ */
+export function isPrivateIp(ip: string): boolean {
+    const ipv4Parts = ip.split('.').map(Number);
+    if (ipv4Parts.length === 4 && ipv4Parts.every(n => !isNaN(n) && n >= 0 && n <= 255)) {
+        const [a, b] = ipv4Parts;
+        if (a === 10) return true; // 10.0.0.0/8
+        if (a === 127) return true; // 127.0.0.0/8 (loopback)
+        if (a === 0) return true; // 0.0.0.0/8
+        if (a === 169 && b === 254) return true; // 169.254.0.0/16 (link-local, cloud metadata)
+        if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+        if (a === 192 && b === 168) return true; // 192.168.0.0/16
+        if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10
+        return false;
+    }
+
+    const lower = ip.toLowerCase();
+    if (lower === '::1' || lower === '::') return true;
+    if (lower.startsWith('fe80:') || lower.startsWith('fc00:') || lower.startsWith('fd00:')) return true;
+
+    return false;
+}
+
+/**
+ * Validates that an external URL is safe to fetch (SSRF Defense)
+ */
+export async function isSafeExternalUrl(urlStr: string): Promise<boolean> {
+    try {
+        const parsed = new URL(urlStr);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            return false;
+        }
+
+        const hostname = parsed.hostname.toLowerCase();
+        if (!hostname || hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+            return false;
+        }
+
+        // Direct private IP literal check
+        if (isPrivateIp(hostname)) {
+            return false;
+        }
+
+        // If hostname is already an IPv4 or IPv6 address, it's public (passed isPrivateIp)
+        const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.includes(':');
+        if (isIp) {
+            return true;
+        }
+
+        // DNS resolution check to prevent DNS rebinding / internal network resolution
+        try {
+            const lookupPromise = dns.lookup(hostname, { all: true });
+            const timeoutPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('DNS lookup timeout')), 2000)
+            );
+            const addresses = await Promise.race([lookupPromise, timeoutPromise]);
+            for (const addr of addresses) {
+                if (isPrivateIp(addr.address)) {
+                    return false;
+                }
+            }
+        } catch {
+            return false;
+        }
+
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 export interface TrustCenterAnalysis {
     score: number;
@@ -54,6 +127,13 @@ export class VRMAgentService {
      * Check if a URL is reachable
      */
     private async checkUrlAvailability(url: string): Promise<boolean> {
+        // SSRF Defense: Validate URL scheme, hostname, and ensure destination IP is not private/loopback/cloud metadata
+        const isSafe = await isSafeExternalUrl(url);
+        if (!isSafe) {
+            console.warn(`[VRM Agent] Blocked potentially unsafe URL (SSRF Defense): ${url}`);
+            return false;
+        }
+
         try {
             console.log(`[VRM Agent] Checking availability of: ${url}`);
             const response = await fetch(url, {
@@ -292,6 +372,13 @@ export class VRMAgentService {
         });
 
         if (!vendor || !vendor.trustCenterUrl) return;
+
+        // SSRF Defense: Validate vendor.trustCenterUrl before making request
+        const isSafe = await isSafeExternalUrl(vendor.trustCenterUrl);
+        if (!isSafe) {
+            console.warn(`[VRM Agent] Blocked change detection for unsafe URL (SSRF Defense): ${vendor.trustCenterUrl}`);
+            return;
+        }
 
         try {
             const response = await fetch(vendor.trustCenterUrl, { method: 'HEAD' });

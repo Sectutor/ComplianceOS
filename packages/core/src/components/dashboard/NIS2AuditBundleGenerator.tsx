@@ -83,7 +83,7 @@ export function NIS2AuditBundleGenerator({ clientId }: NIS2AuditBundleGeneratorP
         switch (sectionId) {
             case 'classification':
                 return nis2Mappings && nis2Mappings.length > 0 ? 'complete' : 'partial';
-            case 'article21':
+            case 'article21': {
                 if (!nis2Mappings || nis2Mappings.length === 0) return 'missing';
                 const implemented = nis2Mappings.filter((m: any) => m.status === 'implemented').length;
                 const total = nis2Mappings.length;
@@ -91,6 +91,7 @@ export function NIS2AuditBundleGenerator({ clientId }: NIS2AuditBundleGeneratorP
                 if (implemented === total) return 'complete';
                 if (implemented > 0) return 'partial';
                 return 'missing';
+            }
             case 'article23':
                 if (!incidentsData || incidentsData.length === 0) return 'missing';
                 return incidentsData.length > 0 ? 'complete' : 'partial';

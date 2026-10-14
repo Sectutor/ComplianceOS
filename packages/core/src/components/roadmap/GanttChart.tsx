@@ -72,7 +72,7 @@ export default function GanttChart({
                     start: startOfWeek(start, { weekStartsOn: 1 }), 
                     end: endOfWeek(end, { weekStartsOn: 1 }) 
                 });
-            case 'month':
+            case 'month': {
                 // Show first day of each week for month view
                 const weeks = [];
                 let current = startOfWeek(start, { weekStartsOn: 1 });
@@ -81,7 +81,8 @@ export default function GanttChart({
                     current = addDays(current, 7);
                 }
                 return weeks;
-            case 'quarter':
+            }
+            case 'quarter': {
                 // Show first day of each month for quarter view
                 const months = [];
                 let currentMonth = new Date(start.getFullYear(), start.getMonth(), 1);
@@ -90,6 +91,7 @@ export default function GanttChart({
                     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()  +1, 1);
                 }
                 return months;
+            }
         }
     }, [dateRange, viewMode]);
 
@@ -185,9 +187,10 @@ export default function GanttChart({
                 return `Week of ${format(currentDate, 'MMM d, yyyy')}`;
             case 'month':
                 return format(currentDate, 'MMMM yyyy');
-            case 'quarter':
+            case 'quarter': {
                 const quarter = Math.floor(currentDate.getMonth() / 3) + 1;
                 return `Q${quarter} ${currentDate.getFullYear()}`;
+            }
         }
     };
 

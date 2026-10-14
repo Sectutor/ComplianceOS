@@ -36,6 +36,9 @@ tmp/
 
 # Testing/coverage
 coverage/
+test-results/
+playwright-report/
+blob-report/
 
 # Premium Package (Open for internal tracking)
 # packages/premium/
@@ -73,15 +76,24 @@ GAP-LOG.md
 
 # Internal Scripts and Debug Files
 debug_*
+/debug*
 check_*
+/check*
 analyze_*
 extract_*
 fix_*
 list_*
 append_*
 create_*
+/create*
 apply_*
 diagnose_*
+/populate*
+/seed*
+/verify*
+/testRoadmaps*
+/direct_check*
+/run_seed*
 *.py
 build_output*
 db_counts*
@@ -123,6 +135,10 @@ server-enterprise.ts
 # Local Netlify folder
 .netlify
 sendgrid.env
+*.env
+*.env.*
+!*.env.example
+!.env.scalability
 
 # Landing pages (commercial/marketing - not open source)
 

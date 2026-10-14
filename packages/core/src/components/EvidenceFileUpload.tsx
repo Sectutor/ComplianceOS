@@ -64,16 +64,6 @@ export default function EvidenceFileUpload({
   evidenceId,
   clientId,
 }: EvidenceFileUploadProps) {
-  /* Defensive check for props */
-  if (!evidenceId || !clientId) {
-    console.warn("EvidenceFileUpload: Missing props", { evidenceId, clientId });
-    return (
-      <div className="p-4 text-red-500 text-sm">
-        Error: Unable to load file uploader. Missing context.
-      </div>
-    );
-  }
-
   console.log("EvidenceFileUpload mounted with:", { evidenceId, clientId });
 
   const [isDragActive, setIsDragActive] = useState(false);
@@ -83,14 +73,15 @@ export default function EvidenceFileUpload({
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: files, refetch } = trpc.evidenceFiles.list.useQuery({
-    evidenceId,
-  });
+  const { data: files, refetch } = trpc.evidenceFiles.list.useQuery(
+    { evidenceId: evidenceId || 0 },
+    { enabled: !!evidenceId && !!clientId },
+  );
 
   // Library query
   const { data: libraryFiles } = trpc.evidenceFiles.listAll.useQuery(
-    { clientId, search: searchQuery },
-    { enabled: libraryOpen },
+    { clientId: clientId || 0, search: searchQuery },
+    { enabled: libraryOpen && !!clientId },
   );
 
   const linkMutation = trpc.evidenceFiles.linkExisting.useMutation({
@@ -106,14 +97,6 @@ export default function EvidenceFileUpload({
     },
   });
 
-  const handleLinkFile = (file: any) => {
-    setLinkingFileId(file.id);
-    linkMutation.mutate({
-      targetEvidenceId: evidenceId,
-      sourceFileId: file.id,
-    });
-  };
-
   const createFileMutation = trpc.evidenceFiles.create.useMutation({
     onSuccess: () => {
       refetch();
@@ -128,6 +111,24 @@ export default function EvidenceFileUpload({
     },
     onError: (error) => toast.error(error.message),
   });
+
+  const handleLinkFile = (file: any) => {
+    setLinkingFileId(file.id);
+    linkMutation.mutate({
+      targetEvidenceId: evidenceId,
+      sourceFileId: file.id,
+    });
+  };
+
+  /* Defensive check for props */
+  if (!evidenceId || !clientId) {
+    console.warn("EvidenceFileUpload: Missing props", { evidenceId, clientId });
+    return (
+      <div className="p-4 text-red-500 text-sm">
+        Error: Unable to load file uploader. Missing context.
+      </div>
+    );
+  }
 
   const validateFiles = (
     filesToValidate: File[],

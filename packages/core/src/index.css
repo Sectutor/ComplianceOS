@@ -1269,4 +1269,13 @@ div[role="dialog"] [class*="bg-blue-50"] *:not(button):not(button *):not([class*
    including selectable list cards — dark and unreadable on the white surface. */
 div[role="dialog"]:not(.driver-popover) button {
   border-radius: 0.75rem !important;
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

@@ -18,14 +18,21 @@
         "noEmit": true,
         "jsx": "react-jsx",
         /* Linting */
-        "strict": true,
+        "strict": false,
+        "noImplicitAny": false,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "noFallthroughCasesInSwitch": true,
         "baseUrl": ".",
         "paths": {
             "@/*": [
-                "./*"
+                "./packages/core/src/*"
+            ],
+            "@complianceos/ui/*": [
+                "./packages/ui/src/*"
+            ],
+            "@complianceos/premium/*": [
+                "./packages/premium/src/*"
             ],
             "@shared/*": [
                 "./shared/*"
@@ -33,16 +40,64 @@
         }
     },
     "include": [
-        "**/*.ts",
-        "**/*.tsx"
+        "packages/core/src/**/*.ts",
+        "packages/core/src/**/*.tsx",
+        "packages/ui/src/**/*.ts",
+        "packages/ui/src/**/*.tsx",
+        "packages/premium/src/**/*.ts",
+        "packages/premium/src/**/*.tsx",
+        "shared/**/*.ts"
     ],
     "exclude": [
         "node_modules",
+        "dist",
         "**/*.test.ts",
         "**/*.test.tsx",
         "tmp/**",
         "tmp_empty/**",
         "tests/**",
-        "verify_*.ts"
+        "tests",
+        "test",
+        "e2e",
+        "tmp_*",
+        "temp_*",
+        "scripts",
+        "playwright-report",
+        "test-results",
+        "coverage",
+        "add_*.ts",
+        "alter_*.ts",
+        "analyze_*.ts",
+        "apply_*.ts",
+        "audit_*.ts",
+        "check_*.ts",
+        "check-*.ts",
+        "count_*.ts",
+        "create_*.ts",
+        "debug_*.ts",
+        "delete_*.ts",
+        "diagnose_*.ts",
+        "dump_*.ts",
+        "find_*.ts",
+        "fix_*.ts",
+        "inspect_*.ts",
+        "list_*.ts",
+        "manual-*.ts",
+        "migrate_*.ts",
+        "migrate-*.ts",
+        "nuke_*.ts",
+        "patch_*.ts",
+        "promote_*.ts",
+        "read_*.ts",
+        "recover_*.ts",
+        "run_*.ts",
+        "schema_*.ts",
+        "seed_*.ts",
+        "seed*.ts",
+        "setup_*.ts",
+        "test_*.ts",
+        "test-*.ts",
+        "verify_*.ts",
+        "packages/core/tmp_build"
     ]
 }

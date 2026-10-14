@@ -386,7 +386,7 @@ function GlobalBrandingSync() {
   const [location] = useLocation();
   const urlClientMatch = location.match(/\/clients\/(\d+)/);
   const urlClientId = urlClientMatch ? parseInt(urlClientMatch[1], 10) : null;
-  const effectiveClientId = selectedClientId || urlClientId;
+  const effectiveClientId = urlClientId || selectedClientId;
 
   const { data: client } = trpc.clients.get.useQuery(
     { id: effectiveClientId as number },
@@ -439,10 +439,10 @@ function UnifiedClientGuard({
   const { selectedClientId, setPlanTier, setUserRole, userRole: contextRole, setIsPremiumStatus } = useClientContext();
   const [location] = useLocation();
 
-  // Extract client ID from URL as fallback
+  // Extract client ID from URL as primary
   const urlClientMatch = location.match(/\/clients\/(\d+)/);
   const urlClientId = urlClientMatch ? parseInt(urlClientMatch[1], 10) : null;
-  const effectiveClientId = selectedClientId || urlClientId;
+  const effectiveClientId = urlClientId || selectedClientId;
 
   const { data: userMe, isLoading: userLoading } = trpc.users.me.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -473,7 +473,7 @@ function UnifiedClientGuard({
   const tier = client?.planTier || userMe?.planTier;
   const clientRole = client?.userRole || contextRole;
   const globalRole = userMe?.role;
-  const isGlobalAdmin = ['admin', 'owner', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
+  const isGlobalAdmin = ['admin', 'super_admin', 'enterprise_admin', 'ent_admin'].includes(globalRole || '');
   const isAdminOrOwner = isGlobalAdmin || clientRole === 'owner' || clientRole === 'admin';
   const isPremiumTier = tier === 'consultant' || tier === 'enterprise';
   const isPremiumContext = isDev ? true : isPremiumTier;
@@ -532,6 +532,7 @@ function ManagementGuard({ children }: { children: React.ReactNode }) {
 
 function ProtectedRoute({ component: Component, children, ...rest }: { component?: React.ComponentType<any>; children?: React.ReactNode } & any) {
   const { session, loading } = useAuth();
+  const [location] = useLocation();
 
   if (loading) {
     return (
@@ -548,8 +549,12 @@ function ProtectedRoute({ component: Component, children, ...rest }: { component
 
   console.log("ProtectedRoute: Session valid, rendering component");
 
-  if (Component) return <Component {...rest} />;
-  return <>{children}</>;
+  const content = Component ? <Component {...rest} /> : <>{children}</>;
+  const isClientRoute = location.match(/\/clients\/(\d+)/);
+  if (isClientRoute) {
+    return <UnifiedClientGuard>{content}</UnifiedClientGuard>;
+  }
+  return content;
 }
 
 function ClientControlsAlias() {
@@ -688,6 +693,73 @@ function VendorsAlias() {
   return <Redirect to="/clients" replace />;
 }
 
+function PeopleAlias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/people`} /> : <Redirect to="/clients" />;
+}
+
+function RaciAlias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/raci-matrix`} /> : <Redirect to="/clients" />;
+}
+
+function AssuranceAlias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/assurance`} /> : <Redirect to="/clients" />;
+}
+
+function FrameworkAssuranceAlias({ params }: { params?: { frameworkId?: string } }) {
+  const { selectedClientId } = useClientContext();
+  const frameworkId = params?.frameworkId || '';
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/assurance/${frameworkId}`} /> : <Redirect to="/clients" />;
+}
+
+function NistCsf2Alias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/nist-csf-2`} /> : <Redirect to="/clients" />;
+}
+
+function CisaZtmm2Alias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/cisa-ztmm-2`} /> : <Redirect to="/clients" />;
+}
+
+function Cmmc2Alias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/cmmc-2`} /> : <Redirect to="/clients" />;
+}
+
+function C2m2Alias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/c2m2-2.1`} /> : <Redirect to="/clients" />;
+}
+
+function EssentialEightAlias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/essential-eight`} /> : <Redirect to="/clients" />;
+}
+
+function SammAlias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/samm`} /> : <Redirect to="/clients" />;
+}
+
+function AsvsAlias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/asvs`} /> : <Redirect to="/clients" />;
+}
+
+function Iso27001RestAlias({ params }: { params?: { rest?: string } }) {
+  const { selectedClientId } = useClientContext();
+  const rest = params?.rest || '';
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/iso27001/${rest}`} /> : <Redirect to="/clients" />;
+}
+
+function Iso27001Alias() {
+  const { selectedClientId } = useClientContext();
+  return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/iso27001`} /> : <Redirect to="/clients" />;
+}
+
 /**
  * RootHub handles domain-based routing for the landing page vs. application entrance.
  * Main domain (grcompliance.com) serves the marketing landing page.
@@ -700,9 +772,14 @@ function RootHub() {
   const hostname = window.location.hostname;
   const isAppDomain = hostname.startsWith('app.') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('sslip.io');
 
-  // If on main domain but trying to access the app, redirect to proper subdomain
-  if (!isAppDomain && (hostname.includes('grcompliance.com') || hostname.includes('grcompliance.com'))) {
-    window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
+  useEffect(() => {
+    // If on main domain but trying to access the app, redirect to proper subdomain
+    if (!isAppDomain && hostname.includes('grcompliance.com')) {
+      window.location.href = `https://app.grcompliance.com${window.location.pathname}${window.location.search}`;
+    }
+  }, [isAppDomain, hostname]);
+
+  if (!isAppDomain && hostname.includes('grcompliance.com')) {
     return null;
   }
 
@@ -2306,97 +2383,58 @@ function Router() {
 
         {/* Route Aliases for better UX */}
         <Route path="/people">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/people`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={PeopleAlias} />
         </Route>
         <Route path="/raci-matrix">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/raci-matrix`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={RaciAlias} />
         </Route>
 
         <Route path="/assurance">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/assurance`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={AssuranceAlias} />
         </Route>
 
         <Route path="/assurance/:frameworkId">
           {(params) => (
-            <ProtectedRoute component={() => {
-              const { selectedClientId } = useClientContext();
-              return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/assurance/${params.frameworkId}`} /> : <Redirect to="/clients" />;
-            }} />
+            <ProtectedRoute component={FrameworkAssuranceAlias} params={params} />
           )}
         </Route>
 
         <Route path="/nist-csf-2">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/nist-csf-2`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={NistCsf2Alias} />
         </Route>
 
         <Route path="/cisa-ztmm-2">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/cisa-ztmm-2`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={CisaZtmm2Alias} />
         </Route>
 
         <Route path="/cmmc-2">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/cmmc-2`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={Cmmc2Alias} />
         </Route>
 
         <Route path="/c2m2-2.1">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/c2m2-2.1`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={C2m2Alias} />
         </Route>
 
         <Route path="/essential-eight">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/essential-eight`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={EssentialEightAlias} />
         </Route>
 
         <Route path="/samm">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/samm`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={SammAlias} />
         </Route>
 
         <Route path="/asvs">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/asvs`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={AsvsAlias} />
         </Route>
 
         <Route path="/iso27001/:rest*">
           {(params) => (
-            <ProtectedRoute component={() => {
-              const { selectedClientId } = useClientContext();
-              return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/iso27001/${params.rest}`} /> : <Redirect to="/clients" />;
-            }} />
+            <ProtectedRoute component={Iso27001RestAlias} params={params} />
           )}
         </Route>
 
         <Route path="/iso27001">
-          <ProtectedRoute component={() => {
-            const { selectedClientId } = useClientContext();
-            return selectedClientId ? <Redirect to={`/clients/${selectedClientId}/iso27001`} /> : <Redirect to="/clients" />;
-          }} />
+          <ProtectedRoute component={Iso27001Alias} />
         </Route>
 
         <Route path="/404" component={NotFound} />

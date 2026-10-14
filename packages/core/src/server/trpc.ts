@@ -15,7 +15,7 @@ import { performanceTracker, auditLogger } from "./enterprise-middleware";
 // Debug flag for auth logging - disabled in production by default
 const DEBUG_AUTH = process.env.DEBUG_AUTH === 'true';
 
-export const PLATFORM_ADMIN_ROLES = ['admin', 'owner', 'super_admin', 'super', 'enterprise_admin', 'ent_admin'];
+export const PLATFORM_ADMIN_ROLES = ['admin', 'super_admin', 'super', 'enterprise_admin', 'ent_admin'];
 
 // Helper function for conditional debug logging
 const debugLog = (message: string, ...args: unknown[]) => {
@@ -136,22 +136,62 @@ export const isAdmin = middleware(async ({ ctx, next, path }) => {
     return next();
 });
 
+type MiddlewareInputSource = {
+    rawInput?: unknown;
+    input?: unknown;
+    getRawInput?: () => Promise<unknown>;
+};
+
+/**
+ * Read a procedure's input from inside a middleware across tRPC versions
+ * (rawInput/input before v11, getRawInput() in v11) and unwrap a superjson
+ * `{ json: ... }` envelope. Returns undefined when no object input exists.
+ */
+async function extractMiddlewareInput(opts: unknown): Promise<Record<string, unknown> | undefined> {
+    const src = opts as MiddlewareInputSource;
+    let raw: unknown = src.rawInput ?? src.input;
+    if (raw === undefined && typeof src.getRawInput === 'function') {
+        try {
+            raw = await src.getRawInput();
+        } catch {
+            // ignore: middleware runs before input is available
+        }
+    }
+    if (!raw || typeof raw !== 'object') return undefined;
+    const envelope = raw as { json?: unknown };
+    if (envelope.json && typeof envelope.json === 'object') {
+        return envelope.json as Record<string, unknown>;
+    }
+    return raw as Record<string, unknown>;
+}
+
 export const checkClientAccess = middleware(async (opts) => {
     const { ctx, next, path } = opts;
-    const rawInput = (opts as unknown as { rawInput?: unknown }).rawInput;
-    const typedInput = (opts as unknown as { input?: unknown }).input; // Try to get parsed input
 
     if (!ctx.user) {
         debugError(`[checkClientAccess Debug] UNAUTHORIZED for path: ${path}`);
         throw new TRPCError({ code: 'UNAUTHORIZED', message: "Authentication required for client access." });
     }
 
-    const input = (typedInput || rawInput || {}) as { clientId?: number; id?: number };
-    let clientId = input?.clientId || input?.id || ctx.clientId;
+    // Extract input across tRPC lifecycle stages (supports before and after .input())
+    const parsedPayload = await extractMiddlewareInput(opts);
 
-    // Admins have implicit access
+    // Priority 1: Input payload client ID / ID (prevents header ID spoofing)
+    let targetClientId: number | null = null;
+    if (parsedPayload && typeof parsedPayload === 'object') {
+        if (parsedPayload.clientId !== undefined && parsedPayload.clientId !== null && !isNaN(Number(parsedPayload.clientId))) {
+            targetClientId = Number(parsedPayload.clientId);
+        } else if (path.startsWith('clients.') && parsedPayload.id !== undefined && parsedPayload.id !== null && !isNaN(Number(parsedPayload.id))) {
+            targetClientId = Number(parsedPayload.id);
+        }
+    }
+
+    // Fall back to header-derived context client ID if not specified in input
+    let clientId = targetClientId !== null ? targetClientId : ctx.clientId;
+
+    // Platform Admins have implicit access to any client workspace
     if (PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '')) {
-        debugLog('[DEBUG checkClientAccess] Admin access granted to clientId:', clientId);
+        debugLog('[DEBUG checkClientAccess] Platform admin access granted to clientId:', clientId);
         return next({ ctx: { ...ctx, clientId, clientRole: 'owner' } });
     }
 
@@ -185,37 +225,28 @@ export const checkClientAccess = middleware(async (opts) => {
 
     debugLog('[DEBUG checkClientAccess] Membership check:', { userId: ctx.user.id, clientId, found: membership.length > 0 });
 
-    // SECURITY: Allow admin/super_admin users to access any client workspace without membership.
-    // This is intentional - admins need cross-client access for platform management.
-    if (membership.length === 0 && !PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '')) {
-        debugLog('[DEBUG checkClientAccess] No membership found and not admin');
+    if (membership.length === 0) {
+        debugLog('[DEBUG checkClientAccess] No membership found and not platform admin');
         throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace. Membership required.' });
     }
 
-
-    if (membership.length > 0) {
-        if (membership[0].accessExpiresAt && new Date() > membership[0].accessExpiresAt) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Your access to this workspace has expired."
-            });
-        }
+    if (membership[0].accessExpiresAt && new Date() > membership[0].accessExpiresAt) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Your access to this workspace has expired."
+        });
     }
 
-    // Get member for later use (may be null for admins)
-    const member = membership.length > 0 ? membership[0] : null;
+    // Get member for later use
+    const member = membership[0];
 
     // ARCHITECTURE ENFORCEMENT: Community Edition Single-Tenancy
-    // This cannot be overridden by database values.
     if (process.env.VITE_ENABLE_PREMIUM === 'false') {
-        // In Community Edition, authorized users can only access their FIRST workspace.
         const allMemberships = await dbConn.select()
             .from(userClients)
             .where(eq(userClients.userId, ctx.user.id))
             .orderBy(asc(userClients.joinedAt));
 
-        // If they have multiple (e.g. from a previous trial), they can only access the first one.
-        // This effectively renders multi-tenancy dead in the water for the open source build.
         if (allMemberships.length > 0 && allMemberships[0].clientId !== clientId) {
             throw new TRPCError({
                 code: 'FORBIDDEN',
@@ -225,12 +256,10 @@ export const checkClientAccess = middleware(async (opts) => {
     }
 
     // Enforce maxClients limit for owned clients (Premium/Standard limits)
-    // Only check if user has a membership record (non-admin users)
     if (member && member.role === 'owner' && process.env.VITE_ENABLE_PREMIUM !== 'false') {
         const fullUser = await db.getUserById(ctx.user.id);
         const maxClients = fullUser?.maxClients || 2;
 
-        // Get all owned client IDs sorted by creation (oldest first)
         const allOwned = await dbConn.select({ clientId: userClients.clientId })
             .from(userClients)
             .innerJoin(schema.clients, eq(userClients.clientId, schema.clients.id))
@@ -270,9 +299,10 @@ export const checkClientEditor = middleware(({ ctx, next }) => {
 
 export const checkPremiumAccess = middleware(async (opts) => {
     const { ctx, next } = opts;
-    const rawInput = (opts as unknown as { rawInput?: unknown }).rawInput;
-    const input = rawInput as { clientId?: number };
-    const clientId = input?.clientId || ctx.clientId;
+    const input = (await extractMiddlewareInput(opts)) || {};
+    const clientId = (input?.clientId !== undefined && input?.clientId !== null && !isNaN(Number(input.clientId)))
+        ? Number(input.clientId)
+        : ctx.clientId;
 
     const isDev = process.env.NODE_ENV === 'development' || process.env.AUTH_MODE === 'local';
 
@@ -283,7 +313,6 @@ export const checkPremiumAccess = middleware(async (opts) => {
     }
 
     // STRICT CHECK: Premium must be enabled in environment
-    // Note: process.env.VITE_ENABLE_PREMIUM works in Node/Server environment if loaded via dotenv
     if (process.env.VITE_ENABLE_PREMIUM === 'false') {
         throw new TRPCError({
             code: 'FORBIDDEN',
@@ -414,7 +443,9 @@ export const requiresMFA = middleware(async ({ ctx, next, path: _path }) => {
     try {
         const dbConn = await db.getDb();
 
-        let must = isPrivilegedRole; // Forced for admins
+        // In local development, don't force MFA on platform admins unless ENFORCE_MFA is explicitly true
+        const isDev = process.env.NODE_ENV !== 'production';
+        let must = isPrivilegedRole && (!isDev || process.env.ENFORCE_MFA === 'true'); // Forced for admins in prod/enforced
 
         if (!must && clientId) {
             debugLog('[DEBUG requiresMFA] Checking client MFA req for clientId:', clientId);

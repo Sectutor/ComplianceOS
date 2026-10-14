@@ -256,7 +256,7 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
 
                 try {
                     // Normalize clientId to number
-                    let clientIdNum = typeof input.clientId === 'string' ? parseInt(input.clientId, 10) : input.clientId;
+                    const clientIdNum = typeof input.clientId === 'string' ? parseInt(input.clientId, 10) : input.clientId;
                     if (!clientIdNum || isNaN(clientIdNum)) {
                         throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid client ID" });
                     }
@@ -337,7 +337,7 @@ export const createCyberRouter = (t: any, clientProcedure: any) => {
                     )
                 });
 
-                let responses: any = assessment?.responses || {};
+                const responses: any = assessment?.responses || {};
 
                 // MIGRATION: Map old question IDs to new NIS2 format to preserve existing data
                 // This ensures backward compatibility with assessments that used old IDs

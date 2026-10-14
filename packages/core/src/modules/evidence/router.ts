@@ -34,7 +34,7 @@ export const evidenceRouter = router({
         .query(async ({ input }: any) => {
             const db = await getDb();
 
-            let query = db.select()
+            const query = db.select()
                 .from(evidence)
                 .where(eq(evidence.clientId, input.clientId));
 

@@ -18,23 +18,30 @@ import { config } from '../../lib/config';
 const router = express.Router();
 
 /**
- * Verify Gumroad webhook signature
+ * Verify Gumroad webhook signature with timing-safe comparison
  */
 function verifyGumroadSignature(
-  payload: string,
+  payload: string | Buffer,
   signature: string,
   webhookSecret: string
 ): boolean {
   try {
+    if (!signature || !webhookSecret) return false;
+
     const expectedSignature = crypto
       .createHmac('sha256', webhookSecret)
       .update(payload)
       .digest('hex');
-    
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, 'utf-8'),
-      Buffer.from(expectedSignature, 'utf-8')
-    );
+
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+
+    // Prevent RangeError if lengths differ
+    if (sigBuf.length !== expectedBuf.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(sigBuf, expectedBuf);
   } catch (error) {
     console.error('Error verifying Gumroad signature:', error);
     return false;
@@ -347,9 +354,9 @@ router.post('/gumroad', async (req, res) => {
       return res.status(400).json({ error: 'Missing signature' });
     }
     
-    // Verify signature
-    const rawBody = JSON.stringify(req.body);
-    const isValid = verifyGumroadSignature(rawBody, signature, webhookSecret);
+    // Verify signature against raw bytes if available, fallback to serialized body
+    const rawPayload = (req as any).rawBody || JSON.stringify(req.body);
+    const isValid = verifyGumroadSignature(rawPayload, signature, webhookSecret);
     
     if (!isValid) {
       console.error('[Gumroad Webhook] Invalid signature');

@@ -24,8 +24,8 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated' });
                     }
 
-                    // Admins/owners/super_admins: list all clients
-                    if (ctx.user?.role === 'admin' || ctx.user?.role === 'owner' || ctx.user?.role === 'super_admin') {
+                    // Platform admins: list all clients
+                    if (ctx.user?.role === 'admin' || ctx.user?.role === 'super_admin' || ctx.user?.role === 'enterprise_admin') {
                         const all = await dbConn.select({
                             id: clients.id,
                             name: clients.name,
@@ -271,8 +271,8 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                     const currentCount = Number(userOrgs[0]?.count || 0);
 
-                    // Admins/Internal Owners/Super Admins bypass limit
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+                    // Platform Admins bypass limit
+                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
 
                     // ARCHITECTURE ENFORCEMENT: Self-hosted plan limit
                     // Use user's maxClients (consultant=2, enterprise=unlimited)
@@ -405,7 +405,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
 
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
 
                     // ARCHITECTURE ENFORCEMENT: Community Edition strict limit
                     if (process.env.VITE_ENABLE_PREMIUM === 'false') {
@@ -495,7 +495,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                     const currentCount = Number(userOrgs[0]?.count || 0);
                     const limit = fullUser?.maxClients || 2;
 
-                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'owner' || ctx.user.role === 'super_admin';
+                    const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
 
                     // ARCHITECTURE ENFORCEMENT: Self-hosted plan limit
                     // Use user's maxClients (consultant=2, enterprise=unlimited)
@@ -645,7 +645,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
                 const { id, ...data } = input;
 
                 // Security Check: Allow Global Admins OR Client Admins
-                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'owner' && ctx.user?.role !== 'super_admin') {
+                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'super_admin' && ctx.user?.role !== 'enterprise_admin') {
                     const isAllowed = await db.isUserAllowedForClient(ctx.user.id, id, 'admin');
                     if (!isAllowed) {
                         throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to update this client.' });
@@ -691,10 +691,13 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
 
                 let user = await db.getUserByEmail(input.email);
                 if (!user) {
+                    // Security: Generate a cryptographically strong random password for invited accounts
+                    const cryptoNode = await import('crypto');
+                    const secureInvitePassword = cryptoNode.randomBytes(32).toString('base64url');
                     user = await db.createUser({
                         email: input.email,
                         name: input.email.split('@')[0],
-                        password: 'temp_password_123'
+                        password: secureInvitePassword
                     });
                 }
                 if (user) {
@@ -709,7 +712,7 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
             .input(z.object({ id: z.number() }))
             .mutation(async ({ input, ctx }: any) => {
                 // Security Check: Allow Global Admins OR Client Owner
-                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'owner' && ctx.user?.role !== 'super_admin') {
+                if (ctx.user?.role !== 'admin' && ctx.user?.role !== 'super_admin' && ctx.user?.role !== 'enterprise_admin') {
                     const isOwner = await db.isUserAllowedForClient(ctx.user.id, input.id, 'owner');
                     if (!isOwner) {
                         throw new TRPCError({ code: 'FORBIDDEN', message: 'Only organization owners or global admins can delete a client.' });
@@ -721,18 +724,18 @@ export const createClientsRouter = (t: any, adminProcedure: any, clientProcedure
         grantSelfAccess: publicProcedure.use(isAuthed).use(requiresMFA)
             .input(z.object({ clientId: z.number(), role: z.enum(['owner', 'admin', 'editor']).default('owner') }))
             .mutation(async ({ input, ctx }: any) => {
-                const d = await db.getDb();
                 const hasAccess = await db.isUserAllowedForClient(ctx.user.id, input.clientId);
                 if (hasAccess) return { success: true, message: 'Already a member' };
-                const owners = await d.select().from(schema.userClients)
-                    .where(and(eq(schema.userClients.clientId, input.clientId), eq(schema.userClients.role, 'owner')));
-                if (owners.length === 0 || ctx.user.role === 'admin' || ctx.user.role === 'super_admin') {
+
+                // Security: Only platform administrators can self-assign access to arbitrary workspaces
+                if (ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin') {
                     await db.assignUserToClient(ctx.user.id, input.clientId, input.role as any);
                     return { success: true, message: 'Access granted' };
                 }
+
                 throw new TRPCError({
                     code: 'FORBIDDEN',
-                    message: 'An owner already exists for this workspace. Only admins can add themselves.'
+                    message: 'Only platform administrators can grant self-access to workspaces.'
                 });
             }),
         stats: clientProcedure

@@ -35,7 +35,7 @@ export const policyRouter = router({
         .query(async ({ input }: any) => {
             const db = await getDb();
 
-            let query = db.select()
+            const query = db.select()
                 .from(clientPolicies)
                 .where(eq(clientPolicies.clientId, input.clientId));
 

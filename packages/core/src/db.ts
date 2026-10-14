@@ -526,10 +526,10 @@ export async function getDb(): Promise<NonNullable<typeof _db>> {
 export async function closeDb() {
 
   try {
-
     await _sql?.end({ timeout: 5 });
-
-  } catch { }
+  } catch {
+    /* ignore close error */
+  }
 
   _sql = null;
 
@@ -879,7 +879,7 @@ export async function isUserAllowedForClient(userId: number, clientId: number, m
 
   // 1. Check Global Role First
   const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
-  if (user && (user.role === 'admin' || user.role === 'owner' || user.role === 'super_admin')) {
+  if (user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'enterprise_admin')) {
     return true; // Global admins have access to everything
   }
 
@@ -2785,7 +2785,7 @@ export async function createEvidence(data: InsertEvidence) {
 export async function getEvidence(clientId: number, systemId?: string) {
   const db = await getDb();
 
-  let conditions = [eq(evidence.clientId, clientId)];
+  const conditions = [eq(evidence.clientId, clientId)];
   if (systemId) {
     conditions.push(eq(evidence.systemId, systemId));
   }
@@ -4273,23 +4273,15 @@ export async function getCalendarEvents(
         break;
 
       case 'semi-annually':
-
       case 'semi-annual':
-
         nextReview = new Date(lastReview);
-
         nextReview.setMonth(nextReview.getMonth() + 6);
-
         break;
 
       case 'annually':
-
       case 'annual':
-
         nextReview = new Date(lastReview);
-
         nextReview.setFullYear(nextReview.getFullYear() + 1);
-
         break;
 
       default:

@@ -38,16 +38,11 @@ export default function RegulationDetail() {
     const regId = params.regId;
     const clientId = params.id ? parseInt(params.id) : 1;
 
-    if (!regId) return <Redirect to={`/clients/${clientId}/compliance-obligations`} />;
-
-    const regulation = getRegulation(regId);
-    const framework = getFramework(regId);
+    const regulation = regId ? getRegulation(regId) : undefined;
+    const framework = regId ? getFramework(regId) : undefined;
 
     const item = regulation || framework;
     const isFramework = !!framework;
-
-    // Handle not found
-    if (!item) return <Redirect to="/404" />;
 
     const frameworkMap: Record<string, string> = {
         'GDPR': 'gdpr', 'HIPAA': 'hipaa', 'ISO 27001': 'iso-27001', 'SOC 2': 'soc-2',
@@ -58,7 +53,7 @@ export default function RegulationDetail() {
 
     const { data: requirementsData, isLoading: isReqLoading } = trpc.requirements.getFrameworkRequirements.useQuery(
         { framework: frameworkId || '', clientId },
-        { enabled: !!frameworkId && isFramework }
+        { enabled: !!frameworkId && isFramework && !!item }
     );
 
     const baseArticles = useMemo(() => {
@@ -327,6 +322,9 @@ export default function RegulationDetail() {
             frameworkStats[fw] = (frameworkStats[fw] || 0) + 1;
         });
     });
+
+    if (!regId) return <Redirect to={`/clients/${clientId}/compliance-obligations`} />;
+    if (!item) return <Redirect to="/404" />;
 
     return (
         <DashboardLayout>
