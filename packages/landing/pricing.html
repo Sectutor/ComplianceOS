@@ -119,6 +119,14 @@
         </div>
     </aside>
 
+    <a href="/state-of-startup-security-2026.html" class="block bg-brand-50 border-b border-brand-200 text-center text-xs sm:text-sm font-semibold text-navy-900 py-2.5 px-4 hover:bg-brand-100 transition-colors">
+        <span class="inline-flex flex-wrap items-center justify-center gap-2">
+            <span class="px-1.5 py-0.5 rounded bg-brand-500 text-white text-[10px] font-extrabold uppercase tracking-wider">New</span>
+            <span>2026 report: 42% of recently funded startups show no public SOC 2, ISO, or trust signal.</span>
+            <span class="text-brand-700">Get the report &rarr;</span>
+        </span>
+    </a>
+
     <!-- Navigation -->
     <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -134,6 +142,7 @@
                 <a href="#addons" class="hover:text-navy-900 transition-colors">Sprint &amp; Install</a>
                 <a href="#calculator" class="hover:text-navy-900 transition-colors">Cost Calculator</a>
                 <a href="#comparison" class="hover:text-navy-900 transition-colors">Compare</a>
+                <a href="/state-of-startup-security-2026.html" class="hover:text-navy-900 transition-colors">2026 Report</a>
                 <a href="#faq" class="hover:text-navy-900 transition-colors">FAQ</a>
             </nav>
             <div class="flex items-center gap-3">
@@ -492,7 +501,7 @@
                             </div>
                             <div class="flex items-start gap-2.5">
                                 <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs flex-shrink-0">&check;</span>
-                                <span><strong class="text-white">ComplianceOS Software License included in package</strong></span>
+                                <span><strong class="text-white">Software license is not included.</strong> Add Professional ($1,592 founding, $14,492 total) or Lifetime ($3,992 founding, $16,892 total).</span>
                             </div>
                         </div>
                     </div>
@@ -658,7 +667,7 @@
                                     <div class="flex items-center gap-3">
                                         <input type="checkbox" id="calc-add-sprint" onchange="updateCalc()" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
                                         <div>
-                                            <div class="text-xs font-bold text-navy-900">Audit Ready Sprint (30 Days)</div>
+                                            <div class="text-xs font-bold text-navy-900">Audit Ready Sprint (45 Days)</div>
                                             <div class="text-[11px] text-slate-500">Full audit-ready white-glove support</div>
                                         </div>
                                     </div>
@@ -949,6 +958,7 @@
                 <a href="pricing.html" class="text-navy-900 font-bold transition-colors">Pricing</a>
                 <a href="https://github.com/Sectutor/ComplianceOS-Core" target="_blank" rel="noopener" class="hover:text-navy-900 transition-colors">GitHub</a>
                 <a href="selfhosted/index.html" class="hover:text-navy-900 transition-colors">Self-Host Docs</a>
+                <a href="state-of-startup-security-2026.html" class="hover:text-navy-900 transition-colors">2026 Report</a>
                 <a href="community.html" class="hover:text-navy-900 transition-colors">Community</a>
                 <a href="privacy.html" class="hover:text-navy-900 transition-colors">Privacy</a>
                 <a href="terms.html" class="hover:text-navy-900 transition-colors">Terms</a>
@@ -1059,12 +1069,12 @@
         }
 
         function updateCalc() {
-            const proData = PRICING_DATA.pro;
+            const tierData = calcTier === 'lifetime' ? PRICING_DATA.lifetime : PRICING_DATA.pro;
             const hasInstall = document.getElementById('calc-add-install').checked;
             const hasSprint = document.getElementById('calc-add-sprint').checked;
 
-            const baseStandard = proData.standard;
-            const discount = isFounding ? proData.discount : 0;
+            const baseStandard = tierData.standard;
+            const discount = isFounding ? tierData.discount : 0;
             const baseFinal = baseStandard - discount;
 
             let addOnsTotal = 0;
