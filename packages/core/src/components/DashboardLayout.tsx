@@ -30,7 +30,7 @@ import {
   LayoutDashboard, LogOut, PanelLeft, Users, User, Shield, FileText, Calendar,
   Link, ClipboardCheck, FileBarChart, Bell, Settings, BookOpen, ChevronRight,
   ChevronDown, Scale, Lock, History, AlertTriangle, Activity, Database, Bug,
-  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette
+  ClipboardList, Megaphone, Building2, ListTodo, MessageSquare, Star, LayoutGrid, Inbox, Sparkles, Briefcase, Rocket, ShieldAlert, Globe, ShieldCheck, Zap, Target, Search, Code, Radar, Brain, Compass, Flag, GraduationCap, Video, Upload, X, Loader2, Cloud, GitBranch, Server, Key, Palette, Bot, UserCheck
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Redirect } from "wouter";
@@ -513,6 +513,17 @@ function DashboardLayoutContent({
   const { isPremiumStatus } = useClientContext();
   const isPremium = isPremiumStatus && enabledInBuild;
 
+  // Pending Sentinel count for the Action Center badge. Queried only when a
+  // client is selected; coolify showed this on the always-visible Action Center link.
+  const { data: sentinelStats } = trpc.sentinel.getStats.useQuery(
+    { clientId: persistentClientId as number },
+    {
+      enabled: typeof persistentClientId === "number" && persistentClientId > 0,
+      refetchInterval: 15000,
+    }
+  );
+  const pendingSentinelCount = sentinelStats?.totalPending ?? 0;
+
   // Safe Rollback Toggle:
   // Defaults to the streamlined consolidated groups.
   // Can be instantly rolled back by adding `?legacy_sidebar=true` to the URL, setting `localStorage.setItem('legacy_sidebar', 'true')`,
@@ -533,7 +544,14 @@ function DashboardLayoutContent({
           { icon: Rocket, label: "Start Here", path: "/start-here" },
           { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
           { icon: Users, label: "Clients", path: "/clients" },
+          {
+            icon: Inbox,
+            label: "Action Center",
+            path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
+            badge: pendingSentinelCount > 0 ? pendingSentinelCount.toLocaleString() : undefined,
+          },
           { icon: Settings, label: "Settings", path: "/settings" },
+          { icon: Sparkles, label: "License & Plans", path: "/settings/license" },
           ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
           { icon: GraduationCap, label: "Employee Onboarding", path: "/onboarding" },
         ]
@@ -544,6 +562,8 @@ function DashboardLayoutContent({
           { icon: Shield, label: "Global Control Library", path: "/controls" },
           ...(persistentClientId ? [
             { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
+            { icon: GitBranch, label: "Harmonization", path: "/harmonization" },
+            { icon: GraduationCap, label: "Guides", path: "/guides" },
           ] : []),
           { icon: LayoutGrid, label: "Frameworks Library", path: "/frameworks" },
           learningZoneMenuItem
@@ -615,6 +635,7 @@ function DashboardLayoutContent({
             },
             { icon: Users, label: "People & Org", path: "/people" },
             { icon: FileBarChart, label: "RACI Matrix", path: "/raci-matrix" },
+            { icon: UserCheck, label: "Access Reviews", path: "/access-reviews" },
             { icon: Palette, label: "Client Branding", path: "/settings?tab=branding" },
           ]
         },
@@ -649,6 +670,19 @@ function DashboardLayoutContent({
       legacy.push({
         label: "AI & App Security",
         items: [
+          {
+            icon: Bot,
+            label: "Agent Command Center",
+            path: "/agent",
+            submenu: [
+              { label: "Multi-Agent Cockpit", path: "/agent" },
+              { label: "Sentinel & Action Inbox", path: "/agent?tab=sentinel" },
+              { label: "Fleet Directory", path: "/agent?tab=teammates" },
+              { label: "Approval Inbox", path: "/agent?tab=approvals" },
+              { label: "Scheduled Routines", path: "/agent?tab=routines" },
+              { label: "Memory Cortex (VFS)", path: "/agent?tab=memory" },
+            ]
+          },
           { icon: Shield, label: "Security Projects", path: "/projects" },
           { icon: Brain, label: "AI Governance", path: "/ai-governance", isPremium: true },
           { icon: Code, label: "Threat Modeling", path: "/dev/projects", isPremium: true },
@@ -663,6 +697,7 @@ function DashboardLayoutContent({
           { icon: Search, label: "Discovery", path: "/vendors/discovery" },
           { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
           { icon: ClipboardList, label: "Questionnaires", path: "/questionnaires" },
+          { icon: BookOpen, label: "Answer Library", path: "/answer-library" },
           { icon: Target, label: "Assessment Templates", path: "/vendors/templates" },
         ]
       });
@@ -776,6 +811,7 @@ function DashboardLayoutContent({
                 { label: "Invitations", path: "/settings/invitations" },
                 { label: "Integrations", path: "/settings/integrations" },
                 { label: "Backup / Restore", path: "/settings?tab=backup-restore" },
+                { label: "License & Plans", path: "/settings/license" },
               ]
             },
             ...(isAdminOrOwner ? [{ icon: GraduationCap, label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
@@ -814,6 +850,12 @@ function DashboardLayoutContent({
         { icon: Rocket, label: "Start Here", path: "/start-here" },
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Users, label: "Clients", path: "/clients" },
+        {
+          icon: Inbox,
+          label: "Action Center",
+          path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
+          badge: pendingSentinelCount > 0 ? pendingSentinelCount.toLocaleString() : undefined,
+        },
         ...(persistentClientId ? [
           { icon: Compass, label: "Compliance Journey", path: `/clients/${persistentClientId}/compliance-journey` },
           { icon: Zap, label: "Workflows", path: "/workflows" },
@@ -832,6 +874,7 @@ function DashboardLayoutContent({
             { label: "Invitations", path: "/settings/invitations" },
             { label: "Integrations", path: "/settings/integrations" },
             { label: "Backup / Restore", path: "/settings?tab=backup-restore" },
+            { label: "License & Plans", path: "/settings/license" },
           ]
         },
       ]
@@ -852,6 +895,7 @@ function DashboardLayoutContent({
               { label: "Global Control Library", path: "/controls" },
               { label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
               { label: "Control Mappings", path: "/mappings" },
+              { label: "Framework Harmonization", path: "/harmonization" },
             ]
           },
           {
@@ -880,6 +924,7 @@ function DashboardLayoutContent({
             submenu: [
               { label: "People Directory", path: "/people" },
               { label: "RACI Matrix", path: "/raci-matrix" },
+              { label: "Access Reviews", path: "/access-reviews" },
               ...(isAdminOrOwner ? [{ label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
             ]
           },
@@ -960,6 +1005,7 @@ function DashboardLayoutContent({
               { label: "All Vendors", path: "/vendors/all" },
               { label: "Discovery", path: "/vendors/discovery" },
               { label: "Questionnaires", path: "/questionnaires" },
+              { label: "Answer Library", path: "/answer-library" },
               { label: "Assessment Templates", path: "/vendors/templates" },
               { label: "Contract Templates", path: "/vendors/contracts" },
             ]
@@ -982,6 +1028,8 @@ function DashboardLayoutContent({
             { label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
             { label: "Control Frameworks Dashboard", path: "/compliance" },
             { label: "Control Mappings", path: "/mappings" },
+            { label: "Harmonization", path: "/harmonization" },
+            { label: "Guides", path: "/guides" },
           ] : []),
         ]
       },
@@ -1125,6 +1173,26 @@ function DashboardLayoutContent({
           { icon: Calendar, label: "Calendar", path: "/calendar" },
           { icon: ListTodo, label: "Tasks", path: "/tasks" },
           { icon: MessageSquare, label: "Communication", path: "/communication" },
+        ]
+      });
+
+      // Client-scoped and not premium-gated, matching coolify's AI & Automation group.
+      consolidated.push({
+        label: "AI & Automation",
+        items: [
+          {
+            icon: Bot,
+            label: "Agent Command Center",
+            path: "/agent",
+            submenu: [
+              { label: "Multi-Agent Cockpit", path: "/agent" },
+              { label: "Sentinel & Action Inbox", path: "/agent?tab=sentinel" },
+              { label: "Fleet Directory", path: "/agent?tab=teammates" },
+              { label: "Approval Inbox", path: "/agent?tab=approvals" },
+              { label: "Scheduled Routines", path: "/agent?tab=routines" },
+              { label: "Memory Cortex (VFS)", path: "/agent?tab=memory" },
+            ]
+          },
         ]
       });
     }
@@ -1540,6 +1608,13 @@ function DashboardLayoutContent({
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  onClick={() => setLocation('/settings/license')}
+                  className="cursor-pointer"
+                >
+                  <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                  <span>License & Plans</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={async () => {
                     await signOut();
                     // Use window.location.href to ensure a full refresh/clear of state
@@ -1666,6 +1741,11 @@ function CollapsibleGroup({
                           className={`h-4.5 w-4.5 min-w-[1.125rem] ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
                         />
                         <span className="ml-2 uppercase text-[11px] tracking-wide flex-1 truncate">{highlightMatch(item.label, menuSearch)}</span>
+                        {item.badge && (
+                          <Badge className="ml-auto bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider">
+                            {item.badge}
+                          </Badge>
+                        )}
                         {item.isPremium && (
                           <Badge className="ml-auto bg-indigo-500/20 text-indigo-400 border-none px-1.5 py-0 text-[8px] font-bold uppercase tracking-tight">
                             Pro
