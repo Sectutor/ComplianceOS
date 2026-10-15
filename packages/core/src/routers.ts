@@ -226,6 +226,24 @@ import { createSsoRouter } from "./server/routers/sso";
 
 const adversaryAlertSettingsCache = new Map<number, any>();
 
+// The frontend calls the vendor-assessment procedures as `trpc.vendors.*`, so
+// `vendors` is the union of the vendors module router and the vendor
+// assessments router. On name collisions the assessments implementation wins
+// (it is what the frontend was written against), except for the procedures
+// listed below whose current callers match the vendors module's input/output
+// (e.g. list -> { vendor, ...v } rows + reviewStatus filter, listDpas with
+// clientId only, updateVendor with trustCenterData/additionalDocuments
+// passthrough, listAssessments with optional vendorId).
+const vendorAssessmentsRouter = createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure);
+const VENDORS_MODULE_PREFERRED = ["list", "listDpas", "updateVendor", "listAssessments"] as const;
+const mergedVendorsRouter = router({
+  ...(vendorsRouter as any)._def.record,
+  ...(vendorAssessmentsRouter as any)._def.record,
+  ...Object.fromEntries(
+    VENDORS_MODULE_PREFERRED.map((name) => [name, (vendorsRouter as any)._def.record[name]])
+  ),
+}) as typeof vendorsRouter & typeof vendorAssessmentsRouter;
+
 export const appRouter = router({
   clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
   users: usersSubRouter,
@@ -262,13 +280,13 @@ export const appRouter = router({
   // with a superset of procedures (premium-gated). Mounting the factory here as
   // well was dead code — the later key silently shadowed it. Kept unmounted on
   // purpose; see KNOWN_UNMOUNTED in routerMountCoverage.test.ts.
-  vendors: vendorsRouter,
+  vendors: mergedVendorsRouter,
   roadmap: createRoadmapRouter(t, premiumClientProcedure, adminProcedure, premiumClientProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
   vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
-  vendorAssessments: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
+  vendorAssessments: vendorAssessmentsRouter,
 
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),

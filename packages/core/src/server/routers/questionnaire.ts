@@ -14,6 +14,30 @@ import { and, eq, desc, asc, inArray, ne } from "drizzle-orm";
 import { BUILTIN_TEMPLATES } from "../../lib/questionnaire/templates";
 import { STANDARD_TEMPLATES } from "./standardTemplatesData";
 
+// Due dates arrive either as a date-only string from <input type="date">
+// (e.g. "2026-10-20") or as a full ISO datetime. Empty string / null clear it.
+// Output: Date | null | undefined (undefined = not provided).
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const dueDateInput = z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((value, ctx): Date | null | undefined => {
+        if (value === undefined) return undefined;
+        if (value === null || value.trim() === "") return null;
+        const raw = value.trim();
+        const isDateOnly = DATE_ONLY_RE.test(raw);
+        if (!isDateOnly && !z.string().datetime({ offset: true }).safeParse(raw).success) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date: expected YYYY-MM-DD or ISO datetime" });
+            return z.NEVER;
+        }
+        const date = new Date(isDateOnly ? `${raw}T00:00:00.000Z` : raw);
+        if (Number.isNaN(date.getTime())) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
+            return z.NEVER;
+        }
+        return date;
+    });
+
 // Standard assessment blueprints (ISO 27001:2022, CIS v8, CAIQ v4, SOC 2, AI governance,
 // HIPAA, GDPR, ...) exposed as questionnaire templates. Prefixed "std-" so their ids
 // never collide with BUILTIN_TEMPLATES ids (e.g. soc2-type2, hipaa-security).
@@ -290,7 +314,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 vendorName: z.string().optional(),
                 vendorEmail: z.string().optional(),
                 priority: z.string().optional(),
-                dueDate: z.string().datetime().nullable().optional(),
+                dueDate: dueDateInput,
             }))
             .mutation(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
                 const db = await getDb();
@@ -310,7 +334,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                     vendorName: input.vendorName,
                     vendorEmail: input.vendorEmail,
                     priority: input.priority || "medium",
-                    dueDate: input.dueDate ? new Date(input.dueDate) : null,
+                    dueDate: input.dueDate ?? null,
                     status: "in_progress",
                     createdAt: new Date(),
                     updatedAt: new Date(),
@@ -332,7 +356,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 productName: z.string().nullable().optional(),
                 vendorName: z.string().nullable().optional(),
                 vendorEmail: z.string().nullable().optional(),
-                dueDate: z.string().datetime().nullable().optional(),
+                dueDate: dueDateInput,
                 priority: z.enum(["high", "medium", "low"]).optional(),
             }))
             .mutation(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
@@ -349,7 +373,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                     if (data[key] === undefined) delete data[key];
                 }
                 if (dueDate !== undefined) {
-                    data.dueDate = dueDate === null ? null : new Date(dueDate);
+                    data.dueDate = dueDate;
                 }
 
                 const [updated] = await db.update(questionnaires)
