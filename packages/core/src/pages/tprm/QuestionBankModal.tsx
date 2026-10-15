@@ -36,7 +36,7 @@ export function QuestionBankModal({
     const [selectedQuestions, setSelectedQuestions] = useState<Map<string, any>>(new Map());
 
     // Fetch master question bank from backend
-    const { data: masterQuestionBank, isLoading } = trpc.vendorAssessments.getQuestionBank.useQuery(
+    const { data: masterQuestionBank, isLoading } = trpc.vendors.getQuestionBank.useQuery(
         undefined,
         { enabled: isOpen }
     );

@@ -17,7 +17,6 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@complianceos/ui/ui/StatusBadge";
-import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { format } from "date-fns";
 import {
     AlertDialog,
@@ -30,28 +29,6 @@ import {
     AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
 import { PageGuide } from "@/components/PageGuide";
-import { useVendorRiskOverviewQuery } from "./vendorRiskApi";
-import type { VendorRiskResult } from "./vendorRiskApi";
-
-/** Badge variant per TPRM tier (Tier 1 → error, Tier 2 → warning, Tier 3 → success). */
-function tierBadgeVariant(tier: string): "success" | "warning" | "error" | "info" {
-    if (tier === "Tier 1 (Critical)") return "error";
-    if (tier === "Tier 2 (High)") return "warning";
-    if (tier === "Tier 3 (Medium)") return "success";
-    return "info";
-}
-
-/** Short date + "due in N days" / "overdue by N days" for the next review. */
-function formatNextReview(iso: string): string {
-    const due = new Date(iso);
-    if (isNaN(due.getTime())) return "—";
-    const base = due.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-    const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
-    if (days < 0) return `${base} (overdue ${Math.abs(days)}d)`;
-    if (days === 0) return `${base} (due today)`;
-    if (days <= 30) return `${base} (due in ${days}d)`;
-    return base;
-}
 
 interface VendorListProps {
     mode?: 'all' | 'discovery' | 'reviews';
@@ -105,9 +82,6 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
     }, { enabled: !!clientId });
 
     const { data: requests, refetch: refetchRequests } = trpc.vendorRequests.list.useQuery({ clientId }, { enabled: !!clientId });
-
-    // Per-vendor risk register (vendorRisk.getOverview) — degrades to dash when unavailable
-    const { data: riskOverview, isLoading: isRiskLoading, isError: isRiskError } = useVendorRiskOverviewQuery(clientId);
 
     // --- Mutations ---
     const createMutation = trpc.vendors.createVendor.useMutation({
@@ -195,204 +169,173 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
         }
     };
 
-    const filteredVendors = vendors?.map((row: any) => {
-        const v = row?.vendor || row;
-        return { ...v, vendor: v };
-    }).filter((row: any) => {
-        const v = row.vendor;
-        return v && v.name && (
-            v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (v.description && v.description.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-    });
+    const filteredVendors = vendors?.filter((row: any) =>
+        row.vendor && (row.vendor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.vendor.description?.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
-    // Map vendorId → risk record (single overview query, no per-row queries)
-    const riskByVendor = useMemo(() => {
-        const map = new Map<number, VendorRiskResult>();
-        riskOverview?.vendors?.forEach((r) => map.set(r.vendorId, r));
-        return map;
-    }, [riskOverview]);
-
-    /** Compact RISK TIER cell: Skeleton while loading, dash on error/empty, badge + next review otherwise. */
-    const renderRiskTierCell = (vendorId: number) => {
-        if (isRiskLoading) {
-            return (
-                <div className="flex flex-col gap-1.5">
-                    <Skeleton className="h-5 w-24" />
-                    <Skeleton className="h-3 w-16" />
-                </div>
-            );
+    const getPageTitle = () => {
+        switch (mode) {
+            case 'discovery': return { title: 'Discovery Hub', desc: 'Review and classify newly discovered vendors.' };
+            case 'reviews': return { title: 'Security Reviews', desc: 'Manage active security assessments.' };
+            default: return { title: 'All Vendors', desc: 'Complete inventory of third-party vendors.' };
         }
-        const risk = isRiskError ? undefined : riskByVendor.get(vendorId);
-        if (!risk) {
-            return <span className="text-xs text-muted-foreground">—</span>;
-        }
-        return (
-            <div className="flex flex-col gap-1">
-                <StatusBadge status={tierBadgeVariant(risk.tier)} label={risk.tier} size="sm" />
-                <span className="text-xs text-muted-foreground">{formatNextReview(risk.nextReviewDate)}</span>
-            </div>
-        );
     };
 
     return (
         <div className="space-y-6 page-transition">
+            <div className="flex justify-between items-start animate-slide-down">
+                <PageGuide
+                    {...useMemo(() => {
+                        switch (mode) {
+                            case 'discovery': return {
+                                title: 'Discovery Hub',
+                                description: 'Review and classify newly discovered vendors.',
+                                rationale: 'Identify shadow IT and bring unmanaged vendors under governance.',
+                                howToUse: [
+                                    { step: "Review", description: "Examine detected apps and services." },
+                                    { step: "Classify", description: "Assign ownership and criticality." },
+                                    { step: "Onboard", description: "Convert to active vendor inventory." }
+                                ],
+                                scenarios: [
+                                    {
+                                        title: "Identifying Shadow IT",
+                                        example: "An automated scan has detected multiple instances of unauthorized AI tools being used by the marketing team.",
+                                        auditTip: "Instead of just deleting them, 'Classify' them here to decide if they should be approved with security guardrails or moved to a 'Restricted' status to prove oversight."
+                                    }
+                                ]
+                            };
+                            case 'reviews': return {
+                                title: 'Security Reviews',
+                                description: 'Manage active security assessments.',
+                                rationale: 'Ensure vendors meet your security standards before onboarding.',
+                                howToUse: [
+                                    { step: "Track", description: "Monitor progress of sent questionnaires." },
+                                    { step: "Analyze", description: "Review responses and identified gaps." },
+                                    { step: "Approve", description: "Sign off on vendor security posture." }
+                                ],
+                                scenarios: [
+                                    {
+                                        title: "Urgent Vendor Security Questionnaire (VSQ)",
+                                        example: "A new critical vendor needs to be onboarded by end-of-day for a board meeting project.",
+                                        auditTip: "Use the 'Details' link to jump to the individual vendor assessment. You can see exactly which security questions are still 'Pending' and call the vendor contact to speed them up."
+                                    }
+                                ]
+                            };
+                            default: return {
+                                title: 'All Vendors',
+                                description: 'Complete inventory of third-party vendors.',
+                                rationale: 'Centralized view of all external relationships. ISO 27001 Annex A.15 requires maintaining a list of all suppliers that may access your assets.',
+                                howToUse: [
+                                    {
+                                        step: "Quick Search",
+                                        description: "Find vendors by name, category, or business owner.",
+                                        targetId: "vendor-search-input"
+                                    },
+                                    {
+                                        step: "Request Review",
+                                        description: "Allow employees to submit new vendors for security sign-off.",
+                                        targetId: "vendor-request-btn"
+                                    },
+                                    {
+                                        step: "Direct Entry",
+                                        description: "Manually add a confirmed vendor to your active inventory.",
+                                        targetId: "vendor-add-direct"
+                                    }
+                                ],
+                                scenarios: [
+                                    {
+                                        title: "Supply Chain Rationalization",
+                                        example: "You want to reduce costs by consolidating multiple SaaS tools that do the same thing.",
+                                        auditTip: "Filter by 'Category' (e.g., 'Project Management'). This gives you a side-by-side view of all vendors in that space, allowing you to see which has the highest 'Trust Score' for consolidation."
+                                    },
+                                    {
+                                        title: "Annual High-Criticality Audit",
+                                        example: "Regulation requires you to perform a deep-dive security review of your top 10 most critical vendors every year.",
+                                        auditTip: "Sort the list by 'Criticality'. Focus your internal audit resources on vendors marked as 'High' risk to maximize compliance coverage with minimal effort."
+                                    }
+                                ]
+                            };
+                        }
+                    }, [mode])}
+                />
+                {mode === 'all' && (
+                    <div className="flex gap-2">
+                        {/* 
+                            Logic: If Admin, show both "Add Vendor" (Fast) and "Review Requests".
+                            If Non-Admin (simulated), "Request Vendor" is primary.
+                            For now, we show both for demo.
+                        */}
+                        <Button id="vendor-request-btn" variant="outline" onClick={() => setIsRequestOpen(true)}>
+                            <BriefcaseIcon className="w-4 h-4 mr-2" /> Request Vendor
+                        </Button>
+                        <Link href={`/clients/${clientId}/vendors/onboard`}>
+                            <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
+                                <Plus className="w-4 h-4 mr-2" /> Subprocessor Onboarding
+                            </Button>
+                        </Link>
+                        <Button id="vendor-add-direct" onClick={() => setIsAddOpen(true)}>
+                            <Plus className="w-4 h-4 mr-2" /> Add Directly
+                        </Button>
+                    </div>
+                )}
+
+            </div>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-6">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <TabsList className="bg-muted p-1 h-auto flex flex-wrap justify-start gap-1 rounded-lg border border-border">
-                            <TabsTrigger
-                                value="active"
-                                className="px-4 py-2 rounded-md text-sm font-semibold text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                            >
-                                Active Vendors
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="requests"
-                                className="relative px-4 py-2 rounded-md text-sm font-semibold text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                            >
-                                Pending Requests
-                                {requests?.filter((r: any) => r.status === 'pending').length > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                    </span>
-                                )}
-                            </TabsTrigger>
-                        </TabsList>
-                        {activeTab === 'active' && (
-                            <div className="flex items-center gap-2">
-                                <div className="relative w-56" id="vendor-search-input">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Search vendors..."
-                                        className="pl-9 bg-card"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                                <Button variant="outline" size="icon"><Filter className="w-4 h-4" /></Button>
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <PageGuide
-                            {...useMemo(() => {
-                                switch (mode) {
-                                    case 'discovery': return {
-                                        title: 'Discovery Hub',
-                                        description: 'Review and classify newly discovered vendors.',
-                                        rationale: 'Identify shadow IT and bring unmanaged vendors under governance.',
-                                        howToUse: [
-                                            { step: "Review", description: "Examine detected apps and services." },
-                                            { step: "Classify", description: "Assign ownership and criticality." },
-                                            { step: "Onboard", description: "Convert to active vendor inventory." }
-                                        ],
-                                        scenarios: [
-                                            {
-                                                title: "Identifying Shadow IT",
-                                                example: "An automated scan has detected multiple instances of unauthorized AI tools being used by the marketing team.",
-                                                auditTip: "Instead of just deleting them, 'Classify' them here to decide if they should be approved with security guardrails or moved to a 'Restricted' status to prove oversight."
-                                            }
-                                        ]
-                                    };
-                                    case 'reviews': return {
-                                        title: 'Security Reviews',
-                                        description: 'Manage active security assessments.',
-                                        rationale: 'Ensure vendors meet your security standards before onboarding.',
-                                        howToUse: [
-                                            { step: "Track", description: "Monitor progress of sent questionnaires." },
-                                            { step: "Analyze", description: "Review responses and identified gaps." },
-                                            { step: "Approve", description: "Sign off on vendor security posture." }
-                                        ],
-                                        scenarios: [
-                                            {
-                                                title: "Urgent Vendor Security Questionnaire (VSQ)",
-                                                example: "A new critical vendor needs to be onboarded by end-of-day for a board meeting project.",
-                                                auditTip: "Use the 'Details' link to jump to the individual vendor assessment. You can see exactly which security questions are still 'Pending' and call the vendor contact to speed them up."
-                                            }
-                                        ]
-                                    };
-                                    default: return {
-                                        title: 'All Vendors',
-                                        description: 'Complete inventory of third-party vendors.',
-                                        rationale: 'Centralized view of all external relationships. ISO 27001 Annex A.15 requires maintaining a list of all suppliers that may access your assets.',
-                                        howToUse: [
-                                            {
-                                                step: "Quick Search",
-                                                description: "Find vendors by name, category, or business owner.",
-                                                targetId: "vendor-search-input"
-                                            },
-                                            {
-                                                step: "Request Review",
-                                                description: "Allow employees to submit new vendors for security sign-off.",
-                                                targetId: "vendor-request-btn"
-                                            },
-                                            {
-                                                step: "Direct Entry",
-                                                description: "Manually add a confirmed vendor to your active inventory.",
-                                                targetId: "vendor-add-direct"
-                                            }
-                                        ],
-                                        scenarios: [
-                                            {
-                                                title: "Supply Chain Rationalization",
-                                                example: "You want to reduce costs by consolidating multiple SaaS tools that do the same thing.",
-                                                auditTip: "Filter by 'Category' (e.g., 'Project Management'). This gives you a side-by-side view of all vendors in that space, allowing you to see which has the highest 'Trust Score' for consolidation."
-                                            },
-                                            {
-                                                title: "Annual High-Criticality Audit",
-                                                example: "Regulation requires you to perform a deep-dive security review of your top 10 most critical vendors every year.",
-                                                auditTip: "Sort the list by 'Criticality'. Focus your internal audit resources on vendors marked as 'High' risk to maximize compliance coverage with minimal effort."
-                                            }
-                                        ]
-                                    };
-                                }
-                            }, [mode])}
-                        />
-                        {mode === 'all' && (
-                            <div className="flex gap-2">
-                                {/* 
-                                    Logic: If Admin, show both "Add Vendor" (Fast) and "Review Requests".
-                                    If Non-Admin (simulated), "Request Vendor" is primary.
-                                    For now, we show both for demo.
-                                */}
-                                <Button id="vendor-request-btn" variant="outline" onClick={() => setIsRequestOpen(true)}>
-                                    <BriefcaseIcon className="w-4 h-4 mr-2" /> Request Vendor
-                                </Button>
-                                <Link href={`/clients/${clientId}/vendors/onboard`}>
-                                    <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
-                                        <Plus className="w-4 h-4 mr-2" /> Subprocessor Onboarding
-                                    </Button>
-                                </Link>
-                                <Button id="vendor-add-direct" onClick={() => setIsAddOpen(true)}>
-                                    <Plus className="w-4 h-4 mr-2" /> Add Directly
-                                </Button>
-                            </div>
-                        )}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <TabsList className="bg-slate-100 p-1 h-auto flex flex-wrap justify-start gap-1.5 border border-slate-200 rounded-xl">
+                        <TabsTrigger
+                            value="active"
+                            className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:shadow-xs text-slate-600 hover:text-slate-900 transition-all px-4 py-2 rounded-lg text-xs md:text-sm font-semibold active:bg-[#153a6a]"
+                        >
+                            Active Vendors
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="requests"
+                            className="relative data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:shadow-xs text-slate-600 hover:text-slate-900 transition-all px-4 py-2 rounded-lg text-xs md:text-sm font-semibold active:bg-[#153a6a]"
+                        >
+                            Pending Requests
+                            {requests?.filter((r: any) => r.status === 'pending').length > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                </span>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
 
-                    </div>
-
+                    {activeTab === 'active' && (
+                        <div className="flex gap-4">
+                            <div className="relative w-64" id="vendor-search-input">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                                <Input
+                                    placeholder="Search vendors..."
+                                    className="pl-9 bg-white"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <Button variant="outline" size="icon"><Filter className="w-4 h-4" /></Button>
+                        </div>
+                    )}
                 </div>
 
                 <TabsContent value="active" className="space-y-4">
                     {isLoading ? (
-                        <div className="space-y-3">
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
+                        <div className="flex justify-center p-12">
+                            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-border shadow-sm overflow-hidden bg-card">
+                        <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-white">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-primary hover:bg-primary border-none">
+                                    <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none">
                                         <TableHead className="text-white font-bold h-12">Name</TableHead>
                                         <TableHead className="text-white font-bold h-12">Category</TableHead>
                                         <TableHead className="text-white font-bold h-12">Trust Score</TableHead>
                                         <TableHead className="text-white font-bold h-12">Risk Level</TableHead>
                                         <TableHead className="text-white font-bold h-12">Status</TableHead>
-                                        <TableHead className="text-white font-bold h-12">Risk Tier</TableHead>
                                         <TableHead className="text-white font-bold h-12">Source</TableHead>
                                         <TableHead className="text-right text-white font-bold h-12">Actions</TableHead>
                                     </TableRow>
@@ -400,7 +343,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                 <TableBody>
                                     {filteredVendors?.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-24 text-center">
+                                            <TableCell colSpan={7} className="h-24 text-center">
                                                 No vendors found matching criteria.
                                             </TableCell>
                                         </TableRow>
@@ -408,19 +351,19 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                     {filteredVendors?.map(({ vendor }: { vendor: any }) => (
                                         <TableRow 
                                             key={vendor.id} 
-                                            className="bg-blue-500/[0.03] border-b border-blue-500/10 transition-all duration-200 hover:bg-blue-500/10 cursor-pointer" 
+                                            className="bg-sky-50 border-b border-sky-200 transition-all duration-200 hover:bg-sky-100 hover:shadow-sm cursor-pointer" 
                                             onClick={() => window.location.href = `/clients/${clientId}/vendors/${vendor.id}`}
                                         >
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm uppercase border border-primary/10 shadow-sm">
+                                                    <div className="h-10 w-10 rounded-xl bg-[#1C4D8D]/10 flex items-center justify-center text-[#1C4D8D] font-bold text-sm uppercase border border-[#1C4D8D]/10 shadow-sm">
                                                         {vendor.name.substring(0, 2)}
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <Link href={`/clients/${clientId}/vendors/${vendor.id}`}>
-                                                            <span className="cursor-pointer hover:underline text-brand font-bold">{vendor.name}</span>
+                                                            <span className="cursor-pointer hover:underline text-[#1C4D8D] font-bold">{vendor.name}</span>
                                                         </Link>
-                                                        <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                                        <span className="text-xs text-slate-500 truncate max-w-[200px]">
                                                             {vendor.description || "No description"}
                                                         </span>
                                                     </div>
@@ -453,12 +396,11 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                             <TableCell>
                                                 <div className={cn(
                                                     "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                                                    vendor.reviewStatus === 'needs_review' ? "bg-amber-100 text-amber-800" : "bg-muted text-foreground/80"
+                                                    vendor.reviewStatus === 'needs_review' ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-800"
                                                 )}>
                                                     {vendor.reviewStatus === 'needs_review' ? 'Review Needed' : vendor.status}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{renderRiskTierCell(vendor.id)}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                                     {vendor.source === 'SSO' ? <ShieldAlert className="w-3.5 h-3.5 text-blue-500" /> : <FileText className="w-3.5 h-3.5" />}
@@ -469,7 +411,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                                 <div className="flex justify-end gap-2">
                                                     {mode === 'discovery' ? (
                                                         <>
-                                                            <Button variant="ghost" size="sm" asChild className="h-8 text-primary">
+                                                            <Button variant="ghost" size="sm" asChild className="h-8 text-indigo-600">
                                                                 <Link href={`/clients/${clientId}/vendors/${vendor.id}`}>
                                                                     Start Review <Play className="w-3 h-3 ml-1" />
                                                                 </Link>
@@ -477,7 +419,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
                                                                 onClick={(e) => handleDelete(e, vendor)}
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
@@ -504,21 +446,21 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                 <TabsContent value="requests" className="space-y-4">
                     <div className="grid gap-6">
                         {requests?.length === 0 && (
-                            <div className="flex flex-col items-center justify-center p-12 text-center bg-card rounded-xl border-2 border-dashed border-border">
-                                <BriefcaseIcon className="h-12 w-12 text-muted-foreground/50 mb-2" />
-                                <h3 className="font-semibold text-lg text-foreground">No Pending Requests</h3>
-                                <p className="text-sm text-muted-foreground mt-1">Employees can request new vendors here.</p>
+                            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-white rounded-lg border border-dashed">
+                                <BriefcaseIcon className="h-12 w-12 text-slate-300 mb-2" />
+                                <h3 className="font-semibold text-lg text-slate-700">No Pending Requests</h3>
+                                <p className="text-sm">Employees can request new vendors here.</p>
                             </div>
                         )}
                         {requests?.map((req: any) => (
-                            <Card key={req.id} className="hover:border-primary/30 transition-colors">
+                            <Card key={req.id} className="bg-white hover:border-indigo-200 transition-colors">
                                 <CardContent className="p-6 flex justify-between items-start">
                                     <div className="flex items-start gap-4">
                                         <div className={cn(
                                             "h-12 w-12 rounded-lg flex items-center justify-center shrink-0",
                                             req.status === 'pending' ? "bg-amber-50 text-amber-600" :
                                                 req.status === 'approved' ? "bg-green-50 text-green-600" :
-                                                    "bg-destructive/10 text-destructive"
+                                                    "bg-red-50 text-red-600"
                                         )}>
                                             <Building2 className="h-6 w-6" />
                                         </div>
@@ -526,31 +468,31 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-lg">{req.name}</h3>
                                                 <Badge variant="outline" className={
-                                                    req.status === 'pending' ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                                                    req.status === 'pending' ? "bg-amber-50 text-amber-700 border-amber-200" :
                                                         req.status === 'approved' ? "bg-green-50 text-green-700 border-green-200" :
-                                                            "bg-destructive/10 text-destructive border-destructive/20"
+                                                            "bg-red-50 text-red-700 border-red-200"
                                                 }>
                                                     {req.status}
                                                 </Badge>
                                             </div>
                                             <p className="text-sm text-muted-foreground mb-3">{req.description}</p>
                                             <div className="flex gap-6 text-sm">
-                                                <div className="flex items-center gap-1.5 text-foreground/70">
+                                                <div className="flex items-center gap-1.5 text-slate-600">
                                                     <User className="h-3.5 w-3.5" />
-                                                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Business Owner:</span>
+                                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Business Owner:</span>
                                                     {req.businessOwner || "N/A"}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-foreground/70">
+                                                <div className="flex items-center gap-1.5 text-slate-600">
                                                     <Building2 className="h-3.5 w-3.5" />
-                                                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Category:</span>
+                                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Category:</span>
                                                     {req.category || "N/A"}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <div className="flex items-center gap-1.5 text-slate-400">
                                                     <span className="text-xs">Requested {req.createdAt ? format(new Date(req.createdAt), 'MMM d, yyyy') : ''}</span>
                                                 </div>
                                             </div>
                                             {req.status === 'rejected' && req.rejectionReason && (
-                                                <div className="mt-3 text-sm text-destructive bg-destructive/10 p-2 rounded">
+                                                <div className="mt-3 text-sm text-red-600 bg-red-50 p-2 rounded">
                                                     Reason: {req.rejectionReason}
                                                 </div>
                                             )}
@@ -559,13 +501,13 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
 
                                     {req.status === 'pending' && (
                                         <div className="flex gap-2">
-                                            <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={() => {
+                                            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200" onClick={() => {
                                                 setSelectedRequestId(req.id);
                                                 setIsRejectOpen(true);
                                             }}>
                                                 Reject
                                             </Button>
-                                            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => {
+                                            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => {
                                                 if (confirm(`Approve request for ${req.name}? This will create a new Vendor record.`)) {
                                                     approveRequestMutation.mutate({ id: req.id, clientId });
                                                 }
@@ -739,7 +681,7 @@ export default function VendorList({ mode = 'all' }: VendorListProps) {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="bg-red-600 hover:bg-red-700"
                             onClick={(e) => {
                                 e.preventDefault();
                                 confirmDelete();

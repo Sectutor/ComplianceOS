@@ -711,10 +711,89 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 const db = await getDb();
                 const qId = parseId(input.id);
                 const q = await loadQuestionnaire(db, qId);
-                if (!q) return { questionnaire: null, questions: [] };
+                if (!q) return { questionnaire: null, questions: [], metadata: null };
                 assertQuestionnaireAccess(ctx, q);
                 const questions = await db.select().from(questionnaireQuestions).where(eq(questionnaireQuestions.questionnaireId, qId));
-                return { questionnaire: q, questions };
+                return {
+                    questionnaire: q,
+                    questions,
+                    metadata: {
+                        name: q.name,
+                        status: q.status,
+                        progress: q.progress,
+                        senderName: q.senderName,
+                        productName: q.productName,
+                        dueDate: q.dueDate,
+                        createdAt: q.createdAt,
+                        updatedAt: q.updatedAt,
+                    },
+                    summary: {
+                        totalQuestions: questions.length,
+                        answeredQuestions: questions.filter((row: { answer?: string | null }) => (row.answer || "").trim().length > 0).length,
+                        pendingQuestions: questions.filter((row: { answer?: string | null }) => !(row.answer || "").trim()).length,
+                    },
+                };
+            }),
+
+        /**
+         * Object-row export used by the questionnaire workspace CSV button.
+         * Tenant check matches exportJSON; rows stay objects so the client can
+         * read Object.keys(questions[0]).
+         */
+        exportExcel: clientProcedure
+            .input(z.object({
+                id: z.union([z.number(), z.string()]),
+                clientId: z.number().optional(),
+            }))
+            .query(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
+                const db = await getDb();
+                const qId = parseId(input.id);
+                const q = await loadQuestionnaire(db, qId);
+                if (!q) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Questionnaire not found" });
+                }
+                assertQuestionnaireAccess(ctx, q);
+                const questions = await db.select().from(questionnaireQuestions).where(eq(questionnaireQuestions.questionnaireId, qId));
+                const rows = questions.map((row: any) => {
+                    const extra = row.extraFields || {};
+                    return {
+                        "Question ID": row.questionId || "",
+                        "Focus Area": row.focusArea || "",
+                        "Sub Focus Area": row.subFocusArea || "",
+                        "Assessment Question": row.question,
+                        "Answer": row.answer || "",
+                        "Confidence": row.confidence ? `${Math.round(Number(row.confidence) <= 1 ? Number(row.confidence) * 100 : Number(row.confidence))}%` : "",
+                        "Sources": (row.sources || []).map((s: any) => s.title || "").filter(Boolean).join("; "),
+                        "Comment": row.comment || "",
+                        ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, v ?? ""])),
+                    };
+                });
+                return {
+                    name: q.name,
+                    status: q.status,
+                    progress: q.progress,
+                    senderName: q.senderName,
+                    createdAt: q.createdAt,
+                    questions: rows,
+                };
+            }),
+
+        submitForReview: clientProcedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number().optional(),
+            }))
+            .mutation(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
+                const db = await getDb();
+                const q = await loadQuestionnaire(db, input.id);
+                if (!q) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Questionnaire not found" });
+                }
+                assertQuestionnaireAccess(ctx, q);
+                await db.update(questionnaires)
+                    .set({ status: "pending_review", updatedAt: new Date() })
+                    .where(eq(questionnaires.id, input.id));
+                return { success: true };
             }),
 
         /**

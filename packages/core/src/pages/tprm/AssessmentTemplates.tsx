@@ -83,13 +83,13 @@ export default function AssessmentTemplates() {
         data: assessmentRequests, 
         isLoading: isRequestsLoading, 
         refetch: refetchRequests 
-    } = trpc.vendorAssessments.listAssessmentRequests.useQuery(
+    } = trpc.vendors.listAssessmentRequests.useQuery(
         { clientId: clientId! },
         { enabled: !!clientId }
     );
 
     // Delete mutation
-    const deleteMutation = trpc.vendorAssessments.deleteTemplate.useMutation({
+    const deleteMutation = trpc.vendors.deleteTemplate.useMutation({
         onSuccess: () => {
             toast.success("Template deleted successfully");
             setTemplateToDelete(null);
@@ -101,7 +101,7 @@ export default function AssessmentTemplates() {
     });
 
     // Seed standard industry templates mutation
-    const seedMutation = trpc.vendorAssessments.seedStandardTemplates.useMutation({
+    const seedMutation = trpc.vendors.seedStandardTemplates.useMutation({
         onSuccess: (data) => {
             toast.success(`Successfully loaded industry standard templates (${data.count} added)!`);
             refetchTemplates();
@@ -113,7 +113,7 @@ export default function AssessmentTemplates() {
 
     const confirmDelete = () => {
         if (templateToDelete) {
-            deleteMutation.mutate({ id: templateToDelete.id, clientId: clientId ?? undefined });
+            deleteMutation.mutate({ id: templateToDelete.id });
         }
     };
 

@@ -129,7 +129,11 @@ export const rateLimit = middleware(async ({ ctx, next, path }) => {
 });
 
 export const isAdmin = middleware(async ({ ctx, next, path }) => {
-    if (!PLATFORM_ADMIN_ROLES.includes(ctx.user?.role || '')) {
+    // Global role "owner" is the self-host / org operator. Dev treats that role as a
+    // global admin for admin procedures and the dashboard. It is intentionally NOT in
+    // PLATFORM_ADMIN_ROLES, so checkClientAccess still refuses cross-tenant bypass.
+    const role = ctx.user?.role || '';
+    if (role !== 'owner' && !PLATFORM_ADMIN_ROLES.includes(role)) {
         debugLog(`[isAdmin Debug] Forbidden access attempt for path ${path} by user ${ctx.user?.id} (${ctx.user?.role})`);
         throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required. Current role: " + (ctx.user?.role || 'none') });
     }
