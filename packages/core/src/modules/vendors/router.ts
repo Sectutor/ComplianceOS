@@ -211,6 +211,9 @@ export const vendorsRouter = router({
             status: z.string().optional(),
             trustCenterData: z.any().optional(),
             trustCenterUrl: z.string().optional(),
+            usesAi: z.boolean().optional(),
+            isAiService: z.boolean().optional(),
+            aiDataUsage: z.string().nullable().optional(),
         }).passthrough())
         .mutation(async ({ input }: any) => {
             const db = await getDb();

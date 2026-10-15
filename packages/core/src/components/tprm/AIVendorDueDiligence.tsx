@@ -150,6 +150,14 @@ export function AIVendorDueDiligence({ vendorId, clientId }: AIVendorDueDiligenc
   // Check if this vendor has AI-related fields
   const { data: vendor, isLoading: vendorLoading } = trpc.vendors.get.useQuery({ id: vendorId });
 
+  const utils = trpc.useUtils();
+  const updateVendorMutation = trpc.vendors.updateVendor.useMutation({
+    onSuccess: () => {
+      utils.vendors.get.invalidate({ id: vendorId });
+      utils.vendors.getVendorDetails.invalidate();
+    },
+  });
+
   const updateAssessment = (key: keyof AiVendorAssessment, value: any) => {
     const updated = { ...assessment, [key]: value };
     updated.overallScore = calculateOverallScore(updated);
@@ -160,8 +168,9 @@ export function AIVendorDueDiligence({ vendorId, clientId }: AIVendorDueDiligenc
     setIsSaving(true);
     try {
       // Save AI fields to the vendor record
-      await trpc.vendors.update.useMutation().mutateAsync({
+      await updateVendorMutation.mutateAsync({
         id: vendorId,
+        clientId,
         usesAi: true,
         isAiService: assessment.aiServiceType !== "",
         aiDataUsage: JSON.stringify(assessment),
