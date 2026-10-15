@@ -251,14 +251,15 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
         }
     };
 
+    const [showHeatmaps, setShowHeatmaps] = useState(true);
+
     const content = (
         <div className="relative min-h-[calc(100vh-3.5rem)] bg-slate-50/50 text-slate-900 page-transition w-full min-w-0 max-w-full">
-            {/* Ambient Light Mode Background Glows */}
+            {/* Subtle Ambient Light Background */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] rounded-full bg-blue-500/10 blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/5 blur-[100px]" />
+                <div className="absolute top-[-10%] left-[-10%] w-[35%] h-[40%] rounded-full bg-blue-500/5 blur-[100px]" />
             </div>
-            <div className="relative z-10 space-y-6 w-full min-w-0 max-w-full">
+            <div className="relative z-10 space-y-4 w-full min-w-0 max-w-full">
                 {!hideBreadcrumb && (() => {
                     const searchParams = new URLSearchParams(window.location.search);
                     const returnTo = searchParams.get('returnTo');
@@ -363,8 +364,9 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                     </div>
                 )}
 
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/60 backdrop-blur-xl p-6 rounded-3xl border border-white/40 shadow-premium">
-                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                {/* Header Card */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
+                    <div className="flex items-center gap-3.5 flex-wrap sm:flex-nowrap">
                         {(() => {
                             const searchParams = new URLSearchParams(window.location.search);
                             const returnTo = searchParams.get('returnTo');
@@ -390,22 +392,38 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                                 </div>
                             );
                         })()}
-                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-bright to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                            <Shield className="h-7 w-7 text-white" />
+                        <div className="h-10 w-10 rounded-xl bg-brand flex items-center justify-center shadow-sm">
+                            <Shield className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Risk Register</h1>
-                            <p className="text-slate-500 font-medium mt-1">Manage and track all identified risks for this client.</p>
+                            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-tight">Risk Register</h1>
+                            <p className="text-slate-500 text-xs font-medium mt-0.5">Consolidated view of all identified risks, ISO/NIST ratings, and treatment statuses.</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button id="risk-reg-add-btn" onClick={() => {
-                            const searchParams = new URLSearchParams(window.location.search);
-                            const assetId = searchParams.get('assetId');
-                            setEditingRisk(assetId ? { assetId: parseInt(assetId), assessmentType: 'asset' } : null);
-                            setWizardOpen(true);
-                        }}>
-                            <Plus className="w-4 h-4 mr-2" /> Add Risk
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {riskAssessments && riskAssessments.length > 0 && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowHeatmaps(!showHeatmaps)}
+                                className="h-8 px-3 text-xs font-semibold gap-1.5 text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                            >
+                                <Radar className="w-3.5 h-3.5 text-brand" />
+                                {showHeatmaps ? 'Hide Heatmaps' : 'Show Heatmaps (Matrix)'}
+                            </Button>
+                        )}
+                        <Button
+                            id="risk-reg-add-btn"
+                            size="sm"
+                            className="h-8 px-3 text-xs bg-brand hover:bg-[#153B6D] text-white font-semibold"
+                            onClick={() => {
+                                const searchParams = new URLSearchParams(window.location.search);
+                                const assetId = searchParams.get('assetId');
+                                setEditingRisk(assetId ? { assetId: parseInt(assetId), assessmentType: 'asset' } : null);
+                                setWizardOpen(true);
+                            }}
+                        >
+                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Risk
                         </Button>
                         <PageGuide
                             title="Risk Register"
@@ -444,8 +462,8 @@ export default function RiskRegisterPage({ hideLayout = false, hideBreadcrumb = 
                     </div>
                 </div>
 
-                {riskAssessments && riskAssessments.length > 0 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8 min-h-[300px]">
+                {riskAssessments && riskAssessments.length > 0 && showHeatmaps && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 min-h-[280px]">
                         <div id="risk-reg-heatmap">
                             <RiskHeatmap
                                 assessments={riskAssessments || []}

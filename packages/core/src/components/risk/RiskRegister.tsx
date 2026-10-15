@@ -2,16 +2,22 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination';
 import { trpc } from '@/lib/trpc';
-import { Search, Filter, Download, Eye, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowRight, AlertTriangle, CheckCircle2, Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal, SlidersHorizontal } from 'lucide-react';
+import {
+    Search, Filter, Download, Eye, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2,
+    Shield, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Hammer, Check, Trash2, MoreHorizontal,
+    Wand2, Sparkles, Loader2, Save, FileSpreadsheet, FileDown, ChevronLeft, ChevronRight,
+    Columns, LayoutGrid, RotateCcw, ArrowRight, SlidersHorizontal
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@complianceos/ui/ui/input';
 import { Button } from '@complianceos/ui/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@complianceos/ui/ui/select';
 import { Badge } from '@complianceos/ui/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@complianceos/ui/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@complianceos/ui/ui/table";
 import { EnhancedDialog } from "@complianceos/ui/ui/enhanced-dialog";
 import { RiskDetailsDialog } from './RiskDetailsDialog';
 import { Slot, SlotNames } from '@/registry';
-import { Wand2, Sparkles, Loader2, Save } from 'lucide-react';
 
 interface RiskRegisterProps {
     clientId: number;
@@ -69,7 +75,7 @@ const statusColors: Record<string, string> = {
     'approved': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
     'treated': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
     'accepted': 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
-    'closed': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+    'closed': 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
 };
 
 import {
@@ -275,7 +281,9 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             // Reset to page 1 when filters change
             const matchesSearch =
                 (risk.assessmentId?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (risk.title?.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (risk.threatDescription?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (risk.description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (risk.riskOwner?.toLowerCase().includes(searchQuery.toLowerCase()));
 
             const matchesStatus = statusFilter === 'all' || risk.status === statusFilter;
@@ -287,8 +295,6 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             if (heatmapFilter?.likelihood && heatmapFilter?.impact) {
                 const filterL = parseInt(heatmapFilter.likelihood);
                 const filterI = parseInt(heatmapFilter.impact);
-
-
 
                 if (heatmapFilter.type === 'residual') {
                     // For residual heatmap, we map score to diagonal (l=score, i=score)
@@ -314,7 +320,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                 let bVal: any = (b as any)[sortField];
 
                 // Handle special sortable fields
-                if (sortField === 'inherentRisk' || sortField === 'residualRisk') {
+                if (sortField === 'threatDescription') {
+                    aVal = (a.title || a.threatDescription || a.description || '').toString().toLowerCase();
+                    bVal = (b.title || b.threatDescription || b.description || '').toString().toLowerCase();
+                } else if (sortField === 'inherentRisk' || sortField === 'residualRisk') {
                     aVal = riskLevelOrder[aVal || ''] || 0;
                     bVal = riskLevelOrder[bVal || ''] || 0;
                 } else if (sortField === 'priority') {
@@ -375,7 +384,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                 ...filteredRisks.map(risk => {
                     const row = [
                         risk.assessmentId,
-                        `"${(risk.threatDescription || '').replace(/"/g, '""')}"`,
+                        `"${(risk.title || risk.threatDescription || risk.description || '').replace(/"/g, '""')}"`,
                         `"${(risk.vulnerabilityDescription || '').replace(/"/g, '""')}"`,
                         `"${(() => { const aId = risk.contextSnapshot?.assetId || (risk as any).assetId; if (aId && assets) { const asset = assets.find((a: any) => a.id === Number(aId)); if (asset) return asset.name; } return parseAffectedAssets(risk.affectedAssets).join('; '); })()}"`,
                         risk.likelihood,
@@ -403,21 +412,119 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
         }
     };
 
+    // Horizontal scrolling & Column stepping engine
+    const tableScrollRef = useRef<HTMLDivElement>(null);
+    const topScrollRef = useRef<HTMLDivElement>(null);
+    const isSyncingTop = useRef(false);
+    const isSyncingTable = useRef(false);
+    const [currentScrollX, setCurrentScrollX] = useState(0);
+    const [tableScrollWidth, setTableScrollWidth] = useState(1350);
+
+    const columnSteps = [
+        { id: "inherent", label: "1. Inherent (L × I)", offset: 0 },
+        { id: "treatment", label: "2. Treatment", offset: 230 },
+        { id: "residual", label: "3. Residual Risk", offset: 420 },
+        { id: "status", label: "4. Status & Actions", offset: 600 },
+    ];
+
+    const maxScrollLeft = tableScrollRef.current
+        ? Math.max(0, tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth)
+        : 0;
+
+    const isAtMaxRight = maxScrollLeft > 30 && currentScrollX >= maxScrollLeft - 20;
+
+    const currentStepIndex = isAtMaxRight
+        ? columnSteps.length - 1
+        : columnSteps.reduce((accIndex, step, index) => {
+            if (currentScrollX >= step.offset - 35) return index;
+            return accIndex;
+        }, 0);
+
+    const canGoLeft = currentStepIndex > 0 || currentScrollX > 15;
+    const canGoRight = currentStepIndex < columnSteps.length - 1;
+
+    const scrollToColumn = (index: number) => {
+        if (tableScrollRef.current) {
+            const clampedIndex = Math.max(0, Math.min(index, columnSteps.length - 1));
+            const targetStep = columnSteps[clampedIndex];
+            if (clampedIndex === columnSteps.length - 1) {
+                const maxScroll = tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth;
+                const target = Math.min(maxScroll, Math.max(targetStep.offset, maxScroll - 50));
+                tableScrollRef.current.scrollTo({ left: target, behavior: "smooth" });
+            } else {
+                tableScrollRef.current.scrollTo({ left: targetStep.offset, behavior: "smooth" });
+            }
+        }
+    };
+
+    const handleScrollLeft = () => {
+        const prevIndex = Math.max(0, currentStepIndex - 1);
+        scrollToColumn(prevIndex);
+    };
+
+    const handleScrollRight = () => {
+        const nextIndex = Math.min(columnSteps.length - 1, currentStepIndex + 1);
+        scrollToColumn(nextIndex);
+    };
+
+    const handleTopScroll = () => {
+        if (isSyncingTable.current) return;
+        isSyncingTop.current = true;
+        if (tableScrollRef.current && topScrollRef.current) {
+            tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+            setCurrentScrollX(topScrollRef.current.scrollLeft);
+        }
+        requestAnimationFrame(() => {
+            isSyncingTop.current = false;
+        });
+    };
+
+    const handleTableScroll = () => {
+        if (isSyncingTop.current) return;
+        isSyncingTable.current = true;
+        if (tableScrollRef.current) {
+            const scrollLeft = tableScrollRef.current.scrollLeft;
+            setCurrentScrollX(scrollLeft);
+            if (topScrollRef.current) {
+                topScrollRef.current.scrollLeft = scrollLeft;
+            }
+        }
+        requestAnimationFrame(() => {
+            isSyncingTable.current = false;
+        });
+    };
+
+    useEffect(() => {
+        const updateWidth = () => {
+            if (tableScrollRef.current) {
+                setTableScrollWidth(tableScrollRef.current.scrollWidth);
+                const scrollLeft = tableScrollRef.current.scrollLeft;
+                setCurrentScrollX(scrollLeft);
+                if (topScrollRef.current) {
+                    topScrollRef.current.scrollLeft = scrollLeft;
+                }
+            }
+        };
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+        return () => window.removeEventListener('resize', updateWidth);
+    }, [paginatedRisks]);
+
     // Sortable header component
     const SortableHeader = ({ field, children, className = '' }: { field: SortField; children: React.ReactNode; className?: string }) => (
-        <th
-            className={`px-4 py-3 text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-white/10 transition-colors select-none group ${className}`}
+        <TableHead
+            className={`cursor-pointer hover:bg-white/10 transition-colors select-none text-white font-semibold py-1.5 px-2 text-xs whitespace-nowrap h-9 leading-none ${className}`}
             onClick={() => handleSort(field)}
         >
             <div className="flex items-center gap-1 justify-center">
-                {children}
+                <span>{children}</span>
                 {sortField === field ? (
-                    sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                    sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-amber-300" /> : <ArrowDown className="w-3 h-3 text-amber-300" />
                 ) : (
-                    <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    <ArrowUpDown className="w-3 h-3 opacity-30 hover:opacity-100 transition-opacity" />
                 )}
             </div>
-        </th>
+        </TableHead>
     );
 
     const toggleRowExpand = (id: number) => {
@@ -430,45 +537,87 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
         setExpandedRows(newExpanded);
     };
 
+    const isFilterActive = searchQuery !== '' || statusFilter !== 'all' || riskLevelFilter !== 'all' || (selectedAssetId && selectedAssetId !== 'all');
+
+    const handleResetFilters = () => {
+        setSearchQuery('');
+        setStatusFilter('all');
+        setRiskLevelFilter('all');
+        setSelectedAssetId(null);
+    };
+
     if (isLoading) {
         return (
-            <div className="bg-card rounded-xl border shadow-sm p-8 text-center">
-                <div className="animate-pulse text-muted-foreground">Loading Risk Register...</div>
-            </div>
+            <Card className="border border-slate-200 shadow-2xs p-8 text-center bg-white">
+                <div className="flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-brand" />
+                    <div className="text-slate-500 font-medium text-xs">Loading Risk Register...</div>
+                </div>
+            </Card>
         );
     }
 
     return (
-        <div className="bg-card rounded-xl border shadow-sm">
+        <div className="space-y-4">
+            <Card className="border border-slate-200 shadow-2xs overflow-hidden bg-white">
             {/* Header */}
-            <div className="p-6 border-b">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-slate-950">
-                            <Shield className="w-5 h-5 text-blue-700" />
-                            Risk Register
-                        </h2>
-                        <p className="text-slate-900 text-sm mt-1 font-medium">
-                            Consolidated view of all identified risks and their treatment status
-                        </p>
+            <CardHeader className="py-2.5 px-4 flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 bg-white">
+                <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                        <Shield className="h-4 w-4" />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-base font-bold text-slate-900 leading-none">
+                                Risk Register
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[11px] font-semibold text-slate-700 bg-slate-50 border-slate-200 px-2 py-0.5">
+                                {filteredRisks.length} {filteredRisks.length === 1 ? 'Risk' : 'Risks'}
+                            </Badge>
+                        </div>
+                        <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                            Consolidated registry of identified risks, ISO/NIST ratings, and treatment statuses.
+                        </CardDescription>
                     </div>
                 </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs text-slate-700 hover:text-slate-900"
+                        onClick={() => handleExport('csv')}
+                        disabled={!filteredRisks.length}
+                    >
+                        <FileSpreadsheet className="mr-1 h-3.5 w-3.5 text-emerald-600" />
+                        Export CSV
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs text-slate-700 hover:text-slate-900"
+                        onClick={() => handleExport('json')}
+                        disabled={!filteredRisks.length}
+                    >
+                        <FileDown className="mr-1 h-3.5 w-3.5 text-blue-600" />
+                        Export JSON
+                    </Button>
+                </div>
+            </CardHeader>
 
-                {/* Filters */}
-                <div className="flex flex-wrap gap-3 mt-4">
+            <CardContent className="p-3 sm:p-3.5 space-y-2">
+                {/* Search & Filter Bar */}
+                <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                     <div className="relative flex-1 min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                         <Input
-                            placeholder="Search risks..."
-                            className="pl-10"
+                            placeholder="Search risk ID, title, or threat description..."
+                            className="pl-8 h-8 text-xs bg-white border-slate-200"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-[130px] h-8 text-xs bg-white border-slate-200">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -481,9 +630,8 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             <SelectItem value="closed">Closed</SelectItem>
                         </SelectContent>
                     </Select>
-
                     <Select value={selectedAssetId || 'all'} onValueChange={(val) => setSelectedAssetId(val === 'all' ? null : val)}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-[160px] h-8 text-xs bg-white border-slate-200">
                             <SelectValue placeholder="All Assets" />
                         </SelectTrigger>
                         <SelectContent>
@@ -495,32 +643,29 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             ))}
                         </SelectContent>
                     </Select>
-                    {/* 
-                    <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="Priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Priority</SelectItem>
-                            <SelectItem value="Critical">Critical</SelectItem>
-                            <SelectItem value="High">High</SelectItem>
-                            <SelectItem value="Medium">Medium</SelectItem>
-                            <SelectItem value="Low">Low</SelectItem>
-                        </SelectContent>
-                    </Select> 
-                    */}
                     <Select value={riskLevelFilter} onValueChange={setRiskLevelFilter}>
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-[130px] h-8 text-xs bg-white border-slate-200">
                             <SelectValue placeholder="Risk Level" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Levels</SelectItem>
+                            <SelectItem value="Critical">Critical</SelectItem>
                             <SelectItem value="Very High">Very High</SelectItem>
                             <SelectItem value="High">High</SelectItem>
                             <SelectItem value="Medium">Medium</SelectItem>
                             <SelectItem value="Low">Low</SelectItem>
                         </SelectContent>
                     </Select>
+                    {isFilterActive && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResetFilters}
+                            className="h-8 px-2 text-xs text-slate-500 hover:text-slate-800 gap-1"
+                        >
+                            <RotateCcw className="w-3 h-3" /> Reset
+                        </Button>
+                    )}
 
                     {/* Columns Selector Dropdown */}
                     <DropdownMenu>
@@ -534,20 +679,6 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                 Visible Columns
                             </div>
-                            <DropdownMenuCheckboxItem
-                                checked={visibleColumns.assessmentId}
-                                onCheckedChange={() => toggleColumn('assessmentId')}
-                                className="text-xs cursor-pointer"
-                            >
-                                Risk ID
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                checked={visibleColumns.threatDescription}
-                                onCheckedChange={() => toggleColumn('threatDescription')}
-                                className="text-xs cursor-pointer"
-                            >
-                                Description
-                            </DropdownMenuCheckboxItem>
                             <DropdownMenuCheckboxItem
                                 checked={visibleColumns.likelihood}
                                 onCheckedChange={() => toggleColumn('likelihood')}
@@ -584,241 +715,377 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                 Treatment
                             </DropdownMenuCheckboxItem>
                             <div className="px-2 py-1 text-[11px] text-slate-400 border-t border-slate-100 mt-1">
-                                Status & Actions are always pinned
+                                Risk ID, Threat, Status & Actions are always shown
                             </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
-            </div>
 
-            {/* Table Container */}
-            <div className="rounded-xl border border-slate-200 shadow-xs overflow-clip bg-white m-4 min-w-0">
-                {/* Table Top Controls & Scroll Strip */}
-                {(canScrollLeft || canScrollRight) && (
-                    <div className="px-4 py-2.5 bg-gradient-to-r from-slate-50 via-blue-50/40 to-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-700 text-xs tracking-wide">Table Navigation</span>
-                            {canScrollRight ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/80">
-                                    <ArrowRight className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                                    <span>More columns available to the right (Residual Risk, Treatment)</span>
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>All columns currently in view</span>
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Direct Table Slide Buttons with Color Accents */}
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => scrollTable('left')}
-                                disabled={!canScrollLeft}
-                                className={`h-8 px-3 gap-1.5 rounded-lg text-xs font-bold transition-all ${
-                                    canScrollLeft
-                                        ? 'bg-white text-blue-700 border-blue-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 shadow-xs active:scale-95'
-                                        : 'bg-white/50 text-slate-300 border-slate-200/60 cursor-not-allowed opacity-40'
-                                }`}
-                                title="Slide table left"
+                {/* Visible Section Navigation & Column Status Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-md text-xs">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-semibold text-slate-800 flex items-center gap-1 shrink-0 text-[11px]">
+                            <LayoutGrid className="h-3 w-3 text-brand" />
+                            Sections:
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium text-[10px] shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                            1. Risk ID & Threat (Pinned)
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium text-[10px] shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                            2. Inherent Rating (L × I)
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium text-[10px] shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            3. Treatment
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium text-[10px] shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                            4. Residual Risk & Actions
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-[11px] shrink-0">
+                        <span className="flex items-center gap-1 text-[11px]">
+                            <Columns className="h-3 w-3 text-slate-400" />
+                            <span>9 Cols</span>
+                        </span>
+                        {canGoRight && (
+                            <span className="text-[10px] text-brand font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-200 hidden md:inline-flex items-center gap-1">
+                                Next: {columnSteps[currentStepIndex + 1]?.label} <ChevronRight className="h-3 w-3" />
+                            </span>
+                        )}
+                        {!canGoRight && (
+                            <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 hidden md:inline-flex items-center gap-1">
+                                ✓ Last col in view
+                            </span>
+                        )}
+                        <span className="text-slate-300">|</span>
+                        <div className="flex items-center gap-0.5 bg-white border border-slate-300 rounded p-0.5 shadow-2xs">
+                            <button
+                                type="button"
+                                onClick={handleScrollLeft}
+                                disabled={!canGoLeft}
+                                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                                title="Move to previous column"
                             >
-                                <ChevronLeft className="w-4 h-4 text-blue-600" />
-                                <span>Slide Left</span>
-                            </Button>
-                            <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => scrollTable('right')}
-                                disabled={!canScrollRight}
-                                className={`h-8 px-3.5 gap-2 rounded-lg text-xs font-bold transition-all ${
-                                    canScrollRight
-                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm shadow-blue-500/25 active:scale-95 ring-2 ring-blue-500/20'
-                                        : 'bg-slate-200/70 text-slate-400 border-transparent cursor-not-allowed opacity-40'
-                                }`}
-                                title="Slide table right for more columns"
+                                <ChevronLeft className="h-3 w-3 text-brand" />
+                                <span>Left</span>
+                            </button>
+                            <div className="h-3 w-px bg-slate-200" />
+                            <button
+                                type="button"
+                                onClick={handleScrollRight}
+                                disabled={!canGoRight}
+                                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                                title={canGoRight ? `Next column: ${columnSteps[currentStepIndex + 1]?.label}` : "At last column"}
                             >
-                                <span>Slide table right for more columns</span>
-                                <ChevronRight className="w-4 h-4 text-white" />
-                            </Button>
+                                <span>Right</span>
+                                <ChevronRight className="h-3 w-3 text-brand" />
+                            </button>
                         </div>
                     </div>
-                )}
+                </div>
 
-                <div
-                    ref={tableContainerRef}
-                    onScroll={checkScrollState}
-                    className="w-full overflow-x-auto scrollbar-thin [scrollbar-color:#94a3b8_#f1f5f9] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400"
-                >
-                    <table className="w-full min-w-[760px] border-collapse text-left">
-                        <thead>
-                            <tr className="bg-brand border-b border-brand text-white text-xs">
-                                <th className="px-3 py-3.5 text-center text-white w-10 shrink-0"></th>
-                                {visibleColumns.assessmentId && (
-                                    <SortableHeader field="assessmentId" className="text-left text-white whitespace-nowrap min-w-[90px]">Risk ID</SortableHeader>
-                                )}
-                                {visibleColumns.threatDescription && (
-                                    <SortableHeader field="threatDescription" className="text-left text-white min-w-[200px]">Description</SortableHeader>
-                                )}
-                                {visibleColumns.likelihood && (
-                                    <SortableHeader field="likelihood" className="text-center text-white whitespace-nowrap w-20">Likelihood</SortableHeader>
-                                )}
-                                {visibleColumns.impact && (
-                                    <SortableHeader field="impact" className="text-center text-white whitespace-nowrap w-16">Impact</SortableHeader>
-                                )}
-                                {visibleColumns.inherentRisk && (
-                                    <SortableHeader field="inherentRisk" className="text-center text-white whitespace-nowrap w-20">Inherent</SortableHeader>
-                                )}
-                                {visibleColumns.residualRisk && (
-                                    <SortableHeader field="residualRisk" className="text-center text-white whitespace-nowrap w-20">Residual</SortableHeader>
-                                )}
-                                {visibleColumns.treatmentOption && (
-                                    <SortableHeader field="treatmentOption" className="text-left text-white whitespace-nowrap min-w-[110px]">Treatment</SortableHeader>
-                                )}
-                                {/* Sticky Status Header */}
-                                <SortableHeader
-                                    field="status"
-                                    className={`text-center text-white whitespace-nowrap sticky right-[76px] z-20 bg-brand w-24 min-w-[90px] transition-shadow ${
-                                        canScrollRight ? 'shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.3)]' : 'shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.15)]'
+                {/* Top Column Step Navigator (1-Click Snap to Any Column) */}
+                <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1 bg-slate-50 border-t border-x border-slate-200 rounded-t-lg select-none">
+                    <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 mr-1 tracking-wider">Columns:</span>
+                        {columnSteps.map((step, idx) => {
+                            const isActive = currentStepIndex === idx;
+                            return (
+                                <button
+                                    key={step.id}
+                                    type="button"
+                                    onClick={() => scrollToColumn(idx)}
+                                    className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                                        isActive
+                                            ? "bg-brand text-white shadow-2xs"
+                                            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900"
                                     }`}
+                                    title={`Click to jump directly to ${step.label}`}
                                 >
-                                    Status
-                                </SortableHeader>
-                                {/* Sticky Actions Header */}
-                                <th className="px-2 py-3.5 text-center text-xs font-semibold text-white uppercase tracking-wider sticky right-0 z-20 bg-brand w-[76px] min-w-[76px]">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200/80">
+                                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-amber-300" : "bg-slate-400"}`} />
+                                    <span>{step.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                        <span className="text-slate-400">Step {currentStepIndex + 1} of {columnSteps.length}:</span>
+                        <span className="text-brand font-bold">{columnSteps[currentStepIndex]?.label}</span>
+                    </div>
+                </div>
+
+                {/* Top Horizontal Scrollbar (Synchronized 2-Way with Table) */}
+                <div
+                    ref={topScrollRef}
+                    onScroll={handleTopScroll}
+                    className="w-full overflow-x-auto overflow-y-hidden bg-slate-100 border-x border-slate-200 select-none h-3 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-brand [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#153B6D]"
+                    title="Drag top scrollbar to pan columns"
+                >
+                    <div style={{ width: `${Math.max(tableScrollWidth, 1350)}px`, height: '2px' }} />
+                </div>
+
+                {/* Horizontally Scrollable Table Container */}
+                <div className="relative group">
+                    {/* Left Chevron Button */}
+                    <button
+                        type="button"
+                        onClick={handleScrollLeft}
+                        disabled={!canGoLeft}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                        title="Move to previous column"
+                    >
+                        <ChevronLeft className="h-4 w-4 text-brand" />
+                    </button>
+
+                    {/* Right Chevron Button */}
+                    <button
+                        type="button"
+                        onClick={handleScrollRight}
+                        disabled={!canGoRight}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-xl flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                        title="Move to next column"
+                    >
+                        <ChevronRight className="h-4 w-4 text-brand" />
+                    </button>
+
+                    {/* Table Viewport */}
+                    <div
+                        ref={tableScrollRef}
+                        onScroll={handleTableScroll}
+                        className="overflow-x-auto rounded-b border border-slate-200 shadow-2xs scroll-smooth"
+                    >
+                        <table className="w-full min-w-[1350px] caption-bottom text-sm border-collapse">
+                            <TableHeader>
+                                <TableRow className="bg-brand hover:bg-brand border-none text-white h-9">
+                                    {/* SECTION 1: Expand + Risk ID (Sticky Left: 0) */}
+                                    <TableHead className="w-[140px] min-w-[140px] sticky left-0 z-30 bg-brand text-white font-semibold py-1.5 px-3 text-xs border-r border-white/20 whitespace-nowrap h-9 leading-none">
+                                        Risk ID
+                                    </TableHead>
+
+                                    {/* SECTION 1b: Threat Description (Sticky Left: 140px) */}
+                                    <TableHead className="w-[320px] min-w-[280px] sticky left-[140px] z-30 bg-brand text-white font-semibold py-1.5 px-3 text-xs border-r-2 border-white/40 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.25)] whitespace-nowrap h-9 leading-none">
+                                        Threat / Vulnerability
+                                    </TableHead>
+
+                                    {/* SECTION 2: Inherent Ratings */}
+                                    {visibleColumns.likelihood && (
+                                        <SortableHeader field="likelihood" className="w-[90px] min-w-[90px] text-center border-r border-white/20">
+                                            Likelihood
+                                        </SortableHeader>
+                                    )}
+                                    {visibleColumns.impact && (
+                                        <SortableHeader field="impact" className="w-[90px] min-w-[90px] text-center border-r border-white/20">
+                                            Impact
+                                        </SortableHeader>
+                                    )}
+                                    {visibleColumns.inherentRisk && (
+                                        <SortableHeader field="inherentRisk" className="w-[125px] min-w-[125px] text-center border-r-2 border-white/30">
+                                            Inherent Risk
+                                        </SortableHeader>
+                                    )}
+
+                                    {/* SECTION 3: Treatment */}
+                                    {visibleColumns.treatmentOption && (
+                                        <SortableHeader field="treatmentOption" className="w-[160px] min-w-[160px] text-left px-3 border-r border-white/20">
+                                            Treatment
+                                        </SortableHeader>
+                                    )}
+
+                                    {/* SECTION 4: Residual Rating & Status */}
+                                    {visibleColumns.residualRisk && (
+                                        <SortableHeader field="residualRisk" className="w-[125px] min-w-[125px] text-center border-r border-white/20">
+                                            Residual Risk
+                                        </SortableHeader>
+                                    )}
+                                    <SortableHeader field="status" className="w-[110px] min-w-[110px] text-center border-r border-white/20">
+                                        Status
+                                    </SortableHeader>
+                                    <TableHead className="w-[110px] min-w-[110px] text-center text-white font-semibold py-1.5 px-2 text-xs whitespace-nowrap h-9 leading-none">
+                                        Actions
+                                    </TableHead>
+                                    <TableHead className="w-[100px] min-w-[100px] bg-[#163E72] text-white/50 text-[10px] text-center italic py-1.5 px-2 whitespace-nowrap h-9 leading-none">
+                                        End
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                        <TableBody>
                             {paginatedRisks.length === 0 ? (
-                                <tr>
-                                    <td colSpan={10} className="px-4 py-12 text-center bg-white">
-                                        <Shield className="w-12 h-12 mx-auto text-gray-400 opacity-30 mb-4" />
-                                        <p className="text-gray-500">No risks found matching your criteria.</p>
-                                    </td>
-                                </tr>
+                                <TableRow>
+                                    <TableCell colSpan={10} className="py-12 text-center bg-white">
+                                        <Shield className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                                        <p className="text-slate-600 font-medium text-sm">No risks found matching your criteria.</p>
+                                        <p className="text-slate-400 text-xs mt-1">Try adjusting your search terms or filters.</p>
+                                    </TableCell>
+                                </TableRow>
                             ) : (
                                 paginatedRisks.map((risk) => (
                                     <React.Fragment key={risk.id}>
-                                        {/* Main Row */}
-                                        <tr
-                                            className="bg-white hover:bg-slate-50 transition-colors duration-150 cursor-pointer group text-sm"
+                                        <TableRow
+                                            className="group hover:bg-slate-50/80 transition-colors border-b border-slate-200 cursor-pointer bg-white"
                                             onDoubleClick={() => onEditRisk(risk)}
-                                            title="Double-click to edit"
+                                            title="Double-click to edit risk"
                                         >
-                                            <td className="px-3 py-3 text-center w-10">
-                                                <button
-                                                    onClick={() => toggleRowExpand(risk.id)}
-                                                    className="p-1 hover:bg-slate-200/70 rounded text-slate-500 transition-colors"
-                                                    title={expandedRows.has(risk.id) ? "Collapse details" : "Expand details"}
-                                                >
-                                                    {expandedRows.has(risk.id) ? (
-                                                        <ChevronUp className="w-4 h-4" />
-                                                    ) : (
-                                                        <ChevronDown className="w-4 h-4" />
-                                                    )}
-                                                </button>
-                                            </td>
-
-                                            {visibleColumns.assessmentId && (
-                                                <td className="px-3 py-3 whitespace-nowrap">
-                                                    <span className="font-mono text-xs font-semibold text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                                            {/* SECTION 1: Expand + Risk ID (Sticky Left: 0) */}
+                                            <TableCell className="w-[140px] min-w-[140px] sticky left-0 z-20 bg-white group-hover:bg-slate-50 align-middle py-2 px-3 border-r border-slate-200">
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); toggleRowExpand(risk.id); }}
+                                                        className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                                                        title={expandedRows.has(risk.id) ? "Collapse details" : "Expand details"}
+                                                    >
+                                                        {expandedRows.has(risk.id) ? (
+                                                            <ChevronUp className="w-3.5 h-3.5" />
+                                                        ) : (
+                                                            <ChevronDown className="w-3.5 h-3.5" />
+                                                        )}
+                                                    </button>
+                                                    <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                                                         {risk.assessmentId}
                                                     </span>
-                                                </td>
-                                            )}
+                                                </div>
+                                            </TableCell>
 
-                                            {visibleColumns.threatDescription && (
-                                                <td className="px-3 py-3 min-w-[220px] max-w-[420px]">
-                                                    <div
-                                                        className="line-clamp-2 text-xs font-normal text-slate-700 leading-relaxed"
-                                                        title={risk.contextSnapshot?.description || risk.description || risk.threatDescription || ''}
-                                                    >
-                                                        {risk.contextSnapshot?.description || risk.description || risk.threatDescription || '-'}
-                                                    </div>
-                                                </td>
-                                            )}
+                                            {/* SECTION 1b: Threat Description (Sticky Left: 140px) */}
+                                            <TableCell className="w-[320px] min-w-[280px] sticky left-[140px] z-20 bg-white group-hover:bg-slate-50 align-middle py-2 px-3 text-xs border-r-2 border-slate-300 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.06)]">
+                                                <div className="text-xs font-medium text-slate-800 line-clamp-2 leading-snug" title={risk.title || risk.threatDescription || risk.description || ''}>
+                                                    {risk.title || risk.threatDescription || risk.description || risk.contextSnapshot?.description || '-'}
+                                                </div>
+                                            </TableCell>
 
+                                            {/* Likelihood */}
                                             {visibleColumns.likelihood && (
-                                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                                    <span className="text-xs font-medium text-slate-700">{risk.likelihood || '-'}</span>
-                                                </td>
+                                                <TableCell className="w-[90px] min-w-[90px] text-center py-2 px-2 border-r border-slate-200">
+                                                    <span className="text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                                        {risk.likelihood ? `L: ${risk.likelihood}` : '-'}
+                                                    </span>
+                                                </TableCell>
                                             )}
 
+                                            {/* Impact */}
                                             {visibleColumns.impact && (
-                                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                                    <span className="text-xs font-medium text-slate-700">{risk.impact || '-'}</span>
-                                                </td>
+                                                <TableCell className="w-[90px] min-w-[90px] text-center py-2 px-2 border-r border-slate-200">
+                                                    <span className="text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                                        {risk.impact ? `I: ${risk.impact}` : '-'}
+                                                    </span>
+                                                </TableCell>
                                             )}
 
+                                            {/* Inherent Risk */}
                                             {visibleColumns.inherentRisk && (
-                                                <td className="px-3 py-3 text-center whitespace-nowrap">
+                                                <TableCell className="w-[125px] min-w-[125px] text-center py-2 px-2 border-r-2 border-slate-300">
                                                     {(() => {
+                                                        if (risk.inherentRisk) {
+                                                            const norm = risk.inherentRisk.toString().trim().toLowerCase();
+                                                            let color = 'bg-gray-100 text-gray-800';
+                                                            if (norm.includes('critical')) color = 'bg-red-700 text-white shadow-sm';
+                                                            else if (norm.includes('very high')) color = 'bg-red-600 text-white shadow-sm';
+                                                            else if (norm.includes('high')) color = 'bg-orange-500 text-white shadow-sm';
+                                                            else if (norm.includes('medium') || norm.includes('moderate')) color = 'bg-yellow-400 text-black shadow-sm';
+                                                            else if (norm.includes('low')) color = 'bg-green-400 text-black shadow-sm';
+                                                            return (
+                                                                <Badge className={`${color} border-0 font-semibold px-2 py-0.5 text-[11px]`}>
+                                                                    {risk.inherentRisk}
+                                                                </Badge>
+                                                            );
+                                                        }
+    
                                                         const l = normalizeValue(risk.likelihood);
                                                         const i = normalizeValue(risk.impact);
-                                                        const score = l * i;
-
+                                                        let score = l * i;
+                                                        if (score === 0 && (risk.inherentScore || (risk as any).score)) {
+                                                            score = risk.inherentScore || (risk as any).score;
+                                                        }
+    
+                                                        if (score === 0) {
+                                                            return (
+                                                                <Badge variant="outline" className="text-slate-500 border-slate-200 font-medium px-2 py-0.5 text-[11px]">
+                                                                    Unassessed
+                                                                </Badge>
+                                                            );
+                                                        }
+    
                                                         let level = 'Low';
-                                                        let color = 'bg-gray-100 text-gray-800';
-
-                                                        if (score >= 15) { level = 'Very High'; color = 'bg-red-600 text-white shadow-xs'; }
-                                                        else if (score >= 8) { level = 'High'; color = 'bg-orange-500 text-white shadow-xs'; }
-                                                        else if (score >= 4) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-xs'; }
-                                                        else { level = 'Low'; color = 'bg-green-400 text-black shadow-xs'; }
-
+                                                        let color = 'bg-green-400 text-black shadow-sm';
+                                                        if (score >= 20) { level = 'Critical'; color = 'bg-red-700 text-white shadow-sm'; }
+                                                        else if (score >= 14) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; }
+                                                        else if (score >= 8) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; }
+                                                        else if (score >= 4) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-sm'; }
+    
                                                         return (
-                                                            <Badge className={`${color} border-0 font-bold text-[11px] px-2 py-0.5`}>
+                                                            <Badge className={`${color} border-0 font-semibold px-2 py-0.5 text-[11px]`}>
                                                                 {level}
                                                             </Badge>
                                                         );
                                                     })()}
-                                                </td>
+                                                </TableCell>
                                             )}
 
-                                            {visibleColumns.residualRisk && (
-                                                <td className="px-3 py-3 text-center whitespace-nowrap">
-                                                    {(() => {
-                                                        const score = normalizeValue(risk.residualRisk);
-
-                                                        let level = 'Low';
-                                                        let color = 'bg-gray-100 text-gray-800';
-
-                                                        if (score >= 4) { level = 'Very High'; color = 'bg-red-600 text-white shadow-xs'; }
-                                                        else if (score === 3) { level = 'High'; color = 'bg-orange-500 text-white shadow-xs'; }
-                                                        else if (score === 2) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-xs'; }
-                                                        else { level = 'Low'; color = 'bg-green-400 text-black shadow-xs'; }
-
-                                                        return (
-                                                            <Badge className={`${color} border-0 font-bold text-[11px] px-2 py-0.5`}>
-                                                                {risk.contextSnapshot?.residualRisk || risk.residualRisk || level}
-                                                            </Badge>
-                                                        );
-                                                    })()}
-                                                </td>
-                                            )}
-
+                                            {/* Treatment Option & Count */}
                                             {visibleColumns.treatmentOption && (
-                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                <TableCell className="w-[160px] min-w-[160px] py-2 px-3 border-r border-slate-200">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-xs capitalize font-medium text-slate-700">
-                                                            {risk.contextSnapshot?.treatmentStrategy || risk.treatmentOption || '-'}
+                                                            {risk.contextSnapshot?.treatmentStrategy || risk.treatmentOption || 'Mitigate'}
                                                         </span>
                                                         {(risk as any).treatmentCount > 0 && (
-                                                            <Badge variant="secondary" className="text-[10px] font-bold bg-green-50 text-green-700 border-green-200 px-1.5 py-0">
+                                                            <Badge variant="secondary" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200 px-1.5 py-0">
                                                                 {(risk as any).treatmentCount}
                                                             </Badge>
                                                         )}
                                                     </div>
-                                                </td>
+                                                </TableCell>
                                             )}
 
-                                            {/* Sticky Status Column */}
-                                            <td className={`px-2 py-3 text-center whitespace-nowrap sticky right-[76px] z-10 bg-white group-hover:bg-slate-50 transition-colors border-l border-slate-100 ${
-                                                canScrollRight ? 'shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.14)]' : 'shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]'
-                                            }`}>
+                                            {/* Residual Risk */}
+                                            {visibleColumns.residualRisk && (
+                                                <TableCell className="w-[125px] min-w-[125px] text-center py-2 px-2 border-r border-slate-200">
+                                                    {(() => {
+                                                        const resText = risk.contextSnapshot?.residualRisk || risk.residualRisk;
+                                                        if (resText) {
+                                                            const norm = resText.toString().trim().toLowerCase();
+                                                            let color = 'bg-gray-100 text-gray-800';
+                                                            if (norm.includes('critical')) color = 'bg-red-700 text-white shadow-sm';
+                                                            else if (norm.includes('very high')) color = 'bg-red-600 text-white shadow-sm';
+                                                            else if (norm.includes('high')) color = 'bg-orange-500 text-white shadow-sm';
+                                                            else if (norm.includes('medium') || norm.includes('moderate')) color = 'bg-yellow-400 text-black shadow-sm';
+                                                            else if (norm.includes('low')) color = 'bg-green-400 text-black shadow-sm';
+                                                            return (
+                                                                <Badge className={`${color} border-0 font-semibold px-2 py-0.5 text-[11px]`}>
+                                                                    {resText}
+                                                                </Badge>
+                                                            );
+                                                        }
+    
+                                                        if (risk.residualScore) {
+                                                            const score = risk.residualScore;
+                                                            let level = 'Low';
+                                                            let color = 'bg-green-400 text-black shadow-sm';
+                                                            if (score >= 20) { level = 'Critical'; color = 'bg-red-700 text-white shadow-sm'; }
+                                                            else if (score >= 14) { level = 'Very High'; color = 'bg-red-600 text-white shadow-sm'; }
+                                                            else if (score >= 8) { level = 'High'; color = 'bg-orange-500 text-white shadow-sm'; }
+                                                            else if (score >= 4) { level = 'Medium'; color = 'bg-yellow-400 text-black shadow-sm'; }
+                                                            return (
+                                                                <Badge className={`${color} border-0 font-semibold px-2 py-0.5 text-[11px]`}>
+                                                                    {level}
+                                                                </Badge>
+                                                            );
+                                                        }
+    
+                                                        return (
+                                                            <Badge variant="outline" className="text-slate-400 border-dashed border-slate-300 font-normal px-2 py-0.5 text-[10px]" title="No residual risk assessed yet">
+                                                                Pending
+                                                            </Badge>
+                                                        );
+                                                    })()}
+                                                </TableCell>
+                                            )}
+
+                                            {/* Status */}
+                                            <TableCell className="w-[110px] min-w-[110px] text-center py-2 px-2 border-r border-slate-200">
                                                 <Badge
                                                     variant={
                                                         risk.status === 'approved' ? 'success' :
@@ -830,10 +1097,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                 >
                                                     {risk.status || '-'}
                                                 </Badge>
-                                            </td>
+                                            </TableCell>
 
-                                            {/* Sticky Actions Column */}
-                                            <td className="px-2 py-3 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors w-[76px] min-w-[76px]">
+                                            {/* Actions */}
+                                            <TableCell className="w-[110px] min-w-[110px] text-center py-2 px-2">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Button
                                                         variant="ghost"
@@ -842,7 +1109,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                             e.stopPropagation();
                                                             setSelectedRisk(risk);
                                                         }}
-                                                        className="h-7 w-7 p-0 hover:bg-brand/10 hover:text-brand rounded-md"
+                                                        className="h-7 w-7 p-0 text-slate-500 hover:text-brand hover:bg-blue-50"
                                                         title="View details"
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
@@ -854,7 +1121,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="h-7 w-7 p-0 hover:bg-slate-200/70 rounded-md"
+                                                                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                                                             >
                                                                 <MoreHorizontal className="w-3.5 h-3.5" />
                                                             </Button>
@@ -878,7 +1145,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                         await createTaskMutation.mutateAsync({
                                                                             clientId,
                                                                             title: `Remediate Risk: ${risk.assessmentId}`,
-                                                                            description: `Threat: ${risk.threatDescription || 'N/A'}. Recommended Actions: ${risk.recommendedActions || 'N/A'}.`,
+                                                                            description: `Threat: ${risk.threatDescription || risk.title || 'N/A'}. Recommended Actions: ${risk.recommendedActions || 'N/A'}.`,
                                                                             priority: (risk as any).priority?.toLowerCase() === 'critical' ? 'high' : ((risk as any).priority?.toLowerCase() || 'medium'),
                                                                             dueDate: risk.nextReviewDate || undefined,
                                                                         });
@@ -891,7 +1158,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                 className="gap-2 cursor-pointer text-xs"
                                                             >
                                                                 {createdTaskIds.has(risk.id) ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Hammer className="w-3.5 h-3.5" />}
-                                                                {createdTaskIds.has(risk.id) ? 'Task Created' : 'Create Task'}
+                                                                {createdTaskIds.has(risk.id) ? 'Task Created' : 'Remediate Task'}
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 onClick={(e) => {
@@ -910,7 +1177,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                                     setAiActionRisk(risk);
                                                                     setAiTriageResults(null);
                                                                 }}
-                                                                className="gap-2 text-purple-700 focus:text-purple-800 focus:bg-purple-50 cursor-pointer text-xs"
+                                                                className="gap-2 text-teal-700 focus:text-teal-800 focus:bg-teal-50 cursor-pointer text-xs"
                                                             >
                                                                 <Wand2 className="w-3.5 h-3.5" />
                                                                 AI Smart Insights
@@ -918,131 +1185,77 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </div>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
 
-                                        {/* Expanded Row Details */}
-                                        {
-                                            expandedRows.has(risk.id) && (
-                                                <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <td colSpan={10} className="p-0">
-                                                        <div
-                                                            className="sticky left-0 px-8 py-5 transition-all"
-                                                            style={{
-                                                                maxWidth: containerWidth ? `${containerWidth}px` : '100%',
-                                                                width: containerWidth ? `${containerWidth}px` : '100%',
-                                                            }}
-                                                        >
-                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Vulnerability</h4>
-                                                                    <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.vulnerabilityDescription || 'Not specified'}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Existing Controls</h4>
-                                                                    <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.existingControls || 'None documented'}</p>
-                                                                </div>
-                                                                <div className="pr-8">
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Recommended Actions</h4>
-                                                                    <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.recommendedActions || 'None specified'}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Control Effectiveness</h4>
-                                                                    <p className="text-gray-600 text-xs capitalize">{risk.controlEffectiveness || 'Not evaluated'}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Assessment Date</h4>
-                                                                    <p className="text-gray-600 text-xs">
-                                                                        {risk.assessmentDate ? new Date(risk.assessmentDate).toLocaleDateString() : 'Not set'}
-                                                                    </p>
-                                                                </div>
-                                                                <div className="pr-8">
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Next Review</h4>
-                                                                    <p className="text-gray-600 text-xs">
-                                                                        {risk.nextReviewDate ? new Date(risk.nextReviewDate).toLocaleDateString() : 'Not scheduled'}
-                                                                    </p>
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Source</h4>
-                                                                    <Badge variant="secondary" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
-                                                                        {risk.contextSnapshot?.source || 'Manual'}
-                                                                    </Badge>
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Asset</h4>
-                                                                    <div className="text-gray-600 text-xs">
-                                                                        {(() => {
-                                                                            const assetId = risk.contextSnapshot?.assetId || (risk as any).assetId;
-                                                                            if (assetId && assets) {
-                                                                                const asset = assets.find((a: any) => a.id === Number(assetId));
-                                                                                if (asset) {
-                                                                                    return (
-                                                                                        <Badge variant="outline" className="text-xs font-medium bg-white">
-                                                                                            {asset.name}
-                                                                                        </Badge>
-                                                                                    );
-                                                                                }
-                                                                            }
-                                                                            const manualAssets = parseAffectedAssets(risk.affectedAssets);
-                                                                            if (manualAssets.length > 0) {
-                                                                                return (
-                                                                                    <div className="flex flex-wrap gap-1">
-                                                                                        {manualAssets.map((asset, i) => (
-                                                                                            <Badge key={i} variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
-                                                                                                {asset}
-                                                                                            </Badge>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                );
-                                                                            }
-                                                                            return 'None specified';
-                                                                        })()}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pr-8">
-                                                                    <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Owner</h4>
-                                                                    <p className="text-gray-600 text-xs">{risk.contextSnapshot?.riskOwner || risk.riskOwner || 'Unassigned'}</p>
-                                                                </div>
-                                                                {risk.notes && (
-                                                                    <div className="md:col-span-3 pr-8">
-                                                                        <h4 className="font-semibold text-gray-900 mb-1 text-xs uppercase tracking-wider">Notes</h4>
-                                                                        <p className="text-gray-600 text-xs leading-relaxed break-words">{risk.notes}</p>
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                            {/* End buffer */}
+                                            <TableCell className="w-[100px] min-w-[100px] bg-slate-50/50 py-2 px-2 text-center text-slate-300 text-[10px] select-none">
+                                                —
+                                            </TableCell>
+                                        </TableRow>
+
+                                        {/* Expanded Row Detail Sub-Pane */}
+                                        {expandedRows.has(risk.id) && (
+                                            <TableRow className="bg-slate-50/90 border-b border-slate-200">
+                                                <TableCell colSpan={10} className="p-4 px-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs bg-white p-3.5 rounded-lg border border-slate-200/80 shadow-2xs">
+                                                        <div>
+                                                            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block mb-1">Vulnerability</span>
+                                                            <p className="text-slate-600 leading-relaxed">{risk.vulnerabilityDescription || 'Not specified'}</p>
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                            )
-                                        }
+                                                        <div>
+                                                            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block mb-1">Existing Controls</span>
+                                                            <p className="text-slate-600 leading-relaxed">{risk.existingControls || 'None documented'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block mb-1">Recommended Actions</span>
+                                                            <p className="text-slate-600 leading-relaxed">{risk.recommendedActions || 'None specified'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block mb-1">Next Review</span>
+                                                            <p className="text-slate-600 leading-relaxed">
+                                                                {risk.nextReviewDate ? new Date(risk.nextReviewDate).toLocaleDateString() : 'Not scheduled'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
                                     </React.Fragment>
                                 ))
                             )}
-                        </tbody>
+                        </TableBody>
                     </table>
                 </div>
+            </div>
 
-                {/* Horizontal Scroll Guidance Banner */}
-                {canScrollRight && (
-                    <div className="px-4 py-2.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/90 to-blue-50/90 border-t border-blue-100 flex items-center justify-between text-xs text-blue-900 animate-in fade-in duration-200">
-                        <div className="flex items-center gap-2">
-                            <ArrowRight className="w-4 h-4 text-blue-600 animate-pulse shrink-0" />
-                            <span className="font-medium">More columns are available (Residual Risk, Treatment). Slide table or use arrows to view all columns.</span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => scrollTable('right')}
-                            className="font-bold text-blue-700 hover:text-blue-950 underline decoration-blue-400 hover:decoration-blue-700 cursor-pointer ml-3 shrink-0 flex items-center gap-1"
-                        >
-                            <span>Slide to view</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
+            {/* Summary Footer */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 border-t border-slate-200 text-xs rounded-b-lg">
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500 font-medium">Total Risks:</span>
+                        <span className="font-bold text-slate-800">{filteredRisks.length}</span>
                     </div>
-                )}
+                    <div className="flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                        <span className="text-slate-500 font-medium">High / Critical:</span>
+                        <span className="font-bold text-red-600">
+                            {filteredRisks.filter(r => {
+                                const s = r.inherentRisk || '';
+                                return s.toLowerCase().includes('high') || s.toLowerCase().includes('critical');
+                            }).length}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="text-slate-500 font-medium">With Treatments:</span>
+                        <span className="font-bold text-emerald-600">
+                            {filteredRisks.filter(r => (r as any).treatmentCount > 0).length}
+                        </span>
+                    </div>
+                </div>
 
-                {/* Pagination outside horizontal scroll */}
-                {totalRisks > 0 && (
-                    <div className="border-t border-slate-200 bg-white">
+                {totalRisks > pageSize && (
+                    <div>
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages}
@@ -1053,31 +1266,10 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                     </div>
                 )}
             </div>
+        </CardContent>
+    </Card>
 
-            {/* Summary Footer */}
-            < div className="px-6 py-4 border-t bg-muted/30" >
-                <div className="flex flex-wrap gap-6 text-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Total Risks:</span>
-                        <span className="font-semibold">{filteredRisks.length}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-500" />
-                        <span className="text-muted-foreground">High/Critical:</span>
-                        <span className="font-semibold text-red-600">
-                            {filteredRisks.filter(r => r.inherentRisk === 'High' || r.inherentRisk === 'Very High').length}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        <span className="text-muted-foreground">With Treatments:</span>
-                        <span className="font-semibold text-green-600">
-                            {filteredRisks.filter(r => (r as any).treatmentCount > 0).length}
-                        </span>
-                    </div>
-                </div>
-            </div >
-
+            
             {/* Detail Dialog */}
             <RiskDetailsDialog
                 open={!!selectedRisk}
@@ -1124,7 +1316,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                 onOpenChange={(open) => !open && setAiActionRisk(null)}
                 title={
                     <div className="flex items-center gap-2">
-                        <Wand2 className="w-5 h-5 text-purple-600" />
+                        <Wand2 className="w-5 h-5 text-teal-600" />
                         AI Smart Insights: {aiActionRisk?.assessmentId}
                     </div>
                 }
@@ -1145,7 +1337,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                                     });
                                 }}
                                 disabled={updateRiskMutation.isLoading}
-                                className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
+                                className="bg-teal-600 hover:bg-teal-700 text-white gap-2"
                             >
                                 {updateRiskMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 Commit AI Triage to Risk
@@ -1156,14 +1348,14 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
             >
                 <div className="space-y-8 py-4">
                     {/* Triage Slot */}
-                    <div className="bg-purple-50/50 p-6 rounded-xl border border-purple-100">
-                        <h4 className="font-semibold text-purple-900 mb-4 flex items-center gap-2">
+                    <div className="bg-teal-50/50 p-6 rounded-xl border border-teal-100">
+                        <h4 className="font-semibold text-teal-900 mb-4 flex items-center gap-2">
                             <ArrowUpDown className="w-4 h-4" />
                             Step 1: AI Auto-Triage
                         </h4>
                         <div className="flex items-start gap-6">
                             <div className="flex-1 space-y-4">
-                                <p className="text-sm text-purple-800 italic">
+                                <p className="text-sm text-teal-800 italic">
                                     "Analysis based on: <strong>{aiActionRisk?.threatDescription || 'No description'}</strong>"
                                 </p>
                                 <Slot
@@ -1182,8 +1374,8 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                             </div>
 
                             {aiTriageResults && (
-                                <div className="w-64 bg-white p-4 rounded-lg border border-purple-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
-                                    <h5 className="text-xs font-bold text-purple-700 uppercase mb-3">AI Recommendation</h5>
+                                <div className="w-64 bg-white p-4 rounded-lg border border-teal-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <h5 className="text-xs font-bold text-teal-700 uppercase mb-3">AI Recommendation</h5>
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <p className="text-[10px] text-gray-500 uppercase">Likelihood</p>
@@ -1206,7 +1398,7 @@ export function RiskRegister({ clientId, onEditRisk, heatmapFilter, framework, s
                     {/* Suggestions Slot */}
                     <div className="p-2">
                         <h4 className="font-semibold text-slate-900 mb-4 flex items-center gap-2 px-4">
-                            <Sparkles className="w-4 h-4 text-purple-600" />
+                            <Sparkles className="w-4 h-4 text-teal-600" />
                             Step 2: Intelligent Control Suggestions
                         </h4>
                         <Slot
