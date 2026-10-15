@@ -259,11 +259,11 @@ export default function RiskTreatmentPlanPage() {
     }, [paginatedTreatments]);
 
     // Export helpers
-    const handleExport = (format: 'csv' | 'json') => {
+    const handleExport = (exportFormat: 'csv' | 'json') => {
         if (!filteredTreatments.length) return;
-        const filename = `risk-treatments-client-${clientId}-${new Date().toISOString().split('T')[0]}.${format}`;
+        const filename = `risk-treatments-client-${clientId}-${new Date().toISOString().split('T')[0]}.${exportFormat}`;
 
-        if (format === 'json') {
+        if (exportFormat === 'json') {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filteredTreatments, null, 2));
             const dlAnchor = document.createElement('a');
             dlAnchor.setAttribute("href", dataStr);
