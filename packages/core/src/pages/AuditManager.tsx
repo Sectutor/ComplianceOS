@@ -113,20 +113,6 @@ export default function AuditManager() {
         );
     }
 
-    // Validate clientId - must be a positive number
-    if (!clientId || clientId <= 0) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center h-96">
-                    <div className="text-center">
-                        <p className="text-red-500 text-lg font-medium">Invalid client ID</p>
-                        <p className="text-slate-500 mt-2">Please select a valid client from the dashboard.</p>
-                    </div>
-                </div>
-            </DashboardLayout>
-        );
-    }
-
     const resetForm = () => {
         setAuditForm({
             title: "",
