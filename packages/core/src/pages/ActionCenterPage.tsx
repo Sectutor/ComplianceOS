@@ -65,15 +65,16 @@ export default function ActionCenterPage() {
   const { selectedClientId, setSelectedClientId } = useClientContext();
   const [location, setLocation] = useLocation();
 
-  // Extract from URL query param if present, e.g. /action-center?clientId=18
+  // Client id comes from /clients/:id/action-center, then ?clientId=, then context.
+  const pathClientMatch = location.match(/\/clients\/(\d+)\/action-center/);
+  const pathClientId = pathClientMatch ? parseInt(pathClientMatch[1], 10) : null;
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const urlClientId = searchParams.get("clientId") ? parseInt(searchParams.get("clientId")!, 10) : null;
 
   // List available clients for selector & fallback
   const { data: clientsList, isLoading: clientsLoading } = trpc.clients.list.useQuery(undefined, { retry: false });
 
-  // Resolve clientId: URL query > context > first client in list
-  const clientId = selectedClientId || urlClientId || (Array.isArray(clientsList) && clientsList.length > 0 ? (clientsList[0].id as number) : 0);
+  const clientId = pathClientId || urlClientId || selectedClientId || (Array.isArray(clientsList) && clientsList.length > 0 ? (clientsList[0].id as number) : 0);
 
   // Sync to context if we resolved one and context didn't have it
   useEffect(() => {
@@ -228,7 +229,7 @@ export default function ActionCenterPage() {
               onValueChange={(val) => {
                 const id = parseInt(val, 10);
                 setSelectedClientId(id);
-                setLocation(`/action-center?clientId=${id}`);
+                setLocation(`/clients/${id}/action-center`);
               }}
             >
               <SelectTrigger className="w-full h-11 rounded-xl">
@@ -494,7 +495,7 @@ export default function ActionCenterPage() {
                   onValueChange={(val) => {
                     const id = parseInt(val, 10);
                     setSelectedClientId(id);
-                    setLocation(`/action-center?clientId=${id}`);
+                    setLocation(`/clients/${id}/action-center`);
                   }}
                 >
                   <SelectTrigger className="h-7 min-w-[130px] max-w-[190px] bg-transparent border-0 text-slate-900 dark:text-white text-xs font-semibold focus:ring-0">

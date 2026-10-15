@@ -544,12 +544,12 @@ function DashboardLayoutContent({
           { icon: Rocket, label: "Start Here", path: "/start-here" },
           { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
           { icon: Users, label: "Clients", path: "/clients" },
-          {
+          ...(persistentClientId ? [{
             icon: Inbox,
             label: "Action Center",
-            path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
+            path: `/clients/${persistentClientId}/action-center`,
             badge: pendingSentinelCount > 0 ? pendingSentinelCount.toLocaleString() : undefined,
-          },
+          }] : []),
           { icon: Settings, label: "Settings", path: "/settings" },
           { icon: Sparkles, label: "License & Plans", path: "/settings/license" },
           ...(isAdminOrOwner && persistentClientId ? [{ icon: Palette, label: "Branding", path: "/settings?tab=branding" }] : []),
@@ -563,7 +563,7 @@ function DashboardLayoutContent({
           ...(persistentClientId ? [
             { icon: Scale, label: "Compliance Obligations", path: `/clients/${persistentClientId}/compliance-obligations` },
             { icon: GitBranch, label: "Harmonization", path: "/harmonization" },
-            { icon: GraduationCap, label: "Guides", path: "/guides" },
+            { icon: GraduationCap, label: "Guides", path: `/clients/${persistentClientId}/guides` },
           ] : []),
           { icon: LayoutGrid, label: "Frameworks Library", path: "/frameworks" },
           learningZoneMenuItem
@@ -635,7 +635,7 @@ function DashboardLayoutContent({
             },
             { icon: Users, label: "People & Org", path: "/people" },
             { icon: FileBarChart, label: "RACI Matrix", path: "/raci-matrix" },
-            { icon: UserCheck, label: "Access Reviews", path: "/access-reviews" },
+            { icon: UserCheck, label: "Access Reviews", path: `/clients/${persistentClientId}/access-reviews` },
             { icon: Palette, label: "Client Branding", path: "/settings?tab=branding" },
           ]
         },
@@ -697,7 +697,7 @@ function DashboardLayoutContent({
           { icon: Search, label: "Discovery", path: "/vendors/discovery" },
           { icon: FileText, label: "Contract Templates", path: "/vendors/contracts" },
           { icon: ClipboardList, label: "Questionnaires", path: "/questionnaires" },
-          { icon: BookOpen, label: "Answer Library", path: "/answer-library" },
+          { icon: BookOpen, label: "Answer Library", path: `/clients/${persistentClientId}/answer-library` },
           { icon: Target, label: "Assessment Templates", path: "/vendors/templates" },
         ]
       });
@@ -832,7 +832,7 @@ function DashboardLayoutContent({
         items: [
           adminMenuItem,
           { icon: Sparkles, label: "Advisor Workbench", path: "/advisor/workbench", isPremium: true } as any,
-          { icon: History, label: "Activity Log", path: "/activity" },
+          ...(persistentClientId ? [{ icon: History, label: "Activity Log", path: `/clients/${persistentClientId}/activity` }] : []),
         ]
       });
     }
@@ -850,12 +850,12 @@ function DashboardLayoutContent({
         { icon: Rocket, label: "Start Here", path: "/start-here" },
         { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
         { icon: Users, label: "Clients", path: "/clients" },
-        {
+        ...(persistentClientId ? [{
           icon: Inbox,
           label: "Action Center",
-          path: persistentClientId ? `/action-center?clientId=${persistentClientId}` : "/action-center",
+          path: `/clients/${persistentClientId}/action-center`,
           badge: pendingSentinelCount > 0 ? pendingSentinelCount.toLocaleString() : undefined,
-        },
+        }] : []),
         ...(persistentClientId ? [
           { icon: Compass, label: "Compliance Journey", path: `/clients/${persistentClientId}/compliance-journey` },
           { icon: Zap, label: "Workflows", path: "/workflows" },
@@ -924,7 +924,7 @@ function DashboardLayoutContent({
             submenu: [
               { label: "People Directory", path: "/people" },
               { label: "RACI Matrix", path: "/raci-matrix" },
-              { label: "Access Reviews", path: "/access-reviews" },
+              { label: "Access Reviews", path: `/clients/${persistentClientId}/access-reviews` },
               ...(isAdminOrOwner ? [{ label: "Personnel Compliance", path: "/personnel-compliance" }] : []),
             ]
           },
@@ -1005,7 +1005,7 @@ function DashboardLayoutContent({
               { label: "All Vendors", path: "/vendors/all" },
               { label: "Discovery", path: "/vendors/discovery" },
               { label: "Questionnaires", path: "/questionnaires" },
-              { label: "Answer Library", path: "/answer-library" },
+              { label: "Answer Library", path: `/clients/${persistentClientId}/answer-library` },
               { label: "Assessment Templates", path: "/vendors/templates" },
               { label: "Contract Templates", path: "/vendors/contracts" },
             ]
@@ -1029,7 +1029,7 @@ function DashboardLayoutContent({
             { label: "Control Frameworks Dashboard", path: "/compliance" },
             { label: "Control Mappings", path: "/mappings" },
             { label: "Harmonization", path: "/harmonization" },
-            { label: "Guides", path: "/guides" },
+            { label: "Guides", path: `/clients/${persistentClientId}/guides` },
           ] : []),
         ]
       },
@@ -1204,7 +1204,7 @@ function DashboardLayoutContent({
         items: [
           adminMenuItem,
           { icon: Sparkles, label: "Advisor Workbench", path: "/advisor/workbench", isPremium: true } as any,
-          { icon: History, label: "Activity Log", path: "/activity" },
+          ...(persistentClientId ? [{ icon: History, label: "Activity Log", path: `/clients/${persistentClientId}/activity` }] : []),
           ...(persistentClientId ? [{ icon: Megaphone, label: "CRM Dashboard", path: "/sales", isPremium: true } as any] : []),
         ]
       });

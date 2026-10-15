@@ -50,7 +50,8 @@ export function resolveNavigationPath(itemPath: string | undefined | null, clien
     // Public questionnaire routes (vendor response tokens) should not be rewritten
     if (purePath.startsWith('/questionnaire/')) return itemPath;
 
-    if (purePath === "/action-center") return `/action-center${query ? `?${query}` : (clientId ? `?clientId=${clientId}` : '')}`;
+    if (purePath === "/action-center") return `/clients/${clientId}/action-center${queryStr}`;
+    if (purePath === "/access-reviews") return `/clients/${clientId}/access-reviews${queryStr}`;
     if (purePath === "/governance") return `/clients/${clientId}/governance${queryStr}`;
     if (purePath === "/governance/workbench") return `/clients/${clientId}/governance/workbench${queryStr}`;
     if (purePath === "/compliance") return `/clients/${clientId}/compliance${queryStr}`;
