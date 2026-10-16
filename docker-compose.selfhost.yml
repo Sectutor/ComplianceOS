@@ -34,17 +34,13 @@ services:
       # APP_ENCRYPTION_KEY alias (read by some modules)
       - APP_ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-to-a-random-32-char-key}
 
-      # Auth — Supabase (optional, local auth fallback available)
-      - AUTH_MODE=${AUTH_MODE:-auto}
+      # Auth — built-in local auth (self-host needs no Supabase project)
+      - AUTH_MODE=${AUTH_MODE:-local}
       - AUTH_DISABLE_REGISTRATION=${AUTH_DISABLE_REGISTRATION:-true}
       - COMPLIANCE_ADMIN_EMAIL=${COMPLIANCE_ADMIN_EMAIL:-admin@complianceos.local}
       - COMPLIANCE_ADMIN_PASSWORD=${COMPLIANCE_ADMIN_PASSWORD:-}
       - COMPLIANCE_API_KEY=${COMPLIANCE_API_KEY:-}
       - LOCAL_JWT_SECRET=${LOCAL_JWT_SECRET:-change-this-to-a-random-secret}
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-placeholder}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-placeholder}
-      - SUPABASE_URL=${VITE_SUPABASE_URL:-https://placeholder.supabase.co}
 
       # License
       - VITE_ENABLE_PREMIUM=${VITE_ENABLE_PREMIUM:-false}

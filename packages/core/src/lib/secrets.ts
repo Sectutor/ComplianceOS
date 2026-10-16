@@ -14,12 +14,17 @@ type SecretKey =
     | 'TOOL_HMAC_SECRET'
     | 'RATE_LIMIT_REDIS_URL';
 
-const REQUIRED_SECRETS_PROD: SecretKey[] = [
-    'DATABASE_URL',
-    'ENCRYPTION_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'SUPABASE_URL'
-];
+const SUPABASE_SECRETS: SecretKey[] = ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_URL'];
+
+/**
+ * Self-host installs run with built-in local auth (AUTH_MODE=local) and have no
+ * Supabase project, so Supabase credentials are only required otherwise.
+ */
+function requiredSecretsProd(): SecretKey[] {
+    const base: SecretKey[] = ['DATABASE_URL', 'ENCRYPTION_KEY'];
+    const authMode = (process.env.AUTH_MODE || 'auto').toLowerCase();
+    return authMode === 'local' ? base : [...base, ...SUPABASE_SECRETS];
+}
 
 /**
  * Validates that all required secrets are present in production.
@@ -27,7 +32,7 @@ const REQUIRED_SECRETS_PROD: SecretKey[] = [
 export function validateSecrets() {
     if (process.env.NODE_ENV !== 'production') return;
 
-    const results = REQUIRED_SECRETS_PROD.map(key => {
+    const results = requiredSecretsProd().map(key => {
         const standard = process.env[key];
         const vite = process.env[`VITE_${key}`];
         return {
@@ -59,7 +64,7 @@ export function validateSecrets() {
 export function getSecret(key: SecretKey, fallback?: string): string {
     const value = process.env[key] || process.env[`VITE_${key}`] || fallback;
 
-    if (!value && REQUIRED_SECRETS_PROD.includes(key) && process.env.NODE_ENV === 'production') {
+    if (!value && requiredSecretsProd().includes(key) && process.env.NODE_ENV === 'production') {
         throw new Error(`CRITICAL: Secret ${key} (or VITE_${key}) is required in production but not found.`);
     }
 
