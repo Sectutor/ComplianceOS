@@ -16,3 +16,4 @@ export * from './personnel';
 export * from './enterprise';
 export * from './licenses';
 export * from './ai-features';
+export * from './starterKit';

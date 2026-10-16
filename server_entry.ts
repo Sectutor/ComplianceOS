@@ -63,6 +63,8 @@ import * as crypto from 'crypto';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { rateLimit } from 'express-rate-limit';
 import { validateSecrets } from './packages/core/src/lib/secrets';
+import { createStarterKitRouter } from './packages/core/src/server/routes/starterKit';
+import { sendEmail as sendStarterKitEmail } from './packages/core/src/lib/email/transporter';
 import { logTelemetryStatus, isTelemetryAllowed } from './packages/core/src/lib/telemetry';
 import { readCachedLicense, enforceLicense } from './packages/core/src/lib/license/local-license-cache';
 import { jobRouter } from './packages/core/src/server/routers/jobs';
@@ -260,6 +262,11 @@ app.use((req, res, next) => {
     next();
 });
 
+
+// Public ISO 27001 Starter Kit lead form (landing page). Mounted before the global
+// CORS/body parsers so it applies its own strict CORS (grcompliance.com only),
+// small body limit and rate limit. Returns 404 unless STARTER_KIT_ENABLED=true.
+app.use(createStarterKitRouter({ getDb, sendEmail: sendStarterKitEmail }));
 
 // Configure CORS
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
