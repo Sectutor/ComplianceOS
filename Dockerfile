@@ -64,6 +64,9 @@ COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/scripts/bootstrap-db.ts ./scripts/
 COPY --from=builder /app/scripts/schema-init.sql ./scripts/
+# Idempotent gap fill (CREATE/ADD COLUMN IF NOT EXISTS) applied by bootstrap-db.ts after schema-init.sql;
+# without it long-lived databases miss columns the app queries (e.g. client_controls.next_review_date).
+COPY --from=builder /app/scripts/schema-selfhost-gapfill.sql ./scripts/
 # Additive client-7 demo top-up (run by bootstrap-db.ts) and the policy-template seed read by packages/core/src/db.ts
 COPY --from=builder /app/scripts/demo-topup-client7.ts ./scripts/
 COPY --from=builder /app/scripts/demo-fixture-client7.ts ./scripts/
