@@ -66,6 +66,8 @@ COPY --from=builder /app/scripts/bootstrap-db.ts ./scripts/
 COPY --from=builder /app/scripts/schema-init.sql ./scripts/
 # Additive client-7 demo top-up (run by bootstrap-db.ts) and the policy-template seed read by packages/core/src/db.ts
 COPY --from=builder /app/scripts/demo-topup-client7.ts ./scripts/
+COPY --from=builder /app/scripts/demo-fixture-client7.ts ./scripts/
+COPY --from=builder /app/scripts/demo-fixture/client7.json.gz ./scripts/demo-fixture/
 COPY --from=builder /app/scripts/seed-demo-full.sql ./scripts/
 
 # Expose the port
