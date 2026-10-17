@@ -710,3 +710,8 @@ CREATE INDEX IF NOT EXISTS "idx_emb_client" ON "embeddings" ("client_id");
 CREATE INDEX IF NOT EXISTS "idx_jevai_config_client" ON "jevai_config" ("client_id");
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_reg_watch_client_reg" ON "regulation_watch" ("client_id","regulation_name");
+--> statement-breakpoint
+-- risk register statuses used by risks.getRiskStats (must run outside a transaction)
+ALTER TYPE "risk_assessment_status" ADD VALUE IF NOT EXISTS 'treated';
+--> statement-breakpoint
+ALTER TYPE "risk_assessment_status" ADD VALUE IF NOT EXISTS 'accepted';

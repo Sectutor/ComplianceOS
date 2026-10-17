@@ -50,6 +50,7 @@ import {
     businessProcesses,
     reportLogs,
 } from "../packages/core/src/schema";
+import { demoTopUpClient7 } from "./demo-topup-client7";
 
 const LATORRE_CLIENT_ID = 7;
 
@@ -210,6 +211,7 @@ async function main() {
         const seededVulns = await db.select({ id: vulnerabilities.id }).from(vulnerabilities).where(eq(vulnerabilities.clientId, LATORRE_CLIENT_ID));
         const seededRoles = await db.select({ id: orgRoles.id }).from(orgRoles).where(eq(orgRoles.clientId, LATORRE_CLIENT_ID));
         if (seededCerts.length > 0 && seededPolicies.length >= 10 && seededRisks.length >= 8 && seededEmployees.length >= 10 && seededVulns.length >= 10 && seededRoles.length >= 10) {
+            await runDemoTopUp(sql);
             console.log("[BootstrapDB] LaTorre source client already fully enriched — skipping seed.");
             await sql.end();
             process.exit(0);
@@ -1533,8 +1535,19 @@ async function main() {
         console.warn("[BootstrapDB] Sequence realignment failed (continuing):", seqErr?.message || seqErr);
     }
 
+    await runDemoTopUp(sql);
+
     await sql.end();
     process.exit(0);
+}
+
+/** Additive client-7 demo top-up; never allowed to block the boot. */
+async function runDemoTopUp(sql: postgres.Sql) {
+    try {
+        await demoTopUpClient7(sql);
+    } catch (err: any) {
+        console.warn("[BootstrapDB] Demo top-up failed (continuing):", (err?.message || err).toString().slice(0, 200));
+    }
 }
 
 function hash(s: string): number {

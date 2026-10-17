@@ -432,9 +432,16 @@ app.post('/api/auth/local-login', async (req: any, res) => {
           .where(and(eq(userClients.userId, dbUser.id), eq(userClients.clientId, demoClientId))).limit(1);
         const demoClient = await dbConn.select({ id: clientsTable.id }).from(clientsTable)
           .where(eq(clientsTable.id, demoClientId)).limit(1);
+        // Read-only by default so prospects cannot edit the shared dataset (DEMO_LOGIN_ROLE overrides).
+        const allowedRoles = ['viewer', 'editor', 'admin'] as const;
+        const wanted = (allowedRoles as readonly string[]).includes(process.env.DEMO_LOGIN_ROLE || '')
+          ? (process.env.DEMO_LOGIN_ROLE as typeof allowedRoles[number]) : 'viewer';
         if (existing.length === 0 && demoClient.length > 0) {
-          await dbConn.insert(userClients).values({ userId: dbUser.id, clientId: demoClientId, role: 'admin' });
-          console.log(`[LocalLogin] Demo login attached to shared workspace ${demoClientId}`);
+          await dbConn.insert(userClients).values({ userId: dbUser.id, clientId: demoClientId, role: wanted });
+          console.log(`[LocalLogin] Demo login attached to shared workspace ${demoClientId} (${wanted})`);
+        } else if (existing.length > 0 && existing[0].role !== wanted) {
+          await dbConn.update(userClients).set({ role: wanted }).where(eq(userClients.id, existing[0].id));
+          console.log(`[LocalLogin] Demo login role on workspace ${demoClientId} set to ${wanted}`);
         }
       }
 
