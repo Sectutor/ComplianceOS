@@ -54,11 +54,27 @@ const POLICIES: [name: string, status: string, owner: string][] = [
 ];
 
 const RISK_LEVEL = (score: number) => (score >= 15 ? "Critical" : score >= 9 ? "High" : score >= 4 ? "Medium" : "Low");
-const daysFromNow = (d: number) => new Date(Date.now() + d * 86400000);
+// ISO strings, not Date objects: bootstrap shares this client with drizzle, which swaps
+// postgres.js timestamp serializers for pass-through ones (a Date then fails to encode).
+const daysFromNow = (d: number) => new Date(Date.now() + d * 86400000).toISOString();
 
 async function count(sql: postgres.Sql, query: string): Promise<number> {
     const rows = await sql.unsafe(query);
     return Number((rows[0] as any)?.n || 0);
+}
+
+/** Move a serial sequence past MAX(id) so inserts cannot collide with pinned-id seed rows. */
+async function realign(sql: postgres.Sql, table: string) {
+    await sql.unsafe(`SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM ${table}), 0) + 1, false)`);
+}
+
+/** Run one top-up step; a failure is logged and never blocks the other steps. */
+async function step(name: string, fn: () => Promise<void>) {
+    try {
+        await fn();
+    } catch (err: any) {
+        console.warn(`[DemoTopUp] step "${name}" failed: ${(err?.message || err).toString().slice(0, 300)}`);
+    }
 }
 
 export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
@@ -69,9 +85,15 @@ export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
         return;
     }
 
+    for (const t of ["risk_assessments", "risk_treatments", "client_policies", "vendor_assessment_requests", "vendor_assessment_templates"]) {
+        await step(`realign ${t}`, () => realign(sql, t));
+    }
+
     // 1. Risk register + treatments (only when the register is thin)
-    const riskCount = await count(sql, `SELECT count(*)::int AS n FROM risk_assessments WHERE client_id = ${CLIENT_ID}`);
-    let risksAdded = 0, treatmentsAdded = 0;
+    let riskCount = -1, policyCount = -1, reqCount = -1;
+    let risksAdded = 0, treatmentsAdded = 0, policiesAdded = 0, requestsAdded = 0;
+    await step("risks", async () => {
+    riskCount = await count(sql, `SELECT count(*)::int AS n FROM risk_assessments WHERE client_id = ${CLIENT_ID}`);
     if (riskCount < 15) {
         for (const [idx, r] of RISKS.entries()) {
             const [code, title, category, l, i, rl, ri, owner, option, status, treatment, tStatus] = r;
@@ -80,9 +102,9 @@ export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
                 INSERT INTO risk_assessments (client_id, assessment_id, title, category, assessment_date, assessor, method,
                     likelihood, impact, inherent_risk, inherent_score, residual_risk, residual_score, risk_owner,
                     treatment_option, priority, status, next_review_date, review_due_date)
-                SELECT ${CLIENT_ID}, ${code}, ${title}, ${category}, ${daysFromNow(-60 + idx)}, ${owner}, 'ISO 27005',
+                SELECT ${CLIENT_ID}, ${code}, ${title}, ${category}, ${daysFromNow(-60 + idx)}::timestamp, ${owner}, 'ISO 27005',
                     ${String(l)}, ${String(i)}, ${RISK_LEVEL(inherent)}, ${inherent}, ${RISK_LEVEL(residual)}, ${residual}, ${owner},
-                    ${option}, ${RISK_LEVEL(inherent)}, ${status}::risk_assessment_status, ${daysFromNow(idx % 4 === 0 ? -10 : 90 + idx)}, ${daysFromNow(180)}
+                    ${option}, ${RISK_LEVEL(inherent)}, ${status}::risk_assessment_status, ${daysFromNow(idx % 4 === 0 ? -10 : 90 + idx)}::timestamp, ${daysFromNow(180)}::timestamp
                 WHERE NOT EXISTS (SELECT 1 FROM risk_assessments WHERE client_id = ${CLIENT_ID} AND assessment_id = ${code})
                 RETURNING id`;
             if (inserted.length) risksAdded++;
@@ -90,32 +112,36 @@ export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
             if (!ra) continue;
             const t = await sql`
                 INSERT INTO risk_treatments (client_id, risk_assessment_id, treatment_type, strategy, status, due_date, owner, priority)
-                SELECT ${CLIENT_ID}, ${ra.id}, ${option.toLowerCase()}, ${treatment}, ${tStatus}, ${daysFromNow(idx % 5 === 0 ? -7 : 30 + idx * 3)}, ${owner}, ${RISK_LEVEL(inherent).toLowerCase()}
+                SELECT ${CLIENT_ID}, ${ra.id}, ${option.toLowerCase()}, ${treatment}, ${tStatus}, ${daysFromNow(idx % 5 === 0 ? -7 : 30 + idx * 3)}::timestamp, ${owner}, ${RISK_LEVEL(inherent).toLowerCase()}
                 WHERE NOT EXISTS (SELECT 1 FROM risk_treatments WHERE risk_assessment_id = ${ra.id})
                 RETURNING id`;
             if (t.length) treatmentsAdded++;
         }
     }
 
+    });
+
     // 2. Client policies (>= 10)
-    const policyCount = await count(sql, `SELECT count(*)::int AS n FROM client_policies WHERE client_id = ${CLIENT_ID}`);
-    let policiesAdded = 0;
+    await step("policies", async () => {
+    policyCount = await count(sql, `SELECT count(*)::int AS n FROM client_policies WHERE client_id = ${CLIENT_ID}`);
     if (policyCount < 10) {
         for (const [idx, [name, status, owner]] of POLICIES.entries()) {
             const p = await sql`
                 INSERT INTO client_policies (client_id, client_policy_id, name, content, status, version, owner, module, review_due_date, next_review_date)
                 SELECT ${CLIENT_ID}, ${"POL-" + String(idx + 1).padStart(3, "0")}, ${name},
                     ${`<h1>${name}</h1><p>This policy sets out how LaTorre LTD manages ${name.replace(/ Policy$/, "").toLowerCase()} in line with ISO/IEC 27001:2022 and SOC 2. It applies to all employees, contractors and systems in scope of the ISMS.</p>`},
-                    ${status}::policy_status, 1, ${owner}, 'general', ${daysFromNow(365)}, ${daysFromNow(365)}
+                    ${status}::policy_status, 1, ${owner}, 'general', ${daysFromNow(365)}::timestamp, ${daysFromNow(365)}::timestamp
                 WHERE NOT EXISTS (SELECT 1 FROM client_policies WHERE client_id = ${CLIENT_ID} AND name = ${name})
                 RETURNING id`;
             if (p.length) policiesAdded++;
         }
     }
 
+    });
+
     // 3. Vendor assessment requests (a few, against existing client-7 vendors)
-    const reqCount = await count(sql, `SELECT count(*)::int AS n FROM vendor_assessment_requests WHERE client_id = ${CLIENT_ID}`);
-    let requestsAdded = 0;
+    await step("assessment requests", async () => {
+    reqCount = await count(sql, `SELECT count(*)::int AS n FROM vendor_assessment_requests WHERE client_id = ${CLIENT_ID}`);
     if (reqCount < 3) {
         const vendorRows = await sql`SELECT id, name FROM vendors WHERE client_id = ${CLIENT_ID} ORDER BY id LIMIT 4`;
         if (vendorRows.length) {
@@ -133,7 +159,7 @@ export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
                 const r = await sql`
                     INSERT INTO vendor_assessment_requests (client_id, vendor_id, template_id, token, recipient_email, status, score, sent_at, expires_at, submitted_at, completed_at)
                     SELECT ${CLIENT_ID}, ${v.id}, ${tpl.id}, md5(random()::text || clock_timestamp()::text) || md5(random()::text), ${email}, ${status}, ${score}::int,
-                        ${daysFromNow(sentDays)}, ${daysFromNow(sentDays + 30)},
+                        ${daysFromNow(sentDays)}::timestamp, ${daysFromNow(sentDays + 30)}::timestamp,
                         ${status === "completed" || status === "submitted" ? daysFromNow(sentDays + 3) : null}::timestamp,
                         ${status === "completed" ? daysFromNow(sentDays + 6) : null}::timestamp
                     WHERE NOT EXISTS (SELECT 1 FROM vendor_assessment_requests WHERE client_id = ${CLIENT_ID} AND vendor_id = ${v.id} AND recipient_email = ${email})
@@ -142,6 +168,8 @@ export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
             }
         }
     }
+
+    });
 
     console.log(`[DemoTopUp] client 7: +${risksAdded} risks, +${treatmentsAdded} treatments, +${policiesAdded} policies, +${requestsAdded} assessment requests (had ${riskCount}/${policyCount}/${reqCount}).`);
 }
