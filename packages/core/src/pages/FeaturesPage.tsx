@@ -350,12 +350,12 @@ export default function FeaturesPage() {
                             <div className="mx-auto w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mb-3">
                                 <Zap className="w-6 h-6 text-cyan-600" />
                             </div>
-                            <CardTitle className="text-xl">Pro</CardTitle>
+                            <CardTitle className="text-xl">Professional</CardTitle>
                             <CardDescription>AI-Powered</CardDescription>
-                            <div className="text-3xl font-bold mt-2 text-cyan-600">$299<span className="text-sm font-normal">/mo</span></div>
+                            <div className="text-3xl font-bold mt-2 text-cyan-600">$1,990<span className="text-sm font-normal">/yr</span></div>
                         </CardHeader>
                         <CardContent className="text-center">
-                            <p className="text-sm text-slate-600 mb-4">Per organization, AI included</p>
+                            <p className="text-sm text-slate-600 mb-4">Unlimited workspaces, AI included ($1,592/yr founding)</p>
                             <ul className="text-sm text-left space-y-2">
                                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-cyan-500" /> Everything in Community</li>
                                 <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-cyan-500" /> AI Advisor & Automation</li>
@@ -372,12 +372,12 @@ export default function FeaturesPage() {
                             </div>
                             <CardTitle className="text-xl">Enterprise</CardTitle>
                             <CardDescription>Full Service</CardDescription>
-                            <div className="text-3xl font-bold mt-2 text-amber-600">Custom</div>
+                            <div className="text-3xl font-bold mt-2 text-amber-600">From $9,990<span className="text-sm font-normal">/yr</span></div>
                         </CardHeader>
                         <CardContent className="text-center">
-                            <p className="text-sm text-slate-600 mb-4">Managed & white-labeled</p>
+                            <p className="text-sm text-slate-600 mb-4">Air-gapped deployment & board reporting</p>
                             <ul className="text-sm text-left space-y-2">
-                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-500" /> Everything in Pro</li>
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-500" /> Everything in Professional</li>
                                 <li className="flex items-center gap-2"><Lock className="w-4 h-4 text-amber-500" /> SSO & Advanced Security</li>
                                 <li className="flex items-center gap-2"><Server className="w-4 h-4 text-amber-500" /> Enterprise Scalability</li>
                                 <li className="flex items-center gap-2"><Handshake className="w-4 h-4 text-amber-500" /> Dedicated Support</li>

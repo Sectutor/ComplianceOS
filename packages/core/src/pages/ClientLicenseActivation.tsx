@@ -716,7 +716,7 @@ export default function ClientLicenseActivation() {
                       <CardDescription>Full Access</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">$99<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                      <div className="text-2xl font-bold">From $9,990<span className="text-sm font-normal text-muted-foreground">/year</span></div>
                       <p className="text-sm text-muted-foreground mt-1">All Features Included</p>
                       <Button className="w-full mt-4">
                         <CreditCard className="h-4 w-4 mr-2" />
