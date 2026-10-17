@@ -734,3 +734,8 @@ CREATE TABLE IF NOT EXISTS "starter_kit_leads" (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "starter_kit_leads_email_uq" ON "starter_kit_leads" USING btree ("email");
+--> statement-breakpoint
+-- risk register statuses used by risks.getRiskStats (must run outside a transaction)
+ALTER TYPE "risk_assessment_status" ADD VALUE IF NOT EXISTS 'treated';
+--> statement-breakpoint
+ALTER TYPE "risk_assessment_status" ADD VALUE IF NOT EXISTS 'accepted';

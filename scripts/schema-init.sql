@@ -196,6 +196,10 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+ALTER TYPE "risk_assessment_status" ADD VALUE IF NOT EXISTS 'treated';
+--> statement-breakpoint
+ALTER TYPE "risk_assessment_status" ADD VALUE IF NOT EXISTS 'accepted';
+--> statement-breakpoint
 DO $$ BEGIN
  CREATE TYPE "roadmap_status" AS ENUM('draft', 'active', 'on_track', 'delayed', 'completed');
 EXCEPTION
