@@ -373,6 +373,8 @@ export const vendorsRouter = router({
             const db = await getDb();
             // Get all vendors with their contracts that have DPA flag
             const vendorRows = await db.select().from(vendors).where(eq(vendors.clientId, input.clientId));
+            // inArray() throws on an empty list: a workspace with no vendors has no DPAs.
+            if (vendorRows.length === 0) return [];
 
             // Get all contracts
             const contracts = await db.select().from(vendorContracts).where(

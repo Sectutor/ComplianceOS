@@ -347,6 +347,14 @@ if (localAuth.isLocalAuthActive() || process.env.AUTH_MODE === 'local') {
     }
   }
   localAuth.initDefaultAdmin(adminEmail, adminPassword);
+  // Optional prospect demo login (DEMO_LOGIN_EMAIL + DEMO_LOGIN_PASSWORD). Created on
+  // first boot like the admin (never overwritten), with a non-admin role. Its membership
+  // in the shared demo workspace is ensured on login and kept by bootstrap demoReset.
+  const demoLoginEmail = (process.env.DEMO_LOGIN_EMAIL || '').trim();
+  if (demoLoginEmail && process.env.DEMO_LOGIN_PASSWORD) {
+    const created = localAuth.register(demoLoginEmail, process.env.DEMO_LOGIN_PASSWORD, 'Demo User', 'user');
+    console.log(`[LocalAuth] Demo login ${created.success ? 'created' : 'already present'}: ${demoLoginEmail}`);
+  }
   console.log(`[LocalAuth] Local authentication active — admin: ${adminEmail}`);
   if (generatedPassword && !process.env.COMPLIANCE_ADMIN_PASSWORD) {
     console.log(`╔══════════════════════════════════════════════════════╗`);
@@ -412,6 +420,22 @@ app.post('/api/auth/local-login', async (req: any, res) => {
           lastSignedIn: new Date(),
         }).returning();
         dbUser = newUser;
+      }
+
+      // Prospect demo login: make sure it can open the shared demo workspace.
+      const demoLogin = (process.env.DEMO_LOGIN_EMAIL || '').trim().toLowerCase();
+      if (dbUser && demoLogin && email.toLowerCase() === demoLogin) {
+        const { userClients, clients: clientsTable } = await import('./packages/core/src/schema');
+        const { and } = await import('drizzle-orm');
+        const demoClientId = Number(process.env.DEMO_SHARED_CLIENT_ID || '7');
+        const existing = await dbConn.select().from(userClients)
+          .where(and(eq(userClients.userId, dbUser.id), eq(userClients.clientId, demoClientId))).limit(1);
+        const demoClient = await dbConn.select({ id: clientsTable.id }).from(clientsTable)
+          .where(eq(clientsTable.id, demoClientId)).limit(1);
+        if (existing.length === 0 && demoClient.length > 0) {
+          await dbConn.insert(userClients).values({ userId: dbUser.id, clientId: demoClientId, role: 'admin' });
+          console.log(`[LocalLogin] Demo login attached to shared workspace ${demoClientId}`);
+        }
       }
 
       return dbUser;
