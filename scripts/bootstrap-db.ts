@@ -51,6 +51,7 @@ import {
     reportLogs,
 } from "../packages/core/src/schema";
 import { demoTopUpClient7 } from "./demo-topup-client7";
+import { loadClient7Fixture } from "./demo-fixture-client7";
 
 const LATORRE_CLIENT_ID = 7;
 
@@ -214,6 +215,7 @@ async function main() {
             // Earlier boots never realigned (the old call threw), so fix any drift on every boot.
             try { await realignAllSequences(sql); } catch (seqErr: any) { console.warn("[BootstrapDB] Sequence realignment failed (continuing):", seqErr?.message || seqErr); }
             await runDemoTopUp(sql);
+            await runDemoFixture(sql);
             console.log("[BootstrapDB] LaTorre source client already fully enriched — skipping seed.");
             await sql.end();
             process.exit(0);
@@ -1538,6 +1540,7 @@ async function main() {
     }
 
     await runDemoTopUp(sql);
+    await runDemoFixture(sql);
 
     await sql.end();
     process.exit(0);
@@ -1576,6 +1579,15 @@ async function runDemoTopUp(sql: postgres.Sql) {
         await demoTopUpClient7(sql);
     } catch (err: any) {
         console.warn("[BootstrapDB] Demo top-up failed (continuing):", (err?.message || err).toString().slice(0, 200));
+    }
+}
+
+/** Additive standard LaTorre LTD dataset (scripts/demo-fixture); never allowed to block the boot. */
+async function runDemoFixture(sql: postgres.Sql) {
+    try {
+        await loadClient7Fixture(sql);
+    } catch (err: any) {
+        console.warn("[BootstrapDB] Demo fixture load failed (continuing):", (err?.message || err).toString().slice(0, 200));
     }
 }
 
