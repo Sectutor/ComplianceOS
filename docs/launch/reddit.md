@@ -18,7 +18,7 @@ Hey all — I built ComplianceOS, an open source GRC platform you deploy on your
 - Threat intel feeds
 - **No rate limits. No user caps. Nothing artificially crippled.**
 
-**Premium ($499/yr) adds:**
+**Professional ($1,990/yr, $1,592 founding; or Lifetime $4,990 one-time) adds:**
 - AI drafting (BYOK — your own LLM keys)
 - Guided compliance wizard ("Get ISO 27001 in 30 Days")
 - Privacy center (ROPA, DSAR, DPIA automation)
@@ -30,9 +30,9 @@ Hey all — I built ComplianceOS, an open source GRC platform you deploy on your
 **Tech:** Node + Express + tRPC + Drizzle ORM + Postgres + Redis. Deploy with Docker Compose or Helm. 261 database tables, 330 UI pages.
 
 **Pricing comparison:**
-- GRCompliance: $0 (Community) or $499/yr (Pro)
+- GRCompliance: $0 (Community) or $1,990/yr (Professional, $1,592 founding)
 - Vanta/Drata: $10K–$80K/yr + per-framework pricing
-- 20 clients on GRCompliance: $499/yr on a €4/mo Hetzner VPS
+- 20 clients on GRCompliance: $1,990/yr (one Professional licence, unlimited workspaces) on a €4/mo Hetzner VPS
 - 20 clients on Vanta: $200K–$400K/yr
 
 **Quick start:**

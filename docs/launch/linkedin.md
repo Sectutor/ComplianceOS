@@ -18,7 +18,7 @@ So we open-sourced ComplianceOS.
 ✅ Asset & vendor management
 ✅ Unlimited users. No rate limits. No hidden truncation.
 
-**What's premium ($499/yr):**
+**What's in Professional ($1,990/yr, $1,592 founding; or Lifetime $4,990 one-time):**
 🔷 AI drafting — generate policies, risks, and controls
 🔷 Guided compliance wizard — "Get ISO 27001 in 30 Days"
 🔷 Privacy center — ROPA, DSAR, DPIA automation
