@@ -1078,7 +1078,8 @@ ${reportData.conclusion}
 
                 const [totals] = await db.select({
                     total: sql<number>`count(*)`,
-                    critical: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 9)`,
+                    // Bands per the 5x5 methodology (RiskEditDialog): Critical 15-25, High 9-14, Medium 4-8, Low 1-3
+                    critical: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 15)`,
                     high: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 9 and ${riskAssessments.inherentScore} < 15)`,
                     medium: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 4 and ${riskAssessments.inherentScore} < 9)`,
                     low: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} < 4)`,

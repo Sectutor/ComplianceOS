@@ -89,7 +89,8 @@ export default function RiskDashboard(props?: RiskDashboardProps) {
     );
 
     // Stats from the server-side getRiskStats procedure
-    const highRisks = riskStats?.criticalRisks || 0;
+    // "High/Critical" tile: critical (15-25) + high (9-14); criticalRisks alone is now 15+ only.
+    const highRisks = (riskStats?.criticalRisks || 0) + (riskStats?.highRisks || 0);
     const treatedRisks = riskStats?.treatedRisks || 0;
     const criticalAssets = assets?.filter(a => (a.valuationC || 0) >= 4 || (a.valuationI || 0) >= 4 || (a.valuationA || 0) >= 4).length || 0;
 

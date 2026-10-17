@@ -16,11 +16,11 @@ const CLIENT_ID = 7;
 type Risk = [code: string, title: string, category: string, l: number, i: number, rl: number, ri: number, owner: string, option: string, status: string, treatment: string, tStatus: string];
 
 const RISKS: Risk[] = [
-    ["DEMO-RA-001", "Ransomware outbreak encrypting production file shares", "Cyber", 4, 5, 2, 4, "CISO", "Mitigate", "approved", "Deploy immutable offsite backups and EDR auto-isolation on all servers", "in_progress"],
+    ["DEMO-RA-001", "Ransomware outbreak encrypting production file shares", "Cyber", 4, 5, 3, 4, "CISO", "Mitigate", "approved", "Deploy immutable offsite backups and EDR auto-isolation on all servers", "in_progress"],
     ["DEMO-RA-002", "Phishing-led compromise of finance mailbox (BEC)", "Cyber", 4, 4, 2, 3, "IT Security Manager", "Mitigate", "approved", "Enforce phishing-resistant MFA and payment call-back verification", "implemented"],
     ["DEMO-RA-003", "Privileged AWS root credentials without hardware MFA", "Cloud", 3, 5, 1, 5, "Head of Platform", "Mitigate", "reviewed", "Move root to hardware keys, break-glass procedure and SCP guardrails", "verified"],
     ["DEMO-RA-004", "Public S3 bucket exposing customer exports", "Cloud", 3, 5, 1, 4, "Head of Platform", "Mitigate", "approved", "Enable S3 Block Public Access org-wide and Macie scanning", "implemented"],
-    ["DEMO-RA-005", "Critical SaaS vendor outage (payments processor)", "Third Party", 3, 4, 2, 4, "COO", "Transfer", "approved", "Contract SLA credits plus secondary processor failover", "planned"],
+    ["DEMO-RA-005", "Critical SaaS vendor outage (payments processor)", "Third Party", 3, 4, 3, 4, "COO", "Transfer", "approved", "Contract SLA credits plus secondary processor failover", "planned"],
     ["DEMO-RA-006", "Unpatched internet-facing VPN appliance", "Vulnerability", 4, 5, 2, 3, "IT Operations Lead", "Mitigate", "approved", "30-day critical patch SLA with external attack-surface monitoring", "in_progress"],
     ["DEMO-RA-007", "Insider data exfiltration by departing employee", "People", 2, 4, 1, 3, "HR Director", "Mitigate", "reviewed", "DLP on endpoints and same-day access revocation in leaver workflow", "implemented"],
     ["DEMO-RA-008", "GDPR breach notification missed 72-hour deadline", "Compliance", 2, 5, 1, 4, "DPO", "Mitigate", "approved", "Incident runbook with DPO on-call and notification templates", "implemented"],
@@ -29,12 +29,12 @@ const RISKS: Risk[] = [
     ["DEMO-RA-011", "Open-source dependency with known critical CVE in core API", "Application", 4, 4, 2, 2, "Engineering Manager", "Mitigate", "approved", "SCA scanning gate in CI and monthly dependency updates", "in_progress"],
     ["DEMO-RA-012", "SQL injection in legacy customer portal", "Application", 3, 5, 1, 4, "Engineering Manager", "Mitigate", "reviewed", "Parameterised queries refactor and WAF virtual patching", "implemented"],
     ["DEMO-RA-013", "Inadequate logging prevents incident investigation", "Detection", 3, 3, 2, 2, "SOC Lead", "Mitigate", "approved", "Centralise logs in SIEM with 12-month retention", "in_progress"],
-    ["DEMO-RA-014", "Shadow IT: unsanctioned AI tools processing client data", "Governance", 4, 3, 2, 3, "CISO", "Mitigate", "draft", "Approved AI tool list, CASB discovery and staff guidance", "planned"],
+    ["DEMO-RA-014", "Shadow IT: unsanctioned AI tools processing client data", "Governance", 4, 3, 4, 3, "CISO", "Mitigate", "draft", "Approved AI tool list, CASB discovery and staff guidance", "planned"],
     ["DEMO-RA-015", "Key-person dependency on sole database administrator", "People", 3, 4, 2, 3, "CTO", "Mitigate", "approved", "Cross-train second DBA and document runbooks", "in_progress"],
     ["DEMO-RA-016", "Backup restores never tested end to end", "Resilience", 3, 4, 1, 4, "Head of Infrastructure", "Mitigate", "approved", "Quarterly restore drills with documented RTO/RPO results", "implemented"],
     ["DEMO-RA-017", "DDoS against customer-facing web platform", "Cyber", 3, 4, 1, 4, "Head of Platform", "Transfer", "reviewed", "CDN-based DDoS protection with provider SLA", "verified"],
     ["DEMO-RA-018", "Fourth-party risk from vendor sub-processors", "Third Party", 3, 3, 2, 3, "Procurement Lead", "Accept", "approved", "Annual sub-processor attestation review (accepted residual)", "planned"],
-    ["DEMO-RA-019", "Weak segregation between corporate and OT networks", "Network", 2, 5, 1, 4, "Network Architect", "Mitigate", "draft", "Firewall zoning and jump-host access for OT segment", "planned"],
+    ["DEMO-RA-019", "Weak segregation between corporate and OT networks", "Network", 3, 5, 3, 5, "Network Architect", "Mitigate", "draft", "Firewall zoning and jump-host access for OT segment", "planned"],
     ["DEMO-RA-020", "Expired TLS certificates causing service outage", "Operations", 3, 2, 1, 2, "IT Operations Lead", "Mitigate", "approved", "Automated certificate renewal and 30-day expiry alerts", "implemented"],
 ];
 
@@ -51,6 +51,17 @@ const POLICIES: [name: string, status: string, owner: string][] = [
     ["Backup and Restore Policy", "approved", "Head of Infrastructure"],
     ["Data Retention and Disposal Policy", "draft", "DPO"],
     ["Artificial Intelligence Acceptable Use Policy", "draft", "CISO"],
+];
+
+/**
+ * Risks whose residual stays High/Critical (treatment still in flight), so the dashboard's
+ * "high residual risk" tile is not empty. [code, residual score the first top-up version
+ * seeded]. On boxes seeded by that version the row is corrected only while it still has
+ * exactly that seeded residual score, so a manual edit is never overwritten. DEMO-RA-019
+ * also had a lower inherent score in that version (2x5) and is raised to 3x5 the same way.
+ */
+const ELEVATED_RESIDUAL: [code: string, previousResidual: number][] = [
+    ["DEMO-RA-001", 8], ["DEMO-RA-005", 8], ["DEMO-RA-014", 6], ["DEMO-RA-019", 4],
 ];
 
 const RISK_LEVEL = (score: number) => (score >= 15 ? "Critical" : score >= 9 ? "High" : score >= 4 ? "Medium" : "Low");
@@ -121,6 +132,25 @@ export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
 
     });
 
+    // 1b. Bring rows seeded by the first top-up version in line with RISKS (only the
+    //     ELEVATED_RESIDUAL rows, only while untouched since seeding; idempotent).
+    let risksUpdated = 0;
+    await step("elevated residual risks", async () => {
+        for (const [code, previousResidual] of ELEVATED_RESIDUAL) {
+            const r = RISKS.find((x) => x[0] === code)!;
+            const [, , , l, i, rl, ri] = r;
+            const inherent = l * i, residual = rl * ri;
+            const updated = await sql`
+                UPDATE risk_assessments
+                SET likelihood = ${String(l)}, impact = ${String(i)},
+                    inherent_score = ${inherent}, inherent_risk = ${RISK_LEVEL(inherent)}, priority = ${RISK_LEVEL(inherent)},
+                    residual_score = ${residual}, residual_risk = ${RISK_LEVEL(residual)}, updated_at = now()
+                WHERE client_id = ${CLIENT_ID} AND assessment_id = ${code} AND residual_score = ${previousResidual}
+                RETURNING id`;
+            risksUpdated += updated.length;
+        }
+    });
+
     // 2. Client policies (>= 10)
     await step("policies", async () => {
     policyCount = await count(sql, `SELECT count(*)::int AS n FROM client_policies WHERE client_id = ${CLIENT_ID}`);
@@ -171,5 +201,5 @@ export async function demoTopUpClient7(sql: postgres.Sql): Promise<void> {
 
     });
 
-    console.log(`[DemoTopUp] client 7: +${risksAdded} risks, +${treatmentsAdded} treatments, +${policiesAdded} policies, +${requestsAdded} assessment requests (had ${riskCount}/${policyCount}/${reqCount}).`);
+    console.log(`[DemoTopUp] client 7: +${risksAdded} risks (${risksUpdated} residual updated), +${treatmentsAdded} treatments, +${policiesAdded} policies, +${requestsAdded} assessment requests (had ${riskCount}/${policyCount}/${reqCount}).`);
 }

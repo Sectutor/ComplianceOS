@@ -211,6 +211,8 @@ async function main() {
         const seededVulns = await db.select({ id: vulnerabilities.id }).from(vulnerabilities).where(eq(vulnerabilities.clientId, LATORRE_CLIENT_ID));
         const seededRoles = await db.select({ id: orgRoles.id }).from(orgRoles).where(eq(orgRoles.clientId, LATORRE_CLIENT_ID));
         if (seededCerts.length > 0 && seededPolicies.length >= 10 && seededRisks.length >= 8 && seededEmployees.length >= 10 && seededVulns.length >= 10 && seededRoles.length >= 10) {
+            // Earlier boots never realigned (the old call threw), so fix any drift on every boot.
+            try { await realignAllSequences(sql); } catch (seqErr: any) { console.warn("[BootstrapDB] Sequence realignment failed (continuing):", seqErr?.message || seqErr); }
             await runDemoTopUp(sql);
             console.log("[BootstrapDB] LaTorre source client already fully enriched — skipping seed.");
             await sql.end();
@@ -1529,7 +1531,7 @@ async function main() {
     // (LaTorre LTD = 7) leave sequences behind the table contents; without
     // this, the next workspace/client insert fails on a duplicate key.
     try {
-        await db.realignSequences();
+        await realignAllSequences(sql);
         console.log("[BootstrapDB] ✅ Serial sequences realigned.");
     } catch (seqErr) {
         console.warn("[BootstrapDB] Sequence realignment failed (continuing):", seqErr?.message || seqErr);
@@ -1539,6 +1541,33 @@ async function main() {
 
     await sql.end();
     process.exit(0);
+}
+
+/**
+ * Realign every serial/identity-backed sequence in the public schema to MAX(col).
+ * Pinned-id seed inserts (LaTorre = 7, ...) never advance their sequence, so the next
+ * natural insert would collide on the primary key. Same logic as realignSequences()
+ * in packages/core/src/db.ts, but on bootstrap's own postgres.js client (the old call
+ * `db.realignSequences()` targeted the drizzle instance, which has no such method).
+ */
+async function realignAllSequences(sql: postgres.Sql) {
+    const cols = await sql`
+        SELECT table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND column_default LIKE 'nextval%'`;
+    let fixed = 0;
+    for (const { table_name, column_name } of cols as any[]) {
+        try {
+            await sql.unsafe(
+                `SELECT setval(pg_get_serial_sequence('public."${table_name}"', '${column_name}'), ` +
+                `COALESCE((SELECT MAX("${column_name}") FROM public."${table_name}"), 0) + 1, false)`
+            );
+            fixed++;
+        } catch (e: any) {
+            console.warn(`[BootstrapDB] Could not realign ${table_name}.${column_name}: ${e?.message || e}`);
+        }
+    }
+    console.log(`[BootstrapDB] Realigned ${fixed}/${cols.length} sequences.`);
 }
 
 /** Additive client-7 demo top-up; never allowed to block the boot. */
