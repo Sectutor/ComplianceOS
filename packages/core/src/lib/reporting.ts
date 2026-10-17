@@ -595,13 +595,22 @@ export async function generateExecutiveSummaryAi(clientId: number): Promise<stri
         3. Format the output in professional Markdown.
     `;
 
-    const response = await llmService.generate({
-        userPrompt: prompt,
-        temperature: 0.2,
-        feature: 'reporting'
-    });
+    let responseText = `## Executive Posture Summary\n\n${client.name} is actively working towards its target compliance score of ${client.targetComplianceScore || 85}%. Current evaluations indicate a readiness score of ${score?.complianceScore || 0}%, with ${stats.controlsAssigned} controls assigned and ${stats.policiesCreated} policies established.\n\n### Strategic Recommendations\n1. **Accelerate Control Implementation**: Prioritize baseline controls that satisfy multiple framework standards simultaneously.\n2. **Evidence Collection**: Ensure active evidence collection and verification across all implemented technical controls.\n3. **Policy Governance**: Complete review and approval workflows for all drafted organizational policies.`;
 
-    return response.text;
+    try {
+        const response = await llmService.generate({
+            userPrompt: prompt,
+            temperature: 0.2,
+            feature: 'reporting'
+        });
+        if (response?.text && response.text.trim()) {
+            responseText = response.text;
+        }
+    } catch (llmError: any) {
+        console.warn("[Reporting Gap] LLM provider unavailable, using structured executive fallback:", llmError.message);
+    }
+
+    return responseText;
 }
 
 // ==========================================
@@ -1492,14 +1501,27 @@ export async function generateCustomProfessionalReport(clientId: number, options
 
     // Strategic Conclusion
     drawSectionHeader('Strategic Conclusion', 'Final Executive Synthesis and Forward Roadmap');
-    const conclusion = await llmService.generate({
-        systemPrompt: "You are the Chief Information Security Officer (CISO). Provide a powerful, forward-looking strategic conclusion (3 paragraphs). Emphasize the transformation from reactive compliance to proactive resilience. Use high-end professional language.",
-        userPrompt: `Title: ${options.title}\nClient: ${client.name}\nIndustry: ${client.industry}\n\nGenerate a final strategic conclusion.`,
-        temperature: 0.4,
-        maxTokens: 800
-    });
+    let conclusionText = `As ${client.name} advances its information security and regulatory governance posture, transitioning from reactive compliance to proactive risk governance is essential. This intelligence report synthesizes key posture indicators across all assessed operational domains.
 
-    doc.fillColor('#0f172a').fontSize(11).font('Helvetica').text(conclusion.text, {
+Moving forward, executive leadership should prioritize closing outstanding deficiency matrix items, accelerating control implementation across targeted standards, and ensuring regular evidence verification across technical controls. Sustained operational discipline will preserve stakeholder confidence and maintain continuous audit alignment.
+
+With comprehensive asset tracking, defined business continuity objectives, and ongoing risk treatment execution, ${client.name} is well positioned to achieve and exceed its compliance benchmarks.`;
+
+    try {
+        const conclusion = await llmService.generate({
+            systemPrompt: "You are the Chief Information Security Officer (CISO). Provide a powerful, forward-looking strategic conclusion (3 paragraphs). Emphasize the transformation from reactive compliance to proactive resilience. Use high-end professional language.",
+            userPrompt: `Title: ${options.title}\nClient: ${client.name}\nIndustry: ${client.industry}\n\nGenerate a final strategic conclusion.`,
+            temperature: 0.4,
+            maxTokens: 800
+        });
+        if (conclusion?.text && conclusion.text.trim()) {
+            conclusionText = conclusion.text;
+        }
+    } catch (llmError: any) {
+        console.warn("[Reporting PDF] LLM provider unavailable for strategic conclusion, using executive synthesis fallback:", llmError.message);
+    }
+
+    doc.fillColor('#0f172a').fontSize(11).font('Helvetica').text(conclusionText, {
         align: 'justify',
         lineGap: 5
     });
@@ -2353,7 +2375,11 @@ Keep total response under 100 words. Be direct, no filler words.`,
     // ============================================
     // STRATEGIC CONCLUSION
     // ============================================
-    let conclusionText = "Compliance is an ongoing journey. We recommend immediate execution of prioritized controls and risk mitigations.";
+    let conclusionText = `As ${client.name} advances its information security and regulatory governance posture, transitioning from reactive compliance to proactive risk governance is essential. This intelligence report synthesizes key posture indicators across all assessed operational domains.
+
+Moving forward, executive leadership should prioritize closing outstanding deficiency matrix items, accelerating control implementation across targeted standards, and ensuring regular evidence verification across technical controls. Sustained operational discipline will preserve stakeholder confidence and maintain continuous audit alignment.
+
+With comprehensive asset tracking, defined business continuity objectives, and ongoing risk treatment execution, ${client.name} is well positioned to achieve and exceed its compliance benchmarks.`;
     try {
         const conclusion = await llmService.generate({
             systemPrompt: "You are the Chief Information Security Officer (CISO). Write directly in 3 polished, professional, forward-looking strategic conclusion paragraphs. DO NOT include any thinking process, meta-commentary, or draft headers. Output pure prose paragraphs separated by empty lines.",
@@ -2361,9 +2387,11 @@ Keep total response under 100 words. Be direct, no filler words.`,
             temperature: 0.3,
             maxTokens: 800
         });
-        conclusionText = cleanLlmOutput(conclusion.text);
-    } catch (err) {
-        console.error("Failed to generate conclusion:", err);
+        if (conclusion?.text && conclusion.text.trim()) {
+            conclusionText = cleanLlmOutput(conclusion.text);
+        }
+    } catch (err: any) {
+        console.warn("[Reporting DOCX] Failed to generate conclusion via LLM, using executive synthesis fallback:", err?.message ?? err);
     }
 
     const conclusionParagraphs = conclusionText

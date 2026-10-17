@@ -55,7 +55,7 @@ export default function TemplateEditor() {
     const numericTemplateId = !isNew && templateId && !isNaN(parseInt(templateId)) ? parseInt(templateId) : null;
 
     // Fetch standard templates library
-    const { data: standardTemplates } = trpc.vendorAssessments.getStandardTemplates.useQuery();
+    const { data: standardTemplates } = trpc.vendors.getStandardTemplates.useQuery();
 
     // If 'new', ALWAYS start in "launchpad" mode so the user has the starter studio.
     // If editing existing, jump straight to "editing".

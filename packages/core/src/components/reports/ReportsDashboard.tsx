@@ -41,7 +41,7 @@ interface ReportsDashboardProps {
 }
 
 const REPORT_SECTIONS = [
-    { id: 'executive_summary', label: 'Executive Summary', desc: 'AI-driven high-level business posture overview', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { id: 'executive_summary', label: 'Executive Summary', desc: 'AI-driven high-level business posture overview', icon: Sparkles, color: 'text-teal-600', bg: 'bg-teal-50' },
     { id: 'gap_analysis', label: 'Gap Analysis & Maturity', desc: 'Detailed breakdown of compliance readiness score', icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { id: 'risks', label: 'Risk Portfolio', desc: 'Strategic risks and mitigation status', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
     { id: 'controls', label: 'Control Verification', desc: 'Evidence-backed status for all active controls', icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -359,42 +359,50 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
 
             {/* Report Generator Dialog */}
             <Dialog open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
-                <DialogContent className="max-w-2xl bg-white p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
-                    <div className="bg-indigo-600 p-8 text-white">
+                <DialogContent className="max-w-3xl bg-white p-0 rounded-2xl border border-slate-200 shadow-2xl max-h-[88vh] flex flex-col overflow-hidden">
+                    {/* Sticky Modal Header */}
+                    <div className="bg-brand p-6 text-white shrink-0 relative">
                         <DialogHeader>
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md">
-                                    <Layout className="w-6 h-6" />
+                                <div className="p-2 bg-white/10 rounded-lg backdrop-blur-md">
+                                    <Layout className="w-5 h-5 text-brand-bright" />
                                 </div>
-                                <Badge className="bg-white/20 text-white border-none text-[10px] font-bold tracking-widest uppercase">
+                                <Badge className="bg-white/15 text-white border border-white/20 text-[10px] font-bold tracking-widest uppercase">
                                     Intelligence Workshop
                                 </Badge>
                             </div>
-                            <DialogTitle className="text-2xl font-bold">Report Assembly Workshop</DialogTitle>
-                            <DialogDescription className="text-white/70 text-sm">
+                            <DialogTitle className="text-2xl font-bold text-white">Report Assembly Workshop</DialogTitle>
+                            <DialogDescription className="text-white/80 text-sm">
                                 Compose a professional-grade intelligence report by selecting components from your compliance data lake.
                             </DialogDescription>
                         </DialogHeader>
                     </div>
 
-                    <div className="p-8 space-y-4">
+                    {/* Scrollable Modal Body */}
+                    <div className="p-6 space-y-5 overflow-y-auto flex-1">
                         <div className="space-y-2">
                             <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Report Identity</Label>
                             <Input
                                 value={reportTitle}
                                 onChange={(e) => setReportTitle(e.target.value)}
-                                className="h-9 border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50/50 text-sm"
+                                className="h-10 border-slate-200 focus:ring-brand/20 focus:border-brand bg-slate-50/50 text-sm font-medium"
                                 placeholder="e.g. FY2026 Q1 Compliance Posture"
                             />
                         </div>
 
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intelligence Components</Label>
+                                <div className="flex items-center gap-2">
+                                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intelligence Components</Label>
+                                    <span className="text-[11px] font-semibold text-slate-500">
+                                        ({selectedSections.length} of {REPORT_SECTIONS.length} selected)
+                                    </span>
+                                </div>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-6 text-[10px] text-indigo-600 font-bold hover:bg-indigo-50 hover:text-indigo-700"
+                                    type="button"
+                                    className="h-7 text-xs text-brand font-bold hover:bg-brand/10 hover:text-brand px-2.5 rounded-lg"
                                     onClick={() => {
                                         if (selectedSections.length === REPORT_SECTIONS.length) {
                                             setSelectedSections([]);
@@ -406,79 +414,86 @@ export const ReportsDashboard = ({ clientId }: ReportsDashboardProps) => {
                                     {selectedSections.length === REPORT_SECTIONS.length ? 'Deselect All' : 'Select All'}
                                 </Button>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                {REPORT_SECTIONS.map((section) => (
-                                    <label
-                                        key={section.id}
-                                        onClick={() => toggleSection(section.id)}
-                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center group relative cursor-pointer outline-none focus-within:ring-2 focus-within:ring-indigo-500/20 ${selectedSections.includes(section.id)
-                                            ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/10'
-                                            : 'border-slate-100 bg-white hover:border-slate-300'
-                                            }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedSections.includes(section.id)}
-                                            onChange={() => { }}
-                                            className="sr-only"
-                                        />
-                                        <div className={`p-1.5 rounded-lg ${section.bg} ${section.color} group-hover:scale-110 transition-transform`}>
-                                            <section.icon className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <h5 className="font-bold text-slate-800 text-[10px] leading-tight">{section.label}</h5>
-                                        </div>
-                                        <div className="absolute top-2 right-2">
-                                            <div className={`h-4 w-4 rounded-[4px] border flex items-center justify-center transition-colors ${selectedSections.includes(section.id)
-                                                ? 'bg-indigo-600 border-indigo-600 text-white'
-                                                : 'border-slate-300 bg-white'
-                                                }`}>
-                                                {selectedSections.includes(section.id) && <Check className="w-3 h-3 stroke-[3]" />}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                {REPORT_SECTIONS.map((section) => {
+                                    const isSelected = selectedSections.includes(section.id);
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={section.id}
+                                            onClick={() => toggleSection(section.id)}
+                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center group relative cursor-pointer outline-none focus:ring-2 focus:ring-brand/20 text-left w-full ${isSelected
+                                                ? 'border-brand bg-brand/5 ring-2 ring-brand/15'
+                                                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
+                                                }`}
+                                        >
+                                            <div className={`p-2 rounded-lg ${section.bg} ${section.color} group-hover:scale-105 transition-transform`}>
+                                                <section.icon className="w-4 h-4" />
                                             </div>
-                                        </div>
-                                    </label>
-                                ))}
-
+                                            <div className="w-full">
+                                                <h5 className="font-bold text-slate-800 text-xs leading-tight text-center">{section.label}</h5>
+                                                <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 text-center">{section.desc}</p>
+                                            </div>
+                                            <div className="absolute top-2.5 right-2.5">
+                                                <div className={`h-4 w-4 rounded-[4px] border flex items-center justify-center transition-colors ${isSelected
+                                                    ? 'bg-brand border-brand text-white'
+                                                    : 'border-slate-300 bg-white group-hover:border-slate-400'
+                                                    }`}>
+                                                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
                         <div className="space-y-3">
                             <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Output Format</Label>
-                            <div className="flex gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <button
+                                    type="button"
                                     onClick={() => setReportFormat('pdf')}
-                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${reportFormat === 'pdf' ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-bold ring-2 ring-indigo-500/10' : 'border-slate-100 bg-white text-slate-500 hover:border-slate-300'}`}
+                                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all text-xs font-semibold ${reportFormat === 'pdf' ? 'border-brand bg-brand/5 text-brand font-bold ring-2 ring-brand/15' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
                                 >
-                                    <FileText className="w-4 h-4" /> PDF Office Document
+                                    <FileText className="w-4 h-4 text-rose-500" /> PDF Document
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => setReportFormat('docx')}
-                                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${reportFormat === 'docx' ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-bold ring-2 ring-indigo-500/10' : 'border-slate-100 bg-white text-slate-500 hover:border-slate-300'}`}
+                                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all text-xs font-semibold ${reportFormat === 'docx' ? 'border-brand bg-brand/5 text-brand font-bold ring-2 ring-brand/15' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
                                 >
-                                    <Download className="w-4 h-4" /> Word Edit Mode
+                                    <Download className="w-4 h-4 text-blue-500" /> Word (.docx) Document
                                 </button>
                             </div>
                         </div>
 
-                        <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                            <p className="text-[10px] text-indigo-700 font-medium leading-tight">
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-brand flex-shrink-0" />
+                            <p className="text-[11px] text-slate-600 font-medium leading-tight">
                                 AI-driven insights are cross-referenced with active evidence vaults for programmatic verification.
                             </p>
                         </div>
                     </div>
 
-                    <DialogFooter className="p-6 bg-slate-50 border-t flex items-center justify-between">
-                        <p className="text-[10px] text-slate-400 font-medium">
-                            Estimated assembly time: <span className="text-indigo-600 font-bold">~12 seconds</span>
-                        </p>
+                    {/* Sticky Modal Footer */}
+                    <DialogFooter className="p-4 px-6 bg-slate-50 border-t border-slate-200 flex flex-row items-center justify-between shrink-0">
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span>Selected:</span>
+                            <span className="font-bold text-brand">{selectedSections.length} components</span>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-400">~12s assembly</span>
+                        </div>
                         <div className="flex items-center gap-3">
-                            <Button variant="ghost" onClick={() => setIsGeneratorOpen(false)}>Cancel</Button>
+                            <Button variant="ghost" onClick={() => setIsGeneratorOpen(false)} className="text-slate-600 hover:text-slate-900 font-semibold">
+                                Cancel
+                            </Button>
                             <Button
                                 onClick={handleProGenerate}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 font-bold shadow-lg shadow-indigo-600/20"
-                                disabled={proGenerateMutation.isLoading}
+                                className="bg-brand hover:bg-brand-bright text-white px-6 font-bold shadow-lg shadow-brand/20 transition-all flex items-center gap-2"
+                                disabled={proGenerateMutation.isLoading || selectedSections.length === 0}
                             >
+                                <Sparkles className="w-4 h-4" />
                                 {proGenerateMutation.isLoading ? 'Assembling...' : 'Generate Intelligence'}
                             </Button>
                         </div>

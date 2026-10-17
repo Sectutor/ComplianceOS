@@ -226,6 +226,24 @@ import { createSsoRouter } from "./server/routers/sso";
 
 const adversaryAlertSettingsCache = new Map<number, any>();
 
+// The frontend calls the vendor-assessment procedures as `trpc.vendors.*`, so
+// `vendors` is the union of the vendors module router and the vendor
+// assessments router. On name collisions the assessments implementation wins
+// (it is what the frontend was written against), except for the procedures
+// listed below whose current callers match the vendors module's input/output
+// (e.g. list -> { vendor, ...v } rows + reviewStatus filter, listDpas with
+// clientId only, updateVendor with trustCenterData/additionalDocuments
+// passthrough, listAssessments with optional vendorId).
+const vendorAssessmentsRouter = createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure);
+const VENDORS_MODULE_PREFERRED = ["list", "listDpas", "updateVendor", "listAssessments"] as const;
+const mergedVendorsRouter = router({
+  ...(vendorsRouter as any)._def.record,
+  ...(vendorAssessmentsRouter as any)._def.record,
+  ...Object.fromEntries(
+    VENDORS_MODULE_PREFERRED.map((name) => [name, (vendorsRouter as any)._def.record[name]])
+  ),
+}) as typeof vendorsRouter & typeof vendorAssessmentsRouter;
+
 export const appRouter = router({
   clients: createClientsRouter(t, adminProcedure, clientProcedure, clientEditorProcedure, publicProcedure, isAuthed, requiresMFA),
   users: usersSubRouter,
@@ -262,13 +280,13 @@ export const appRouter = router({
   // with a superset of procedures (premium-gated). Mounting the factory here as
   // well was dead code — the later key silently shadowed it. Kept unmounted on
   // purpose; see KNOWN_UNMOUNTED in routerMountCoverage.test.ts.
-  vendors: vendorsRouter,
+  vendors: mergedVendorsRouter,
   roadmap: createRoadmapRouter(t, premiumClientProcedure, adminProcedure, premiumClientProcedure),
   globalVendors: createGlobalVendorsRouter(t, premiumClientProcedure),
   vendorContracts: createVendorContractsRouter(t, premiumClientProcedure),
   vendorDpas: createVendorDpasRouter(t, premiumClientProcedure),
   vendorRequests: createVendorRequestsRouter(t, premiumClientProcedure),
-  vendorAssessments: createVendorAssessmentsRouter(t, clientProcedure, publicProcedure, premiumClientProcedure, adminProcedure),
+  vendorAssessments: vendorAssessmentsRouter,
 
   implementation: createImplementationRouter(t, publicProcedure, adminProcedure, protectedProcedure),
   compliancePlanning: createCompliancePlanningRouter(t, protectedProcedure),
@@ -2592,27 +2610,290 @@ ONLY return the JSON. No Markdown formatting.
       .query(async ({ input }) => {
         const dbConn = await db.getDb();
 
-        // Calculate General Readiness
-        const [stats] = await dbConn.select({
+        // 1. Controls calculation (Native + Imported)
+        const [nativeStats] = await dbConn.select({
           total: sql<number>`count(*)`.mapWith(Number),
-          implemented: sql<number>`count(*) filter (where ${clientControls.status} = 'implemented')`.mapWith(Number)
+          implemented: sql<number>`count(*) filter (where ${clientControls.status} = 'implemented')`.mapWith(Number),
+          inProgress: sql<number>`count(*) filter (where ${clientControls.status} = 'in_progress')`.mapWith(Number),
+          notImplemented: sql<number>`count(*) filter (where ${clientControls.status} not in ('implemented', 'not_applicable') or ${clientControls.status} is null)`.mapWith(Number)
         })
           .from(clientControls)
           .where(eq(clientControls.clientId, input.clientId));
 
-        const readinessPercent = stats.total > 0 ? (stats.implemented / stats.total) * 100 : 0;
+        // Framework Controls if any imported
+        const [frameworkStats] = await dbConn.select({
+          total: sql<number>`count(*)`.mapWith(Number),
+          implemented: sql<number>`count(*) filter (where ${schema.clientFrameworkControls.status} = 'implemented')`.mapWith(Number),
+          inProgress: sql<number>`count(*) filter (where ${schema.clientFrameworkControls.status} = 'in_progress')`.mapWith(Number),
+          notImplemented: sql<number>`count(*) filter (where ${schema.clientFrameworkControls.status} not in ('implemented', 'not_applicable') or ${schema.clientFrameworkControls.status} is null)`.mapWith(Number)
+        })
+          .from(schema.clientFrameworkControls)
+          .innerJoin(schema.clientFrameworks, eq(schema.clientFrameworkControls.frameworkId, schema.clientFrameworks.id))
+          .where(eq(schema.clientFrameworks.clientId, input.clientId));
+
+        const totalControls = (nativeStats?.total || 0) + (frameworkStats?.total || 0);
+        const implementedControls = (nativeStats?.implemented || 0) + (frameworkStats?.implemented || 0);
+        const inProgressControls = (nativeStats?.inProgress || 0) + (frameworkStats?.inProgress || 0);
+        const notImplementedControls = (nativeStats?.notImplemented || 0) + (frameworkStats?.notImplemented || 0);
+
+        const readinessPercent = totalControls > 0 ? Math.round((implementedControls / totalControls) * 100) : 0;
+
+        // 2. Master catalog controls counts
+        const masterCounts = await dbConn.select({
+          framework: controls.framework,
+          count: sql<number>`count(*)`.mapWith(Number)
+        })
+          .from(controls)
+          .groupBy(controls.framework);
+
+        const catalogMap: Record<string, number> = {};
+        for (const row of masterCounts) {
+          if (row.framework) {
+            catalogMap[row.framework] = Number(row.count);
+          }
+        }
+
+        // 3. Framework Postures
+        // A. Native controls grouped by framework
+        const nativeFwControls = await dbConn.select({
+          name: controls.framework,
+          total: sql<number>`count(*)`.mapWith(Number),
+          implemented: sql<number>`count(*) filter (where ${clientControls.status} = 'implemented')`.mapWith(Number),
+          inProgress: sql<number>`count(*) filter (where ${clientControls.status} = 'in_progress')`.mapWith(Number),
+          gaps: sql<number>`count(*) filter (where ${clientControls.status} not in ('implemented', 'not_applicable') or ${clientControls.status} is null)`.mapWith(Number)
+        })
+          .from(clientControls)
+          .innerJoin(controls, eq(clientControls.controlId, controls.id))
+          .where(eq(clientControls.clientId, input.clientId))
+          .groupBy(controls.framework);
+
+        // B. Imported framework controls grouped by framework name
+        const importedFwControls = await dbConn.select({
+          name: schema.clientFrameworks.name,
+          total: sql<number>`count(*)`.mapWith(Number),
+          implemented: sql<number>`count(*) filter (where ${schema.clientFrameworkControls.status} = 'implemented')`.mapWith(Number),
+          inProgress: sql<number>`count(*) filter (where ${schema.clientFrameworkControls.status} = 'in_progress')`.mapWith(Number),
+          gaps: sql<number>`count(*) filter (where ${schema.clientFrameworkControls.status} not in ('implemented', 'not_applicable') or ${schema.clientFrameworkControls.status} is null)`.mapWith(Number)
+        })
+          .from(schema.clientFrameworkControls)
+          .innerJoin(schema.clientFrameworks, eq(schema.clientFrameworkControls.frameworkId, schema.clientFrameworks.id))
+          .where(eq(schema.clientFrameworks.clientId, input.clientId))
+          .groupBy(schema.clientFrameworks.name);
+
+        // Enrolled frameworks for metadata
+        const enrolledFws = await dbConn.select({
+          id: schema.clientFrameworks.id,
+          name: schema.clientFrameworks.name,
+          status: schema.clientFrameworks.status
+        })
+          .from(schema.clientFrameworks)
+          .where(eq(schema.clientFrameworks.clientId, input.clientId));
+
+        // Merge framework postures
+        const fwMap = new Map<string, {
+          name: string;
+          total: number;
+          implemented: number;
+          inProgress: number;
+          gaps: number;
+          status: string;
+        }>();
+
+        const addFwData = (item: { name: string | null; total: number; implemented: number; inProgress: number; gaps: number }) => {
+          if (!item.name) return;
+          const existing = fwMap.get(item.name) || {
+            name: item.name,
+            total: 0,
+            implemented: 0,
+            inProgress: 0,
+            gaps: 0,
+            status: 'active'
+          };
+          existing.total += item.total;
+          existing.implemented += item.implemented;
+          existing.inProgress += item.inProgress;
+          existing.gaps += item.gaps;
+          fwMap.set(item.name, existing);
+        };
+
+        nativeFwControls.forEach(addFwData);
+        importedFwControls.forEach(addFwData);
+
+        for (const ef of enrolledFws) {
+          const matchKey = Array.from(fwMap.keys()).find(k =>
+            k.toLowerCase().includes(ef.name.toLowerCase()) || ef.name.toLowerCase().includes(k.toLowerCase())
+          );
+          if (matchKey) {
+            const entry = fwMap.get(matchKey)!;
+            if (ef.status) entry.status = ef.status;
+          } else {
+            fwMap.set(ef.name, {
+              name: ef.name,
+              total: 0,
+              implemented: 0,
+              inProgress: 0,
+              gaps: 0,
+              status: ef.status || 'active'
+            });
+          }
+        }
+
+        // 4. Treatments stats (from risk_treatments)
+        const [treatmentStats] = await dbConn.select({
+          total: sql<number>`count(*)`.mapWith(Number),
+          completed: sql<number>`count(*) filter (where ${riskTreatments.status} in ('implemented', 'completed'))`.mapWith(Number),
+          pending: sql<number>`count(*) filter (where ${riskTreatments.status} in ('planned', 'in_progress', 'draft') or ${riskTreatments.status} is null)`.mapWith(Number)
+        })
+          .from(riskTreatments)
+          .innerJoin(riskAssessments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+          .where(eq(riskAssessments.clientId, input.clientId));
+
+        const totalTreatments = treatmentStats?.total || 0;
+        const completedTreatments = treatmentStats?.completed || 0;
+        const pendingTreatments = treatmentStats?.pending || 0;
+        const treatmentProgress = totalTreatments > 0 ? Math.round((completedTreatments / totalTreatments) * 100) : 0;
+
+        // 5. Risks & Gaps
+        const [riskStats] = await dbConn.select({
+          totalRisks: sql<number>`count(*)`.mapWith(Number),
+          avgScore: sql<number>`avg(coalesce(${riskAssessments.residualScore}, ${riskAssessments.inherentScore}))`.mapWith(Number),
+          highCriticalRisks: sql<number>`count(*) filter (where ${riskAssessments.inherentScore} >= 15 or ${riskAssessments.inherentRisk} in ('Critical', 'Very High'))`.mapWith(Number)
+        })
+          .from(riskAssessments)
+          .where(eq(riskAssessments.clientId, input.clientId));
+
+        const totalRisks = riskStats?.totalRisks || 0;
+        const avgRiskScore = riskStats?.avgScore || 0;
+        const highCriticalRisks = riskStats?.highCriticalRisks || 0;
+        const riskScore = totalRisks > 0 ? Math.round((avgRiskScore / 25) * 100) : 0;
+
+        // Unmitigated critical risks (inherent >= 15 with no treatment)
+        const unmitigatedRisks = await dbConn.select({
+          id: riskAssessments.id
+        })
+          .from(riskAssessments)
+          .leftJoin(riskTreatments, eq(riskTreatments.riskAssessmentId, riskAssessments.id))
+          .where(and(
+            eq(riskAssessments.clientId, input.clientId),
+            sql`(${riskAssessments.inherentScore} >= 15 or ${riskAssessments.inherentRisk} in ('Critical', 'Very High'))`
+          ))
+          .groupBy(riskAssessments.id)
+          .having(sql`count(${riskTreatments.id}) = 0`);
+
+        const unmitigatedCriticalRisks = unmitigatedRisks.length;
+        const criticalGaps = unmitigatedCriticalRisks > 0 ? unmitigatedCriticalRisks : (notImplementedControls || 0);
+
+        // 6. Evidence
+        const [missingEvResult] = await dbConn.select({
+          count: sql<number>`count(*)`.mapWith(Number)
+        })
+          .from(clientControls)
+          .leftJoin(evidence, eq(clientControls.id, evidence.clientControlId))
+          .where(and(
+            eq(clientControls.clientId, input.clientId),
+            sql`${evidence.id} IS NULL`
+          ));
+        const missingEvidenceCount = missingEvResult?.count || 0;
+
+        const [expiredEvResult] = await dbConn.select({
+          count: sql<number>`count(*)`.mapWith(Number)
+        })
+          .from(evidence)
+          .where(and(
+            eq(evidence.clientId, input.clientId),
+            sql`${evidence.status} in ('expired', 'rejected')`
+          ));
+        const expiredEvidenceCount = expiredEvResult?.count || 0;
+
+        // 7. Compliance Velocity (controls implemented in last 30 days)
+        const [velocityResult] = await dbConn.select({
+          count: sql<number>`count(*)`.mapWith(Number)
+        })
+          .from(clientControls)
+          .where(and(
+            eq(clientControls.clientId, input.clientId),
+            eq(clientControls.status, 'implemented'),
+            sql`${clientControls.updatedAt} >= NOW() - INTERVAL '30 days'`
+          ));
+        const complianceVelocity = velocityResult?.count || 0;
+
+        // Build accurate framework postures considering master catalog coverage
+        const frameworkPostures = Array.from(fwMap.values()).map(fw => {
+          const score = fw.total > 0 ? Math.round((fw.implemented / fw.total) * 100) : 0;
+          const catalogTotal = catalogMap[fw.name] || (fw.total > 0 ? fw.total : 0);
+          const catalogCoverage = catalogTotal > 0 ? Math.round((fw.total / catalogTotal) * 100) : 100;
+          const trueCatalogReadiness = catalogTotal > 0 ? Math.round((fw.implemented / catalogTotal) * 100) : score;
+
+          // Rigorous governance status
+          let status = 'in_progress';
+          if (catalogCoverage < 50) {
+            status = 'partial_scope';
+          } else if (score >= 95 && unmitigatedCriticalRisks === 0 && pendingTreatments === 0 && expiredEvidenceCount === 0) {
+            status = 'audit_ready';
+          } else if (score > 0) {
+            status = 'in_progress';
+          } else {
+            status = 'planned';
+          }
+
+          return {
+            name: fw.name,
+            score,
+            enrolledTotal: fw.total,
+            catalogTotal,
+            catalogCoverage,
+            trueCatalogReadiness,
+            implemented: fw.implemented,
+            inProgress: fw.inProgress,
+            gaps: fw.gaps,
+            status
+          };
+        }).sort((a, b) => b.score - a.score || b.enrolledTotal - a.enrolledTotal);
+
+        // Audit blockers list
+        const auditBlockers: string[] = [];
+        if (unmitigatedCriticalRisks > 0) {
+          auditBlockers.push(`${unmitigatedCriticalRisks} unmitigated high/critical risks in the Risk Register`);
+        }
+        if (pendingTreatments > 0) {
+          auditBlockers.push(`${pendingTreatments} risk treatments pending completion on the Treatment Plan`);
+        }
+        if (expiredEvidenceCount > 0) {
+          auditBlockers.push(`${expiredEvidenceCount} evidence artifacts expired`);
+        }
+        if (missingEvidenceCount > 0) {
+          auditBlockers.push(`${missingEvidenceCount} controls lack verified evidence`);
+        }
+        const scopingBlockers = frameworkPostures.filter(f => f.catalogCoverage < 50 && f.enrolledTotal > 0);
+        if (scopingBlockers.length > 0) {
+          auditBlockers.push(`Incomplete standard scoping for ${scopingBlockers.map(f => `${f.name} (${f.enrolledTotal}/${f.catalogTotal})`).join(', ')}`);
+        }
+
+        const isAuditReady = auditBlockers.length === 0 && readinessPercent >= 90;
 
         return {
-          readinessPercent: Math.round(readinessPercent),
-          riskScore: 32,
-          complianceVelocity: 1.4,
-          missingEvidenceCount: 8,
-          criticalGaps: 3,
-          frameworkPostures: [
-            { name: 'SOC2', score: 85 },
-            { name: 'ISO 27001', score: 72 },
-            { name: 'ISO 22301', score: Math.round(readinessPercent) }
-          ]
+          readinessPercent,
+          riskScore,
+          complianceVelocity,
+          missingEvidenceCount,
+          expiredEvidenceCount,
+          criticalGaps,
+          totalControls,
+          implementedControls,
+          inProgressControls,
+          notImplementedControls,
+          totalRisks,
+          highCriticalRisks,
+          unmitigatedCriticalRisks,
+          treatments: {
+            total: totalTreatments,
+            completed: completedTreatments,
+            pending: pendingTreatments,
+            progressPercent: treatmentProgress
+          },
+          isAuditReady,
+          auditBlockers,
+          frameworkPostures
         };
       })
   }),
@@ -2838,8 +3119,26 @@ ONLY return the JSON. No Markdown formatting.
           clientId: input.clientId,
           clientControlId: input.clientControlId,
           clientPolicyId: input.clientPolicyId,
-          // evidenceReference and notes are currently not in schema, ignoring
+          evidenceReference: input.evidenceReference,
+          notes: input.notes,
         });
+        return { success: true };
+      }),
+
+    update: clientProcedure
+      .input(z.object({
+        id: z.number(),
+        evidenceReference: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbConn = await db.getDb();
+        await dbConn.update(controlPolicyMappings)
+          .set({
+            evidenceReference: input.evidenceReference,
+            notes: input.notes,
+          })
+          .where(eq(controlPolicyMappings.id, input.id));
         return { success: true };
       }),
 
@@ -2850,6 +3149,69 @@ ONLY return the JSON. No Markdown formatting.
 
         await dbConn.delete(controlPolicyMappings).where(eq(controlPolicyMappings.id, input.id));
         return { success: true };
+      }),
+
+    suggestedMappings: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getSuggestedMappings(input.clientId);
+      }),
+
+    policyCoverage: clientProcedure
+      .input(z.object({ clientId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getPolicyCoverageAnalysis(input.clientId);
+      }),
+
+    bulkCreate: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        mappings: z.array(z.object({
+          clientControlId: z.number(),
+          clientPolicyId: z.number(),
+          evidenceReference: z.string().optional(),
+          notes: z.string().optional(),
+          isAiGenerated: z.boolean().optional(),
+        }))
+      }))
+      .mutation(async ({ input }) => {
+        return await db.bulkCreateMappings(input.clientId, input.mappings);
+      }),
+
+    autoMap: clientProcedure
+      .input(z.object({
+        clientId: z.number(),
+        maxPoliciesPerControl: z.number().default(2).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const suggestions = await db.getSuggestedMappings(input.clientId);
+        const pairsToCreate: {
+          clientControlId: number;
+          clientPolicyId: number;
+          notes?: string;
+          isAiGenerated?: boolean;
+        }[] = [];
+
+        for (const item of suggestions) {
+          const limit = input.maxPoliciesPerControl || 2;
+          const topPolicies = item.suggestedPolicies.slice(0, limit);
+          for (const sp of topPolicies) {
+            pairsToCreate.push({
+              clientControlId: item.controlId,
+              clientPolicyId: sp.policyId,
+              notes: sp.matchReason || 'Auto-mapped by ComplianceOS Intelligence',
+              isAiGenerated: true,
+            });
+          }
+        }
+
+        const result = await db.bulkCreateMappings(input.clientId, pairsToCreate);
+        return {
+          success: true,
+          created: result.created,
+          skipped: result.skipped,
+          controlsEvaluated: suggestions.length,
+        };
       }),
   }),
 

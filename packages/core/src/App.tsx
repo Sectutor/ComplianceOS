@@ -1020,6 +1020,9 @@ function Router() {
         <Route path="/clients/:id/guides">
           <ProtectedRoute component={Guides} />
         </Route>
+        <Route path="/clients/:id/action-center">
+          <DashboardLayout><ProtectedRoute component={ActionCenterPage} /></DashboardLayout>
+        </Route>
         <Route path="/clients/:id/questionnaires">
           {(_params) => <UnifiedClientGuard requirePremium><ProtectedRoute component={QuestionnairesDashboard} /></UnifiedClientGuard>}
         </Route>

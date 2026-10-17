@@ -124,7 +124,7 @@ export default function VendorQuestionnairePortal() {
         <div className="min-h-screen bg-slate-50">
             {/* Header */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-                <div className="w-full max-w-full px-4 md:px-8">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center gap-3">
                             <div className="bg-indigo-100 p-2 rounded-lg text-indigo-700">
@@ -220,7 +220,7 @@ export default function VendorQuestionnairePortal() {
                 </Card>
 
                 {isCompleted && (
-                    <Alert className="mb-8 border-emerald-200 bg-emerald-50 text-emerald-900">
+                    <Alert variant="success" className="mb-8 border-emerald-200 bg-emerald-50 text-emerald-900">
                         <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                         <AlertTitle className="text-emerald-800 font-semibold">Assessment Submitted</AlertTitle>
                         <AlertDescription className="text-emerald-700">

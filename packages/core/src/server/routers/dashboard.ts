@@ -4,6 +4,7 @@ import { getDb } from "../../db";
 import * as schema from "../../schema";
 import { eq, desc, count, and, sql, or, inArray, gte, type SQL } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { PLATFORM_ADMIN_ROLES } from "../trpc";
 import { loadDashboardStats, toPostureStats } from "../../lib/dashboardStats";
 
 export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any) => {
@@ -50,7 +51,8 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated' });
         }
 
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
+        // Same platform-admin set as checkClientAccess (server/trpc.ts).
+        const isGlobalAdmin = PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '');
 
         const userClientIds = isGlobalAdmin ? null : (await dbConn.select({ id: schema.userClients.clientId })
           .from(schema.userClients)
@@ -68,8 +70,8 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
             if (userClientIds?.includes(clientIdFilter)) {
               effectiveClientIds = [clientIdFilter];
             } else {
-              // User trying to access client they don't own -> return empty
-              effectiveClientIds = [];
+              // Same rule as checkClientAccess: explicit clientId without membership is forbidden.
+              throw new TRPCError({ code: 'FORBIDDEN', message: 'No access to this client workspace. Membership required.' });
             }
           }
         } else {
@@ -544,7 +546,8 @@ export const createDashboardRouter = (t: any, adminProcedure: any, isAuthed: any
           ? Number(input.clientId)
           : undefined;
 
-        const isGlobalAdmin = ctx.user.role === 'admin' || ctx.user.role === 'super_admin' || ctx.user.role === 'enterprise_admin';
+        // Same platform-admin set as checkClientAccess (server/trpc.ts).
+        const isGlobalAdmin = PLATFORM_ADMIN_ROLES.includes(ctx.user.role || '');
 
         const userClientIds = isGlobalAdmin ? null : (await dbConn.select({ id: schema.userClients.clientId })
           .from(schema.userClients)

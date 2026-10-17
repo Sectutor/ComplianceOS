@@ -23,6 +23,21 @@ export async function seedPhase0(sql, slug) {
     VALUES (${crypto.randomUUID()}, ${"Demo Owner (" + T.client.name + ")"}, ${"demo+" + slug + "@grcompliance.local"}, 'demo', 'owner', 5)
     RETURNING id`;
   await sql`INSERT INTO user_clients (user_id, client_id, role) VALUES (${user.id}, ${clientId}, 'owner')`;
+  // --- operator / demo-login memberships ---
+  // Owner role in the platform is not a cross-tenant bypass (see checkClientAccess),
+  // so existing operator accounts need an explicit membership to open the demo tenant.
+  // Role 'admin' (not 'owner') so it does not count against the user's maxClients limit.
+  const memberEmails = (process.env.DEMO_MEMBER_EMAILS || "admin@complianceos.local")
+    .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+  for (const em of memberEmails) {
+    const added = await sql`
+      INSERT INTO user_clients (user_id, client_id, role)
+      SELECT u.id, ${clientId}, 'admin' FROM users u
+      WHERE lower(u.email) = ${em}
+        AND NOT EXISTS (SELECT 1 FROM user_clients x WHERE x.user_id = u.id AND x.client_id = ${clientId})
+      RETURNING user_id`;
+    if (added.length) log(`  membership: ${em} -> client ${clientId} (admin)`);
+  }
 
   // --- org roles = departments with heads ---
   const deptHeadEmails = [];

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -35,7 +35,11 @@ import {
     Flame,
     Radio,
     Shield,
-    Bug
+    Bug,
+    ChevronLeft,
+    ChevronRight,
+    FileSpreadsheet,
+    FileJson
 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@complianceos/ui/ui/button';
@@ -341,6 +345,143 @@ export default function RiskAssetsPage({
     // Selected Asset for Threat Details Modal
     const [selectedAssetForThreats, setSelectedAssetForThreats] = useState<any>(null);
 
+    // Horizontal scroll / column jump controls
+    const tableScrollRef = useRef<HTMLDivElement>(null);
+    const topScrollRef = useRef<HTMLDivElement>(null);
+    const isSyncingTop = useRef(false);
+    const isSyncingTable = useRef(false);
+    const [currentScrollX, setCurrentScrollX] = useState(0);
+    const [tableScrollWidth, setTableScrollWidth] = useState(1300);
+
+    const columnSteps = [
+        { id: "asset", label: "1. Asset & Category", offset: 0 },
+        { id: "cia", label: "2. CIA & Classification", offset: 300 },
+        { id: "threat", label: "3. Threat Intel & Owner", offset: 560 },
+        { id: "status", label: "4. Status, Risks & Actions", offset: 820 },
+    ];
+
+    const maxScrollLeft = tableScrollRef.current
+        ? Math.max(0, tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth)
+        : 0;
+
+    const isAtMaxRight = maxScrollLeft > 30 && currentScrollX >= maxScrollLeft - 20;
+
+    const currentStepIndex = isAtMaxRight
+        ? columnSteps.length - 1
+        : columnSteps.reduce((accIndex, step, index) => {
+            if (currentScrollX >= step.offset - 35) return index;
+            return accIndex;
+        }, 0);
+
+    const canGoLeft = currentStepIndex > 0 || currentScrollX > 15;
+    const canGoRight = currentStepIndex < columnSteps.length - 1;
+
+    const scrollToColumn = (index: number) => {
+        if (tableScrollRef.current) {
+            const clampedIndex = Math.max(0, Math.min(index, columnSteps.length - 1));
+            const targetStep = columnSteps[clampedIndex];
+            if (clampedIndex === columnSteps.length - 1) {
+                const maxScroll = tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth;
+                const target = Math.min(maxScroll, Math.max(targetStep.offset, maxScroll - 50));
+                tableScrollRef.current.scrollTo({ left: target, behavior: "smooth" });
+            } else {
+                tableScrollRef.current.scrollTo({ left: targetStep.offset, behavior: "smooth" });
+            }
+        }
+    };
+
+    const handleScrollLeft = () => {
+        const prevIndex = Math.max(0, currentStepIndex - 1);
+        scrollToColumn(prevIndex);
+    };
+
+    const handleScrollRight = () => {
+        const nextIndex = Math.min(columnSteps.length - 1, currentStepIndex + 1);
+        scrollToColumn(nextIndex);
+    };
+
+    const handleTopScroll = () => {
+        if (isSyncingTable.current) return;
+        isSyncingTop.current = true;
+        if (tableScrollRef.current && topScrollRef.current) {
+            tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+            setCurrentScrollX(topScrollRef.current.scrollLeft);
+        }
+        requestAnimationFrame(() => {
+            isSyncingTop.current = false;
+        });
+    };
+
+    const handleTableScroll = () => {
+        if (isSyncingTop.current) return;
+        isSyncingTable.current = true;
+        if (tableScrollRef.current) {
+            const scrollLeft = tableScrollRef.current.scrollLeft;
+            setCurrentScrollX(scrollLeft);
+            if (topScrollRef.current) {
+                topScrollRef.current.scrollLeft = scrollLeft;
+            }
+        }
+        requestAnimationFrame(() => {
+            isSyncingTable.current = false;
+        });
+    };
+
+    useEffect(() => {
+        const updateWidth = () => {
+            if (tableScrollRef.current) {
+                setTableScrollWidth(tableScrollRef.current.scrollWidth);
+                const scrollLeft = tableScrollRef.current.scrollLeft;
+                setCurrentScrollX(scrollLeft);
+                if (topScrollRef.current) {
+                    topScrollRef.current.scrollLeft = scrollLeft;
+                }
+            }
+        };
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+        return () => window.removeEventListener('resize', updateWidth);
+    }, [displayedAssets]);
+
+    // Export helpers
+    const handleExport = (format: 'csv' | 'json') => {
+        if (!sortedAssets.length) return;
+        const filename = `asset-inventory-client-${clientId}-${new Date().toISOString().split('T')[0]}.${format}`;
+
+        if (format === 'json') {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sortedAssets, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", filename);
+            dlAnchor.click();
+            toast.success("JSON exported successfully");
+        } else {
+            const headers = ['Asset ID', 'Name', 'Type', 'Description', 'C', 'I', 'A', 'Owner', 'Location', 'Status', 'Risks Count'];
+            const rows = sortedAssets.map(a => [
+                a.id,
+                `"${(a.name || '').replace(/"/g, '""')}"`,
+                `"${(a.type || '').replace(/"/g, '""')}"`,
+                `"${(a.description || '').replace(/"/g, '""')}"`,
+                a.valuationC || 0,
+                a.valuationI || 0,
+                a.valuationA || 0,
+                `"${(a.owner || '').replace(/"/g, '""')}"`,
+                `"${(a.location || '').replace(/"/g, '""')}"`,
+                a.status || 'active',
+                a.riskCount || 0
+            ]);
+            const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+            toast.success("CSV exported successfully");
+        }
+    };
+
     const hasActiveFilters = searchQuery.trim() !== '' || selectedType !== 'all' || selectedCriticality !== 'all' || selectedStatus !== 'all';
 
     const clearFilters = () => {
@@ -423,6 +564,27 @@ export default function RiskAssetsPage({
                         >
                             <Zap className={`w-4 h-4 mr-1.5 ${scanAllMutation.isPending ? 'animate-spin' : 'text-amber-500'}`} />
                             {scanAllMutation.isPending ? "Scanning NVD/KEV..." : "Threat Match Scan"}
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-2.5 text-xs font-medium"
+                            onClick={() => handleExport('csv')}
+                            disabled={!sortedAssets.length}
+                        >
+                            <FileSpreadsheet className="mr-1 h-3.5 w-3.5 text-emerald-600" />
+                            Export CSV
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-2.5 text-xs font-medium"
+                            onClick={() => handleExport('json')}
+                            disabled={!sortedAssets.length}
+                        >
+                            <FileJson className="mr-1 h-3.5 w-3.5 text-blue-600" />
+                            Export JSON
                         </Button>
 
                         <Button
@@ -645,11 +807,81 @@ export default function RiskAssetsPage({
                             )}
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                        <>
+                        {/* Top Column Step Navigator (1-Click Snap to Any Column) */}
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1 bg-slate-50 border-t border-x border-slate-200 select-none">
+                            <div className="flex items-center gap-1 flex-wrap">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 mr-1 tracking-wider">Columns:</span>
+                                {columnSteps.map((step, idx) => {
+                                    const isActive = currentStepIndex === idx;
+                                    return (
+                                        <button
+                                            key={step.id}
+                                            type="button"
+                                            onClick={() => scrollToColumn(idx)}
+                                            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+                                                isActive
+                                                    ? "bg-brand text-white shadow-2xs"
+                                                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+                                            }`}
+                                            title={`Click to jump directly to ${step.label}`}
+                                        >
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-amber-300" : "bg-slate-400"}`} />
+                                            <span>{step.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                                <span className="text-slate-400">Step {currentStepIndex + 1} of {columnSteps.length}:</span>
+                                <span className="text-brand font-bold">{columnSteps[currentStepIndex]?.label}</span>
+                            </div>
+                        </div>
+        
+                        {/* Top Horizontal Scrollbar (Synchronized 2-Way with Table) */}
+                        <div
+                            ref={topScrollRef}
+                            onScroll={handleTopScroll}
+                            className="w-full overflow-x-auto overflow-y-hidden bg-slate-100 border-x border-b border-slate-200 select-none h-3.5 [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-brand [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#153B6D] active:[&::-webkit-scrollbar-thumb]:bg-[#0f2d54]"
+                            title="Drag top scrollbar to pan columns"
+                        >
+                            <div style={{ width: `${Math.max(tableScrollWidth, 1300)}px`, height: '2px' }} />
+                        </div>
+        
+                        {/* Horizontally Scrollable Table Container */}
+                        <div className="relative group">
+                            {/* Left Chevron Button */}
+                            <button
+                                type="button"
+                                onClick={handleScrollLeft}
+                                disabled={!canGoLeft}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                                title="Move to previous column"
+                            >
+                                <ChevronLeft className="h-4 w-4 text-brand" />
+                            </button>
+        
+                            {/* Right Chevron Button */}
+                            <button
+                                type="button"
+                                onClick={handleScrollRight}
+                                disabled={!canGoRight}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-8 w-8 rounded-full bg-white/95 hover:bg-white text-slate-800 border border-slate-300 shadow-xl flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none"
+                                title="Move to next column"
+                            >
+                                <ChevronRight className="h-4 w-4 text-brand" />
+                            </button>
+        
+                            {/* Table Viewport */}
+                            <div
+                                ref={tableScrollRef}
+                                onScroll={handleTableScroll}
+                                className="overflow-x-auto rounded-b border border-slate-200 shadow-2xs scroll-smooth [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-brand [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#153B6D]"
+                            >
+                            <table className="w-full min-w-[1300px] text-left border-collapse">
                                 <thead>
                                     <tr className="border-b border-border bg-muted/40">
-                                        <SortableHeader label="Asset & Product" sortKey="name" className="min-w-[220px]" />
+                                        <SortableHeader label="Asset & Product" sortKey="name" className="min-w-[260px] sticky left-0 z-20 bg-card border-r border-border/60 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]" />
                                         <SortableHeader label="Category / Type" sortKey="type" />
                                         <SortableHeader label="CIA Triad" sortKey="ciaValuation" className="min-w-[130px]" />
                                         <SortableHeader label="Classification" sortKey="ciaValuation" />
@@ -746,8 +978,8 @@ export default function RiskAssetsPage({
                                                 className="group hover:bg-muted/40 transition-colors cursor-pointer"
                                                 onDoubleClick={() => handleEditAsset(asset)}
                                             >
-                                                {/* Asset Name & Details */}
-                                                <td className="px-4 py-3.5">
+                                                {/* Asset Name & Details (pinned) */}
+                                                <td className="px-4 py-3.5 sticky left-0 z-10 bg-card group-hover:bg-muted transition-colors border-r border-border/60 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
                                                     <div className="flex items-start gap-3">
                                                         <div className="p-2 rounded-lg bg-muted border border-border/70 shrink-0 mt-0.5 group-hover:border-primary/40 transition-colors">
                                                             {getAssetIcon()}
@@ -995,6 +1227,8 @@ export default function RiskAssetsPage({
                                 </tbody>
                             </table>
                         </div>
+                        </div>
+                        </>
                     )}
 
                     {/* Pagination */}

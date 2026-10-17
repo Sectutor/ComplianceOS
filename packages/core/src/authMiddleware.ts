@@ -168,10 +168,13 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             } catch {
                 userId = decoded.email === 'admin@complianceos.local' ? 1 : 0;
             }
+            // Local JWTs use "admin". Persist that as global role "owner" — the
+            // operator role dev's dashboard, sidebar, and isAdmin gate treat as a
+            // global admin. Cross-tenant client access still requires PLATFORM_ADMIN_ROLES.
             req.user = {
                 id: userId,
                 email: decoded.email,
-                role: decoded.role === 'admin' ? 'owner' : (decoded.role as any),
+                role: decoded.role === 'admin' || decoded.role === 'owner' ? 'owner' : (decoded.role as any),
                 name: decoded.email?.split('@')[0] || 'User',
             } as any;
             authUserCache.set(`local:${decoded.email}`, { user: req.user, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });

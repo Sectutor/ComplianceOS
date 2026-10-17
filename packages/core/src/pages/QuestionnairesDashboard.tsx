@@ -3,7 +3,6 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { PageGuide } from "@/components/PageGuide";
 import { trpc } from "@/lib/trpc";
 import { useParams, useLocation } from "wouter";
-import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -12,9 +11,26 @@ import {
   TableHeader,
   TableRow
 } from "@complianceos/ui/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@complianceos/ui/ui/tabs";
 import { Button } from "@complianceos/ui/ui/button";
-import { Card } from "@complianceos/ui/ui/card";
 import { Badge } from "@complianceos/ui/ui/badge";
+import { Card, CardContent } from "@complianceos/ui/ui/card";
+import { Label } from "@complianceos/ui/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@complianceos/ui/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "@complianceos/ui/ui/dialog";
 import {
   Plus,
   FileText,
@@ -25,31 +41,23 @@ import {
   Upload,
   Inbox,
   Send,
+  X,
   CheckCircle2,
   Clock,
-  Sparkles,
-  Calendar,
-  Building2,
   ShieldCheck,
-  X,
-  FileSpreadsheet,
   Layers,
-  CalendarClock,
-  RotateCcw,
-  Bell,
-  Map as MapIcon,
-  ChevronDown,
-  ChevronRight,
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 import { Input } from "@complianceos/ui/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@complianceos/ui/ui/dropdown-menu";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,159 +68,82 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@complianceos/ui/ui/alert-dialog";
-import {
-  useQuestionnaireScoresBatch,
-  getReadinessMeta,
-  ScoreBadge,
-  ScoreProgress,
-  type QuestionnaireScoreResponse,
-} from "./questionnaires/questionnaireApi.tsx";
-import { Framework90DayRoadmap } from "@/components/roadmap/Framework90DayRoadmap";
-import { getQuestionnaireRoadmap } from "@/data/frameworkRoadmaps";
 
 type Direction = "inbound" | "outbound";
-
-/** Per-row readiness score cell — fed by the batched scoreAll query. */
-function QuestionnaireScoreCell({
-  scoreResult,
-  isLoading,
-}: {
-  scoreResult: QuestionnaireScoreResponse | undefined;
-  isLoading: boolean;
-}) {
-  if (isLoading) {
-    return <div className="h-5 w-24 bg-muted/60 animate-pulse rounded-full" aria-label="Loading score" />;
-  }
-  if (!scoreResult?.score) {
-    return <span className="text-muted-foreground text-xs font-mono">—</span>;
-  }
-  const meta = getReadinessMeta(scoreResult.score.readiness);
-  return (
-    <div className="flex flex-col gap-1.5 min-w-[120px]">
-      <ScoreBadge score={scoreResult.score.complianceScore} readiness={scoreResult.score.readiness} tone={meta.tone} />
-      <ScoreProgress value={scoreResult.score.complianceScore} tone={meta.tone} className="max-w-[110px]" />
-    </div>
-  );
-}
 
 export default function QuestionnairesDashboard() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const clientId = parseInt(id || "0", 10);
+  const clientId = parseInt(id || "0");
 
   const [direction, setDirection] = useState<Direction>("inbound");
-  const [activeTab, setActiveTab] = useState<Direction | "roadmap">("inbound");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [questionnaireToDelete, setQuestionnaireToDelete] = useState<any>(null);
 
-  const selectTab = (tab: Direction | "roadmap") => {
-    setActiveTab(tab);
-    if (tab !== "roadmap") setDirection(tab);
-  };
+  // Create Questionnaire Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    direction: "inbound" as Direction,
+    senderName: "",
+    vendorName: "",
+    productName: "ComplianceOS Platform",
+    dueDate: "",
+    priority: "medium",
+    templateId: ""
+  });
 
-  // Reset status filter and search query when switching direction
+  // Reset status filter and search query when switching direction tabs
   useEffect(() => {
     setStatusFilter("all");
     setSearchQuery("");
   }, [direction]);
 
-  // Deep link: #quest-roadmap opens the roadmap tab directly
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.location.hash === "#quest-roadmap") setActiveTab("roadmap");
-  }, []);
-
-  const { data: questionnaires, refetch, isLoading } = trpc.questionnaire.list.useQuery(
+  // Queries
+  const { data: questionnaires, isLoading, refetch } = trpc.questionnaire.list.useQuery(
     { clientId, direction },
     { enabled: !!clientId }
   );
 
-  // Per-direction totals for the tab badges (server-computed, both tabs at once).
-  const { data: directionCounts } = trpc.questionnaire.counts.useQuery(
+  // Fetch available assessment templates (both standard blueprints and custom templates)
+  const { data: templates } = trpc.questionnaire.listTemplates.useQuery(
     { clientId },
     { enabled: !!clientId }
   );
 
-  // Batched readiness scores — one round-trip for the whole visible list.
-  const { data: scoreBatch, refetch: scoreBatchRefetch, isFetching: scoresLoading } = useQuestionnaireScoresBatch(
-    { clientId, direction },
+  // Fetch registered vendors for client
+  const { data: vendorList } = trpc.vendors.listVendors.useQuery(
+    { clientId },
     { enabled: !!clientId }
   );
-  const scoreById = useMemo(() => {
-    const map = new Map<number, QuestionnaireScoreResponse>();
-    for (const item of scoreBatch?.scores || []) {
-      map.set(item.questionnaireId, item);
+
+  // Set default template when templates load
+  useEffect(() => {
+    if (templates && templates.length > 0 && !createForm.templateId) {
+      setCreateForm(prev => ({ ...prev, templateId: templates[0].id }));
     }
-    return map;
-  }, [scoreBatch]);
+  }, [templates]);
 
-  // Filtered list based on status and search query
-  const filteredQuestionnaires = useMemo(() => {
-    if (!questionnaires) return [];
-    return questionnaires.filter(q => {
-      const matchesStatus = statusFilter === "all" || q.status === statusFilter;
-      const qName = (q.name || "").toLowerCase();
-      const senderOrVendor = ((q.senderName || q.vendorName || "") as string).toLowerCase();
-      const query = searchQuery.trim().toLowerCase();
-      const matchesSearch = !query || qName.includes(query) || senderOrVendor.includes(query);
-      return matchesStatus && matchesSearch;
-    });
-  }, [questionnaires, statusFilter, searchQuery]);
-
-  // Executive summary counts
-  const stats = useMemo(() => {
-    const total = questionnaires?.length || 0;
-    const open = questionnaires?.filter(q => q.status === "open").length || 0;
-    const inProgress = questionnaires?.filter(q => q.status === "in_progress").length || 0;
-    const completed = questionnaires?.filter(q => q.status === "completed").length || 0;
-    return { total, open, inProgress, completed };
-  }, [questionnaires]);
+  // Mutations
+  const createMutation = trpc.questionnaire.create.useMutation({
+    onSuccess: (project) => {
+      toast.success("Questionnaire created and controls populated!");
+      setIsCreateModalOpen(false);
+      refetch();
+      setLocation(`/clients/${clientId}/questionnaires/${project.id}`);
+    },
+    onError: (err) => {
+      toast.error(`Failed to create questionnaire: ${err.message}`);
+    }
+  });
 
   const deleteMutation = trpc.questionnaire.delete.useMutation({
     onSuccess: () => {
       toast.success("Questionnaire deleted");
       refetch();
-    },
-    onError: (err) => toast.error(`Failed to delete: ${err.message}`)
-  });
-
-  const updateMutation = trpc.questionnaire.update.useMutation({
-    onSuccess: () => {
-      toast.success("Questionnaire updated");
-      refetch();
-      // Batched scores may have shifted with a status change.
-      scoreBatchRefetch();
     }
   });
-
-  const sendReminderMutation = trpc.questionnaire.sendVendorReminder.useMutation({
-    onSuccess: (data) => {
-      if (data.emailSent) {
-        toast.success(`Reminder emailed to ${data.recipient}`);
-      } else {
-        toast.warning("Reminder could not be emailed", {
-          description: data.emailError || "Check your SMTP/SendGrid settings and re-invite the vendor.",
-        });
-      }
-    },
-    onError: (err) => toast.error(`Failed to send reminder: ${err.message}`)
-  });
-
-  const handleSendReminder = (q: any) => {
-    sendReminderMutation.mutate({ questionnaireId: q.id, clientId });
-  };
-
-  const handleSetDueDate = (q: any, value: string) => {
-    if (!value) return;
-    const dueDate = new Date(`${value}T23:59:59`).toISOString();
-    updateMutation.mutate({ id: q.id, clientId, dueDate });
-  };
-
-  const handleSetStatus = (q: any, status: string) => {
-    if (q.status === status) return;
-    updateMutation.mutate({ id: q.id, clientId, status: status as any });
-  };
 
   const handleDelete = (q: any) => setQuestionnaireToDelete(q);
 
@@ -223,690 +154,791 @@ export default function QuestionnairesDashboard() {
     }
   };
 
-  const createDropdown = (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs hover:shadow-md transition-all gap-2 text-xs h-9 px-4 rounded-xl">
-          <Plus className="w-4 h-4" />
-          {direction === "inbound" ? "Answer a Questionnaire" : "Send to a Vendor"}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 rounded-xl shadow-lg border-border/80 p-1.5">
-        {direction === "inbound" ? (
-          <>
-            <DropdownMenuItem
-              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
-              onClick={() =>
-                setLocation(`/clients/${clientId}/questionnaire-workspace?direction=inbound`)
-              }
+  const handleOpenCreateModal = (targetDirection?: Direction) => {
+    const dir = targetDirection || direction;
+    setCreateForm({
+      name: dir === "inbound" ? "Customer Security Evaluation" : "Vendor Third-Party Review",
+      direction: dir,
+      senderName: dir === "inbound" ? "Enterprise Client" : "",
+      vendorName: dir === "outbound" && vendorList && vendorList.length > 0 ? vendorList[0].name : "",
+      productName: "ComplianceOS Platform",
+      dueDate: format(new Date(Date.now() + 14 * 86400000), "yyyy-MM-dd"),
+      priority: "medium",
+      templateId: templates && templates.length > 0 ? templates[0].id : "iso27001-2022"
+    });
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.name.trim()) {
+      toast.error("Please enter a questionnaire name");
+      return;
+    }
+
+    createMutation.mutate({
+      clientId,
+      name: createForm.name,
+      direction: createForm.direction,
+      senderName: createForm.direction === "inbound" ? createForm.senderName : "Vendor Risk Management Office",
+      vendorName: createForm.direction === "outbound" ? createForm.vendorName : undefined,
+      productName: createForm.productName,
+      dueDate: createForm.dueDate || undefined,
+      priority: createForm.priority,
+      templateId: createForm.templateId || undefined
+    });
+  };
+
+  // Filtered questionnaires memo
+  const filteredQuestionnaires = useMemo(() => {
+    if (!questionnaires) return [];
+    return questionnaires.filter((q) => {
+      if (statusFilter !== "all" && q.status !== statusFilter) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const nameMatch = q.name?.toLowerCase().includes(query);
+        const senderMatch = q.senderName?.toLowerCase().includes(query);
+        const vendorMatch = q.vendorName?.toLowerCase().includes(query);
+        const productMatch = q.productName?.toLowerCase().includes(query);
+        const statusMatch = q.status?.toLowerCase().includes(query);
+        if (!nameMatch && !senderMatch && !vendorMatch && !productMatch && !statusMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [questionnaires, statusFilter, searchQuery]);
+
+  // Status counts for KPI and tabs
+  const totalCount = questionnaires?.length || 0;
+  const openCount = questionnaires?.filter(q => q.status === "open").length || 0;
+  const sentCount = questionnaires?.filter(q => q.status === "sent").length || 0;
+  const inProgressCount = questionnaires?.filter(q => q.status === "in_progress").length || 0;
+  const completedCount = questionnaires?.filter(q => q.status === "completed").length || 0;
+
+  const selectedTemplateDetails = useMemo(() => {
+    return templates?.find(t => t.id === createForm.templateId);
+  }, [templates, createForm.templateId]);
+
+  // Status filter pill bar
+  const statusTabs = (
+    <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200">
+      {[
+        { id: "all", label: "All", count: totalCount },
+        ...(direction === "outbound" ? [{ id: "sent", label: "Sent to Vendor", count: sentCount }] : []),
+        { id: "open", label: "Open", count: openCount },
+        { id: "in_progress", label: "In Progress", count: inProgressCount },
+        { id: "completed", label: "Completed", count: completedCount }
+      ].map((tab) => {
+        const isActive = statusFilter === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setStatusFilter(tab.id)}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              isActive
+                ? "bg-[#1C4D8D] text-white shadow-xs active:bg-[#153B6D]"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"
+            }`}
+          >
+            <span>{tab.label}</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+              }`}
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                <Upload className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-semibold text-foreground">Upload the questionnaire you received</div>
-                <div className="text-[10px] text-muted-foreground">The XLSX / CSV / PDF a customer sent you</div>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1" />
-            <DropdownMenuItem
-              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
-              onClick={() =>
-                setLocation(`/clients/${clientId}/questionnaire-workspace?mode=template&direction=inbound`)
-              }
-            >
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-semibold text-foreground">Answer using a matching template</div>
-                <div className="text-[10px] text-muted-foreground">Closest to what they sent — SIG Lite, CAIQ v4, SOC 2</div>
-              </div>
-            </DropdownMenuItem>
-          </>
-        ) : (
-          <>
-            <DropdownMenuItem
-              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
-              onClick={() =>
-                setLocation(`/clients/${clientId}/questionnaire-workspace?mode=template&direction=outbound`)
-              }
-            >
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-semibold text-foreground">Send a standard template to a vendor</div>
-                <div className="text-[10px] text-muted-foreground">They answer via a secure link — SIG Lite, CAIQ v4, SOC 2</div>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1" />
-            <DropdownMenuItem
-              className="rounded-lg p-2.5 cursor-pointer font-medium text-xs flex items-center gap-2.5 hover:bg-muted"
-              onClick={() =>
-                setLocation(`/clients/${clientId}/questionnaire-workspace?direction=outbound`)
-              }
-            >
-              <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                <Upload className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <div className="font-semibold text-foreground">Upload your own question set</div>
-                <div className="text-[10px] text-muted-foreground">Your XLSX / CSV questions to send out</div>
-              </div>
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+              {tab.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const questionnaireTable = (
+    <div className="rounded-xl border border-slate-200 shadow-xs overflow-hidden bg-white" id="quest-table-list">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-[#1C4D8D] hover:bg-[#1C4D8D] border-none text-white">
+            <TableHead className="text-white font-semibold text-xs py-3.5 pl-4 w-[34%]">
+              Questionnaire
+            </TableHead>
+            <TableHead className="text-white font-semibold text-xs py-3.5 w-[14%]">
+              Progress
+            </TableHead>
+            <TableHead className="text-white font-semibold text-xs py-3.5 w-[14%]">
+              Status
+            </TableHead>
+            <TableHead className="text-white font-semibold text-xs py-3.5 w-[16%]">
+              {direction === "inbound" ? "Sender / Client" : "Vendor / Supplier"}
+            </TableHead>
+            <TableHead className="text-white font-semibold text-xs py-3.5 w-[11%]">
+              Date Added
+            </TableHead>
+            <TableHead className="text-white font-semibold text-xs py-3.5 w-[11%]">
+              Due Date
+            </TableHead>
+            <TableHead className="w-[48px] text-white font-semibold py-3.5 pr-4 text-right" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredQuestionnaires.map((q) => {
+            const isOverdue = q.dueDate && new Date(q.dueDate) < new Date() && q.status !== "completed";
+
+            return (
+              <TableRow
+                key={q.id}
+                onClick={() => setLocation(`/clients/${clientId}/questionnaires/${q.id}`)}
+                className="cursor-pointer hover:bg-slate-50/80 transition-colors border-b border-slate-100"
+              >
+                {/* Title */}
+                <TableCell className="py-3 pl-4 align-middle">
+                  <div className="font-semibold text-xs text-slate-900 hover:text-blue-700 leading-snug">
+                    {q.name}
+                  </div>
+                  {q.productName && (
+                    <span className="text-[11px] text-slate-500 mt-0.5 block">
+                      Target: {q.productName}
+                    </span>
+                  )}
+                </TableCell>
+
+                {/* Progress */}
+                <TableCell className="py-3 align-middle">
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (q.progress || 0) === 100
+                            ? "bg-emerald-500"
+                            : (q.progress || 0) > 0
+                            ? "bg-blue-600"
+                            : "bg-slate-300"
+                        }`}
+                        style={{ width: `${q.progress || 0}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                      {q.progress ?? 0}%
+                    </span>
+                  </div>
+                </TableCell>
+
+                {/* Status Badge */}
+                <TableCell className="py-3 align-middle">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                      q.status === "completed"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : q.status === "in_progress"
+                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        : q.status === "sent"
+                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                        : "bg-slate-100 text-slate-700 border border-slate-200"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                        q.status === "completed"
+                          ? "bg-emerald-500"
+                          : q.status === "in_progress"
+                          ? "bg-blue-600"
+                          : q.status === "sent"
+                          ? "bg-amber-500"
+                          : "bg-slate-400"
+                      }`}
+                    />
+                    {q.status === "sent"
+                      ? "Sent to Vendor"
+                      : q.status === "in_progress"
+                      ? "In Progress"
+                      : q.status === "completed"
+                      ? "Completed"
+                      : q.status === "open"
+                      ? "Open"
+                      : q.status?.replace("_", " ")}
+                  </span>
+                </TableCell>
+
+                {/* Sender / Vendor */}
+                <TableCell className="py-3 align-middle text-xs text-slate-700 font-medium">
+                  {direction === "inbound"
+                    ? q.senderName || "Enterprise Customer"
+                    : q.vendorName || q.senderName || "-"}
+                </TableCell>
+
+                {/* Date Added */}
+                <TableCell className="py-3 align-middle text-xs text-slate-600 whitespace-nowrap">
+                  {q.createdAt ? format(new Date(q.createdAt), "MMM d, yyyy") : "-"}
+                </TableCell>
+
+                {/* Due Date */}
+                <TableCell className="py-3 align-middle text-xs whitespace-nowrap">
+                  {q.dueDate ? (
+                    <span
+                      className={
+                        isOverdue ? "text-rose-600 font-bold flex items-center gap-1" : "text-slate-600"
+                      }
+                    >
+                      {format(new Date(q.dueDate), "MMM d, yyyy")}
+                      {isOverdue && <span className="text-[10px] uppercase font-bold text-rose-500">Overdue</span>}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">-</span>
+                  )}
+                </TableCell>
+
+                {/* Actions */}
+                <TableCell className="py-3 pr-4 align-middle text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900">
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="cursor-pointer text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation(`/clients/${clientId}/questionnaires/${q.id}`);
+                        }}
+                      >
+                        <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                        Open Assessment
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer text-xs text-rose-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(q);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+
+          {filteredQuestionnaires.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={7} className="py-16">
+                <div className="flex flex-col items-center justify-center gap-3 text-center">
+                  <div className="h-14 w-14 bg-slate-100 rounded-full flex items-center justify-center">
+                    <FileText className="h-7 w-7 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-800 text-sm">
+                      {searchQuery ? "No matching questionnaires found" : "No questionnaires in this view"}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      {searchQuery
+                        ? `No results match "${searchQuery}". Try searching for another keyword or clearing the filter.`
+                        : direction === "inbound"
+                        ? "Upload or log a security questionnaire received from prospective clients to get started."
+                        : "Create or dispatch questionnaires to your vendors and suppliers to evaluate their compliance."}
+                    </p>
+                  </div>
+                  {searchQuery ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSearchQuery("")}
+                      className="text-xs h-8 mt-2"
+                    >
+                      Clear Search
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenCreateModal()}
+                      className="bg-[#1C4D8D] hover:bg-[#153B6D] active:bg-[#153B6D] text-white text-xs h-8 mt-2"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Create New Questionnaire
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 
   return (
     <DashboardLayout>
-      <div className="p-8 space-y-8 max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border/60">
+      <div className="p-8 space-y-6 animate-in fade-in duration-300">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-2">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Trust & Vendor Security Assessments</span>
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              Security Questionnaires
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-              Two directions, one place: <span className="font-semibold text-blue-600 dark:text-blue-400">Inbound</span> — a customer sent you a questionnaire and you answer it; <span className="font-semibold text-emerald-600 dark:text-emerald-400">Outbound</span> — you send a questionnaire to a vendor and review their answers.
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Questionnaires Workspace</h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Manage inbound security assessments from customers and outbound evaluations sent to your third-party vendor supply chain.
             </p>
           </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5">
             <PageGuide
-              title="Security Questionnaires"
-              description="One place for both directions: questionnaires you receive and questionnaires you send."
-              rationale="Answer customer reviews faster with AI drafts from your Answer Library, and assess vendors with secure links, scoring, and findings."
+              title="Questionnaires Dashboard"
+              description="Coordinate customer security assessments (inbound) and vendor third-party reviews (outbound)."
+              rationale="Streamlines the assessment lifecycle through standardized assessment templates, AI-assisted answering, confidence scoring, and defensible source citations."
               howToUse={[
-                { step: "Inbound — a customer asked you", description: "Upload the file they sent or pick the closest template; AI drafts answers, you review and export it back.", targetId: "dir-tab-inbound" },
-                { step: "Outbound — you ask a vendor", description: "Pick a template, enter the vendor's email; they answer via a secure link and you score the results.", targetId: "dir-tab-outbound" },
-                { step: "Review & Score", description: "Track completion, readiness scores, findings, and due dates before exporting or following up.", targetId: "quest-table-list" }
+                {
+                  step: "1. Customer Questionnaires (Inbound)",
+                  description: "Manage security questionnaires received from clients. Run AI answering against your Knowledge Base to auto-draft responses with Confidence ratings and policy citations.",
+                  targetId: "dir-tab-inbound"
+                },
+                {
+                  step: "2. Vendor Evaluations (Outbound)",
+                  description: "Dispatch assessments to third-party vendors and suppliers. Select standard blueprints (ISO 27001, CIS 8, CAIQ) to track vendor compliance posture.",
+                  targetId: "dir-tab-outbound"
+                },
+                {
+                  step: "3. Adopt Assessment Templates",
+                  description: "Click '+ New Questionnaire' and select an Assessment Template Blueprint to automatically populate all mapped security controls and evidence requirements.",
+                  targetId: "quest-table-list"
+                },
+                {
+                  step: "4. Confidence & Source Tracking",
+                  description: "When reviewing questionnaire answers, Confidence scores indicate policy match strength (>70% Green, 40-70% Amber, <40% Red), while Sources cite the exact internal policies referenced."
+                }
+              ]}
+              scenarios={[
+                {
+                  title: "Responding to Customer Due Diligence",
+                  example: "A client sends a questionnaire with 100 questions. You create an Inbound questionnaire, run AI answering, and review answers backed by your policy citations.",
+                  auditTip: "Focus audit review on answers with lower confidence ratings (<70%) and verify that cited documents are up-to-date."
+                },
+                {
+                  title: "Conducting Vendor Risk Assessments",
+                  example: "You send an ISO 27001 or CIS 8 assessment to a critical SaaS vendor to verify their security controls prior to onboarding.",
+                  auditTip: "Template questions initially show '—' for Confidence and Sources until vendor responses are submitted or matched against evidence."
+                }
               ]}
               integrations={[
-                { name: "Answer Library", description: "Approved answers reused automatically on inbound questionnaires." },
-                { name: "Vendor Findings", description: "Failed vendor answers become flagged findings with remediation deadlines." }
+                { name: "Assessment Templates", description: "Standard blueprints (ISO 27001, CIS Controls v8, CAIQ v4, SOC 2) and custom organizational templates." },
+                { name: "Knowledge Base", description: "Repository of company policies, procedures, and audits used to generate answers and citations." },
+                { name: "Vendor Management", description: "Direct integration with third-party vendor directory for tracking external supply chain risk." }
               ]}
             />
-            {activeTab !== "roadmap" && createDropdown}
-          </div>
-        </div>
-
-        {/* Strategic Overview Metric Cards — each stat carries its own accent
-            gradient so the page reads inviting rather than clinical. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              icon: Layers,
-              value: stats.total,
-              label: direction === "inbound" ? "Received from customers" : "Sent to vendors",
-              card: "from-blue-50 to-indigo-50/70 border-blue-200/70",
-              chip: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/25",
-              valueText: "text-blue-700",
-            },
-            {
-              icon: Clock,
-              value: stats.open,
-              label: direction === "inbound" ? "Open — waiting on you" : "Open — not sent yet",
-              card: "from-amber-50 to-orange-50/70 border-amber-200/70",
-              chip: "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25",
-              valueText: "text-amber-700",
-            },
-            {
-              icon: Sparkles,
-              value: stats.inProgress,
-              label: "In Progress / AI Drafting",
-              card: "from-violet-50 to-purple-50/70 border-violet-200/70",
-              chip: "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/25",
-              valueText: "text-violet-700",
-            },
-            {
-              icon: CheckCircle2,
-              value: stats.completed,
-              label: direction === "inbound" ? "Completed & sent back" : "Completed & reviewed",
-              card: "from-emerald-50 to-teal-50/70 border-emerald-200/70",
-              chip: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25",
-              valueText: "text-emerald-700",
-            },
-          ].map((s) => (
-            <Card
-              key={s.label}
-              className={`p-4 flex items-center gap-4 border bg-gradient-to-br shadow-sm rounded-2xl hover:shadow-md transition-shadow ${s.card}`}
+            <Button
+              onClick={() => handleOpenCreateModal()}
+              className="bg-[#1C4D8D] hover:bg-[#153B6D] active:bg-[#153B6D] text-white font-semibold text-xs h-9 px-4 shadow-xs whitespace-nowrap shrink-0"
             >
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${s.chip}`}>
-                <s.icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className={`text-2xl font-black tracking-tight ${s.valueText}`}>{s.value}</p>
-                <p className="text-xs font-medium text-slate-600">{s.label}</p>
-              </div>
-            </Card>
-          ))}
+              <Plus className="w-4 h-4 mr-1.5" />
+              New Questionnaire
+            </Button>
+          </div>
         </div>
 
         {/* Direction Switcher (Inbound vs Outbound) */}
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="p-1 bg-muted/60 rounded-2xl border border-border/70 inline-flex shadow-xs">
-              <button
-                id="dir-tab-inbound"
-                onClick={() => selectTab("inbound")}
-                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl font-semibold text-xs transition-all duration-200 border ${
-                  activeTab === "inbound"
-                    ? "bg-blue-50 border-blue-300 text-blue-950 shadow-sm"
-                    : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-white/70"
-                }`}
-              >
-                <Inbox className="h-4 w-4 text-blue-500" />
-                <span className="flex flex-col items-start leading-tight text-left">
-                  <span className="flex items-center gap-2">
-                    Customer Questionnaires
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-bold bg-blue-100 text-blue-700">
-                      {directionCounts?.inbound ?? 0}
-                    </Badge>
-                  </span>
-                  <span className={`text-[10px] font-normal ${activeTab === "inbound" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`}>
-                    They asked — you answer &amp; send it back
-                  </span>
-                </span>
-              </button>
+        <Tabs value={direction} onValueChange={(v) => setDirection(v as Direction)} className="w-full">
+          <TabsList className="bg-slate-100 p-1 rounded-xl h-auto flex flex-col sm:flex-row gap-1 border border-slate-200">
+            <TabsTrigger
+              id="dir-tab-inbound"
+              value="inbound"
+              className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:shadow-xs px-5 py-2.5 rounded-lg font-semibold text-xs flex items-center gap-2 transition-all"
+            >
+              <Inbox className="h-4 w-4" />
+              <span>Customer Questionnaires</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-white/20 data-[state=active]:text-white">
+                Inbound
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              id="dir-tab-outbound"
+              value="outbound"
+              className="data-[state=active]:bg-[#1C4D8D] data-[state=active]:text-white data-[state=active]:shadow-xs px-5 py-2.5 rounded-lg font-semibold text-xs flex items-center gap-2 transition-all"
+            >
+              <Send className="h-4 w-4" />
+              <span>Vendor Questionnaires</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-white/20 data-[state=active]:text-white">
+                Outbound
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
 
-              <button
-                id="dir-tab-outbound"
-                onClick={() => selectTab("outbound")}
-                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl font-semibold text-xs transition-all duration-200 border ${
-                  activeTab === "outbound"
-                    ? "bg-emerald-50 border-emerald-300 text-emerald-950 shadow-sm"
-                    : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-white/70"
-                }`}
-              >
-                <Send className="h-4 w-4 text-emerald-500" />
-                <span className="flex flex-col items-start leading-tight text-left">
-                  <span className="flex items-center gap-2">
-                    Vendor Assessments
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-bold bg-emerald-100 text-emerald-700">
-                      {directionCounts?.outbound ?? 0}
-                    </Badge>
-                  </span>
-                  <span className={`text-[10px] font-normal ${activeTab === "outbound" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                    You ask — they answer via a secure link
-                  </span>
-                </span>
-              </button>
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-5">
+            <Card className="border-slate-200 bg-white shadow-xs">
+              <CardContent className="p-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Total Assessments
+                  </p>
+                  <p className="text-xl font-bold text-slate-900 mt-0.5">{totalCount}</p>
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <FileText className="h-4 w-4" />
+                </div>
+              </CardContent>
+            </Card>
 
-              <button
-                id="dir-tab-roadmap"
-                onClick={() => selectTab("roadmap")}
-                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl font-semibold text-xs transition-all duration-200 border ${
-                  activeTab === "roadmap"
-                    ? "bg-amber-50 border-amber-300 text-amber-950 shadow-sm"
-                    : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-white/70"
-                }`}
-              >
-                <MapIcon className="h-4 w-4 text-amber-500" />
-                <span className="flex flex-col items-start leading-tight text-left">
-                  <span>90-Day Roadmap</span>
-                  <span className={`text-[10px] font-normal ${activeTab === "roadmap" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
-                    Your 12-week program plan
-                  </span>
-                </span>
-              </button>
+            <Card className="border-slate-200 bg-white shadow-xs">
+              <CardContent className="p-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    {direction === "inbound" ? "In Progress" : "Pending Vendor"}
+                  </p>
+                  <p className="text-xl font-bold text-amber-600 mt-0.5">
+                    {direction === "inbound" ? inProgressCount : sentCount + inProgressCount}
+                  </p>
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Clock className="h-4 w-4" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 bg-white shadow-xs">
+              <CardContent className="p-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Open / New
+                  </p>
+                  <p className="text-xl font-bold text-blue-600 mt-0.5">{openCount}</p>
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Inbox className="h-4 w-4" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 bg-white shadow-xs">
+              <CardContent className="p-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Completed
+                  </p>
+                  <p className="text-xl font-bold text-emerald-600 mt-0.5">{completedCount}</p>
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filter Pill Bar & Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            {statusTabs}
+
+            <div className="flex items-center gap-3">
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, sender, vendor..."
+                  className="pl-9 pr-8 h-9 text-xs bg-white border-slate-300 focus-visible:ring-[#1C4D8D]"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <span className="text-xs text-slate-500 whitespace-nowrap">
+                {filteredQuestionnaires.length} assessment{filteredQuestionnaires.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+
+          {/* TAB 1: INBOUND CUSTOMER QUESTIONNAIRES */}
+          <TabsContent value="inbound" className="mt-0">
+            {isLoading ? (
+              <div className="py-16 text-center text-xs text-slate-500">Loading questionnaires...</div>
+            ) : (
+              questionnaireTable
+            )}
+          </TabsContent>
+
+          {/* TAB 2: OUTBOUND VENDOR QUESTIONNAIRES */}
+          <TabsContent value="outbound" className="mt-0">
+            {isLoading ? (
+              <div className="py-16 text-center text-xs text-slate-500">Loading questionnaires...</div>
+            ) : (
+              questionnaireTable
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* CREATE QUESTIONNAIRE MODAL - BRIDGES ASSESSMENT TEMPLATES & QUESTIONNAIRES */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader className="pb-3 border-b border-slate-200">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-blue-100 text-blue-800 text-xs font-semibold">
+                Questionnaire Instantiation
+              </Badge>
+              <Badge variant="outline" className="text-xs text-slate-600">
+                Templates Connected
+              </Badge>
+            </div>
+            <DialogTitle className="text-lg font-bold text-slate-900 mt-1">
+              Create New Questionnaire
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Instantiate an active questionnaire workspace from an Assessment Template blueprint or customer inquiry.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateSubmit} className="space-y-4 pt-2">
+            {/* Direction Selection */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Questionnaire Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateForm({ ...createForm, direction: "inbound", name: "Customer Security Evaluation" })}
+                  className={`p-3 rounded-lg border text-left transition-all flex items-center gap-2.5 ${
+                    createForm.direction === "inbound"
+                      ? "bg-blue-50/80 border-[#1C4D8D] ring-1 ring-[#1C4D8D]"
+                      : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="h-8 w-8 rounded bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <Inbox className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Inbound Review</p>
+                    <p className="text-[10px] text-slate-500">For customers evaluating you</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCreateForm({ ...createForm, direction: "outbound", name: "Vendor Third-Party Review" })}
+                  className={`p-3 rounded-lg border text-left transition-all flex items-center gap-2.5 ${
+                    createForm.direction === "outbound"
+                      ? "bg-blue-50/80 border-[#1C4D8D] ring-1 ring-[#1C4D8D]"
+                      : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="h-8 w-8 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                    <Send className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Outbound Audit</p>
+                    <p className="text-[10px] text-slate-500">To evaluate your suppliers</p>
+                  </div>
+                </button>
+              </div>
             </div>
 
-            {activeTab !== "roadmap" && (
-              <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                <span>Showing {filteredQuestionnaires.length} of {stats.total} assessments</span>
+            {/* Title */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Questionnaire Name *</Label>
+              <Input
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                placeholder="e.g. Annual Cloud Infrastructure Security Evaluation 2026"
+                className="bg-white text-xs h-9"
+                required
+              />
+            </div>
+
+            {/* Dynamic Target Party depending on direction */}
+            {createForm.direction === "inbound" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Customer / Sender Name</Label>
+                  <Input
+                    value={createForm.senderName}
+                    onChange={(e) => setCreateForm({ ...createForm, senderName: e.target.value })}
+                    placeholder="e.g. Acme Financial Group"
+                    className="bg-white text-xs h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Scope / Target Product</Label>
+                  <Input
+                    value={createForm.productName}
+                    onChange={(e) => setCreateForm({ ...createForm, productName: e.target.value })}
+                    placeholder="e.g. ComplianceOS Platform"
+                    className="bg-white text-xs h-9"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Target Vendor to Assess</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={createForm.vendorName}
+                    onValueChange={(val) => setCreateForm({ ...createForm, vendorName: val })}
+                  >
+                    <SelectTrigger className="bg-white text-xs h-9 flex-1">
+                      <SelectValue placeholder="Select from registered vendors..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendorList?.map((v) => (
+                        <SelectItem key={v.id} value={v.name} className="text-xs">
+                          {v.name} ({v.category || "Supplier"})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={createForm.vendorName}
+                    onChange={(e) => setCreateForm({ ...createForm, vendorName: e.target.value })}
+                    placeholder="Or type custom vendor..."
+                    className="bg-white text-xs h-9 w-44"
+                  />
+                </div>
               </div>
             )}
-          </div>
 
-          {activeTab !== "roadmap" && (
-          <>
-          {/* Direction explainer — removes the inbound/outbound ambiguity and
-              gives first-time users an unambiguous "where to start" action. */}
-          <div
-            className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${
-              direction === "inbound"
-                ? "border-blue-500/30 bg-blue-500/5"
-                : "border-emerald-500/30 bg-emerald-500/5"
-            }`}
-          >
-            <div
-              className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-                direction === "inbound"
-                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              }`}
-            >
-              {direction === "inbound" ? <Inbox className="h-5 w-5" /> : <Send className="h-5 w-5" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                {direction === "inbound"
-                  ? "A customer sent you a security questionnaire — you fill it in and send it back."
-                  : "You are assessing a vendor's security — they fill in the questionnaire you send."}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {direction === "inbound"
-                  ? "Where to start: upload the file they sent (XLSX / CSV / PDF) or pick the closest template. AI drafts answers from your Answer Library — you review, export, and return it."
-                  : "Where to start: pick a standard template (SIG Lite, CAIQ v4, SOC 2…), enter the vendor's email, and they receive a secure link. Their answers come back here for you to score, flag, and follow up."}
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={() =>
-                setLocation(
-                  direction === "inbound"
-                    ? `/clients/${clientId}/questionnaire-workspace?direction=inbound`
-                    : `/clients/${clientId}/questionnaire-workspace?mode=template&direction=outbound`
-                )
-              }
-              className={`shrink-0 font-semibold text-xs rounded-xl gap-1.5 ${
-                direction === "inbound"
-                  ? "bg-blue-600 hover:bg-blue-700 text-white"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
-              }`}
-            >
-              {direction === "inbound" ? <Upload className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
-              {direction === "inbound" ? "Start answering" : "Send to a vendor"}
-            </Button>
-          </div>
+            {/* THE BRIDGE: CHOOSE ASSESSMENT TEMPLATE BLUEPRINT */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-blue-600" />
+                  Assessment Template Blueprint (Populate Questions)
+                </Label>
+                <span className="text-[11px] text-blue-700 font-medium">Controls will auto-populate</span>
+              </div>
 
-          {/* Search Bar & Status Filter Bar */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            {/* Search input with live query state */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={`Search by title, ${direction === "inbound" ? "customer" : "vendor"}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-8 bg-card/80 border-border/80 focus-visible:ring-primary/20 rounded-xl text-xs h-10 shadow-2xs"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label="Clear search"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+              <Select
+                value={createForm.templateId}
+                onValueChange={(val) => setCreateForm({ ...createForm, templateId: val })}
+              >
+                <SelectTrigger className="bg-white text-xs h-10 border-blue-200 focus:ring-blue-500">
+                  <SelectValue placeholder="Choose an Assessment Template..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  {templates?.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="text-xs py-2">
+                      <div className="flex items-center justify-between gap-3 w-full">
+                        <span className="font-semibold text-slate-800">{t.name}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge variant="outline" className="text-[10px] bg-slate-50 font-mono">
+                            {t.framework}
+                          </Badge>
+                          <Badge className="text-[10px] bg-blue-100 text-blue-800">
+                            {t.questionCount} Controls
+                          </Badge>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Template Highlight Callout */}
+              {selectedTemplateDetails && (
+                <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-lg space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5 text-blue-700" /> {selectedTemplateDetails.name}
+                    </span>
+                    <Badge className="bg-blue-100 text-blue-800 text-[10px] font-bold">
+                      {selectedTemplateDetails.questionCount} Controls Mapped
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-blue-900 leading-relaxed">
+                    {selectedTemplateDetails.description}
+                  </p>
+                </div>
               )}
             </div>
 
-            {/* Status Segmented Filters */}
-            <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/70 text-xs flex-wrap">
-              {[
-                { id: "all", label: "All", count: stats.total },
-                { id: "open", label: "Open", count: stats.open },
-                { id: "in_progress", label: "In Progress", count: stats.inProgress },
-                { id: "completed", label: "Completed", count: stats.completed },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setStatusFilter(s.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
-                    statusFilter === s.id
-                      ? "bg-card text-foreground shadow-2xs border border-border/60"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+            {/* Due Date & Priority */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Target Due Date</Label>
+                <Input
+                  type="date"
+                  value={createForm.dueDate}
+                  onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
+                  className="bg-white text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Evaluation Priority</Label>
+                <Select
+                  value={createForm.priority}
+                  onValueChange={(val) => setCreateForm({ ...createForm, priority: val })}
                 >
-                  <span>{s.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    statusFilter === s.id ? "bg-muted text-foreground" : "bg-muted/60 text-muted-foreground"
-                  }`}>
-                    {s.count}
-                  </span>
-                </button>
-              ))}
+                  <SelectTrigger className="bg-white text-xs h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="critical" className="text-xs text-rose-600 font-bold">Critical Risk</SelectItem>
+                    <SelectItem value="high" className="text-xs text-amber-600 font-bold">High Priority</SelectItem>
+                    <SelectItem value="medium" className="text-xs text-blue-600 font-medium">Medium Priority</SelectItem>
+                    <SelectItem value="low" className="text-xs text-slate-600">Low / Informational</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
 
-          {/* Table Container */}
-          <div className="rounded-2xl border border-border/80 shadow-xs overflow-hidden bg-card/80 backdrop-blur-md" id="quest-table-list">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
-                  <TableHead className="py-3.5 px-5 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                    Assessment Name
-                  </TableHead>
-                  <TableHead className="py-3.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                    Completion
-                  </TableHead>
-                  <TableHead className="py-3.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                    Compliance Score
-                  </TableHead>
-                  <TableHead className="py-3.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                    Status
-                  </TableHead>
-                  <TableHead className="py-3.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                    {direction === "inbound" ? "Customer / Sender" : "Vendor / Supplier"}
-                  </TableHead>
-                  <TableHead className="py-3.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                    Created
-                  </TableHead>
-                  <TableHead className="py-3.5 font-bold text-xs uppercase tracking-wider text-muted-foreground">
-                    Due Date
-                  </TableHead>
-                  <TableHead className="w-[60px] py-3.5 text-right pr-4" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 3 }).map((_, idx) => (
-                    <TableRow key={idx} className="border-b border-border/40">
-                      <TableCell colSpan={8} className="py-5 px-5">
-                        <div className="h-5 bg-muted/60 animate-pulse rounded-md w-3/4" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : filteredQuestionnaires.length > 0 ? (
-                  filteredQuestionnaires.map((q) => (
-                    <TableRow
-                      key={q.id}
-                      onClick={() => setLocation(`/clients/${clientId}/questionnaires/${q.id}`)}
-                      className="cursor-pointer hover:bg-muted/40 transition-colors border-b border-border/50 group"
-                    >
-                      <TableCell className="py-4 px-5 font-medium">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                            <FileText className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">
-                              {q.name}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <span>ID #{q.id}</span>
-                              <span>•</span>
-                              <span>{direction === "inbound" ? "Customer Form" : "Supplier Form"}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
+            <DialogFooter className="pt-3 border-t border-slate-200 flex items-center justify-between sm:justify-between w-full">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  setLocation(`/clients/${clientId}/questionnaire-workspace?direction=${createForm.direction}`);
+                }}
+                className="text-xs text-slate-500 hover:text-slate-800 underline"
+              >
+                Or upload spreadsheet / PDF instead
+              </button>
 
-                      <TableCell className="py-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-24 bg-muted rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-300 ${
-                                (q.progress ?? 0) >= 100
-                                  ? "bg-emerald-500"
-                                  : (q.progress ?? 0) > 0
-                                  ? "bg-primary"
-                                  : "bg-muted-foreground/30"
-                              }`}
-                              style={{ width: `${Math.max(0, Math.min(100, q.progress ?? 0))}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-foreground/80 tabular-nums">
-                            {q.progress ?? 0}%
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="py-4">
-                        <QuestionnaireScoreCell
-                          scoreResult={scoreById.get(q.id)}
-                          isLoading={scoresLoading && !scoreById.size}
-                        />
-                      </TableCell>
-
-                      <TableCell className="py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                            q.status === "completed"
-                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400"
-                              : q.status === "in_progress"
-                              ? "bg-primary/10 text-primary border-primary/20"
-                              : "bg-muted text-muted-foreground border-border"
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              q.status === "completed"
-                                ? "bg-emerald-500"
-                                : q.status === "in_progress"
-                                ? "bg-primary animate-pulse"
-                                : "bg-muted-foreground"
-                            }`}
-                          />
-                          {q.status === "in_progress"
-                            ? "In Progress"
-                            : q.status === "completed"
-                            ? "Completed"
-                            : "Open"}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="py-4 text-xs font-medium text-foreground/80">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="truncate max-w-[140px]">
-                            {q.senderName || q.vendorName || "—"}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="py-4 text-xs text-muted-foreground font-mono">
-                        {q.createdAt ? format(new Date(q.createdAt), "MMM d, yyyy") : "—"}
-                      </TableCell>
-
-                      <TableCell className="py-4 text-xs font-mono">
-                        {q.dueDate ? (
-                          (() => {
-                            const due = new Date(q.dueDate);
-                            const isOverdue =
-                              q.status !== "completed" && due.getTime() < Date.now();
-                            return (
-                              <div className={`flex items-center gap-1 ${isOverdue ? "text-rose-600 dark:text-rose-400 font-semibold" : "text-muted-foreground"}`}>
-                                <Calendar className="h-3 w-3" />
-                                <span>{format(due, "MMM d, yyyy")}</span>
-                                {isOverdue && (
-                                  <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0 h-3.5 font-bold">
-                                    Overdue
-                                  </Badge>
-                                )}
-                              </div>
-                            );
-                          })()
-                        ) : (
-                          <span className="text-muted-foreground/60">—</span>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="py-4 text-right pr-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-border/80 p-1">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLocation(`/clients/${clientId}/questionnaires/${q.id}`);
-                              }}
-                              className="rounded-lg text-xs font-medium cursor-pointer"
-                            >
-                              <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                              Open Workspace
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSetStatus(q, "completed");
-                              }}
-                              className="rounded-lg text-xs font-medium cursor-pointer"
-                            >
-                              <CheckCircle2 className="mr-2 h-3.5 w-3.5 text-emerald-500" />
-                              Mark Completed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSetStatus(q, "in_progress");
-                              }}
-                              className="rounded-lg text-xs font-medium cursor-pointer"
-                            >
-                              <RotateCcw className="mr-2 h-3.5 w-3.5 text-amber-500" />
-                              Reopen (In Progress)
-                            </DropdownMenuItem>
-                            <div
-                              className="px-2.5 py-2"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                                <CalendarClock className="h-3 w-3" />
-                                Due Date
-                              </label>
-                              <Input
-                                type="date"
-                                defaultValue={q.dueDate ? format(new Date(q.dueDate), "yyyy-MM-dd") : ""}
-                                onChange={(e) => handleSetDueDate(q, e.target.value)}
-                                className="h-8 text-xs rounded-lg"
-                              />
-                            </div>
-                            {(q as any).direction === "outbound" && (q as any).vendorEmail && (
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSendReminder(q);
-                                }}
-                                className="rounded-lg text-xs font-medium cursor-pointer"
-                              >
-                                <Bell className="mr-2 h-3.5 w-3.5 text-amber-500" />
-                                Send Reminder to Vendor
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator className="my-1" />
-                            <DropdownMenuItem
-                              className="text-destructive rounded-lg text-xs font-medium cursor-pointer hover:bg-destructive/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(q);
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-3.5 w-3.5" />
-                              Delete Assessment
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-16">
-                      <div className="flex flex-col items-center justify-center gap-4 text-center max-w-sm mx-auto">
-                        <div className="h-16 w-16 bg-muted/60 border border-border/60 rounded-2xl flex items-center justify-center text-muted-foreground shadow-xs">
-                          <FileText className="h-8 w-8" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-foreground text-base">
-                            {searchQuery || statusFilter !== "all"
-                              ? "No matching questionnaires found"
-                              : "No questionnaires added yet"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                            {searchQuery || statusFilter !== "all"
-                              ? "Try clearing your search query or switching your status filter tab."
-                              : direction === "inbound"
-                              ? "A customer sent you a questionnaire — upload the file they sent above to start answering."
-                              : "You send it: use \"Send to a vendor\" above — pick a template, enter their email, and they answer via a secure link."}
-                          </p>
-                        </div>
-                        {searchQuery || statusFilter !== "all" ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSearchQuery("");
-                              setStatusFilter("all");
-                            }}
-                            className="text-xs rounded-xl border-border"
-                          >
-                            Reset Filters
-                          </Button>
-                        ) : (
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                setLocation(`/clients/${clientId}/questionnaire-workspace?direction=${direction}`)
-                              }
-                              className="text-xs rounded-xl font-semibold gap-1.5"
-                            >
-                              <Upload className="h-3.5 w-3.5" />
-                              Upload Questionnaire
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setLocation(`/clients/${clientId}/questionnaire-workspace?mode=template&direction=${direction}`)
-                              }
-                              className="text-xs rounded-xl font-semibold gap-1.5 border-border"
-                            >
-                              <FileSpreadsheet className="h-3.5 w-3.5" />
-                              Use Template
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          </>
-          )}
-
-          {/* Roadmap tab view — the 12-week program plan as a first-class
-              view (same tab pattern as the vendor program guide), not a
-              footnote at the bottom of the page. */}
-          {activeTab === "roadmap" && (
-            <div className="rounded-2xl border border-border/80 shadow-xs bg-card/80 backdrop-blur-md p-4" id="quest-roadmap">
-              <Framework90DayRoadmap
-                spec={getQuestionnaireRoadmap(clientId)}
-                clientId={clientId}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="text-xs h-8"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending}
+                  className="bg-[#1C4D8D] hover:bg-[#153B6D] active:bg-[#153B6D] text-white text-xs font-semibold h-8 shadow-xs"
+                >
+                  {createMutation.isPending ? "Instantiating Controls..." : "Create & Open Workspace"}
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!questionnaireToDelete} onOpenChange={(open) => !open && setQuestionnaireToDelete(null)}>
-        <AlertDialogContent className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white p-6 shadow-lg">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg font-bold">Delete Questionnaire?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-muted-foreground">
-              Are you sure you want to permanently delete <b className="text-foreground">{questionnaireToDelete?.name}</b>?
-              All mapped responses, AI answer drafts, and attached evidence will be lost. This action cannot be undone.
+            <AlertDialogTitle>Delete Questionnaire?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <b>{questionnaireToDelete?.name}</b>? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="rounded-xl text-xs">Cancel</AlertDialogCancel>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl text-xs font-semibold"
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDelete();
-              }}
+              className="bg-red-600 hover:bg-red-700"
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
             >
-              Delete Permanently
+              Delete Questionnaire
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -14,6 +14,30 @@ import { and, eq, desc, asc, inArray, ne } from "drizzle-orm";
 import { BUILTIN_TEMPLATES } from "../../lib/questionnaire/templates";
 import { STANDARD_TEMPLATES } from "./standardTemplatesData";
 
+// Due dates arrive either as a date-only string from <input type="date">
+// (e.g. "2026-10-20") or as a full ISO datetime. Empty string / null clear it.
+// Output: Date | null | undefined (undefined = not provided).
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const dueDateInput = z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((value, ctx): Date | null | undefined => {
+        if (value === undefined) return undefined;
+        if (value === null || value.trim() === "") return null;
+        const raw = value.trim();
+        const isDateOnly = DATE_ONLY_RE.test(raw);
+        if (!isDateOnly && !z.string().datetime({ offset: true }).safeParse(raw).success) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date: expected YYYY-MM-DD or ISO datetime" });
+            return z.NEVER;
+        }
+        const date = new Date(isDateOnly ? `${raw}T00:00:00.000Z` : raw);
+        if (Number.isNaN(date.getTime())) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
+            return z.NEVER;
+        }
+        return date;
+    });
+
 // Standard assessment blueprints (ISO 27001:2022, CIS v8, CAIQ v4, SOC 2, AI governance,
 // HIPAA, GDPR, ...) exposed as questionnaire templates. Prefixed "std-" so their ids
 // never collide with BUILTIN_TEMPLATES ids (e.g. soc2-type2, hipaa-security).
@@ -290,7 +314,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 vendorName: z.string().optional(),
                 vendorEmail: z.string().optional(),
                 priority: z.string().optional(),
-                dueDate: z.string().datetime().nullable().optional(),
+                dueDate: dueDateInput,
             }))
             .mutation(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
                 const db = await getDb();
@@ -310,7 +334,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                     vendorName: input.vendorName,
                     vendorEmail: input.vendorEmail,
                     priority: input.priority || "medium",
-                    dueDate: input.dueDate ? new Date(input.dueDate) : null,
+                    dueDate: input.dueDate ?? null,
                     status: "in_progress",
                     createdAt: new Date(),
                     updatedAt: new Date(),
@@ -332,7 +356,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 productName: z.string().nullable().optional(),
                 vendorName: z.string().nullable().optional(),
                 vendorEmail: z.string().nullable().optional(),
-                dueDate: z.string().datetime().nullable().optional(),
+                dueDate: dueDateInput,
                 priority: z.enum(["high", "medium", "low"]).optional(),
             }))
             .mutation(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
@@ -349,7 +373,7 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                     if (data[key] === undefined) delete data[key];
                 }
                 if (dueDate !== undefined) {
-                    data.dueDate = dueDate === null ? null : new Date(dueDate);
+                    data.dueDate = dueDate;
                 }
 
                 const [updated] = await db.update(questionnaires)
@@ -711,10 +735,89 @@ export function createQuestionnaireRouter(t: any, clientProcedure: any, publicPr
                 const db = await getDb();
                 const qId = parseId(input.id);
                 const q = await loadQuestionnaire(db, qId);
-                if (!q) return { questionnaire: null, questions: [] };
+                if (!q) return { questionnaire: null, questions: [], metadata: null };
                 assertQuestionnaireAccess(ctx, q);
                 const questions = await db.select().from(questionnaireQuestions).where(eq(questionnaireQuestions.questionnaireId, qId));
-                return { questionnaire: q, questions };
+                return {
+                    questionnaire: q,
+                    questions,
+                    metadata: {
+                        name: q.name,
+                        status: q.status,
+                        progress: q.progress,
+                        senderName: q.senderName,
+                        productName: q.productName,
+                        dueDate: q.dueDate,
+                        createdAt: q.createdAt,
+                        updatedAt: q.updatedAt,
+                    },
+                    summary: {
+                        totalQuestions: questions.length,
+                        answeredQuestions: questions.filter((row: { answer?: string | null }) => (row.answer || "").trim().length > 0).length,
+                        pendingQuestions: questions.filter((row: { answer?: string | null }) => !(row.answer || "").trim()).length,
+                    },
+                };
+            }),
+
+        /**
+         * Object-row export used by the questionnaire workspace CSV button.
+         * Tenant check matches exportJSON; rows stay objects so the client can
+         * read Object.keys(questions[0]).
+         */
+        exportExcel: clientProcedure
+            .input(z.object({
+                id: z.union([z.number(), z.string()]),
+                clientId: z.number().optional(),
+            }))
+            .query(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
+                const db = await getDb();
+                const qId = parseId(input.id);
+                const q = await loadQuestionnaire(db, qId);
+                if (!q) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Questionnaire not found" });
+                }
+                assertQuestionnaireAccess(ctx, q);
+                const questions = await db.select().from(questionnaireQuestions).where(eq(questionnaireQuestions.questionnaireId, qId));
+                const rows = questions.map((row: any) => {
+                    const extra = row.extraFields || {};
+                    return {
+                        "Question ID": row.questionId || "",
+                        "Focus Area": row.focusArea || "",
+                        "Sub Focus Area": row.subFocusArea || "",
+                        "Assessment Question": row.question,
+                        "Answer": row.answer || "",
+                        "Confidence": row.confidence ? `${Math.round(Number(row.confidence) <= 1 ? Number(row.confidence) * 100 : Number(row.confidence))}%` : "",
+                        "Sources": (row.sources || []).map((s: any) => s.title || "").filter(Boolean).join("; "),
+                        "Comment": row.comment || "",
+                        ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, v ?? ""])),
+                    };
+                });
+                return {
+                    name: q.name,
+                    status: q.status,
+                    progress: q.progress,
+                    senderName: q.senderName,
+                    createdAt: q.createdAt,
+                    questions: rows,
+                };
+            }),
+
+        submitForReview: clientProcedure
+            .input(z.object({
+                id: z.number(),
+                clientId: z.number().optional(),
+            }))
+            .mutation(async ({ input, ctx }: { input: any; ctx?: Ctx }) => {
+                const db = await getDb();
+                const q = await loadQuestionnaire(db, input.id);
+                if (!q) {
+                    throw new TRPCError({ code: "NOT_FOUND", message: "Questionnaire not found" });
+                }
+                assertQuestionnaireAccess(ctx, q);
+                await db.update(questionnaires)
+                    .set({ status: "pending_review", updatedAt: new Date() })
+                    .where(eq(questionnaires.id, input.id));
+                return { success: true };
             }),
 
         /**

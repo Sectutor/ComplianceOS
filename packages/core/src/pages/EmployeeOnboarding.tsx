@@ -352,6 +352,21 @@ export default function EmployeeOnboarding() {
                         <h1 className="text-2xl font-bold tracking-tight mt-2">Employee Onboarding</h1>
                         <p className="text-muted-foreground mt-1">Complete all steps to finish your onboarding.</p>
                     </div>
+                    <div className="flex items-center gap-3">
+                        {(() => {
+                            const isGlobalAdmin = me?.role === 'admin' || me?.role === 'owner' || me?.role === 'super_admin';
+                            const clientRole = (myClients as any[] | undefined)?.find((c) => c.id === effectiveClientId)?.role;
+                            const isClientAdmin = clientRole === 'admin' || clientRole === 'owner';
+                            if (!(isGlobalAdmin || isClientAdmin) || !effectiveClientId) return null;
+                            return (
+                                <Button variant="outline" size="sm" asChild className="gap-2">
+                                    <a href={`/clients/${effectiveClientId}/personnel-compliance`}>
+                                        <Shield className="h-4 w-4" />
+                                        Configure Onboarding Checklist
+                                    </a>
+                                </Button>
+                            );
+                        })()}
                     <PageGuide
                         title="Employee Onboarding"
                         description="Your step-by-step guide to completing security and compliance requirements."
@@ -365,6 +380,7 @@ export default function EmployeeOnboarding() {
                             { step: "Review", description: "Review all completed items and submit." },
                         ]}
                     />
+                    </div>
                 </div>
 
                 {/* Overall Progress Bar */}

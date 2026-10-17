@@ -5778,314 +5778,377 @@ export async function getPolicyCoverageAnalysis(clientId: number): Promise<{
 
 
 
-/**
-
- * Get suggested mappings for a client based on control categories and policy templates
-
- */
-
-export async function getSuggestedMappings(clientId: number): Promise<{
-
-  controlId: number;
-
-  clientControlId: string;
-
-  controlName: string;
-
-  category: string;
-
-  suggestedPolicies: {
-
-    policyId: number;
-
-    policyName: string;
-
-    templateId: string;
-
-    matchReason: string;
-
-  }[];
-
-}[]> {
-
-  const db = await getDb();
-
-
-
-  // Get unmapped client controls with their suggested policies
-
-  const clientControlsList = await db.select({
-
-    clientControl: clientControls,
-
-    control: controls,
-
-  })
-
-    .from(clientControls)
-
-    .innerJoin(controls, eq(clientControls.controlId, controls.id))
-
-    .where(eq(clientControls.clientId, clientId));
-
-
-
-  // Get existing mappings
-
-  const existingMappings = await db.select({
-
-    clientControlId: controlPolicyMappings.clientControlId,
-
-    clientPolicyId: controlPolicyMappings.clientPolicyId,
-
-  })
-
-    .from(controlPolicyMappings)
-
-    .where(eq(controlPolicyMappings.clientId, clientId));
-
-
-
-  const mappedPairs = new Set(
-
-    existingMappings.map(m => `${m.clientControlId}-${m.clientPolicyId}`)
-
-  );
-
-
-
-  // Get client policies with their template IDs
-
-  const clientPoliciesList = await db.select({
-
-    policy: clientPolicies,
-
-    template: policyTemplates,
-
-  })
-
-    .from(clientPolicies)
-
-    .leftJoin(policyTemplates, eq(clientPolicies.templateId, policyTemplates.id))
-
-    .where(eq(clientPolicies.clientId, clientId));
-
-
-
-  // Build template ID to policy map
-
-  const templateToPolicyMap = new Map<string, { policyId: number; policyName: string }>();
-
-  for (const { policy, template } of clientPoliciesList) {
-
-    if (template?.templateId) {
-
-      templateToPolicyMap.set(template.templateId, {
-
-        policyId: policy.id,
-
-        policyName: policy.name,
-
-      });
-
-    }
-
-  }
-
-
-
-  // Generate suggestions
-
-  const suggestions: {
-
-    controlId: number;
-
-    clientControlId: string;
-
-    controlName: string;
-
-    category: string;
-
-    suggestedPolicies: {
-
-      policyId: number;
-
-      policyName: string;
-
-      templateId: string;
-
-      matchReason: string;
-
-    }[];
-
-  }[] = [];
-
-
-
-  for (const { clientControl, control } of clientControlsList) {
-
-    const suggestedPolicyIds = control.suggestedPolicies
-
-      ? control.suggestedPolicies.split(',').map(s => s.trim())
-
-      : [];
-
-
-
-    const suggestedPolicies: {
-
-      policyId: number;
-
-      policyName: string;
-
-      templateId: string;
-
-      matchReason: string;
-
-    }[] = [];
-
-
-
-    for (const templateId of suggestedPolicyIds) {
-
-      const policyInfo = templateToPolicyMap.get(templateId);
-
-      if (policyInfo) {
-
-        // Check if this mapping already exists
-
-        if (!mappedPairs.has(`${clientControl.id}-${policyInfo.policyId}`)) {
-
-          suggestedPolicies.push({
-
-            policyId: policyInfo.policyId,
-
-            policyName: policyInfo.policyName,
-
-            templateId,
-
-            matchReason: `Control category "${control.category || 'General'}" matches policy type`,
-
-          });
-
-        }
-
-      }
-
-    }
-
-
-
-    if (suggestedPolicies.length > 0) {
-
-      suggestions.push({
-
-        controlId: clientControl.id,
-
-        clientControlId: clientControl.clientControlId || `CC-${clientControl.id}`,
-
-        controlName: control.name,
-
-        category: control.category || 'General',
-
-        suggestedPolicies,
-
-      });
-
-    }
-
-  }
-
-
-
-  return suggestions;
-
+interface TopicRule {
+  topic: string;
+  controlKeywords: string[];
+  policyKeywords: string[];
 }
 
+const TOPIC_RULES: TopicRule[] = [
+  {
+    topic: 'Access Control & Identity',
+    controlKeywords: ['access', 'identity', 'authentication', 'iam', 'password', 'mfa', 'privilege', 'credential', 'rbac', 'logical access', 'remote access', 'bastion', 'sso'],
+    policyKeywords: ['access', 'identity', 'authentication', 'iam', 'password', 'privilege', 'credential', 'rbac', 'bastion', 'sso', 'vpn']
+  },
+  {
+    topic: 'Incident Management & Response',
+    controlKeywords: ['incident', 'breach', 'event', 'escalation', 'response', 'forensic', 'containment', 'handling'],
+    policyKeywords: ['incident', 'breach', 'escalation', 'response', 'containment', 'forensic']
+  },
+  {
+    topic: 'Business Continuity & Disaster Recovery',
+    controlKeywords: ['continuity', 'disaster', 'recovery', 'resilience', 'crisis', 'backup', 'availability'],
+    policyKeywords: ['continuity', 'resilience', 'crisis', 'recovery', 'backup']
+  },
+  {
+    topic: 'Change Management & Secure SDLC',
+    controlKeywords: ['change management', 'development', 'sdlc', 'code repository', 'deployment', 'software', 'vulnerability handling', 'environment segregation'],
+    policyKeywords: ['change management', 'sdlc', 'development', 'software', 'deployment', 'pipeline', 'git', 'ci/cd']
+  },
+  {
+    topic: 'Asset Management & Data Classification',
+    controlKeywords: ['asset', 'classification', 'handling', 'inventory', 'disposal', 'retention', 'data protection', 'data security'],
+    policyKeywords: ['asset', 'classification', 'retention', 'disposal', 'inventory', 'handling']
+  },
+  {
+    topic: 'Cryptography & Encryption',
+    controlKeywords: ['crypto', 'encrypt', 'key management', 'certificate', 'tls', 'hsm'],
+    policyKeywords: ['crypto', 'encrypt', 'key management', 'tokenization', 'hsm']
+  },
+  {
+    topic: 'Vulnerability Management & Security Testing',
+    controlKeywords: ['vulnerability', 'patch', 'threat', 'penetration', 'scanning', 'flaw', 'effectiveness monitoring', 'continuous monitoring'],
+    policyKeywords: ['vulnerability', 'threat', 'penetration', 'bug bounty', 'monitoring']
+  },
+  {
+    topic: 'Supplier & Supply Chain Security',
+    controlKeywords: ['vendor', 'supplier', 'supply chain', 'third-party', 'subprocessor', 'contract'],
+    policyKeywords: ['vendor', 'supplier', 'supply chain', 'third-party', 'saas']
+  },
+  {
+    topic: 'Human Resources & Security Training',
+    controlKeywords: ['human resources', 'employee', 'training', 'awareness', 'onboarding', 'offboarding', 'people', 'hygiene'],
+    policyKeywords: ['human resources', 'training', 'onboarding', 'employee', 'awareness']
+  },
+  {
+    topic: 'Physical & Environmental Security',
+    controlKeywords: ['physical', 'environmental', 'facility', 'perimeter', 'clear desk', 'equipment'],
+    policyKeywords: ['physical', 'environmental', 'clear desk']
+  },
+  {
+    topic: 'Information Security Governance & Risk',
+    controlKeywords: ['governance', 'policy', 'policies', 'risk management', 'risk assessment', 'charter', 'oversight', 'review', 'organizational context'],
+    policyKeywords: ['governance', 'risk management', 'charter', 'review', 'acceptable use', 'information security']
+  },
+  {
+    topic: 'Network & Communication Security',
+    controlKeywords: ['network', 'firewall', 'wireless', 'segmentation', 'teleworking', 'remote work', 'communication'],
+    policyKeywords: ['network', 'firewall', 'wireless', 'teleworking', 'remote work', 'email']
+  },
+  {
+    topic: 'Logging, Monitoring & Audit',
+    controlKeywords: ['log', 'audit trail', 'monitoring', 'alert', 'siem', 'soc', 'audit'],
+    policyKeywords: ['log', 'audit trail', 'monitoring', 'audit']
+  },
+  {
+    topic: 'Privacy & Data Protection',
+    controlKeywords: ['privacy', 'data protection', 'gdpr', 'dpia', 'cross-border', 'data transfer'],
+    policyKeywords: ['privacy', 'data protection', 'dpia', 'cross-border', 'data retention']
+  },
+  {
+    topic: 'Artificial Intelligence & Agent Security',
+    controlKeywords: ['artificial intelligence', 'ai', 'llm', 'machine learning', 'agentic', 'poisoning', 'hallucination'],
+    policyKeywords: ['artificial intelligence', 'ai', 'llm', 'agent']
+  }
+];
 
+function calculatePolicyMatchScore(
+  ctrlName: string,
+  ctrlCat: string,
+  ctrlDesc: string,
+  polName: string,
+  polModule: string
+): { score: number; reason: string } {
+  const cNameLow = ctrlName.toLowerCase();
+  const cCatLow = (ctrlCat || '').toLowerCase();
+  const cDescLow = (ctrlDesc || '').toLowerCase();
+  const pNameLow = polName.toLowerCase();
 
-/**
+  let score = 0;
+  let reason = '';
 
- * Bulk create mappings from suggestions
-
- */
-
-export async function bulkCreateMappings(
-
-  clientId: number,
-
-  mappings: { clientControlId: number; clientPolicyId: number }[]
-
-): Promise<{ created: number; skipped: number }> {
-
-  const db = await getDb();
-
-
-
-  // Get existing mappings
-
-  const existingMappings = await db.select({
-
-    clientControlId: controlPolicyMappings.clientControlId,
-
-    clientPolicyId: controlPolicyMappings.clientPolicyId,
-
-  })
-
-    .from(controlPolicyMappings)
-
-    .where(eq(controlPolicyMappings.clientId, clientId));
-
-
-
-  const existingPairs = new Set(
-
-    existingMappings.map(m => `${m.clientControlId}-${m.clientPolicyId}`)
-
-  );
-
-
-
-  let created = 0;
-
-  let skipped = 0;
-
-
-
-  for (const mapping of mappings) {
-
-    const pairKey = `${mapping.clientControlId}-${mapping.clientPolicyId}`;
-
-    if (existingPairs.has(pairKey)) {
-
-      skipped++;
-
-      continue;
-
-    }
-
-
-
-    await db.insert(controlPolicyMappings).values({
-
-      clientId,
-
-      clientControlId: mapping.clientControlId,
-
-      clientPolicyId: mapping.clientPolicyId,
-
-    });
-
-    created++;
-
-    existingPairs.add(pairKey);
-
+  // Direct substring / name match
+  if (pNameLow.includes(cNameLow) || cNameLow.includes(pNameLow.replace(' policy', '').replace(' standard', ''))) {
+    score += 60;
+    reason = `Direct title match: "${ctrlName}" in policy`;
   }
 
+  // Common high-confidence compliance phrases
+  const highConfidencePhrases = [
+    'access control',
+    'change management',
+    'incident management',
+    'incident handling',
+    'business continuity',
+    'disaster recovery',
+    'risk management',
+    'vulnerability management',
+    'supply chain',
+    'vendor security',
+    'asset inventory',
+    'data classification',
+    'cryptographic key',
+    'physical security',
+    'security awareness',
+    'human resources',
+    'network segmentation',
+    'log retention',
+    'audit trail',
+    'privacy-by-design',
+    'data protection',
+    'information security',
+    'artificial intelligence',
+    'autonomous agent'
+  ];
 
+  for (const phrase of highConfidencePhrases) {
+    if ((cNameLow.includes(phrase) || cCatLow.includes(phrase)) && pNameLow.includes(phrase)) {
+      score += 40;
+      if (!reason) reason = `High-confidence domain match on "${phrase}"`;
+    }
+  }
+
+  // Topic rules match
+  const cText = `${cNameLow} ${cCatLow} ${cDescLow}`;
+  const pText = `${pNameLow} ${(polModule || '').toLowerCase()}`;
+  for (const rule of TOPIC_RULES) {
+    const cMatches = rule.controlKeywords.some(k => cText.includes(k));
+    const pMatches = rule.policyKeywords.some(k => pText.includes(k));
+    if (cMatches && pMatches) {
+      score += 15;
+      if (!reason) reason = `Topic alignment: ${rule.topic}`;
+    }
+  }
+
+  // Word overlap
+  const stopWords = new Set(['policy', 'standard', 'procedure', 'management', 'security', 'shall', 'with', 'that', 'this', 'from']);
+  const cWords = new Set(cNameLow.split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w)));
+  for (const word of pNameLow.split(/\s+/)) {
+    if (word.length > 3 && !stopWords.has(word) && cWords.has(word)) {
+      score += 10;
+    }
+  }
+
+  return { score, reason };
+}
+
+/**
+ * Get suggested mappings for a client based on control categories, policy templates, and domain intelligence
+ */
+export async function getSuggestedMappings(clientId: number): Promise<{
+  controlId: number;
+  clientControlId: string;
+  controlName: string;
+  category: string;
+  suggestedPolicies: {
+    policyId: number;
+    policyName: string;
+    templateId: string;
+    matchReason: string;
+  }[];
+}[]> {
+  const db = await getDb();
+
+  // Get unmapped client controls with their suggested policies
+  const clientControlsList = await db.select({
+    clientControl: clientControls,
+    control: controls,
+  })
+    .from(clientControls)
+    .innerJoin(controls, eq(clientControls.controlId, controls.id))
+    .where(eq(clientControls.clientId, clientId));
+
+  // Get existing mappings
+  const existingMappings = await db.select({
+    clientControlId: controlPolicyMappings.clientControlId,
+    clientPolicyId: controlPolicyMappings.clientPolicyId,
+  })
+    .from(controlPolicyMappings)
+    .where(eq(controlPolicyMappings.clientId, clientId));
+
+  const mappedPairs = new Set(
+    existingMappings.map(m => `${m.clientControlId}-${m.clientPolicyId}`)
+  );
+
+  // Get client policies with their template IDs
+  const clientPoliciesList = await db.select({
+    policy: clientPolicies,
+    template: policyTemplates,
+  })
+    .from(clientPolicies)
+    .leftJoin(policyTemplates, eq(clientPolicies.templateId, policyTemplates.id))
+    .where(eq(clientPolicies.clientId, clientId));
+
+  // Build template ID to policy map
+  const templateToPolicyMap = new Map<string, { policyId: number; policyName: string }>();
+  for (const { policy, template } of clientPoliciesList) {
+    if (template?.templateId) {
+      templateToPolicyMap.set(template.templateId, {
+        policyId: policy.id,
+        policyName: policy.name,
+      });
+    }
+  }
+
+  // Generate suggestions
+  const suggestions: {
+    controlId: number;
+    clientControlId: string;
+    controlName: string;
+    category: string;
+    suggestedPolicies: {
+      policyId: number;
+      policyName: string;
+      templateId: string;
+      matchReason: string;
+    }[];
+  }[] = [];
+
+  for (const { clientControl, control } of clientControlsList) {
+    const suggestedPolicyIds = control.suggestedPolicies
+      ? control.suggestedPolicies.split(',').map(s => s.trim())
+      : [];
+
+    const suggestedPolicies: {
+      policyId: number;
+      policyName: string;
+      templateId: string;
+      matchReason: string;
+    }[] = [];
+
+    // Tier 1: Match against suggestedPolicies defined on master control
+    for (const templateId of suggestedPolicyIds) {
+      const policyInfo = templateToPolicyMap.get(templateId);
+      if (policyInfo) {
+        if (!mappedPairs.has(`${clientControl.id}-${policyInfo.policyId}`)) {
+          suggestedPolicies.push({
+            policyId: policyInfo.policyId,
+            policyName: policyInfo.policyName,
+            templateId,
+            matchReason: `Standard framework policy template match`,
+          });
+        }
+      }
+    }
+
+    // Tier 2: Domain and keyword semantic matching
+    if (suggestedPolicies.length === 0) {
+      const scoredPolicies: {
+        policyId: number;
+        policyName: string;
+        templateId: string;
+        matchReason: string;
+        score: number;
+      }[] = [];
+
+      for (const { policy } of clientPoliciesList) {
+        if (mappedPairs.has(`${clientControl.id}-${policy.id}`)) continue;
+
+        const { score, reason } = calculatePolicyMatchScore(
+          control.name || '',
+          control.category || '',
+          control.description || '',
+          policy.name || '',
+          policy.module || ''
+        );
+
+        if (score >= 20) {
+          scoredPolicies.push({
+            policyId: policy.id,
+            policyName: policy.name,
+            templateId: policy.templateId ? String(policy.templateId) : '',
+            matchReason: reason || `Matched control requirement domain`,
+            score,
+          });
+        }
+      }
+
+      scoredPolicies.sort((a, b) => b.score - a.score);
+      // Select top matches for this control
+      for (const sp of scoredPolicies.slice(0, 3)) {
+        suggestedPolicies.push({
+          policyId: sp.policyId,
+          policyName: sp.policyName,
+          templateId: sp.templateId,
+          matchReason: sp.matchReason,
+        });
+      }
+    }
+
+    if (suggestedPolicies.length > 0) {
+      suggestions.push({
+        controlId: clientControl.id,
+        clientControlId: clientControl.clientControlId || control.controlId || `CC-${clientControl.id}`,
+        controlName: control.name,
+        category: control.category || 'General',
+        suggestedPolicies,
+      });
+    }
+  }
+
+  return suggestions;
+}
+
+/**
+ * Bulk create mappings from suggestions
+ */
+export async function bulkCreateMappings(
+  clientId: number,
+  mappings: {
+    clientControlId: number;
+    clientPolicyId: number;
+    notes?: string;
+    evidenceReference?: string;
+    isAiGenerated?: boolean;
+  }[]
+): Promise<{ created: number; skipped: number }> {
+  const db = await getDb();
+
+  // Get existing mappings
+  const existingMappings = await db.select({
+    clientControlId: controlPolicyMappings.clientControlId,
+    clientPolicyId: controlPolicyMappings.clientPolicyId,
+  })
+    .from(controlPolicyMappings)
+    .where(eq(controlPolicyMappings.clientId, clientId));
+
+  const existingPairs = new Set(
+    existingMappings.map(m => `${m.clientControlId}-${m.clientPolicyId}`)
+  );
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const mapping of mappings) {
+    const pairKey = `${mapping.clientControlId}-${mapping.clientPolicyId}`;
+    if (existingPairs.has(pairKey)) {
+      skipped++;
+      continue;
+    }
+
+    await db.insert(controlPolicyMappings).values({
+      clientId,
+      clientControlId: mapping.clientControlId,
+      clientPolicyId: mapping.clientPolicyId,
+      notes: mapping.notes,
+      evidenceReference: mapping.evidenceReference,
+      isAiGenerated: mapping.isAiGenerated ?? false,
+    });
+    created++;
+    existingPairs.add(pairKey);
+  }
 
   return { created, skipped };
-
 }
 
 

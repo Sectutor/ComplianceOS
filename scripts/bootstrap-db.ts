@@ -152,10 +152,14 @@ async function demoReset(sql: postgres.Sql, db: ReturnType<typeof drizzle>) {
     console.log("[BootstrapDB] DEMO_SHARED_WORKSPACE=true — resetting to a single shared workspace...");
 
     const adminEmail = (process.env.COMPLIANCE_ADMIN_EMAIL || "admin@complianceos.local").toLowerCase();
+    // Accounts that survive the reset: the admin plus the optional prospect demo login.
+    const keepEmails = [adminEmail, (process.env.DEMO_LOGIN_EMAIL || "").trim().toLowerCase()]
+        .filter((e) => /^[a-z0-9._%+-]+@[a-z0-9.-]+$/.test(e));
+    const keepList = keepEmails.map((e) => `'${e}'`).join(", ") || "''";
 
     // 1. user_memberships for non-LaTorre clients, and for non-admin users
     await sql.unsafe(`DELETE FROM user_clients WHERE client_id <> ${LATORRE_CLIENT_ID}`);
-    await sql.unsafe(`DELETE FROM user_clients WHERE user_id IN (SELECT id FROM users WHERE lower(email) <> '${adminEmail}')`);
+    await sql.unsafe(`DELETE FROM user_clients WHERE user_id IN (SELECT id FROM users WHERE lower(email) NOT IN (${keepList}))`);
 
     // 2. per-client data for every client except LaTorre
     const dataTables = [
@@ -177,7 +181,7 @@ async function demoReset(sql: postgres.Sql, db: ReturnType<typeof drizzle>) {
     await sql.unsafe(`DELETE FROM clients WHERE id <> ${LATORRE_CLIENT_ID}`);
 
     // 4. non-admin users (auth store re-creates rows on next login)
-    await sql.unsafe(`DELETE FROM users WHERE lower(email) <> '${adminEmail}'`);
+    await sql.unsafe(`DELETE FROM users WHERE lower(email) NOT IN (${keepList})`);
 
     const remaining = await db.select({ id: clients.id, name: clients.name }).from(clients);
     console.log(`[BootstrapDB] Demo reset complete. Remaining clients:`, remaining.map((c) => `${c.id}:${c.name}`).join(", ") || "(none)");

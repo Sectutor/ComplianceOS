@@ -67,17 +67,17 @@ export default function Reports() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-brand/10 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full border border-brand/20 rounded-xl mb-8">
+          <TabsList className="bg-slate-100/90 p-1.5 h-auto flex flex-wrap justify-start gap-2 w-full sm:w-auto border border-slate-200/80 rounded-xl mb-8">
             <TabsTrigger
               value="dashboard"
-              className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-8 py-2.5 rounded-lg flex items-center h-full"
+              className="data-[state=active]:bg-brand data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:text-slate-900 transition-all font-bold border-none px-6 py-2.5 rounded-lg flex items-center"
             >
               <LayoutDashboard className="w-4 h-4 mr-2" />
               Executive Dashboard
             </TabsTrigger>
             <TabsTrigger
               value="reports"
-              className="data-[state=active]:bg-brand-bright data-[state=active]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-bold border-none px-8 py-2.5 rounded-lg flex items-center h-full"
+              className="data-[state=active]:bg-brand data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 hover:text-slate-900 transition-all font-bold border-none px-6 py-2.5 rounded-lg flex items-center"
             >
               <History className="w-4 h-4 mr-2" />
               Report Workshop

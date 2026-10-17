@@ -43,7 +43,7 @@ export function SectionPoolModal({
     const [includeQuestions, setIncludeQuestions] = useState<boolean>(true);
 
     // Fetch section pool from backend
-    const { data: sectionPool, isLoading } = trpc.vendorAssessments.getSectionPool.useQuery(
+    const { data: sectionPool, isLoading } = trpc.vendors.getSectionPool.useQuery(
         undefined,
         { enabled: isOpen }
     );

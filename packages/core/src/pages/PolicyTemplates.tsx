@@ -1,5 +1,4 @@
 import { useAuth } from "@/contexts/AuthContext";
-import DOMPurify from 'dompurify';
 import { useClientContext } from "@/contexts/ClientContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@complianceos/ui/ui/button";
@@ -13,7 +12,7 @@ import { Textarea } from "@complianceos/ui/ui/textarea";
 import { Skeleton } from "@complianceos/ui/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, XCircle, Clock, Sparkles, Loader2, Wand2, ChevronRight, AlertTriangle } from "lucide-react";
+import { Plus, FileText, Search, Trash2, Edit, Filter, Eye, LayoutGrid, List, HelpCircle, ChevronDown, ChevronUp, ArrowRight, CheckCircle2, XCircle, Clock, Sparkles, Loader2, Wand2, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -322,7 +321,7 @@ export default function PolicyTemplates() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => setIsBulkGenerateOpen(true)} className="bg-brand text-white hover:bg-brand-bright transition-all font-semibold">
+            <Button onClick={() => setIsBulkGenerateOpen(true)} className="bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
               <Wand2 className="mr-2 h-4 w-4" />
               {selectedTemplates.length > 0 ? `Generate ${selectedTemplates.length} Policies` : "Bulk Generate Policies"}
             </Button>
@@ -499,10 +498,10 @@ export default function PolicyTemplates() {
             </Select>
             <div className="flex items-center gap-2 border rounded-md p-1 bg-muted/50 max-sm:ml-auto">
               <ToggleGroup type="single" value={viewMode} onValueChange={(val) => val && setViewMode(val as any)}>
-                <ToggleGroupItem value="grid" aria-label="Grid view" className="h-8 w-8 p-0 data-[state=on]:bg-brand-bright data-[state=on]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-semibold">
+                <ToggleGroupItem value="grid" aria-label="Grid view" className="h-8 w-8 p-0 data-[state=on]:bg-[#3ABEF9] data-[state=on]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
                   <LayoutGrid className="h-4 w-4 shrink-0" />
                 </ToggleGroupItem>
-                <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0 data-[state=on]:bg-brand-bright data-[state=on]:text-white bg-brand text-white hover:bg-brand-bright transition-all font-semibold">
+                <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0 data-[state=on]:bg-[#3ABEF9] data-[state=on]:text-white bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold">
                   <List className="h-4 w-4 shrink-0" />
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -532,7 +531,7 @@ export default function PolicyTemplates() {
                 const sections = Array.isArray(template.sections) ? template.sections : [];
                 return (
                   <Card key={template.id} className="group cursor-pointer border border-slate-200 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 bg-white overflow-hidden relative shadow-md" onClick={() => setViewingTemplate(template.id)}>
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-brand to-brand-bright"></div>
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#1C4D8D] to-[#3ABEF9]"></div>
                     <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
@@ -541,10 +540,10 @@ export default function PolicyTemplates() {
                           </Badge>
                           <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest">{getFrameworks(template.frameworks).join(' / ')}</span>
                         </div>
-                        <CardTitle className="text-lg font-extrabold text-slate-900 leading-tight group-hover:text-brand transition-colors">{template.name}</CardTitle>
+                        <CardTitle className="text-lg font-extrabold text-slate-900 leading-tight group-hover:text-[#1C4D8D] transition-colors">{template.name}</CardTitle>
                       </div>
-                      <div className="p-2 rounded-xl bg-white group-hover:bg-brand/10 transition-colors">
-                        <FileText className="h-5 w-5 text-slate-400 group-hover:text-brand transition-colors" />
+                      <div className="p-2 rounded-xl bg-white group-hover:bg-[#1C4D8D]/10 transition-colors">
+                        <FileText className="h-5 w-5 text-slate-400 group-hover:text-[#1C4D8D] transition-colors" />
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -635,8 +634,7 @@ export default function PolicyTemplates() {
                     <TableHead className="w-[50px]">
                       <input
                         type="checkbox"
-                        aria-label="Select all policy templates"
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                         checked={selectedTemplates.length > 0 && selectedTemplates.length === filteredTemplates?.length}
                         onChange={(e) => {
                           if (e.target.checked) setSelectedTemplates(filteredTemplates?.map(t => t.id) || []);
@@ -659,8 +657,7 @@ export default function PolicyTemplates() {
                         <TableCell>
                           <input
                             type="checkbox"
-                            aria-label={`Select template ${template.name}`}
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                             checked={selectedTemplates.includes(template.id)}
                             onChange={(e) => {
                               if (e.target.checked) setSelectedTemplates(prev => [...prev, template.id]);
@@ -783,7 +780,7 @@ export default function PolicyTemplates() {
             {viewedTemplate?.content && (
               <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200">
                 <h4 className="font-medium mb-4 text-sm text-slate-500 uppercase tracking-wider">Preview</h4>
-                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderContent(viewedTemplate.content)) }} />
+                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: renderContent(viewedTemplate.content) }} />
               </div>
             )}
           </div>
@@ -1034,12 +1031,7 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
       {
         loading: 'Generating comprehensive policy with AI... This may take a minute.',
         success: 'Policy generated successfully',
-        error: (err) => {
-          const errMsg = err.message || '';
-          if (/rate.?limit|too many requests|throttl|429/i.test(errMsg)) return errMsg;
-          if (/insufficient|balance|credit|quota|exceeded/i.test(errMsg)) return errMsg;
-          return 'Failed to generate policy. Please try again.';
-        }
+        error: 'Failed to generate policy'
       }
     );
   };
@@ -1081,8 +1073,8 @@ function GeneratePolicyDialog({ open, onOpenChange, template }: { open: boolean,
               <SelectValue placeholder={isLoadingClients ? "Loading clients..." : "Select a client"} />
             </SelectTrigger>
             <SelectContent>
-              {Array.from(new Map(clients?.map((c: any) => [c.id, c]) || []).values()).map((client: any) => (
-                <SelectItem key={`policy-client-${client.id}`} value={client.id.toString()}>
+              {clients?.map((client: any) => (
+                <SelectItem key={client.id} value={client.id.toString()}>
                   {client.name}
                 </SelectItem>
               ))}
@@ -1319,7 +1311,6 @@ function BulkDeployDialog({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [completedResults, setCompletedResults] = useState<{ id: number; policyId?: number; name: string; status: 'success' | 'error' }[]>([]);
-  const [tailoringNotice, setTailoringNotice] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
   // Auto-navigate to policy when generation completes with exactly 1 success
@@ -1382,9 +1373,6 @@ function BulkDeployDialog({
     setIsGenerating(true);
     setProgress({ current: 0, total: wizardSelectedIds.length });
     const results: { id: number; policyId?: number; name: string; status: 'success' | 'error' }[] = [];
-    let tailoringAttempted = 0;
-    let tailoringApplied = 0;
-    const tailoringErrors: string[] = [];
 
     // Loop through selected templates and generate strictly sequentially to show progress
     for (let i = 0; i < wizardSelectedIds.length; i++) {
@@ -1399,14 +1387,6 @@ function BulkDeployDialog({
           instruction: customInstruction.trim() ? `${customInstruction} (Professional and detailed generation)` : "Professional and detailed generation from template",
           answers: {}
         });
-        const t = (response as any)?.tailoring;
-        if (t) {
-          tailoringAttempted += t.attempted || 0;
-          tailoringApplied += t.applied || 0;
-          for (const e of (t.errors || [])) {
-            if (!tailoringErrors.includes(e) && tailoringErrors.length < 3) tailoringErrors.push(e);
-          }
-        }
         const newPolicyId = response.deployed?.[0]?.policyId;
         results.push({ id: templateId, policyId: newPolicyId, name: templateName, status: 'success' });
       } catch (e) {
@@ -1415,14 +1395,6 @@ function BulkDeployDialog({
       }
 
       setProgress({ current: i + 1, total: wizardSelectedIds.length });
-    }
-
-    if (tailoringAttempted > 0 && tailoringApplied === 0) {
-      const notice = `AI industry tailoring was unavailable — ${tailoringAttempted} policies were generated from base templates.${tailoringErrors[0] ? ` (${tailoringErrors[0].slice(0, 120)})` : ''}`;
-      setTailoringNotice(notice);
-      toast.warning(notice, { duration: 9000 });
-    } else {
-      setTailoringNotice(null);
     }
 
     setCompletedResults(results);
@@ -1448,12 +1420,12 @@ function BulkDeployDialog({
       <div className="space-y-5 py-4">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white border-2 border-brand-bright shadow-md mb-1">
-            <Loader2 className="h-8 w-8 animate-spin text-brand" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white border-2 border-[#3ABEF9] shadow-md mb-1">
+            <Loader2 className="h-8 w-8 animate-spin text-[#1C4D8D]" />
           </div>
           <h3 className="text-xl font-bold text-slate-800">Generating Policies...</h3>
           <p className="text-sm text-slate-500">
-            {progress.current} of {progress.total} completed &bull; <span className="font-semibold text-brand">{percent}%</span>
+            {progress.current} of {progress.total} completed &bull; <span className="font-semibold text-[#1C4D8D]">{percent}%</span>
           </p>
         </div>
 
@@ -1475,8 +1447,8 @@ function BulkDeployDialog({
         </div>
 
         {/* Time estimate info */}
-        <div className="flex items-start gap-3 p-3.5 rounded-lg bg-brand/5 border border-brand/15">
-          <Clock className="h-5 w-5 text-brand mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-3 p-3.5 rounded-lg bg-[#1C4D8D]/5 border border-[#1C4D8D]/15">
+          <Clock className="h-5 w-5 text-[#1C4D8D] mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-semibold text-slate-700">
               {remaining > 0
@@ -1491,7 +1463,7 @@ function BulkDeployDialog({
 
         {/* Per-policy status list */}
         <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-          <div className="px-4 py-2.5 bg-brand border-b">
+          <div className="px-4 py-2.5 bg-[#1C4D8D] border-b">
             <p className="text-xs font-semibold text-white uppercase tracking-wider">Policy Generation Status</p>
           </div>
           <div className="max-h-[200px] overflow-y-auto bg-white">
@@ -1502,7 +1474,7 @@ function BulkDeployDialog({
               return (
                 <div
                   key={idx}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-100 last:border-b-0 ${isCurrent ? 'bg-brand-bright/8' : 'bg-white'
+                  className={`flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-100 last:border-b-0 ${isCurrent ? 'bg-[#3ABEF9]/8' : 'bg-white'
                     }`}
                 >
                   <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
@@ -1511,14 +1483,14 @@ function BulkDeployDialog({
                     ) : result?.status === 'error' ? (
                       <XCircle className="h-4.5 w-4.5 text-red-600" />
                     ) : isCurrent ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                      <Loader2 className="h-4 w-4 animate-spin text-[#1C4D8D]" />
                     ) : (
                       <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
                     )}
                   </div>
                   <span className={`flex-1 truncate ${result?.status === 'success' ? 'text-slate-600' :
                     result?.status === 'error' ? 'text-red-700' :
-                      isCurrent ? 'font-semibold text-brand' :
+                      isCurrent ? 'font-semibold text-[#1C4D8D]' :
                         'text-slate-400'
                     }`}>
                     {name}
@@ -1529,7 +1501,7 @@ function BulkDeployDialog({
                     ) : result?.status === 'error' ? (
                       <span className="text-red-600">Failed</span>
                     ) : isCurrent ? (
-                      <span className="text-brand animate-pulse">Generating...</span>
+                      <span className="text-[#1C4D8D] animate-pulse">Generating...</span>
                     ) : (
                       <span className="text-slate-400">Queued</span>
                     )}
@@ -1648,8 +1620,8 @@ function BulkDeployDialog({
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-4 border rounded-lg bg-brand-bright/10 border-brand-bright/20">
-            <Sparkles className="h-5 w-5 text-brand-bright mt-0.5" />
+          <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#3ABEF9]/10 border-[#3ABEF9]/20">
+            <Sparkles className="h-5 w-5 text-[#3ABEF9] mt-0.5" />
             <div className="grid gap-1.5">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -1657,11 +1629,11 @@ function BulkDeployDialog({
                   checked={tailor}
                   onCheckedChange={(c) => setTailor(!!c)}
                 />
-                <label htmlFor="tailor" className="font-semibold text-brand cursor-pointer">
+                <label htmlFor="tailor" className="font-semibold text-[#1C4D8D] cursor-pointer">
                   AI Professional Tailoring
                 </label>
               </div>
-              <p className="text-xs text-brand/80 pl-6">
+              <p className="text-xs text-[#1C4D8D]/80 pl-6">
                 When enabled, our AI will deeply analyze the client's industry ({clients.find(c => c.id === selectedClientId)?.industry || 'N/A'}) and customize the policy content to be professional, specific, and compliant.
               </p>
             </div>
@@ -1695,13 +1667,6 @@ function BulkDeployDialog({
               {errors.length > 0 && <p className="text-sm text-red-600 mt-1">{errors.length} failed.</p>}
             </div>
           </div>
-
-          {tailoringNotice && (
-            <div className="flex items-start gap-3 p-4 bg-amber-50 text-amber-800 rounded-md border border-amber-200">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <p className="text-sm">{tailoringNotice}</p>
-            </div>
-          )}
 
           <div className="border rounded-md max-h-[300px] overflow-y-auto">
             <Table>
@@ -1780,7 +1745,7 @@ function BulkDeployDialog({
               <Button
                 disabled={!selectedClientId || wizardSelectedIds.length === 0}
                 onClick={handleRun}
-                className="bg-brand text-white hover:bg-brand-bright transition-all font-semibold min-w-[150px]"
+                className="bg-[#1C4D8D] text-white hover:bg-[#3ABEF9] transition-all font-semibold min-w-[150px]"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 Start Generating
