@@ -32,24 +32,27 @@ export const config = {
             secretKey: getEnv('STRIPE_SECRET_KEY'),
             webhookSecret: getEnv('STRIPE_WEBHOOK_SECRET'),
             publishableKey: getEnv('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'VITE_STRIPE_PUBLISHABLE_KEY'),
+            // Price IDs for the confirmed ComplianceOS pricing (see lib/billingPlans.ts).
+            // Run scripts/setup-stripe.py to create them; no monthly or MSSP prices exist.
             prices: {
-                // "Consultant" — $199/mo or $1,910/yr (20% off)
-                consultant: {
-                    monthly: getEnv('STRIPE_PRICE_CONSULTANT_MONTHLY') || 'price_placeholder_consultant_monthly',
-                    yearly: getEnv('STRIPE_PRICE_CONSULTANT_YEARLY') || 'price_placeholder_consultant_yearly',
-                },
-                // "Business" — $1,990/yr (or $499/mo)
-                business: {
-                    monthly: getEnv('STRIPE_PRICE_BUSINESS_MONTHLY') || 'price_placeholder_business_monthly',
-                    yearly: getEnv('STRIPE_PRICE_BUSINESS_YEARLY') || 'price_placeholder_business_yearly',
-                },
-                // "Enterprise" — $4,990/yr (or $999/mo)
-                enterprise: {
-                    monthly: getEnv('STRIPE_PRICE_ENTERPRISE_MONTHLY') || 'price_placeholder_enterprise_monthly',
-                    yearly: getEnv('STRIPE_PRICE_ENTERPRISE_YEARLY') || 'price_placeholder_enterprise_yearly',
-                },
-            }
+                // Professional: $1,990/yr (recurring yearly)
+                professionalYearly: getEnv('STRIPE_PRICE_PROFESSIONAL_YEARLY'),
+                // Professional founding: $1,592/yr (20% off, locked while the subscription is active)
+                professionalYearlyFounding: getEnv('STRIPE_PRICE_PROFESSIONAL_YEARLY_FOUNDING'),
+                // Lifetime: $4,990 one-time
+                lifetime: getEnv('STRIPE_PRICE_LIFETIME'),
+                // Lifetime founding: $3,992 one-time
+                lifetimeFounding: getEnv('STRIPE_PRICE_LIFETIME_FOUNDING'),
+                // Lifetime support renewal: $490/yr (optional, after year 1)
+                lifetimeSupportYearly: getEnv('STRIPE_PRICE_LIFETIME_SUPPORT_YEARLY'),
+            },
+            // Founding offer (first 30 days of launch). ISO date/time after which the
+            // founding prices stop being used for new checkouts. Unset = offer active.
+            foundingOfferEndsAt: getEnv('FOUNDING_OFFER_ENDS_AT'),
         },
+
+        // Public pricing page used when Stripe checkout is not configured on this instance
+        publicPricingUrl: getEnv('PUBLIC_PRICING_URL') || 'https://grcompliance.com/pricing',
 
         // Gumroad Configuration
         gumroad: {

@@ -39,7 +39,7 @@ From Stripe Dashboard → **Developers → API keys**, copy these into `.env.loc
 
 ```bash
 # ── Stripe API Keys ──────────────────────────────────────────
-STRIPE_SECRET_KEY=sk_test_4eC39HqLyjWDarjtT1zdp7dc    # from Developers > API keys
+STRIPE_SECRET_KEY=sk_test_...                           # from Developers > API keys
 STRIPE_WEBHOOK_SECRET=whsec_abc123...                    # from your webhook endpoint
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...            # publishable key
 
@@ -57,30 +57,34 @@ After adding these, **restart your dev server**.
 Create the Stripe products and prices automatically:
 
 ```bash
-# Stripe SDK is optional — the script falls back to curl
-pip install stripe 2>/dev/null
-
-export STRIPE_SECRET_KEY=sk_test_4eC39HqLyjWDarjtT1zdp7dc
-python scripts/setup-stripe.py
+# Standard library only; safe to re-run (it reuses prices by lookup key)
+export STRIPE_SECRET_KEY=sk_test_...
+python scripts/setup-stripe.py          # add --live for an sk_live_ key
 ```
 
-The script creates:
+The script creates (USD):
 
-| Product | Monthly | Yearly |
-|---------|---------|--------|
-| ComplianceOS Self-Host Pro | $49/mo | $499/yr |
-| ComplianceOS MSSP | $99/mo | $999/yr |
-| ComplianceOS Enterprise | — | $4,990/yr |
+| Product | Price | Env var |
+|---------|-------|---------|
+| ComplianceOS Professional | $1,990/yr | `STRIPE_PRICE_PROFESSIONAL_YEARLY` |
+| ComplianceOS Professional (founding) | $1,592/yr | `STRIPE_PRICE_PROFESSIONAL_YEARLY_FOUNDING` |
+| ComplianceOS Lifetime | $4,990 one-time | `STRIPE_PRICE_LIFETIME` |
+| ComplianceOS Lifetime (founding) | $3,992 one-time | `STRIPE_PRICE_LIFETIME_FOUNDING` |
+| ComplianceOS Lifetime Support Renewal | $490/yr after year 1 | `STRIPE_PRICE_LIFETIME_SUPPORT_YEARLY` |
 
-It prints the price IDs. Copy and paste them into `.env.local`:
+Community ($0) and Enterprise (from $9,990/yr, contact sales) have no Stripe price.
+There are no monthly or MSSP plans.
+
+It prints the price IDs. Copy and paste them into `packages/core/.env`:
 
 ```bash
 # ── Stripe Price IDs ────────────────────────────────────────
-STRIPE_PRICE_STARTUP_MONTHLY=price_1ABC...    # Pro monthly
-STRIPE_PRICE_STARTUP_YEARLY=price_1DEF...     # Pro yearly
-STRIPE_PRICE_GUIDED_MONTHLY=price_1GHI...     # MSSP monthly
-STRIPE_PRICE_GUIDED_YEARLY=price_1JKL...      # MSSP yearly
-STRIPE_PRICE_MANAGED=price_1MNO...            # Enterprise annual
+STRIPE_PRICE_PROFESSIONAL_YEARLY=price_1ABC...
+STRIPE_PRICE_PROFESSIONAL_YEARLY_FOUNDING=price_1DEF...
+STRIPE_PRICE_LIFETIME=price_1GHI...
+STRIPE_PRICE_LIFETIME_FOUNDING=price_1JKL...
+STRIPE_PRICE_LIFETIME_SUPPORT_YEARLY=price_1MNO...
+# FOUNDING_OFFER_ENDS_AT=YYYY-MM-DDTHH:MM:SSZ   # unset = founding prices active
 ```
 
 > **Manual alternative**: Create products and prices in Stripe Dashboard → Products,  
@@ -104,14 +108,14 @@ stripe trigger checkout.session.completed
 
 ```bash
 export STRIPE_WEBHOOK_SECRET=whsec_abc123...
-export TIER=pro
+export TIER=professional   # or lifetime
 ./scripts/test-stripe-webhook.sh
 ```
 
 ### Option C: Real checkout in browser
 
-1. Navigate to your app's billing/settings page
-2. Click **Upgrade to Pro** or **Upgrade to Enterprise**
+1. Open **Settings → License & Plans** and click **Upgrade plan**
+2. Pick **Professional** ($1,990/yr, $1,592 founding) or **Lifetime** ($4,990, $3,992 founding)
 3. You'll be redirected to Stripe's test Checkout page
 4. Enter card number: `4242 4242 4242 4242`
    - Any future expiry date

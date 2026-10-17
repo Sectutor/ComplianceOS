@@ -121,7 +121,7 @@ export const LicenseManagement: React.FC = () => {
                 trigger={
                   <Button className="gap-2 font-semibold shadow-sm">
                     <Sparkles className="h-4 w-4 text-amber-300" />
-                    {isEnterprise ? 'Manage Enterprise Plan' : 'Upgrade to Enterprise'}
+                    {isEnterprise ? 'Manage Enterprise Plan' : 'Upgrade plan'}
                   </Button>
                 }
               />
@@ -178,7 +178,7 @@ export const LicenseManagement: React.FC = () => {
                   className="w-full text-xs gap-1.5"
                   onClick={() => setIsUpgradeModalOpen(true)}
                 >
-                  <Sparkles className="h-3.5 w-3.5 text-primary" /> View Enterprise Features
+                  <Sparkles className="h-3.5 w-3.5 text-primary" /> View Plans &amp; Pricing
                 </Button>
               )}
             </CardFooter>
