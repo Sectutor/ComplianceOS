@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { isBillingEnabled } from '../lib/config';
 import { trpc } from '../lib/trpc';
 import { toast } from 'sonner';
+import type { CheckoutPlan } from '../lib/billingPlans';
 
 export function useBilling() {
     // isBillingEnabled is a const boolean, not a function
@@ -29,7 +30,7 @@ export function useBilling() {
         }
     });
 
-    const upgradeToTier = async (clientId: number, tier: 'pro' | 'enterprise') => {
+    const upgradeToTier = async (clientId: number, tier: CheckoutPlan) => {
         if (!billingEnabled) return;
         setIsLoading(true);
 
@@ -45,8 +46,9 @@ export function useBilling() {
         }
     };
 
-    const upgradeToPro = (clientId: number) => upgradeToTier(clientId, 'pro');
-    const upgradeToEnterprise = (clientId: number) => upgradeToTier(clientId, 'enterprise');
+    // Professional ($1,990/yr) or Lifetime ($4,990 one-time). Enterprise is contact sales.
+    const upgradeToProfessional = (clientId: number) => upgradeToTier(clientId, 'professional');
+    const upgradeToLifetime = (clientId: number) => upgradeToTier(clientId, 'lifetime');
 
     const createUserCheckoutMutation = trpc.billing.createUserCheckout.useMutation({
         onSuccess: (data) => {
@@ -58,7 +60,7 @@ export function useBilling() {
         }
     });
 
-    const upgradeAccount = async (tier: 'pro' | 'enterprise') => {
+    const upgradeAccount = async (tier: CheckoutPlan = 'professional') => {
         if (!billingEnabled) return;
         setIsLoading(true);
         try {
@@ -89,8 +91,8 @@ export function useBilling() {
         billingEnabled,
         saasMode,
         isLoading: isLoading || createCheckoutMutation.isPending || createPortalMutation.isPending,
-        upgradeToPro,
-        upgradeToEnterprise,
+        upgradeToProfessional,
+        upgradeToLifetime,
         upgradeAccount,
         manageSubscription,
     };

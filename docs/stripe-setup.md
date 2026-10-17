@@ -1,69 +1,82 @@
 # Stripe Product Setup Guide
 
-## Overview
-The purchase webhook (`/api/webhooks/stripe`) handles `checkout.session.completed` events. You need to create products and prices in Stripe, then configure the webhook endpoint.
+ComplianceOS sells two self-serve licences through Stripe Checkout. Prices match
+[grcompliance.com/pricing](https://grcompliance.com/pricing) and live in one place in
+code: `packages/core/src/lib/billingPlans.ts` (display) and `packages/core/src/lib/config.ts`
+(Stripe price IDs from env).
 
-## Step 1: Create Products in Stripe Dashboard
+| Plan | Price (USD) | Stripe price | Env var |
+|------|-------------|--------------|---------|
+| Community | $0, free forever | none | none |
+| Professional | $1,990/yr | recurring yearly | `STRIPE_PRICE_PROFESSIONAL_YEARLY` |
+| Professional (founding) | $1,592/yr, 20% off, locked while the subscription is active | recurring yearly | `STRIPE_PRICE_PROFESSIONAL_YEARLY_FOUNDING` |
+| Lifetime | $4,990 one-time | one-time | `STRIPE_PRICE_LIFETIME` |
+| Lifetime (founding) | $3,992 one-time | one-time | `STRIPE_PRICE_LIFETIME_FOUNDING` |
+| Lifetime support renewal | $490/yr, optional after year 1 | recurring yearly | `STRIPE_PRICE_LIFETIME_SUPPORT_YEARLY` |
+| Enterprise | from $9,990/yr, custom | none: contact sales (sales@grcompliance.com) | none |
 
-### Product 1: Self-Host Pro (Annual)
-- Name: `ComplianceOS Self-Host Pro`
-- Price: $499/year
-- Billing: Annual
-- Metadata: `tier=pro`
+There are no monthly plans, no MSSP plan and no "Self-Host Pro $499/yr". The hosted SaaS
+has a 14-day free trial with no card; that trial is not a Stripe object.
 
-### Product 2: Token Packs
-Create 3 separate products (one-time):
+## Founding offer
 
-| Name | Price | Metadata |
-|------|-------|----------|
-| Starter Token Pack | $9 | `pack=starter_pack` |
-| Pro Token Pack | $39 | `pack=pro_pack` |
-| Enterprise Token Pack | $149 | `pack=enterprise_pack` |
+The founding prices apply during the launch window (the first 30 days). While
+`FOUNDING_OFFER_ENDS_AT` is unset, or is in the future, new checkouts use the founding
+prices and the upgrade UI shows the regular price struck through. After that date, new
+checkouts use the regular prices. Founding Professional subscriptions keep their
+$1,592/yr price because they stay on the founding price.
 
-### Product 3: Self-Host Enterprise (annual, custom)
-- Name: `ComplianceOS Self-Host Enterprise`
-- Price: Custom ($2,499+/yr depending on seats)
-- Metadata: `tier=enterprise`
+## Step 1: Create the products and prices
 
-## Step 2: Get Stripe Keys
-
-From Stripe Dashboard → Developers → API keys:
+```bash
+export STRIPE_SECRET_KEY=sk_test_...
+python scripts/setup-stripe.py          # add --live to run against an sk_live_ key
 ```
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
+
+The script is idempotent (each price has a lookup key such as
+`complianceos_professional_yearly`) and never deletes or archives anything. It prints the
+env vars to copy into `packages/core/.env` and into the server environment.
+
+## Step 2: Keys and env
+
+```bash
+STRIPE_SECRET_KEY=sk_live_...           # sk_test_... for test mode
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_PROFESSIONAL_YEARLY=price_...
+STRIPE_PRICE_PROFESSIONAL_YEARLY_FOUNDING=price_...
+STRIPE_PRICE_LIFETIME=price_...
+STRIPE_PRICE_LIFETIME_FOUNDING=price_...
+STRIPE_PRICE_LIFETIME_SUPPORT_YEARLY=price_...
+# FOUNDING_OFFER_ENDS_AT=YYYY-MM-DDTHH:MM:SSZ
+ENABLE_BILLING=true
+VITE_ENABLE_BILLING=true
 ```
 
-## Step 3: Configure Webhook
+Without `STRIPE_SECRET_KEY` or the price IDs, the in-app upgrade button opens
+`PUBLIC_PRICING_URL` (default `https://grcompliance.com/pricing`) instead of Stripe Checkout.
+
+## Step 3: Webhook
 
 Stripe Dashboard → Developers → Webhooks → Add endpoint:
 - Endpoint URL: `https://your-domain.com/api/webhooks/stripe`
 - Events: `checkout.session.completed`, `customer.subscription.deleted`
-- Signing secret → set as:
-```
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
+- Signing secret → `STRIPE_WEBHOOK_SECRET`
 
-## Step 4: Add to .env
+Checkout sessions carry `metadata.plan` = `professional`, `lifetime` or `lifetime_support`.
+Professional is a yearly subscription (licence valid 1 year, renewed by Stripe); Lifetime is
+a one-time payment (licence does not expire); a support renewal issues no new licence key.
 
-```bash
-STRIPE_SECRET_KEY=sk_live_***
-STRIPE_WEBHOOK_SECRET=whsec_***
-STRIPE_PUBLISHABLE_KEY=pk_live_***
-```
+## Step 4: Test
 
-## Step 5: Test
-
-Use Stripe's test mode first:
-1. Set `STRIPE_SECRET_KEY=sk_test_...`
-2. Create a checkout session with `mode=subscription` + metadata `tier=pro`
-3. Complete purchase with card `4242 4242 4242 4242`
-4. Check server logs: `[Stripe] License purchase completed`
-5. Verify `/api/export/full-project/1` returns data
+1. Use an `sk_test_...` key and the test price IDs.
+2. Open **Settings → License & Plans → Upgrade plan**, pick Professional or Lifetime.
+3. Pay with card `4242 4242 4242 4242`, any future expiry, any CVC.
+4. Check server logs for `[Stripe] License purchase completed`.
 
 ## Alternative: Paddle (for EU VAT)
 
 If you need automatic EU VAT handling, use Paddle instead:
-- Create same products in Paddle Dashboard
-- Point webhook to `/api/webhooks/paddle`
+- Create the same products in Paddle Dashboard
+- Point the webhook to `/api/webhooks/paddle`
 - Paddle handles EU VAT compliance automatically
 - Higher fees (5% + $0.50 vs Stripe's 2.9% + $0.30)

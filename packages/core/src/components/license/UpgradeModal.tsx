@@ -12,6 +12,13 @@ import { Input } from '@complianceos/ui/ui/input';
 import { Badge } from '@complianceos/ui/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@complianceos/ui/ui/tabs';
 import { trpc } from '@/lib/trpc';
+import {
+  PLAN_PRICING,
+  FREE_TRIAL_DAYS,
+  FOUNDING_DISCOUNT_PERCENT,
+  SALES_MAILTO,
+  type CheckoutPlan,
+} from '@/lib/billingPlans';
 import { toast } from 'sonner';
 import {
   ShieldCheck,
@@ -26,6 +33,8 @@ import {
   Building2,
   Cpu,
   RefreshCw,
+  Mail,
+  Infinity as InfinityIcon,
 } from 'lucide-react';
 
 interface UpgradeModalProps {
@@ -33,7 +42,8 @@ interface UpgradeModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   featureName?: string;
-  defaultTier?: 'pro' | 'enterprise';
+  /** 'pro' is accepted for older callers and selects Professional. */
+  defaultTier?: 'professional' | 'lifetime' | 'pro' | 'enterprise';
 }
 
 export const UpgradeModal: React.FC<UpgradeModalProps> = ({
@@ -41,20 +51,26 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
   featureName = 'Enterprise Feature',
-  defaultTier = 'enterprise',
+  defaultTier = 'professional',
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = setControlledOpen || setInternalOpen;
 
-  const [selectedTier, setSelectedTier] = useState<'pro' | 'enterprise'>(defaultTier);
-  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
+  const [selectedTier, setSelectedTier] = useState<CheckoutPlan>(
+    defaultTier === 'lifetime' ? 'lifetime' : 'professional'
+  );
   const [licenseKeyInput, setLicenseKeyInput] = useState('');
   const [offlineFileContent, setOfflineFileContent] = useState('');
   const [activeTab, setActiveTab] = useState<'checkout' | 'key' | 'offline'>('checkout');
 
   const { data: licenseStatus, refetch: refetchLicense } = trpc.licenses.getStatus.useQuery();
   const { data: machineInfo } = trpc.licenses.getMachineFingerprint.useQuery();
+  const { data: checkoutOptions } = trpc.licenses.getCheckoutOptions.useQuery(undefined, {
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+  });
+  const founding = checkoutOptions?.foundingOfferActive ?? true;
 
   const checkoutMutation = trpc.licenses.createCheckoutSession.useMutation();
   const activateKeyMutation = trpc.licenses.activateKey.useMutation();
@@ -62,13 +78,14 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
 
   const handleStartCheckout = async () => {
     try {
-      const res = await checkoutMutation.mutateAsync({
-        tier: selectedTier,
-        interval: billingInterval,
-      });
+      const res = await checkoutMutation.mutateAsync({ tier: selectedTier });
       if (res.url) {
         window.open(res.url, '_blank');
-        toast.info('Checkout opened in a new tab. Enter your license key once completed!');
+        toast.info(
+          res.fallback
+            ? 'Opened the ComplianceOS pricing page in a new tab.'
+            : 'Checkout opened in a new tab. Enter your license key once completed!'
+        );
       }
     } catch (err: any) {
       toast.error("Failed to initialize checkout", { description: err.message || "Please try again. If the issue persists, contact support." });
@@ -119,7 +136,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="max-w-3xl p-0 overflow-hidden border border-border bg-background">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border border-border bg-background">
         {/* Header Hero */}
         <div className="p-6 bg-gradient-to-br from-primary/10 via-background to-background border-b border-border">
           <div className="flex items-center justify-between">
@@ -159,94 +176,153 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
 
             {/* Tab 1: Self-Serve Stripe Checkout */}
             <TabsContent value="checkout" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Professional Tier */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Professional: yearly */}
                 <div
-                  onClick={() => setSelectedTier('pro')}
+                  onClick={() => setSelectedTier('professional')}
                   className={`cursor-pointer rounded-xl border p-5 transition-all relative flex flex-col justify-between ${
-                    selectedTier === 'pro'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-muted-foreground/30'
-                  }`}
-                >
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-base">Professional</h4>
-                      <Badge variant="secondary" className="text-xs">Growing Teams</Badge>
-                    </div>
-                    <div className="text-2xl font-bold mb-4">
-                      $299 <span className="text-xs font-normal text-muted-foreground">/ month</span>
-                    </div>
-                    <ul className="space-y-2 text-xs text-muted-foreground">
-                      <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Up to 5 Workspaces
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> SOC 2 & ISO 27001 Auto-Evidence
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Automated Gap Analysis
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Enterprise / MSP Tier */}
-                <div
-                  onClick={() => setSelectedTier('enterprise')}
-                  className={`cursor-pointer rounded-xl border p-5 transition-all relative flex flex-col justify-between ${
-                    selectedTier === 'enterprise'
+                    selectedTier === 'professional'
                       ? 'border-primary bg-primary/5 ring-1 ring-primary'
                       : 'border-border hover:border-muted-foreground/30'
                   }`}
                 >
                   <div className="absolute -top-2.5 right-4">
                     <span className="bg-primary text-primary-foreground text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm">
-                      Recommended
+                      Most popular
                     </span>
                   </div>
                   <div>
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-base">Enterprise MSP</h4>
-                      <Badge variant="secondary" className="text-xs">Full Sovereignty</Badge>
+                      <h4 className="font-bold text-base">{PLAN_PRICING.professional.name}</h4>
+                      <Badge variant="secondary" className="text-xs">Yearly</Badge>
                     </div>
-                    <div className="text-2xl font-bold mb-4">
-                      $799 <span className="text-xs font-normal text-muted-foreground">/ month</span>
+                    <div className="mb-1">
+                      {founding ? (
+                        <>
+                          <span className="text-sm text-muted-foreground line-through mr-1.5">{PLAN_PRICING.professional.label}</span>
+                          <span className="text-2xl font-bold">{PLAN_PRICING.professional.foundingLabel}</span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-bold">{PLAN_PRICING.professional.label}</span>
+                      )}
+                      <span className="text-xs font-normal text-muted-foreground"> {PLAN_PRICING.professional.cadence}</span>
                     </div>
+                    <p className="text-[11px] text-muted-foreground mb-4">
+                      {founding
+                        ? `${FOUNDING_DISCOUNT_PERCENT}% founding rate, locked while your subscription stays active`
+                        : '1 year of updates & support included'}
+                    </p>
                     <ul className="space-y-2 text-xs text-muted-foreground">
-                      <li className="flex items-center gap-2 font-medium text-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Unlimited Workspaces (MSP)
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Unlimited workspaces & users
                       </li>
-                      <li className="flex items-center gap-2 font-medium text-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> FedRAMP, CMMC & NIST 800-53
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> All frameworks: SOC 2, ISO 27001, HIPAA, GDPR, NIST
                       </li>
-                      <li className="flex items-center gap-2 font-medium text-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Threat Intel & MITRE Workbench
-                      </li>
-                      <li className="flex items-center gap-2 font-medium text-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Hermes Autonomous AI Agent
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Updates & priority support
                       </li>
                     </ul>
                   </div>
                 </div>
+
+                {/* Lifetime: one-time */}
+                <div
+                  onClick={() => setSelectedTier('lifetime')}
+                  className={`cursor-pointer rounded-xl border p-5 transition-all relative flex flex-col justify-between ${
+                    selectedTier === 'lifetime'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-muted-foreground/30'
+                  }`}
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-base">{PLAN_PRICING.lifetime.name}</h4>
+                      <Badge variant="secondary" className="text-xs">Pay once</Badge>
+                    </div>
+                    <div className="mb-1">
+                      {founding ? (
+                        <>
+                          <span className="text-sm text-muted-foreground line-through mr-1.5">{PLAN_PRICING.lifetime.label}</span>
+                          <span className="text-2xl font-bold">{PLAN_PRICING.lifetime.foundingLabel}</span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-bold">{PLAN_PRICING.lifetime.label}</span>
+                      )}
+                      <span className="text-xs font-normal text-muted-foreground"> {PLAN_PRICING.lifetime.cadence}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-4">
+                      {founding ? `${FOUNDING_DISCOUNT_PERCENT}% founding discount. ` : ''}
+                      Optional support renewal {PLAN_PRICING.lifetime_support.label}/yr after year 1
+                    </p>
+                    <ul className="space-y-2 text-xs text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <InfinityIcon className="h-3.5 w-3.5 text-primary" /> Everything in Professional, no renewals
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Lifetime software updates
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> 1 year of priority support included
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Enterprise: contact sales */}
+                <div className="rounded-xl border border-border p-5 relative flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-base">{PLAN_PRICING.enterprise.name}</h4>
+                      <Badge variant="secondary" className="text-xs">Custom</Badge>
+                    </div>
+                    <div className="mb-1">
+                      <span className="text-2xl font-bold">{PLAN_PRICING.enterprise.label}</span>
+                      <span className="text-xs font-normal text-muted-foreground"> {PLAN_PRICING.enterprise.cadence}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-4">Tailored deployment, priced per year</p>
+                    <ul className="space-y-2 text-xs text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-primary" /> Air-gapped deployments
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Named support contact
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Executive board reporting
+                      </li>
+                    </ul>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 gap-2 w-full"
+                    onClick={() => { window.location.href = SALES_MAILTO; }}
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Contact sales
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center justify-between pt-2 border-t border-border gap-4">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                  <span>Instant digital delivery • Cancel anytime</span>
+                  <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>
+                    Prices in USD. Community stays free ({PLAN_PRICING.community.label}). {FREE_TRIAL_DAYS}-day free SaaS trial, no card required.
+                  </span>
                 </div>
                 <Button
                   onClick={handleStartCheckout}
                   disabled={checkoutMutation.isPending}
-                  className="gap-2 font-semibold"
+                  className="gap-2 font-semibold shrink-0"
                 >
                   {checkoutMutation.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
                     <ExternalLink className="h-4 w-4" />
                   )}
-                  Proceed to Stripe Checkout
+                  {selectedTier === 'lifetime' ? 'Buy Lifetime' : 'Subscribe to Professional'}
                 </Button>
               </div>
             </TabsContent>

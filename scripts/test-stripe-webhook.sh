@@ -39,7 +39,7 @@ fi
 # ── Build a realistic test event ────────────────────────────────────────────
 SESSION_ID="cs_test_$(openssl rand -hex 16)"
 SUBSCRIPTION_ID="sub_test_$(openssl rand -hex 8)"
-PRICE_ID="${STRIPE_PRICE_ID:-price_placeholder_pro_yearly}"
+PRICE_ID="${STRIPE_PRICE_ID:-price_placeholder_professional_yearly}"
 CUSTOMER_ID="cus_test_$(openssl rand -hex 8)"
 CUSTOMER_EMAIL="test-${TIMESTAMP}@complianceos-test.com"
 
@@ -70,12 +70,13 @@ PAYLOAD=$(cat <<EOF
         "email": "${CUSTOMER_EMAIL}"
       },
       "metadata": {
-        "tier": "${TIER:-pro}",
+        "tier": "${TIER:-professional}",
+        "plan": "${TIER:-professional}",
         "clientId": "${CLIENT_ID:-42}",
         "userId": "${USER_ID:-1}"
       },
       "subscription": "${SUBSCRIPTION_ID}",
-      "amount_total": ${AMOUNT:-49900},
+      "amount_total": ${AMOUNT:-199000},
       "currency": "usd",
       "created": ${TIMESTAMP}
     }

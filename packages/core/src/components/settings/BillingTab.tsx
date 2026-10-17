@@ -26,6 +26,7 @@ import { trpc } from '@/lib/trpc';
 import { useBilling } from '@/hooks/useBilling';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
+import { PLAN_PRICING, FOUNDING_DISCOUNT_PERCENT, SALES_MAILTO, type CheckoutPlan } from '@/lib/billingPlans';
 
 interface BillingTabProps {
   clientId: number;
@@ -44,19 +45,20 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
   const { billingEnabled } = useBilling();
   const createCheckout = trpc.billing.createCheckout.useMutation();
   const createPortal = trpc.billing.createPortal.useMutation();
+  const { data: checkoutOptions } = trpc.licenses.getCheckoutOptions.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+  const founding = checkoutOptions?.foundingOfferActive ?? true;
 
   const currentTier = client?.planTier || 'core';
   const isEnterprise = currentTier === 'enterprise';
   const isPro = currentTier === 'consultant' || currentTier === 'pro';
   const isCore = !isEnterprise && !isPro;
 
-  const handleCheckout = async (tier: 'consultant' | 'enterprise') => {
+  const handleCheckout = async (tier: CheckoutPlan) => {
     setIsProcessingCheckout(true);
     try {
       const { url } = await createCheckout.mutateAsync({
         clientId,
         tier,
-        interval: 'month',
         successUrl: `${window.location.origin}/clients/${clientId}/settings?tab=billing&checkout=success`,
         cancelUrl: `${window.location.origin}/clients/${clientId}/settings?tab=billing&checkout=cancel`,
       });
@@ -122,19 +124,19 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
                 <h2 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2.5">
                   <span>
                     {isEnterprise
-                      ? "ComplianceOS Enterprise (Managed)"
+                      ? "ComplianceOS Enterprise"
                       : isPro
-                      ? "ComplianceOS Growth (vCISO Guided)"
-                      : "ComplianceOS Core (Self-Service)"}
+                      ? "ComplianceOS Professional"
+                      : "ComplianceOS Community"}
                   </span>
                   <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse" />
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1 max-w-xl">
                   {isEnterprise
-                    ? "Full-service compliance orchestration with dedicated advisory, custom controls, and audit defense."
+                    ? "Custom deployment with air-gapped options, a named support contact and executive board reporting."
                     : isPro
-                    ? "AI-assisted autonomous compliance with weekly guided roadmap and multi-tenant scaling."
-                    : "Foundational compliance platform with core frameworks, automated evidence collection, and gap assessment."}
+                    ? "The complete GRC platform with unlimited workspaces and users, all frameworks, updates and priority support."
+                    : "Free, open-source core GRC modules with standard framework controls and one workspace."}
                 </p>
               </div>
             </div>
@@ -167,13 +169,13 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
             <div>
               <p className="text-xs text-muted-foreground font-medium">Organization Capacity</p>
               <p className="text-lg font-bold text-foreground mt-0.5">
-                {isEnterprise ? "Unlimited" : isPro ? "Up to 10 Workspaces" : "1 Organization"}
+                {isEnterprise || isPro ? "Unlimited Workspaces" : "1 Workspace"}
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">Compliance Frameworks</p>
               <p className="text-lg font-bold text-foreground mt-0.5">
-                {isEnterprise ? "All 40+ Standards" : isPro ? "SOC 2, ISO, HIPAA, NIST" : "SOC 2 & Core"}
+                {isEnterprise || isPro ? "All Frameworks" : "Standard Controls"}
               </p>
             </div>
             <div>
@@ -183,9 +185,9 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Audit Defense Guarantee</p>
+              <p className="text-xs text-muted-foreground font-medium">Support</p>
               <p className="text-lg font-bold text-foreground mt-0.5">
-                {isEnterprise ? "100% Guaranteed" : "Included in Enterprise"}
+                {isEnterprise ? "Named Contact" : isPro ? "Priority" : "Community"}
               </p>
             </div>
           </div>
@@ -214,7 +216,7 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
             <CardHeader className="p-6 pb-4">
               <div className="flex items-center justify-between mb-2">
                 <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5 bg-muted text-foreground">
-                  Startup & Core
+                  Free
                 </Badge>
                 {isCore && (
                   <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
@@ -222,20 +224,24 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-xl font-bold text-foreground">Self-Service</CardTitle>
+              <CardTitle className="text-xl font-bold text-foreground">{PLAN_PRICING.community.name}</CardTitle>
+              <p className="mt-1">
+                <span className="text-2xl font-black text-foreground">{PLAN_PRICING.community.label}</span>
+                <span className="text-xs text-muted-foreground"> {PLAN_PRICING.community.cadence}</span>
+              </p>
               <CardDescription className="text-xs text-muted-foreground mt-1">
-                Foundational automated compliance for startups preparing for their first audit.
+                Open-source core for solo security researchers and developers (AGPLv3).
               </CardDescription>
             </CardHeader>
 
             <CardContent className="p-6 pt-2 space-y-3 flex-1">
               <p className="text-xs font-bold text-foreground/80 uppercase tracking-wider mb-2">Includes:</p>
-              <PlanFeature text="1 Dedicated Organization Workspace" />
-              <PlanFeature text="SOC 2 Type I & II and ISO 27001 readiness" />
-              <PlanFeature text="Continuous Automated Evidence Collection" />
-              <PlanFeature text="Pre-built Security & Privacy Policy Library" />
-              <PlanFeature text="Vendor Risk & Asset Inventory Registers" />
-              <PlanFeature text="Community & Documentation Support" />
+              <PlanFeature text="Core GRC modules (Risks & Policies)" />
+              <PlanFeature text="Standard framework controls" />
+              <PlanFeature text="Single-command Docker deploy" />
+              <PlanFeature text="Bring-your-own AI API keys" />
+              <PlanFeature text="1 workspace" />
+              <PlanFeature text="Community GitHub support" />
             </CardContent>
 
             <CardFooter className="p-6 pt-0">
@@ -271,7 +277,7 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
             <CardHeader className="p-6 pb-4">
               <div className="flex items-center justify-between mb-2">
                 <Badge className="bg-primary/10 text-primary border border-primary/20 text-xs font-semibold px-2 py-0.5">
-                  vCISO Guided
+                  Yearly
                 </Badge>
                 {isPro && (
                   <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
@@ -279,22 +285,34 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-xl font-bold text-foreground">ComplianceOS Growth</CardTitle>
+              <CardTitle className="text-xl font-bold text-foreground">{PLAN_PRICING.professional.name}</CardTitle>
+              <p className="mt-1">
+                {founding && (
+                  <span className="text-sm text-muted-foreground line-through mr-1.5">{PLAN_PRICING.professional.label}</span>
+                )}
+                <span className="text-2xl font-black text-foreground">
+                  {founding ? PLAN_PRICING.professional.foundingLabel : PLAN_PRICING.professional.label}
+                </span>
+                <span className="text-xs text-muted-foreground"> {PLAN_PRICING.professional.cadence}</span>
+              </p>
               <CardDescription className="text-xs text-muted-foreground mt-1">
-                Guided compliance with AI Copilot automation and weekly security advisory roadmap.
+                {founding
+                  ? `${FOUNDING_DISCOUNT_PERCENT}% founding rate, locked while your subscription stays active. `
+                  : ''}
+                Complete GRC platform, same price for everyone.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="p-6 pt-2 space-y-3 flex-1">
               <p className="text-xs font-bold text-foreground/80 uppercase tracking-wider mb-2">
-                Everything in Core, plus:
+                Everything in Community, plus:
               </p>
-              <PlanFeature text="Up to 10 Client Organization Workspaces" highlight />
-              <PlanFeature text="Autonomous AI Questionnaire Auto-Completer (SIG, CAIQ)" highlight />
-              <PlanFeature text="Weekly Advisor-Led Compliance Action Plan" highlight />
-              <PlanFeature text="Multi-Framework Harmonization & Crosswalk Mapping" />
-              <PlanFeature text="Real-time Compliance Drift & Incident Alerts" />
-              <PlanFeature text="Priority 24/7 Support with 1-hour SLA" />
+              <PlanFeature text="Unlimited workspaces & users" highlight />
+              <PlanFeature text="All frameworks: SOC 2, ISO 27001, HIPAA, GDPR, NIST" highlight />
+              <PlanFeature text="AI policy generator & security questionnaire responder" highlight />
+              <PlanFeature text="Vendor risk management & security reviews" />
+              <PlanFeature text="White-label reports & evidence export binders" />
+              <PlanFeature text="Priority support & update channel" />
             </CardContent>
 
             <CardFooter className="p-6 pt-0">
@@ -306,14 +324,25 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
                   Manage Subscription
                 </Button>
               ) : (
-                <Button
-                  onClick={() => handleCheckout('consultant')}
-                  disabled={isProcessingCheckout}
-                  className="w-full text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs gap-2"
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  {isProcessingCheckout ? "Connecting to Stripe..." : "Upgrade to Growth"}
-                </Button>
+                <div className="w-full space-y-2">
+                  <Button
+                    onClick={() => handleCheckout('professional')}
+                    disabled={isProcessingCheckout}
+                    className="w-full text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs gap-2"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    {isProcessingCheckout ? "Connecting to Stripe..." : "Upgrade to Professional"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleCheckout('lifetime')}
+                    disabled={isProcessingCheckout}
+                    className="w-full text-xs font-medium rounded-xl"
+                  >
+                    Or pay once: Lifetime {founding ? PLAN_PRICING.lifetime.foundingLabel : PLAN_PRICING.lifetime.label}
+                    {founding ? ` (was ${PLAN_PRICING.lifetime.label})` : ''}
+                  </Button>
+                </div>
               )}
             </CardFooter>
           </Card>
@@ -329,7 +358,7 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
             <CardHeader className="p-6 pb-4">
               <div className="flex items-center justify-between mb-2">
                 <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
-                  Full Service
+                  Custom
                 </Badge>
                 {isEnterprise && (
                   <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
@@ -337,9 +366,13 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-xl font-bold text-foreground">Fully Managed Enterprise</CardTitle>
+              <CardTitle className="text-xl font-bold text-foreground">{PLAN_PRICING.enterprise.name}</CardTitle>
+              <p className="mt-1">
+                <span className="text-2xl font-black text-foreground">{PLAN_PRICING.enterprise.label}</span>
+                <span className="text-xs text-muted-foreground"> {PLAN_PRICING.enterprise.cadence}</span>
+              </p>
               <CardDescription className="text-xs text-muted-foreground mt-1">
-                Full white-glove compliance outsourcing, dedicated compliance officer, and audit liaison.
+                For large organizations: tailored deployment, priced per year.
               </CardDescription>
             </CardHeader>
 
@@ -347,19 +380,17 @@ export function BillingTab({ clientId, clientName }: BillingTabProps) {
               <p className="text-xs font-bold text-foreground/80 uppercase tracking-wider mb-2">
                 Enterprise Capabilities:
               </p>
-              <PlanFeature text="Unlimited Organizations & Custom Frameworks" highlight />
-              <PlanFeature text="Dedicated Fractional CISO & Compliance Manager" highlight />
-              <PlanFeature text="Direct Auditor Representation during Type II Audits" highlight />
-              <PlanFeature text="On-Premise / Air-Gapped Deployment License" />
-              <PlanFeature text="Custom SLA & Executive Board Reporting Studio" />
-              <PlanFeature text="Audit Defense & Guarantee Package" />
+              <PlanFeature text="Everything in Professional" highlight />
+              <PlanFeature text="Air-gapped deployments" highlight />
+              <PlanFeature text="Named support contact" highlight />
+              <PlanFeature text="Executive board reporting dashboards" />
             </CardContent>
 
             <CardFooter className="p-6 pt-0">
               <Button
                 variant="outline"
                 onClick={() => {
-                  window.location.href = "mailto:enterprise@complianceos.com?subject=ComplianceOS%20Enterprise%20Inquiry";
+                  window.location.href = SALES_MAILTO;
                 }}
                 className="w-full text-xs font-semibold rounded-xl border-border gap-2"
               >

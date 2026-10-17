@@ -2,7 +2,7 @@ import { z } from "zod";
 import * as db from "../../db";
 import { clients, users } from "../../schema";
 import { eq } from "drizzle-orm";
-import { createCheckoutSession, createPortalSession } from "../../lib/stripe";
+import { createCheckoutSession, createPortalSession, resolveCheckoutPrice, planForPriceId } from "../../lib/stripe";
 import { config } from "../../lib/config";
 import { TRPCError } from "@trpc/server";
 
@@ -11,8 +11,9 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
         createCheckout: clientProcedure
             .input(z.object({
                 clientId: z.number(),
-                tier: z.enum(['consultant', 'enterprise']),
-                interval: z.enum(['month', 'year']).optional().default('month'), // Added interval
+                // Professional ($1,990/yr) or Lifetime ($4,990 one-time). Enterprise is contact sales.
+                // "consultant"/"pro" are accepted from older clients and map to Professional.
+                tier: z.enum(['professional', 'lifetime', 'lifetime_support', 'consultant', 'pro']),
                 successUrl: z.string(),
                 cancelUrl: z.string(),
             }))
@@ -22,36 +23,29 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
 
                 if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
 
-                // Map tier to price ID
-                let priceId;
-                if (input.tier === 'consultant') {
-                    priceId = input.interval === 'year'
-                        ? config.stripe.prices.guided.yearly
-                        : config.stripe.prices.guided.monthly;
-                } else {
-                    priceId = config.stripe.prices.managed;
-                }
-
-                if (!priceId) {
+                const resolved = resolveCheckoutPrice(input.tier);
+                if (!resolved) {
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
-                        message: `Stripe Price ID for tier ${input.tier} is not configured.`
+                        message: `Stripe price for ${input.tier} is not configured on this instance.`
                     });
                 }
 
                 try {
                     const session = await createCheckoutSession(
                         client.stripeCustomerId || undefined,
-                        priceId,
+                        resolved.priceId,
                         input.successUrl,
                         input.cancelUrl,
                         {
                             clientId: String(input.clientId),
-                            tier: input.tier,
+                            tier: resolved.plan,
+                            plan: resolved.plan,
+                            founding: String(resolved.founding),
                             customerEmail: ctx.user.email,
                             userId: String(ctx.user.id)
                         },
-                        'subscription'
+                        resolved.mode
                     );
                     return { url: session.url };
                 } catch (error: any) {
@@ -65,76 +59,40 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
 
         createUserCheckout: publicProcedure.use(isAuthed)
             .input(z.object({
-                tier: z.enum(['consultant', 'enterprise']),
-                interval: z.enum(['month', 'year']).optional().default('month'), // Added interval
+                tier: z.enum(['professional', 'lifetime', 'lifetime_support', 'consultant', 'pro']),
                 successUrl: z.string(),
                 cancelUrl: z.string(),
             }))
             .mutation(async ({ input, ctx }: any) => {
+                const resolved = resolveCheckoutPrice(input.tier);
+                if (!resolved) {
+                    console.error(`[Billing] Missing Stripe price for ${input.tier}. Set STRIPE_PRICE_* (see .env.example).`);
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Price configuration missing for ${input.tier}. Please contact support.`
+                    });
+                }
+
                 try {
-                    console.log(`[Billing] Starting createUserCheckout for user ${ctx.user.id}, tier: ${input.tier}`);
-                    console.log(`[Billing] Checking Stripe key availability: ${!!process.env.STRIPE_SECRET_KEY}`);
-
-                    let priceId;
-                    if (input.tier === 'consultant') {
-                        priceId = input.interval === 'year'
-                            ? config.stripe.prices.guided.yearly
-                            : config.stripe.prices.guided.monthly;
-                    } else {
-                        priceId = config.stripe.prices.managed;
-                    }
-
-                    console.log(`[Billing] Resolved priceId: ${priceId}`);
-
-                    if (!priceId) {
-                        console.error(`[Billing] Missing price ID for tier ${input.tier}. Check your .env configuration.`);
-                        console.error(`[Billing] Available Prices: `, {
-                            startup_monthly: config.stripe.prices.startup.monthly,
-                            startup_yearly: config.stripe.prices.startup.yearly,
-                            guided_monthly: config.stripe.prices.guided.monthly,
-                            guided_yearly: config.stripe.prices.guided.yearly,
-                            managed: config.stripe.prices.managed
-                        });
-                        throw new TRPCError({
-                            code: 'INTERNAL_SERVER_ERROR',
-                            message: `Price configuration missing for tier ${input.tier}. Please contact support.`
-                        });
-                    }
-
-                    // Update user to pending/incomplete status for the selected tier immediately
-                    // Update user to pending/incomplete status for the selected tier immediately
-                    console.log(`[Billing] Updating user ${ctx.user.id} status... (SKIPPED FOR DEBUGGING)`);
-                    const d = await db.getDb();
-                    // await d.update(users)
-                    //     .set({
-                    //         planTier: input.tier,
-                    //         subscriptionStatus: 'incomplete', // Will be updated to 'active' by webhook on success
-                    //         updatedAt: new Date()
-                    //     })
-                    //     .where(eq(users.id, ctx.user.id));
-
-                    console.log(`[Billing] Creating Stripe Session...`);
                     const session = await createCheckoutSession(
                         ctx.user.stripeCustomerId || undefined,
-                        priceId,
+                        resolved.priceId,
                         input.successUrl,
                         input.cancelUrl,
                         {
                             userId: String(ctx.user.id),
-                            tier: input.tier,
+                            tier: resolved.plan,
+                            plan: resolved.plan,
+                            founding: String(resolved.founding),
                             customerEmail: ctx.user.email,
                             type: 'user'
                         },
-                        'subscription'
+                        resolved.mode
                     );
-
-                    console.log(`[Billing] Session created: ${session.id}`);
                     return { url: session.url };
                 } catch (error: any) {
-                    console.error('[Billing] CRITICAL ERROR in createUserCheckout:', error);
-                    // Ensure we return a structured error that tRPC can handle, not a crash
+                    console.error('[Billing] createUserCheckout failed:', error);
                     if (error instanceof TRPCError) throw error;
-
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
                         message: `Checkout failed: ${error.message || 'Please try again or contact support.'}`
@@ -217,15 +175,10 @@ export const createBillingRouter = (t: any, clientProcedure: any, isAuthed: any,
                     const sub = subscriptions.data[0];
                     console.log(`[Billing] Found subscription ${sub.id} with status ${sub.status}`);
 
-                    // Map Stripe price to internal Tier
-                    // This is a rough mapping, ideally we'd look up the price ID in our config
+                    // Map the Stripe price back to the plan tier stored on the user
                     let tier = user.planTier;
-                    const priceId = sub.items.data[0].price.id;
-
-                    // Reverse lookup price (simple check)
-                    const p = config.stripe.prices;
-                    if (priceId === p.startup.monthly || priceId === p.startup.yearly) tier = 'startup';
-                    else if (priceId === p.guided.monthly || priceId === p.guided.yearly) tier = 'guided'; // or pro
+                    const plan = planForPriceId(sub.items.data[0]?.price?.id);
+                    if (plan === 'professional') tier = 'pro';
 
                     // Update DB
                     await d.update(users)

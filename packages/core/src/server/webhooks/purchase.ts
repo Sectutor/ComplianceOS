@@ -48,7 +48,15 @@ purchaseWebhookRouter.post('/stripe', express.raw({ type: 'application/json' }),
         const customerEmail = session.customer_details?.email || 'unknown';
         const metadata = session.metadata || {};
 
-        const tier = metadata.tier || 'pro';
+        // plan: professional ($1,990/yr subscription) | lifetime ($4,990 one-time) | lifetime_support ($490/yr)
+        const plan = metadata.plan || metadata.tier || 'professional';
+        const tier = plan;
+        if (plan === 'lifetime_support') {
+          // Support renewal for an existing Lifetime licence: no new licence key to issue.
+          logger.info({ message: '[Stripe] Lifetime support renewal purchased', email: customerEmail, sessionId: session.id });
+          break;
+        }
+        const isLifetime = plan === 'lifetime';
         const licenseKey = `COM-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
 
         logger.info({
@@ -72,13 +80,17 @@ purchaseWebhookRouter.post('/stripe', express.raw({ type: 'application/json' }),
 
         // Cache locally for immediate use
         cacheLicense(licenseKey, `stripe-${session.id}`, {
-          type: tier as any,
+          // Professional and Lifetime are both full commercial licences with unlimited
+          // users and workspaces; Professional renews yearly, Lifetime never expires.
+          type: 'enterprise',
           status: 'valid',
           issuedTo: customerEmail,
           issuedAt: new Date(),
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          maxUsers: tier === 'enterprise' ? 9999 : 50,
-          maxClients: tier === 'enterprise' ? 9999 : 2,
+          expiresAt: isLifetime
+            ? new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000)
+            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          maxUsers: 9999,
+          maxClients: 9999,
           features: [],
         });
 

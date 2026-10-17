@@ -302,7 +302,7 @@ export default function Clients() {
                     </Button>
                   )}
                   {isAtLimit && (
-                    <Button onClick={() => upgradeAccount('pro')} disabled={isBillingLoading}>
+                    <Button onClick={() => upgradeAccount('professional')} disabled={isBillingLoading}>
                       Upgrade Plan
                     </Button>
                   )}

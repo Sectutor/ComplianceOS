@@ -6,7 +6,8 @@ import { licenseActivations } from "../../schema/licenses";
 import { eq, desc, and } from "drizzle-orm";
 import { validateLicenseFile, parseLicenseFile, verifyLicenseSignature } from "../../lib/license/license-file";
 import { config } from "../../lib/config";
-import { createCheckoutSession } from "../../lib/stripe";
+import { createCheckoutSession, resolveCheckoutPrice, isFoundingOfferActive } from "../../lib/stripe";
+import { normalizeCheckoutPlan } from "../../lib/billingPlans";
 import os from "os";
 import crypto from "crypto";
 
@@ -249,49 +250,63 @@ export const createLicenseActivationRouter = (t: any, protectedProcedure: any, p
         };
       }),
 
+    /**
+     * Pricing state for the upgrade UI: whether the founding offer applies and whether
+     * self-serve Stripe checkout is configured on this instance.
+     */
+    getCheckoutOptions: protectedProcedure.query(async () => {
+      const stripeReady = !!config.stripe?.secretKey;
+      return {
+        foundingOfferActive: isFoundingOfferActive(),
+        checkoutAvailable: {
+          professional: stripeReady && !!resolveCheckoutPrice("professional"),
+          lifetime: stripeReady && !!resolveCheckoutPrice("lifetime"),
+        },
+        pricingUrl: config.publicPricingUrl,
+      };
+    }),
+
     createCheckoutSession: protectedProcedure
       .input(
         z.object({
-          tier: z.enum(["pro", "enterprise"]),
-          interval: z.enum(["month", "year"]).default("year"),
+          // "pro" is accepted for older clients and maps to Professional.
+          tier: z.enum(["professional", "lifetime", "lifetime_support", "pro"]),
           successUrl: z.string().url().optional(),
           cancelUrl: z.string().url().optional(),
         })
       )
       .mutation(async ({ input, ctx }: any) => {
+        const plan = normalizeCheckoutPlan(input.tier) || "professional";
         const origin = ctx.req?.headers?.origin || ctx.req?.headers?.referer || "http://localhost:3002";
         const successUrl = input.successUrl || `${origin}/settings/license?session_id={CHECKOUT_SESSION_ID}&activated=true`;
         const cancelUrl = input.cancelUrl || `${origin}/settings/license?canceled=true`;
+        const fallbackUrl = `${config.publicPricingUrl}?plan=${encodeURIComponent(plan)}`;
+
+        const resolved = resolveCheckoutPrice(plan);
+        if (!config.stripe?.secretKey || !resolved) {
+          // Self-serve checkout is not configured on this instance: send the buyer to the public pricing page.
+          return { url: fallbackUrl, fallback: true };
+        }
 
         try {
-          const priceId = input.tier === "enterprise"
-            ? config.stripe?.prices?.managed || "price_enterprise_yearly"
-            : config.stripe?.prices?.guided?.yearly || "price_pro_yearly";
-
-          if (config.stripe?.secretKey) {
-            const session = await createCheckoutSession(
-              undefined,
-              priceId,
-              successUrl,
-              cancelUrl,
-              {
-                userId: String(ctx.user?.id || ""),
-                customerEmail: ctx.user?.email || "",
-                tier: input.tier,
-                plan: `${input.tier}_${input.interval}`,
-              },
-              "subscription"
-            );
-            return { url: session.url };
-          }
-
-          const portalUrl = `https://complianceos.com/pricing?tier=${input.tier}&interval=${input.interval}&email=${encodeURIComponent(ctx.user?.email || "")}`;
-          return { url: portalUrl };
+          const session = await createCheckoutSession(
+            undefined,
+            resolved.priceId,
+            successUrl,
+            cancelUrl,
+            {
+              userId: String(ctx.user?.id || ""),
+              customerEmail: ctx.user?.email || "",
+              tier: resolved.plan,
+              plan: resolved.plan,
+              founding: String(resolved.founding),
+            },
+            resolved.mode
+          );
+          return { url: session.url, fallback: false };
         } catch (error: any) {
-          console.error("[LicenseActivation] Stripe Checkout Error:", error);
-          return {
-            url: `https://complianceos.com/pricing?tier=${input.tier}&interval=${input.interval}&email=${encodeURIComponent(ctx.user?.email || "")}`,
-          };
+          console.error("[LicenseActivation] Stripe Checkout Error:", error?.message || error);
+          return { url: fallbackUrl, fallback: true };
         }
       }),
 
