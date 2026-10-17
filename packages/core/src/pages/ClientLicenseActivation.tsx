@@ -699,7 +699,7 @@ export default function ClientLicenseActivation() {
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm">Trial</CardTitle>
-                      <CardDescription>30-Day Evaluation</CardDescription>
+                      <CardDescription>14-Day Free Trial</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">$0</div>
