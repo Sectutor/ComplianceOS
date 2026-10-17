@@ -20,7 +20,7 @@ So we built ComplianceOS. It's an open source (AGPLv3) GRC platform that runs on
 - Threat intel feeds
 - Unlimited users. Self-host. No restrictions.
 
-**Premium ($499/yr) adds:**
+**Professional ($1,990/yr, $1,592 founding; or Lifetime $4,990 one-time) adds:**
 - AI drafting (policy/risk/control generation)
 - "Get ISO 27001 in 30 Days" guided wizard
 - Privacy center (ROPA, DSAR, DPIA)
